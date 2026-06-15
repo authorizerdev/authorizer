@@ -45,7 +45,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {

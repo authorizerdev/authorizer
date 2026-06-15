@@ -72,7 +72,9 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 
 		user.Roles = strings.Join(inputRoles, ",")
 		user, _ = g.StorageProvider.AddUser(ctx, user)
-		go g.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
+		go func() {
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
+		}()
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login
@@ -193,11 +195,13 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go g.EmailProvider.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]interface{}{
-			"user":             user.ToMap(),
-			"organization":     utils.GetOrganization(g.Config),
-			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
-		})
+		go func() {
+			_ = g.EmailProvider.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]interface{}{
+				"user":             user.ToMap(),
+				"organization":     utils.GetOrganization(g.Config),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+			})
+		}()
 	}
 
 	g.AuditProvider.LogEvent(audit.Event{

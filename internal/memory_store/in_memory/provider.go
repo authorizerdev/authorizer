@@ -23,7 +23,7 @@ type provider struct {
 	stateStore      *stores.StateStore
 }
 
-// NewInMemoryStore returns a new in-memory store.
+// NewInMemoryProvider returns a new in-memory store.
 func NewInMemoryProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	return &provider{
 		config:          cfg,

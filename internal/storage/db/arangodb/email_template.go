@@ -57,7 +57,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
@@ -86,7 +86,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if emailTemplate == nil {
@@ -113,7 +113,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if emailTemplate == nil {

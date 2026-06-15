@@ -41,7 +41,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if verificationRequest == nil {
@@ -69,7 +69,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if verificationRequest == nil {
@@ -97,7 +97,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {

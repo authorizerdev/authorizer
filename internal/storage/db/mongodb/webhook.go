@@ -65,7 +65,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	for cursor.Next(ctx) {
 		var webhook *schemas.Webhook
 		err := cursor.Decode(&webhook)
@@ -100,7 +100,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	for cursor.Next(ctx) {
 		var webhook *schemas.Webhook
 		err := cursor.Decode(&webhook)

@@ -130,8 +130,8 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 
 	if cfg.DatabaseType == constants.DbTypeDynamoDB {
 		// Match storage tests: use static creds from config instead of ambient AWS_* env.
-		os.Unsetenv("AWS_ACCESS_KEY_ID")
-		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+		_ = os.Unsetenv("AWS_ACCESS_KEY_ID")
+		_ = os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	}
 
 	if cfg.DatabaseType == constants.DbTypeSqlite || cfg.DatabaseType == constants.DbTypeLibSQL {

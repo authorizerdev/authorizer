@@ -62,7 +62,7 @@ func (p *provider) GetAllMFASessionsByUserID(ctx context.Context, userId string)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	err = cursor.All(ctx, &sessions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode MFA sessions: %w", err)
@@ -86,7 +86,7 @@ func (p *provider) GetAllMFASessions(ctx context.Context) ([]*schemas.MFASession
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	err = cursor.All(ctx, &sessions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode MFA sessions: %w", err)

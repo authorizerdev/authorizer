@@ -70,7 +70,7 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -94,7 +94,7 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -120,7 +120,7 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -145,7 +145,7 @@ func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -228,7 +228,7 @@ func (p *provider) DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, k
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.MFASession).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.MFASession).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -275,7 +275,7 @@ func (p *provider) CleanExpiredMFASessions(ctx context.Context) error {
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.MFASession).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.MFASession).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }
@@ -325,7 +325,7 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 			if err := q.Row(&row); err != nil {
 				continue
 			}
-			p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+			_, _ = p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 		}
 	}
 	_, err := p.db.Collection(schemas.Collections.OAuthState).Insert(state.ID, state, &gocb.InsertOptions{Context: ctx})
@@ -370,7 +370,7 @@ func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error 
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		_, _ = p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 	}
 	return nil
 }

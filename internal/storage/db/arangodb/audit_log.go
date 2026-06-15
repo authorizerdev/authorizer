@@ -68,7 +68,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 
 	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()

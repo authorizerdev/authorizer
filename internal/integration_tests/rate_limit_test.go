@@ -154,7 +154,7 @@ func TestInMemoryRateLimitProvider(t *testing.T) {
 		Log: &logger,
 	})
 	require.NoError(t, err)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	ctx := context.Background()
 
@@ -169,7 +169,7 @@ func TestInMemoryRateLimitProvider(t *testing.T) {
 	t.Run("should_deny_after_burst", func(t *testing.T) {
 		// Use a fresh IP to get a clean limiter
 		for i := 0; i < 3; i++ {
-			provider.Allow(ctx, "5.6.7.8")
+			_, _ = provider.Allow(ctx, "5.6.7.8")
 		}
 		allowed, err := provider.Allow(ctx, "5.6.7.8")
 		require.NoError(t, err)

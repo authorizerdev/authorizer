@@ -58,7 +58,7 @@ func TestEndpointTest(t *testing.T) {
 		err := decoder.Decode(&requestData)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":"invalid request body"}`))
+			_, _ = w.Write([]byte(`{"error":"invalid request body"}`))
 			return
 		}
 
@@ -79,7 +79,7 @@ func TestEndpointTest(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		response := fmt.Sprintf(`{"received_event":"%s","custom_header":"%s"}`,
 			lastReceivedRequest.EventName, r.Header.Get("X-Custom-Header"))
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response))
 	}))
 	defer testServer.Close()
 
@@ -167,7 +167,7 @@ func TestEndpointTest(t *testing.T) {
 		userCreatedServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			decoder := json.NewDecoder(r.Body)
 			var requestData map[string]interface{}
-			decoder.Decode(&requestData)
+			_ = decoder.Decode(&requestData)
 
 			eventName := requestData["event_name"].(string)
 			customHeader := r.Header.Get("X-Custom-Header")
@@ -176,7 +176,7 @@ func TestEndpointTest(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			response := fmt.Sprintf(`{"received_event":"%s","custom_header":"%s"}`,
 				eventName, customHeader)
-			w.Write([]byte(response))
+			_, _ = w.Write([]byte(response))
 		}))
 		defer userCreatedServer.Close()
 

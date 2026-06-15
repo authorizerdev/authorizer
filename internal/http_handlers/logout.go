@@ -113,7 +113,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 			sessionToken = loginMethod + ":" + userID
 		}
 
-		h.MemoryStoreProvider.DeleteUserSession(sessionToken, sessionData.Nonce)
+		_ = h.MemoryStoreProvider.DeleteUserSession(sessionToken, sessionData.Nonce)
 		cookie.DeleteSession(gc, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
 		metrics.ActiveSessions.Dec()

@@ -43,12 +43,12 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	cTransport, sTransport := mcp.NewInMemoryTransports()
 	serverSession, err := mcpSrv.MCPServer().Connect(ctx, sTransport, nil)
 	require.NoError(t, err)
-	defer serverSession.Close()
+	defer func() { _ = serverSession.Close() }()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 	clientSession, err := client.Connect(ctx, cTransport, nil)
 	require.NoError(t, err)
-	defer clientSession.Close()
+	defer func() { _ = clientSession.Close() }()
 
 	// tools/list — should include the proto-annotated MCP tools:
 	// meta, profile, check_permissions, list_permissions. The single

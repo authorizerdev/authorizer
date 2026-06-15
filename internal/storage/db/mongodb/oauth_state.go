@@ -26,7 +26,7 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	}
 	collection := p.db.Collection(schemas.Collections.OAuthState, options.Collection())
 	// Delete existing state with the same key first (upsert behavior)
-	collection.DeleteMany(ctx, bson.M{"state_key": state.StateKey})
+	_, _ = collection.DeleteMany(ctx, bson.M{"state_key": state.StateKey})
 	_, err := collection.InsertOne(ctx, state)
 	return err
 }
@@ -57,7 +57,7 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	err = cursor.All(ctx, &states)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode OAuth states: %w", err)

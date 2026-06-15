@@ -120,13 +120,11 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 
 	isPasswordChanging := false
 	if params.NewPassword != nil && params.ConfirmNewPassword == nil {
-		isPasswordChanging = true
 		log.Debug().Msg("confirm password is empty")
 		return nil, fmt.Errorf("confirm password is required")
 	}
 
 	if params.ConfirmNewPassword != nil && params.NewPassword == nil {
-		isPasswordChanging = true
 		log.Debug().Msg("new password is empty")
 		return nil, fmt.Errorf("new password is required")
 	}
@@ -202,7 +200,7 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 			return nil, fmt.Errorf("user with this email address already exists")
 		}
 
-		go g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
+		go func() { _ = g.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
 		go cookie.DeleteSession(gc, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 
 		user.Email = &newEmail
@@ -244,11 +242,13 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 			}
 
 			// exec it as go routine so that we can reduce the api latency
-			go g.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]interface{}{
-				"user":             user.ToMap(),
-				"organization":     utils.GetOrganization(g.Config),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
-			})
+			go func() {
+				_ = g.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]interface{}{
+					"user":             user.ToMap(),
+					"organization":     utils.GetOrganization(g.Config),
+					"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+				})
+			}()
 
 		}
 	}

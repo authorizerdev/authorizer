@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// ValidatePassword to validate the password against the following policy
+// IsValidPassword validates the password against the following policy
 // min char length: 6
 // max char length: 36
 // at least one upper case letter

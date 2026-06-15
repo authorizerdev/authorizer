@@ -41,7 +41,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 	if err != nil {
 		return nil, err
 	}
-	png.Encode(&buf, img)
+	_ = png.Encode(&buf, img)
 	encodedText := crypto.EncryptB64(buf.String())
 	secret := key.Secret()
 	recoveryCodes := []string{}

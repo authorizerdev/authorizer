@@ -374,7 +374,7 @@ func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, param
 		log.Debug().Err(err).Msg("error making request")
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

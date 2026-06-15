@@ -258,11 +258,11 @@ func init() {
 	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "Connection URI for an overridden --fga-store (file: URI for sqlite, DSN for postgres/mysql). Ignored when FGA reuses the main database")
 
 	// Deprecated flags
-	f.MarkDeprecated("database_url", "use --database-url instead")
-	f.MarkDeprecated("database_type", "use --database-type instead")
-	f.MarkDeprecated("env_file", "no more supported")
-	f.MarkDeprecated("log_level", "use --log-level instead")
-	f.MarkDeprecated("redis_url", "use --redis-url instead")
+	_ = f.MarkDeprecated("database_url", "use --database-url instead")
+	_ = f.MarkDeprecated("database_type", "use --database-type instead")
+	_ = f.MarkDeprecated("env_file", "no more supported")
+	_ = f.MarkDeprecated("log_level", "use --log-level instead")
+	_ = f.MarkDeprecated("redis_url", "use --redis-url instead")
 }
 
 // applyFlagDefaults sets config and server fields to their flag defaults when the
@@ -486,7 +486,7 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create rate limit provider")
 	}
-	defer rateLimitProvider.Close()
+	defer func() { _ = rateLimitProvider.Close() }()
 
 	// Embedded OpenFGA authorization engine (optional; nil when --fga-store
 	// is not configured). NOTE: multi-replica deployments should prefer

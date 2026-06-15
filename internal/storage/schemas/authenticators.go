@@ -2,7 +2,7 @@ package schemas
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
-// Authenticators model for db
+// Authenticator model for db
 type Authenticator struct {
 	Key           string  `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID            string  `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`

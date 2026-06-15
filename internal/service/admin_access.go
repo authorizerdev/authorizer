@@ -46,8 +46,8 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 	}
 
 	go func() {
-		p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
-		p.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
+		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
 	}()
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminAccessRevokedEvent,
@@ -91,7 +91,7 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
-	go p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
+	go func() { _ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user) }()
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminAccessEnabledEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
@@ -235,11 +235,13 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
-			"user":             user.ToMap(),
-			"organization":     utils.GetOrganization(p.Config),
-			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
-		})
+		go func() {
+			_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
+				"user":             user.ToMap(),
+				"organization":     utils.GetOrganization(p.Config),
+				"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
+			})
+		}()
 	}
 
 	invitedUsers := []*model.User{}

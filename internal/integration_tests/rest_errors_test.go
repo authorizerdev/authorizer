@@ -82,7 +82,7 @@ func TestRESTErrorEnvelopeAndStatusCodes(t *testing.T) {
 		resp, err := http.Post(base+"/v1/signup", "application/json",
 			strings.NewReader(`{"password":"Test@123","confirm_password":"Test@123"}`))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		env := readEnvelope(t, resp)
@@ -93,7 +93,7 @@ func TestRESTErrorEnvelopeAndStatusCodes(t *testing.T) {
 	t.Run("profile without auth -> 401 unauthenticated", func(t *testing.T) {
 		resp, err := http.Get(base + "/v1/profile")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 		env := readEnvelope(t, resp)
@@ -104,7 +104,7 @@ func TestRESTErrorEnvelopeAndStatusCodes(t *testing.T) {
 		resp, err := http.Post(base+"/v1/validate_jwt_token", "application/json",
 			strings.NewReader(`{"token_type":"bogus","token":"x"}`))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		env := readEnvelope(t, resp)
@@ -179,7 +179,7 @@ func TestErrorMessageConsistencyAcrossProtocols(t *testing.T) {
 	resp, err := http.Post(ts.URL+"/v1/signup", "application/json",
 		strings.NewReader(`{"password":"Test@123","confirm_password":"Test@123"}`))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	require.Equal(t, wantMsg, readEnvelope(t, resp).Message, "REST envelope message")
 }
 
@@ -191,14 +191,14 @@ func TestRESTLogoutIsPost(t *testing.T) {
 	// GET is not a registered method for /v1/logout -> gateway returns 405.
 	getResp, err := http.Get(base + "/v1/logout")
 	require.NoError(t, err)
-	defer getResp.Body.Close()
+	defer func() { _ = getResp.Body.Close() }()
 	require.Equal(t, http.StatusMethodNotAllowed, getResp.StatusCode)
 
 	// POST reaches the handler; with no session it is unauthenticated (401),
 	// proving the route exists and errors flow through the envelope.
 	postResp, err := http.Post(base+"/v1/logout", "application/json", strings.NewReader(`{}`))
 	require.NoError(t, err)
-	defer postResp.Body.Close()
+	defer func() { _ = postResp.Body.Close() }()
 	require.Equal(t, http.StatusUnauthorized, postResp.StatusCode)
 	env := readEnvelope(t, postResp)
 	require.Equal(t, "unauthenticated", env.Code)

@@ -90,6 +90,6 @@ func (p *provider) NotifyBackchannelLogout(ctx context.Context, uri string, cfg 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return nil
 }

@@ -47,7 +47,7 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	if cursor.HasMore() {
 		_, err = cursor.ReadDocument(ctx, &token)
 		if err != nil {
@@ -68,7 +68,7 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -112,7 +112,7 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (p *provider) GetAllSessionTokens(ctx context.Context) ([]*schemas.SessionT
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for cursor.HasMore() {
 		var token schemas.SessionToken
 		_, err = cursor.ReadDocument(ctx, &token)
@@ -188,7 +188,7 @@ func (p *provider) GetMFASessionByUserIDAndKey(ctx context.Context, userId, key 
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	if cursor.HasMore() {
 		_, err = cursor.ReadDocument(ctx, &session)
 		if err != nil {
@@ -209,7 +209,7 @@ func (p *provider) DeleteMFASession(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -224,7 +224,7 @@ func (p *provider) DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, k
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -239,7 +239,7 @@ func (p *provider) GetAllMFASessionsByUserID(ctx context.Context, userId string)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for cursor.HasMore() {
 		var session schemas.MFASession
 		_, err = cursor.ReadDocument(ctx, &session)
@@ -262,7 +262,7 @@ func (p *provider) CleanExpiredMFASessions(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -274,7 +274,7 @@ func (p *provider) GetAllMFASessions(ctx context.Context) ([]*schemas.MFASession
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for cursor.HasMore() {
 		var session schemas.MFASession
 		_, err = cursor.ReadDocument(ctx, &session)
@@ -304,7 +304,7 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	if err != nil {
 		return err
 	}
-	deleteCursor.Close()
+	_ = deleteCursor.Close()
 
 	collection, err := p.db.Collection(ctx, schemas.Collections.OAuthState)
 	if err != nil {
@@ -330,7 +330,7 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	if cursor.HasMore() {
 		_, err = cursor.ReadDocument(ctx, &state)
 		if err != nil {
@@ -351,7 +351,7 @@ func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error 
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -363,7 +363,7 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for cursor.HasMore() {
 		var state schemas.OAuthState
 		_, err = cursor.ReadDocument(ctx, &state)

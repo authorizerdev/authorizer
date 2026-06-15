@@ -87,7 +87,7 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 		// Browsers cannot set these cross-origin without preflight.
 		contentType := c.Request.Header.Get("Content-Type")
 		xRequestedWith := c.Request.Header.Get("X-Requested-With")
-		if !(strings.Contains(contentType, "application/json") || xRequestedWith != "") {
+		if !strings.Contains(contentType, "application/json") && xRequestedWith == "" {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":             "csrf_validation_failed",
 				"error_description": "State-changing requests must include Content-Type: application/json or X-Requested-With header",

@@ -31,13 +31,6 @@ func generateJWKFromKey(algo, jwtPublicKey, kidSuffix, clientID string) (string,
 	return "", nil
 }
 
-// generateJWKBasedOnEnv generates the JWK for the primary key.
-// Retained for backward-compat with any callers that only want the
-// primary; the JWKsHandler below handles both keys.
-func (h *httpProvider) generateJWKBasedOnEnv() (string, error) {
-	return generateJWKFromKey(h.JWTType, h.JWTPublicKey, "", h.ClientID)
-}
-
 func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "JWKsHandler").Logger()
 	return func(c *gin.Context) {

@@ -87,8 +87,8 @@ func TestStorageProvider(t *testing.T) {
 	for _, dbType := range getTestDBTypes() {
 		t.Run("should test storage provider for "+dbType, func(t *testing.T) {
 			if dbType == constants.DbTypeDynamoDB {
-				os.Unsetenv("AWS_ACCESS_KEY_ID")
-				os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+				_ = os.Unsetenv("AWS_ACCESS_KEY_ID")
+				_ = os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 			}
 			cfg := getTestDBConfig(dbType)
 			if dbType == constants.DbTypeCouchbaseDB {

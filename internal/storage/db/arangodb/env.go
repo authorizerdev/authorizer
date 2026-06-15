@@ -52,7 +52,7 @@ func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if env == nil {

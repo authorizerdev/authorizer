@@ -21,7 +21,7 @@ func NewECDSAKey(algo, keyID string) (*ecdsa.PrivateKey, string, string, string,
 	case "ES512":
 		curve = elliptic.P521()
 	default:
-		return nil, "", "", "", errors.New("Invalid algo")
+		return nil, "", "", "", errors.New("invalid algo")
 	}
 	key, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
@@ -115,7 +115,7 @@ func ParseEcdsaPublicKeyFromPemStr(pubPEM string) (*ecdsa.PublicKey, error) {
 	default:
 		break // fall through
 	}
-	return nil, errors.New("Key type is not ECDSA")
+	return nil, errors.New("key type is not ECDSA")
 }
 
 // AsECDSAStr returns private, public key string or error

@@ -353,7 +353,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		//
 		// For max_age=0 or max_age-exceeded, we DO discard the session
 		// because the spec requires actual re-authentication based on time.
-		if forceReauth && !(prompt == "login" && err == nil && sessionToken != "") {
+		if forceReauth && (prompt != "login" || err != nil || sessionToken == "") {
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
@@ -674,13 +674,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			// RFC 6749 §4.1.2: Authorization code response MUST only include code and state
 			params := "code=" + code + "&state=" + state
-			if responseMode == constants.ResponseModeQuery {
+			switch responseMode {
+			case constants.ResponseModeQuery:
 				if strings.Contains(redirectURI, "?") {
 					redirectURI = redirectURI + "&" + params
 				} else {
 					redirectURI = redirectURI + "?" + params
 				}
-			} else if responseMode == constants.ResponseModeFragment {
+			case constants.ResponseModeFragment:
 				if strings.Contains(redirectURI, "#") {
 					redirectURI = redirectURI + "&" + params
 				} else {

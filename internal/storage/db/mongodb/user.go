@@ -88,7 +88,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	for cursor.Next(ctx) {
 		var user *schemas.User
 		err := cursor.Decode(&user)

@@ -85,7 +85,7 @@ func (s *SessionStore) Get(key, subKey string) string {
 	return ""
 }
 
-// Get returns the value of the key in state store
+// GetAll returns all values for the key in the session store.
 func (s *SessionStore) GetAll(key string) []string {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

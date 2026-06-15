@@ -52,7 +52,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 	if shouldCreate {
 		_, err = otpCollection.InsertOne(ctx, otp)
 	} else {
-		_, err = otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.MergeUpdateOptions())
+		_, err = otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.Update())
 	}
 	if err != nil {
 		return nil, err

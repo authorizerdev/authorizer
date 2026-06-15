@@ -47,7 +47,7 @@ func (p *provider) GetTotalDocs(ctx context.Context, collection string) (int64, 
 	queryRes, err := p.db.Query(countQuery, &gocb.QueryOptions{
 		Context: ctx,
 	})
-	queryRes.One(&totalDocs)
+	_ = queryRes.One(&totalDocs)
 	if err != nil {
 		return 0, err
 	}

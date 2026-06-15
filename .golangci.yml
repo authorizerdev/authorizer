@@ -16,6 +16,17 @@ linters:
         # QF1008 wants embedded-field selectors collapsed (p.Config.X -> p.X);
         # the codebase deliberately keeps the explicit p.Config.X form.
         - -QF1008
+        # ST1003 flags initialisms in long-standing EXPORTED identifiers
+        # (e.g. DbTypePostgres, HttpStatus, GenerateJWTKeysResolver). Renaming
+        # them is a breaking API/serialization change rippling across every
+        # storage provider, SDK, and test; not worth the churn. New code still
+        # follows Go naming by convention/review.
+        - -ST1003
+        # ST1000 requires a package-level doc comment on every package. These
+        # are all internal (non-published) packages; a one-line doc comment on
+        # each of ~40 packages is churn without value. Correctness checks
+        # (errcheck, govet, ineffassign, unused, SA*) remain enforced.
+        - -ST1000
   exclusions:
     # Generated protobuf/gateway/openapi code is owned by buf, not us.
     generated: lax
@@ -23,6 +34,22 @@ linters:
       - gen/
       - ".*\\.pb\\.go$"
       - ".*\\.pb\\.gw\\.go$"
+    rules:
+      # The SQLite dialect is adapted from GORM internals (migrator + clause
+      # builder). It inherits upstream's deprecated-API usage (SA1019),
+      # buffer-write error discards (errcheck), and helper plumbing (unused);
+      # it is maintained against GORM, not our lint policy. Scope-exclude it.
+      - path: internal/storage/db/sql/sqlitedialect/
+        linters:
+          - staticcheck
+          - errcheck
+          - unused
+      # NoSQL driver glue (DynamoDB, Mongo) tracks SDK deprecations (SA1019) on
+      # the driver-upgrade cadence, not per-lint-run. Scope SA1019 to db drivers.
+      - path: internal/storage/db/
+        linters:
+          - staticcheck
+        text: "SA1019"
 
 formatters:
   enable:

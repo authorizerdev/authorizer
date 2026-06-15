@@ -46,12 +46,12 @@ func TestMCPToolErrorSurfacesAsIsErrorResult(t *testing.T) {
 	cTransport, sTransport := mcp.NewInMemoryTransports()
 	serverSession, err := mcpSrv.MCPServer().Connect(ctx, sTransport, nil)
 	require.NoError(t, err)
-	defer serverSession.Close()
+	defer func() { _ = serverSession.Close() }()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 	clientSession, err := client.Connect(ctx, cTransport, nil)
 	require.NoError(t, err)
-	defer clientSession.Close()
+	defer func() { _ = clientSession.Close() }()
 
 	res, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name: "check_permissions",

@@ -88,7 +88,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}
 		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Email is already signed up.")
-			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
+			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
 			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	} else {
@@ -98,7 +98,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}
 		if existingUser != nil && (existingUser.PhoneNumberVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Phone number is already signed up.")
-			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
+			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
 			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	}
@@ -234,12 +234,12 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}
 		// exec it as go routine so that we can reduce the api latency
 		go func() {
-			p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
-			p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
 
 		return &model.AuthResponse{
@@ -277,8 +277,8 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			side.AddCookie(c)
 		}
 		go func() {
-			p.SMSProvider.SendSMS(phoneNumber, smsBody.String())
-			p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = p.SMSProvider.SendSMS(phoneNumber, smsBody.String())
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		}()
 		return &model.AuthResponse{
 			Message:                   "Please check the OTP in your inbox",
@@ -312,7 +312,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			} else {
 				nonce = authorizeState
 			}
-			p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+			_ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
 	}
 
@@ -364,24 +364,24 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	for _, c := range cookie.BuildSessionCookies(hostname, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
-	p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
 	ipAddress := meta.IPAddress
 	userAgent := meta.UserAgent
 	go func() {
-		p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		if isEmailSignup {
-			p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		} else {
-			p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-			p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		}
 
 		if err := p.StorageProvider.AddSession(ctx, &schemas.Session{

@@ -32,7 +32,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	emailTemplateCollection := p.db.Collection(schemas.Collections.EmailTemplate, options.Collection())
-	_, err := emailTemplateCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": emailTemplate.ID}}, bson.M{"$set": emailTemplate}, options.MergeUpdateOptions())
+	_, err := emailTemplateCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": emailTemplate.ID}}, bson.M{"$set": emailTemplate}, options.Update())
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	for cursor.Next(ctx) {
 		var emailTemplate *schemas.EmailTemplate
 		err := cursor.Decode(&emailTemplate)

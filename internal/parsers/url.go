@@ -83,7 +83,7 @@ func sanitizeHost(host string) string {
 	return strings.TrimSuffix(host, "/")
 }
 
-// GetHostName function returns hostname and port
+// GetHostParts returns the hostname and port for the given URI.
 func GetHostParts(uri string) (string, string) {
 	tempURI := uri
 	if !strings.HasPrefix(tempURI, "http://") && !strings.HasPrefix(tempURI, "https://") {
