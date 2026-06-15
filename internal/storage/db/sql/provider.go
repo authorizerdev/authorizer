@@ -74,12 +74,69 @@ func NewProvider(
 		return nil, err
 	}
 
-	// For sqlserver, handle uniqueness of phone_number manually via extra db call
-	// during create and update mutation.
-	if sqlDB.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_phone_number_key") {
-		err = sqlDB.Migrator().DropConstraint(&schemas.User{}, "authorizer_users_phone_number_key")
-		if err != nil {
-			deps.Log.Debug().Err(err).Msg("failed to drop unique constraint on phone_number")
+	// v1 declared the email and phone_number columns of authorizer_users and
+	// authorizer_otps as UNIQUE. v2 keeps plain (non-unique) indexes and enforces
+	// uniqueness in the application layer (see AddUser/UpdateUser) so behaviour is
+	// identical across all supported databases and these fields can stay optional
+	// (email-only or phone-only signups).
+	//
+	// On an upgraded SQL database those columns are still unique, so GORM
+	// AutoMigrate tries to DROP CONSTRAINT "uni_<table>_<col>" — a name that does
+	// not match what the database actually created — failing with SQLSTATE 42704
+	// ("constraint does not exist") and aborting the whole migration. Depending on
+	// the v1 release, the old uniqueness exists either as a CONSTRAINT
+	// (<table>_<col>_key) or as a standalone UNIQUE INDEX (idx_<table>_<col>), so
+	// we clear both forms before AutoMigrate. Non-fatal: fresh installs have
+	// nothing to drop.
+	staleUniqueColumns := []struct {
+		model      any
+		table, col string
+	}{
+		{&schemas.User{}, "authorizer_users", "email"},
+		{&schemas.User{}, "authorizer_users", "phone_number"},
+		{&schemas.OTP{}, "authorizer_otps", "email"},
+		{&schemas.OTP{}, "authorizer_otps", "phone_number"},
+	}
+
+	// 1) Drop stale unique CONSTRAINTs by their well-known names.
+	//    "<table>_<col>_key" is the Postgres/MySQL default; "uni_<table>_<col>" is
+	//    GORM's default unique-constraint name.
+	for _, c := range staleUniqueColumns {
+		for _, name := range []string{c.table + "_" + c.col + "_key", "uni_" + c.table + "_" + c.col} {
+			if sqlDB.Migrator().HasConstraint(c.model, name) {
+				if dropErr := sqlDB.Migrator().DropConstraint(c.model, name); dropErr != nil {
+					deps.Log.Debug().Err(dropErr).Str("constraint", name).Msg("failed to drop stale unique constraint")
+				}
+			}
+		}
+	}
+
+	// 2) Drop stale standalone UNIQUE INDEXes on the same columns (e.g.
+	//    idx_authorizer_otps_phone_number created by a v1 gorm:"uniqueIndex").
+	//    This is name-agnostic: only single-column UNIQUE indexes on email /
+	//    phone_number are removed, so the current schema's non-unique indexes are
+	//    left intact and AutoMigrate recreates anything it needs as non-unique.
+	uniqueColTargets := map[string]bool{"email": true, "phone_number": true}
+	for _, model := range []any{&schemas.User{}, &schemas.OTP{}} {
+		indexes, idxErr := sqlDB.Migrator().GetIndexes(model)
+		if idxErr != nil {
+			deps.Log.Debug().Err(idxErr).Msg("failed to list indexes while clearing stale unique indexes")
+			continue
+		}
+		for _, idx := range indexes {
+			unique, ok := idx.Unique()
+			if !ok || !unique {
+				continue
+			}
+			cols := idx.Columns()
+			if len(cols) != 1 || !uniqueColTargets[cols[0]] {
+				continue
+			}
+			if dropErr := sqlDB.Migrator().DropIndex(model, idx.Name()); dropErr != nil {
+				// Constraint-backed indexes (handled in step 1) can't be dropped
+				// directly on Postgres — that's expected and harmless here.
+				deps.Log.Debug().Err(dropErr).Str("index", idx.Name()).Msg("failed to drop stale unique index")
+			}
 		}
 	}
 
