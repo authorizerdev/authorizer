@@ -205,8 +205,8 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	}
 
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditMagicLinkRequestedEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditMagicLinkRequestedEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   params.Email,
 		ResourceType: constants.AuditResourceTypeUser,

@@ -23,8 +23,8 @@ func (p *provider) AdminLogin(ctx context.Context, meta RequestMetadata, params 
 		metrics.RecordAuthEvent(metrics.EventAdminLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("invalid_admin_secret", "admin_login")
 		p.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditAdminLoginFailedEvent,
-			ActorType:    constants.AuditActorTypeAdmin,
+			Action:   constants.AuditAdminLoginFailedEvent,
+			Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 			ResourceType: constants.AuditResourceTypeAdminSession,
 			IPAddress:    meta.IPAddress,
 			UserAgent:    meta.UserAgent,
@@ -41,8 +41,8 @@ func (p *provider) AdminLogin(ctx context.Context, meta RequestMetadata, params 
 
 	metrics.RecordAuthEvent(metrics.EventAdminLogin, metrics.StatusSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminLoginSuccessEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminLoginSuccessEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeAdminSession,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
@@ -61,8 +61,8 @@ func (p *provider) AdminLogout(ctx context.Context, meta RequestMetadata) (*mode
 
 	metrics.RecordAuthEvent(metrics.EventAdminLogout, metrics.StatusSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminLogoutEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminLogoutEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeAdminSession,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,

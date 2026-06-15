@@ -50,8 +50,8 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
 	}()
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminAccessRevokedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminAccessRevokedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 		IPAddress:    meta.IPAddress,
@@ -93,8 +93,8 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 	}
 	go func() { _ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user) }()
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminAccessEnabledEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminAccessEnabledEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 		IPAddress:    meta.IPAddress,
@@ -258,8 +258,8 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminInviteSentEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminInviteSentEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,

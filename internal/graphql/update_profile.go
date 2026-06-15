@@ -258,8 +258,8 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 		return nil, err
 	}
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditProfileUpdatedEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditProfileUpdatedEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
@@ -64,7 +65,13 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 		// the same spoof-hardened resolution the gin path uses;
 		// transport.MetaFromGRPC reads `x-authorizer-url` first.
 		runtime.WithMetadata(func(_ context.Context, r *http.Request) metadata.MD {
-			return metadata.Pairs("x-authorizer-url", parsers.GetHostFromRequest(r))
+			// x-authorizer-transport=rest lets transport.MetaFromGRPC tag the
+			// request protocol as REST (vs a direct gRPC call) for audit logs
+			// and the api-operations metric.
+			return metadata.Pairs(
+				"x-authorizer-url", parsers.GetHostFromRequest(r),
+				"x-authorizer-transport", constants.ProtocolREST,
+			)
 		}),
 		// Forward the custom admin-secret header to the gRPC layer. The default
 		// matcher only forwards permanent headers (Authorization, Cookie), but

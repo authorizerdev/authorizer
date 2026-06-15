@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -48,6 +49,12 @@ type RequestMetadata struct {
 	// for token-provider helpers that still take a gin.Context internally;
 	// new service code should prefer the typed fields above.
 	Request *http.Request
+
+	// Protocol is the transport the request came in on — one of
+	// constants.Protocol{GraphQL,GRPC,REST}. Surfaced in audit logs and the
+	// authorizer_api_operations_total metric so each operation is attributable
+	// to its protocol. Empty when the transport did not set it.
+	Protocol string
 }
 
 // ResponseSideEffects collects out-of-band artifacts produced by a service
@@ -83,6 +90,7 @@ func MetaFromGin(gc *gin.Context) RequestMetadata {
 		AuthorizationHeader: gc.Request.Header.Get("Authorization"),
 		Cookies:             gc.Request.Cookies(),
 		Request:             gc.Request,
+		Protocol:            constants.ProtocolGraphQL,
 	}
 	return meta
 }

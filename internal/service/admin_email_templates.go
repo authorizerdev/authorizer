@@ -57,8 +57,8 @@ func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, p
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminEmailTemplateCreatedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminEmailTemplateCreatedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeEmailTemplate,
 		ResourceID:   emailTemplate.ID,
 		IPAddress:    meta.IPAddress,
@@ -133,8 +133,8 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminEmailTemplateUpdatedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminEmailTemplateUpdatedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeEmailTemplate,
 		ResourceID:   params.ID,
 		IPAddress:    meta.IPAddress,
@@ -174,8 +174,8 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminEmailTemplateDeletedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminEmailTemplateDeletedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeEmailTemplate,
 		ResourceID:   params.ID,
 		IPAddress:    meta.IPAddress,

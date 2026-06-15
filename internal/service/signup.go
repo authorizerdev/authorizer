@@ -395,8 +395,8 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	metrics.RecordAuthEvent(metrics.EventSignup, metrics.StatusSuccess)
 	metrics.ActiveSessions.Inc()
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditSignupEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditSignupEvent,
+		Protocol: meta.Protocol, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

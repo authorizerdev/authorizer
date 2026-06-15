@@ -173,8 +173,8 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		}()
 	}
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditOTPResentEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditOTPResentEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

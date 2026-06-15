@@ -209,8 +209,8 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		}
 	}()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditEmailVerifiedEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditEmailVerifiedEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

@@ -296,8 +296,8 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		return nil, nil, err
 	}
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminUserUpdatedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminUserUpdatedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 		IPAddress:    meta.IPAddress,
@@ -378,8 +378,8 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
 	}()
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminUserDeletedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminUserDeletedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 		IPAddress:    meta.IPAddress,

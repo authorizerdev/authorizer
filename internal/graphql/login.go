@@ -251,8 +251,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("invalid_credentials", "bad_password")
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditLoginFailedEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditLoginFailedEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
@@ -468,8 +468,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusSuccess)
 	metrics.ActiveSessions.Inc()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditLoginSuccessEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditLoginSuccessEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeSession,

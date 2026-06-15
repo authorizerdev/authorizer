@@ -224,8 +224,8 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	}()
 	if isEmailVerification {
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditEmailVerifiedEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditEmailVerifiedEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
@@ -235,8 +235,8 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 		})
 	} else {
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditPhoneVerifiedEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditPhoneVerifiedEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,

@@ -132,8 +132,8 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			})
 		}()
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditForgotPasswordEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditForgotPasswordEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   email,
 			ResourceType: constants.AuditResourceTypeUser,
@@ -179,8 +179,8 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			// continue
 		}
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditForgotPasswordEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditForgotPasswordEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,

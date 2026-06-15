@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/service"
 )
 
@@ -26,12 +27,20 @@ import (
 // or via REST through the gateway.
 func MetaFromGRPC(ctx context.Context) service.RequestMetadata {
 	md, _ := metadata.FromIncomingContext(ctx)
+	// Distinguish a REST (grpc-gateway) call from a direct gRPC call: the
+	// gateway injects x-authorizer-transport=rest (see gateway.Handler's
+	// WithMetadata). Absent that marker, the call arrived over pure gRPC.
+	protocol := constants.ProtocolGRPC
+	if firstHeader(md, "x-authorizer-transport") == constants.ProtocolREST {
+		protocol = constants.ProtocolREST
+	}
 	meta := service.RequestMetadata{
 		HostURL:             firstHeader(md, "x-authorizer-url", "grpcgateway-x-authorizer-url"),
 		IPAddress:           firstHeader(md, "x-forwarded-for", "grpcgateway-x-forwarded-for", "x-real-ip"),
 		UserAgent:           firstHeader(md, "grpcgateway-user-agent", "user-agent"),
 		AuthorizationHeader: firstHeader(md, "authorization", "grpcgateway-authorization"),
 		Cookies:             cookiesFromMetadata(md),
+		Protocol:            protocol,
 	}
 	// Default the host URL when no header was set (pure-gRPC caller, no
 	// proxy headers). The :authority pseudo-header is the gRPC equivalent

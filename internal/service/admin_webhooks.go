@@ -71,8 +71,8 @@ func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params 
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminWebhookCreatedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminWebhookCreatedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeWebhook,
 		ResourceID:   webhook.ID,
 		IPAddress:    meta.IPAddress,
@@ -166,8 +166,8 @@ func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, para
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminWebhookUpdatedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminWebhookUpdatedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeWebhook,
 		ResourceID:   params.ID,
 		IPAddress:    meta.IPAddress,
@@ -206,8 +206,8 @@ func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, para
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminWebhookDeletedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminWebhookDeletedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeWebhook,
 		ResourceID:   params.ID,
 		IPAddress:    meta.IPAddress,

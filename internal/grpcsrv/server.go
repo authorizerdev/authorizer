@@ -49,6 +49,9 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 		grpc.ChainUnaryInterceptor(
 			interceptors.Recovery(deps.Log),
 			interceptors.Logging(deps.Log),
+			// Records authorizer_api_operations_total{protocol,operation,status}
+			// for every RPC (covers both gRPC and REST-via-gateway).
+			interceptors.Metrics(),
 			validate,
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay

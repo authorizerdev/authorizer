@@ -76,8 +76,8 @@ func (p *provider) FgaWriteModel(ctx context.Context, meta RequestMetadata, para
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminFgaModelWrittenEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminFgaModelWrittenEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeFgaModel,
 		ResourceID:   modelID,
 		IPAddress:    meta.IPAddress,
@@ -110,8 +110,8 @@ func (p *provider) FgaWriteTuples(ctx context.Context, meta RequestMetadata, par
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminFgaTuplesWrittenEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminFgaTuplesWrittenEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeFgaTuple,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
@@ -144,8 +144,8 @@ func (p *provider) FgaDeleteTuples(ctx context.Context, meta RequestMetadata, pa
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminFgaTuplesDeletedEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminFgaTuplesDeletedEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeFgaTuple,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
@@ -295,8 +295,8 @@ func (p *provider) FgaReset(ctx context.Context, meta RequestMetadata) (*model.R
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminFgaResetEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
+		Action:   constants.AuditAdminFgaResetEvent,
+		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeFgaModel,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
