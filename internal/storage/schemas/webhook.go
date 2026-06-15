@@ -29,7 +29,7 @@ type Webhook struct {
 // AsAPIWebhook to return webhook as graphql response object
 func (w *Webhook) AsAPIWebhook() *model.Webhook {
 	headersMap := make(map[string]interface{})
-	json.Unmarshal([]byte(w.Headers), &headersMap)
+	_ = json.Unmarshal([]byte(w.Headers), &headersMap)
 	id := w.ID
 	if strings.Contains(id, Collections.Webhook+"/") {
 		id = strings.TrimPrefix(id, Collections.Webhook+"/")

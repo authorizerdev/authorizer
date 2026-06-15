@@ -46,8 +46,8 @@ func (p *provider) Logout(ctx context.Context, meta RequestMetadata) (*model.Res
 	metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
 	metrics.ActiveSessions.Dec()
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditLogoutEvent,
-		ActorID:      tokenData.UserID,
+		Action:   constants.AuditLogoutEvent,
+		Protocol: meta.Protocol, ActorID: tokenData.UserID,
 		ActorType:    constants.AuditActorTypeUser,
 		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   tokenData.UserID,

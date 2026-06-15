@@ -84,7 +84,7 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		responseTypes, ok := body["response_types_supported"].([]interface{})
 		require.True(t, ok)
@@ -178,7 +178,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		// Should fail because code is missing
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -197,7 +197,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "unsupported_grant_type", body["error"],
@@ -217,7 +217,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, "invalid_client", body["error"],
 			"RFC 6749 §5.2: invalid client MUST return 'invalid_client' error")
@@ -250,7 +250,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 
 		// Simulate the state that would be set during /authorize
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce")
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -266,7 +266,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		// The session validation will fail because we used a fake session token,
 		// but let's verify the error format at least matches RFC 6749 §5.2
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.NotNil(t, body["error"], "Error responses MUST include 'error' field per RFC 6749 §5.2")
 		if errDesc, ok := body["error_description"]; ok {
@@ -285,7 +285,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_request", body["error"],
@@ -305,7 +305,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, "invalid_grant", body["error"],
 			"RFC 6749 §5.2: invalid authorization code MUST return 'invalid_grant'")
@@ -322,7 +322,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_request", body["error"],
@@ -338,7 +338,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 
 		// Simulate state with a redirect_uri stored (4th @@-separated segment)
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -353,7 +353,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_grant", body["error"],
@@ -368,7 +368,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		code := uuid.New().String()
 
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -383,7 +383,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_request", body["error"],
@@ -401,7 +401,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		sessionToken := "test-session-token"
 		// Format: "challenge::method@@session@@nonce" — S256 must be explicit
 		// since the default is now plain per RFC 7636 §4.2.
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"::S256@@"+sessionToken+"@@test-nonce")
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallenge+"::S256@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -416,7 +416,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		assert.Equal(t, "invalid_client", body["error"],
@@ -435,7 +435,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 
 		sessionToken := "test-session-token"
 		// Store with padded challenge (as it would come from /authorize query param)
-		ts.MemoryStoreProvider.SetState(code, codeChallengeWithPad+"::S256@@"+sessionToken+"@@test-nonce")
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallengeWithPad+"::S256@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -449,7 +449,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		// Session validation will fail (fake token), but PKCE check must pass.
 		// If PKCE failed, we'd get "invalid_grant" with "code_verifier does not match".
@@ -468,7 +468,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		code := uuid.New().String()
 
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallengeNoPad+"::S256@@"+sessionToken+"@@test-nonce")
+		_ = ts.MemoryStoreProvider.SetState(code, codeChallengeNoPad+"::S256@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -482,7 +482,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		// PKCE check must pass; subsequent session validation may fail (fake token)
 		if body["error"] != nil {
@@ -540,7 +540,7 @@ func TestRevocationEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_request", body["error"],
@@ -573,7 +573,7 @@ func TestRevocationEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "unsupported_token_type", body["error"],
@@ -765,7 +765,7 @@ func TestUserInfoEndpointCompliance(t *testing.T) {
 			"RFC 6750 §3.1: invalid token MUST include error='invalid_token'")
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_token", body["error"],
 			"RFC 6750 §3.1: response body MUST include error='invalid_token'")
 	})
@@ -776,7 +776,7 @@ func TestUserInfoEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 
 		// Error response must include error field
 		assert.NotNil(t, body["error"], "Error responses MUST include 'error' field")
@@ -800,7 +800,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"].(string),
 			"RFC 6749: missing state parameter MUST return invalid_request error code")
 		assert.Contains(t, body["error_description"].(string), "state",
@@ -840,7 +840,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"RFC 7636: unsupported code_challenge_method MUST return 'invalid_request'")
 	})
@@ -865,7 +865,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"OIDC Core: missing nonce for response_type=id_token MUST return invalid_request")
 		assert.Contains(t, body["error_description"], "nonce",
@@ -883,7 +883,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"OIDC Core: missing nonce for response_type=id_token token MUST return invalid_request")
 	})
@@ -899,7 +899,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"OIDC Core: missing nonce for response_type=code id_token MUST return invalid_request")
 	})
@@ -940,7 +940,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"query response_mode MUST be rejected for response_type=token")
 	})
@@ -955,7 +955,7 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		_ = json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"query response_mode MUST be rejected for response_type=id_token")
 	})

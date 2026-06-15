@@ -43,7 +43,7 @@ func (c *provider) DeleteUserSession(userId, key string) error {
 
 // DeleteSessionForNamespace to delete session for a given namespace example google,github
 func (c *provider) DeleteSessionForNamespace(namespace string) error {
-	c.sessionStore.RemoveByNamespace(namespace)
+	_ = c.sessionStore.RemoveByNamespace(namespace)
 	return nil
 }
 
@@ -63,8 +63,8 @@ func (c *provider) GetMfaSession(userId, key string) (string, error) {
 }
 
 // GetAllMfaSessions returns all mfa sessions for given userId
-func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
-	values := p.mfasessionStore.GetAll(userId)
+func (c *provider) GetAllMfaSessions(userId string) ([]string, error) {
+	values := c.mfasessionStore.GetAll(userId)
 	if len(values) == 0 {
 		return nil, fmt.Errorf("not found")
 	}

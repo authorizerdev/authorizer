@@ -1,3 +1,4 @@
+// Package cassandradb implements the storage provider backed by Cassandra/ScyllaDB.
 package cassandradb
 
 import (

@@ -74,7 +74,7 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*sch
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if otp == nil {
@@ -101,7 +101,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if otp == nil {

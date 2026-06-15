@@ -144,7 +144,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 				} else {
 					nonce = authorizeState
 				}
-				go h.MemoryStoreProvider.RemoveState(state)
+				go func() { _ = h.MemoryStoreProvider.RemoveState(state) }()
 			}
 		}
 		if nonce == "" {
@@ -190,12 +190,12 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 
 		sessionKey := loginMethod + ":" + user.ID
 		cookie.SetSession(c, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+		_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+		_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+			_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
 
 		if redirectURL == "" {
@@ -227,11 +227,11 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		})
 		go func() {
 			if isSignUp {
-				h.EventsProvider.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
 				// User is also logged in with signup
-				h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
 			} else {
-				h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
 			}
 			if err := h.StorageProvider.AddSession(c, &schemas.Session{
 				UserID:    user.ID,

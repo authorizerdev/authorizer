@@ -56,7 +56,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	for cursor.Next(ctx) {
 		var webhookLog *schemas.WebhookLog

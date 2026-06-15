@@ -2,7 +2,7 @@ package types
 
 import "encoding/json"
 
-// Type for interface slice. Used for redis store.
+// InterfaceSlice is a slice of interface values. Used for redis store.
 type InterfaceSlice []interface{}
 
 // MarshalBinary for interface slice.

@@ -107,7 +107,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		client, err := validators.SafeHTTPClient(ctx, webhook.EndPoint, time.Second*30)
 		if err != nil {
 			log.Debug().Err(err).Str("endpoint", webhook.EndPoint).Msg("webhook endpoint rejected by SSRF filter")
-			p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
+			_, _ = p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
 				HttpStatus: 0,
 				Request:    string(requestBody),
 				Response:   fmt.Sprintf(`{"error": "SSRF validation failed: %s"}`, err.Error()),
@@ -143,7 +143,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			log.Debug().Err(err).Msg("error making request")
 			continue
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		responseBytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 		if err != nil {

@@ -19,7 +19,7 @@ func NewHMACKey(algo, keyID string) (string, string, error) {
 	return key, string(jwkPublicKey), nil
 }
 
-// IsHMACValid checks if given string is valid HMCA algo
+// IsHMACA checks if given string is valid HMAC algo
 func IsHMACA(algo string) bool {
 	switch algo {
 	case "HS256", "HS384", "HS512":

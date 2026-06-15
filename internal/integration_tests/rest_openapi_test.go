@@ -31,7 +31,7 @@ func TestOpenAPIEndpointServesValidJSON(t *testing.T) {
 
 	resp, err := http.Get(ts.URL + "/openapi.json")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 

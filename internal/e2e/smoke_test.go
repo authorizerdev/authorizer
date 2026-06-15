@@ -175,6 +175,73 @@ func TestReleaseSmoke(t *testing.T) {
 		assert.Equal(t, []string{"document:readme"}, list.Objects)
 	})
 
+	// --- Surface 5: Admin (AuthorizerAdminService over REST + gRPC) ------
+	// Admin endpoints authenticate via the x-authorizer-admin-secret header
+	// (or the admin session cookie), not the bearer token. They are served by
+	// the same single gRPC server + REST gateway as the public surface.
+	t.Run("rest admin meta", func(t *testing.T) {
+		var out struct {
+			AdminMeta struct {
+				Roles []string `json:"roles"`
+			} `json:"admin_meta"`
+		}
+		// With the admin secret -> 200 + configured roles.
+		status := adminREST(t, baseURL, http.MethodGet, "/v1/admin/meta", smokeAdminSecret, "", &out)
+		require.Equal(t, http.StatusOK, status)
+		assert.NotEmpty(t, out.AdminMeta.Roles)
+	})
+
+	t.Run("rest admin users", func(t *testing.T) {
+		var out struct {
+			Users []struct {
+				ID    string `json:"id"`
+				Email string `json:"email"`
+			} `json:"users"`
+		}
+		status := adminREST(t, baseURL, http.MethodPost, "/v1/admin/users", smokeAdminSecret, `{}`, &out)
+		require.Equal(t, http.StatusOK, status)
+		// The smoke user seeded above must be present.
+		var found bool
+		for _, u := range out.Users {
+			if u.ID == userID {
+				found = true
+			}
+		}
+		assert.True(t, found, "seeded smoke user listed via /v1/admin/users")
+	})
+
+	t.Run("rest admin fail-closed", func(t *testing.T) {
+		var env struct {
+			Code string `json:"code"`
+		}
+		// No admin secret -> 401 unauthenticated.
+		status := adminREST(t, baseURL, http.MethodGet, "/v1/admin/meta", "", "", &env)
+		assert.Equal(t, http.StatusUnauthorized, status)
+		assert.Equal(t, "unauthenticated", env.Code)
+	})
+
+	t.Run("grpc admin meta", func(t *testing.T) {
+		conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", grpcPort),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
+		require.NoError(t, err)
+		defer conn.Close()
+		client := authorizerv1.NewAuthorizerAdminServiceClient(conn)
+
+		// Fail-closed: no admin secret -> Unauthenticated.
+		_, err = client.AdminMeta(context.Background(), &authorizerv1.AdminMetaRequest{})
+		require.Error(t, err)
+
+		// With the admin secret as metadata -> roles returned.
+		ctx := metadata.AppendToOutgoingContext(context.Background(),
+			"x-authorizer-admin-secret", smokeAdminSecret)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		res, err := client.AdminMeta(ctx, &authorizerv1.AdminMetaRequest{})
+		require.NoError(t, err)
+		require.NotNil(t, res.AdminMeta)
+		assert.NotEmpty(t, res.AdminMeta.Roles)
+	})
+
 	// --- Surface 4: MCP (stdio subprocess) -------------------------------
 	// The MCP subcommand is a separate process sharing the sqlite store, so
 	// stop the server first to avoid two writers on one sqlite file.
@@ -367,6 +434,32 @@ func restJSON(t *testing.T, baseURL, path, bearer, body string, out any) int {
 	req.Header.Set("Origin", baseURL)
 	if bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+bearer)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(out))
+	return resp.StatusCode
+}
+
+// adminREST calls a /v1/admin path with the given method, authenticating via
+// the x-authorizer-admin-secret header (the admin surface's header auth). An
+// empty adminSecret sends no auth header (for fail-closed assertions). An empty
+// body sends no request body (for GET endpoints). Returns the HTTP status.
+func adminREST(t *testing.T, baseURL, method, path, adminSecret, body string, out any) int {
+	t.Helper()
+	var reader *strings.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	} else {
+		reader = strings.NewReader("")
+	}
+	req, err := http.NewRequest(method, baseURL+path, reader)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", baseURL)
+	if adminSecret != "" {
+		req.Header.Set("x-authorizer-admin-secret", adminSecret)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)

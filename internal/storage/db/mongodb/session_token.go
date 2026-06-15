@@ -84,7 +84,7 @@ func (p *provider) GetAllSessionTokens(ctx context.Context) ([]*schemas.SessionT
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 	err = cursor.All(ctx, &tokens)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode session tokens: %w", err)

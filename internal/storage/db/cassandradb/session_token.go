@@ -293,9 +293,9 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	for iter.Scan(&id) {
 		existingIDs = append(existingIDs, id)
 	}
-	iter.Close()
+	_ = iter.Close()
 	for _, eid := range existingIDs {
-		p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).Exec()
+		_ = p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).Exec()
 	}
 	query := fmt.Sprintf(`INSERT INTO %s (id, state_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
 		KeySpace+"."+schemas.Collections.OAuthState)

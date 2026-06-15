@@ -19,6 +19,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph"
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
 	"github.com/authorizerdev/authorizer/internal/graphql"
@@ -189,9 +190,15 @@ func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
 			duration := time.Since(start).Seconds()
 			metrics.GraphQLRequestDuration.WithLabelValues(opMetricLabel).Observe(duration)
 
+			opStatus := metrics.OperationStatusOK
 			if len(resp.Errors) > 0 {
 				metrics.RecordGraphQLError(operationName)
+				opStatus = metrics.OperationStatusError
 			}
+			// Attribute the operation to the GraphQL protocol for the shared
+			// api-operations metric (gRPC/REST are recorded in the gRPC
+			// interceptor). opMetricLabel is the low-cardinality op label.
+			metrics.RecordAPIOperation(constants.ProtocolGraphQL, opMetricLabel, opStatus)
 			logEvt := h.Dependencies.Log.Info().
 				Str("operation", operationName).
 				Str("operation_metric_label", opMetricLabel).

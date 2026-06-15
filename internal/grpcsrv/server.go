@@ -49,6 +49,9 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 		grpc.ChainUnaryInterceptor(
 			interceptors.Recovery(deps.Log),
 			interceptors.Logging(deps.Log),
+			// Records authorizer_api_operations_total{protocol,operation,status}
+			// for every RPC (covers both gRPC and REST-via-gateway).
+			interceptors.Metrics(),
 			validate,
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay
@@ -62,6 +65,15 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 	// not yet been migrated returns codes.Unimplemented. Migrated methods
 	// (today: Meta) override the unimplemented stubs.
 	authorizerv1.RegisterAuthorizerServiceServer(srv, &handlers.AuthorizerHandler{Service: deps.ServiceProvider})
+
+	// Register the AuthorizerAdminService on the SAME server (one gRPC port
+	// serves the public + admin surfaces). AdminHandler embeds
+	// UnimplementedAuthorizerAdminServiceServer, so any not-yet-migrated RPC
+	// returns codes.Unimplemented. The concrete service.Provider value also
+	// implements service.AdminProvider; the assertion is non-nil once every
+	// admin domain group has been migrated.
+	adminSvc, _ := deps.ServiceProvider.(service.AdminProvider)
+	authorizerv1.RegisterAuthorizerAdminServiceServer(srv, &handlers.AdminHandler{Service: adminSvc})
 
 	// gRPC health checking protocol (used by k8s grpc-probe and similar).
 	hs := health.NewServer()

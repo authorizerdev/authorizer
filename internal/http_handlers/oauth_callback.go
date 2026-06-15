@@ -69,7 +69,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 		// remove state from store
-		h.MemoryStoreProvider.RemoveState(state)
+		_ = h.MemoryStoreProvider.RemoveState(state)
 		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
 		hostname := parsers.GetHost(ctx)
@@ -334,11 +334,8 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
-		if expiresIn <= 0 {
-			expiresIn = 1
-		}
-
+		// expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+		// if expiresIn <= 0 { expiresIn = 1 }
 		// params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
 		// Note: If OIDC breaks in the future, use the above params
 		params := "state=" + stateValue + "&nonce=" + nonce
@@ -348,20 +345,20 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 
 		sessionKey := provider + ":" + user.ID
 		cookie.SetSession(ctx, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+		_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+		_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 		if authToken.RefreshToken != nil {
-			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+			_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
 
 		go func() {
 			if isSignUp {
-				h.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, provider, user)
 				// User is also logged in with signup
-				h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
 			} else {
-				h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
 			}
 			if err := h.StorageProvider.AddSession(ctx, &schemas.Session{
 				UserID:    user.ID,
@@ -377,7 +374,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 		// remove state from store
-		h.MemoryStoreProvider.RemoveState(state)
+		_ = h.MemoryStoreProvider.RemoveState(state)
 		metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
 		metrics.ActiveSessions.Inc()
 		h.AuditProvider.LogEvent(audit.Event{
@@ -464,7 +461,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read github user info response body")
@@ -516,7 +513,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 			return nil, err
 		}
 
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to read github user email response body")
@@ -577,7 +574,7 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read facebook response")
@@ -644,7 +641,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read linkedin user info response body")
@@ -677,7 +674,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read linkedin email info response body")
@@ -819,7 +816,7 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read Discord user info response body")
@@ -893,7 +890,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read Twitter user info response body")
@@ -1060,7 +1057,7 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code, verifier st
 		return nil, err
 	}
 
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read roblox user info response body")

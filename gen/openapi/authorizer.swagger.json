@@ -6,6 +6,9 @@
   },
   "tags": [
     {
+      "name": "AuthorizerAdminService"
+    },
+    {
       "name": "AuthorizerService"
     }
   ],
@@ -16,6 +19,1043 @@
     "application/json"
   ],
   "paths": {
+    "/v1/admin/add_email_template": {
+      "post": {
+        "summary": "AddEmailTemplate creates a new email template for an event. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_AddEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AddEmailTemplateRequest mirrors model.AddEmailTemplateRequest. design is\noptional.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/add_webhook": {
+      "post": {
+        "summary": "AddWebhook registers a new webhook for an event. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AddWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AddWebhookRequest mirrors model.AddWebhookRequest. event_description is\noptional; when unset it defaults to the event name with dots replaced by\nspaces.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/audit_logs": {
+      "post": {
+        "summary": "AuditLogs returns a paginated, optionally-filtered list of audit log\nentries. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AuditLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuditLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are\noptional; when unset no filtering is applied for that field.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AuditLogsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_email_template": {
+      "post": {
+        "summary": "DeleteEmailTemplate deletes an email template by id. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_DeleteEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_user": {
+      "post": {
+        "summary": "DeleteUser deletes a user (and associated OTP/verification data) by email.\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteUserRequest mirrors model.DeleteUserRequest.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_webhook": {
+      "post": {
+        "summary": "DeleteWebhook deletes a webhook by id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from GetWebhookRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/email_templates": {
+      "post": {
+        "summary": "EmailTemplates returns a paginated list of email templates. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_EmailTemplates",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1EmailTemplatesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1EmailTemplatesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/enable_access": {
+      "post": {
+        "summary": "EnableAccess re-enables a previously revoked user (clears the revoked\ntimestamp) and fires the access-enabled webhook. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_EnableAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1EnableAccessResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "EnableAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from RevokeAccessRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1EnableAccessRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/expand": {
+      "post": {
+        "summary": "FgaExpand returns the OpenFGA relationship/userset tree for (relation,\nobject) as a JSON string (the explainability primitive). Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaExpand",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaExpandResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaExpandRequest mirrors model.FgaExpandInput.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaExpandRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/list_users": {
+      "post": {
+        "summary": "FgaListUsers returns the fully-qualified user ids of user_type that have\nrelation on object (\"who can access this object?\"). Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_FgaListUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaListUsersRequest mirrors model.FgaListUsersInput.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaListUsersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/model": {
+      "get": {
+        "summary": "FgaGetModel returns the active fine-grained authorization model as DSL. A\nstore with no model yet returns an empty model (not an error). Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaGetModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaGetModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      },
+      "post": {
+        "summary": "FgaWriteModel installs a new fine-grained authorization model from its DSL\nand returns the new model id. Requires super-admin auth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaWriteModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaWriteModelRequest mirrors model.FgaWriteModelInput (the model DSL).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteModelRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/reset": {
+      "post": {
+        "summary": "FgaReset deletes the entire fine-grained authorization store (the model,\nall its versions, and all tuples) and starts a fresh, empty store. Refused\nwhile any tuples still exist. Requires super-admin auth. Destructive and\naudited.",
+        "operationId": "AuthorizerAdminService_FgaReset",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaResetResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaResetRequest takes no parameters; the whole store is reset.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaResetRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples": {
+      "post": {
+        "summary": "FgaWriteTuples persists the given relationship tuples (additive). Requires\nsuper-admin auth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaWriteTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaWriteTuplesRequest mirrors model.FgaWriteTuplesInput, reusing the shared\nFgaTupleInput message.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples/delete": {
+      "post": {
+        "summary": "FgaDeleteTuples removes the given relationship tuples. Requires super-admin\nauth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaDeleteTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaDeleteTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaDeleteTuplesRequest mirrors model.FgaWriteTuplesInput (same shape as a\nwrite; the tuples to remove).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaDeleteTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples/read": {
+      "post": {
+        "summary": "FgaReadTuples returns a page of persisted tuples matching the filter.\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaReadTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaReadTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaReadTuplesRequest mirrors model.FgaReadTuplesInput. All filter fields are\noptional; an empty filter reads all tuples (paginated).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaReadTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/invite_members": {
+      "post": {
+        "summary": "InviteMembers creates accounts for new emails and sends invite emails.\nRequires super-admin auth and a configured email service.",
+        "operationId": "AuthorizerAdminService_InviteMembers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1InviteMembersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "InviteMembersRequest mirrors model.InviteMemberRequest. redirect_uri is\noptional; when unset the configured app URL is used.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1InviteMembersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/login": {
+      "post": {
+        "summary": "AdminLogin validates the admin secret and establishes an admin session\n(Set-Cookie for browser callers). Public entry point — the ONLY admin RPC\nthat does not require an existing super-admin session.",
+        "operationId": "AuthorizerAdminService_AdminLogin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AdminLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/logout": {
+      "post": {
+        "summary": "AdminLogout clears the admin session cookie. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminLogout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminLogoutResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/meta": {
+      "get": {
+        "summary": "AdminMeta returns admin-only configuration metadata (configured roles,\ndefault roles, protected roles). Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminMeta",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminMetaResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/revoke_access": {
+      "post": {
+        "summary": "RevokeAccess revokes a user's access (sets the revoked timestamp), kills\ntheir sessions, and fires the access-revoked webhook. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_RevokeAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAccessResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RevokeAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from EnableAccessRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAccessRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/session": {
+      "get": {
+        "summary": "AdminSession refreshes the admin session cookie. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/test_endpoint": {
+      "post": {
+        "summary": "TestEndpoint sends a synthetic event payload to a webhook endpoint and\nreturns the HTTP status and response body. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_TestEndpoint",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TestEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "TestEndpointRequest mirrors model.TestEndpointRequest. event_description is\noptional and unused by the test payload but accepted for parity.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TestEndpointRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_email_template": {
+      "post": {
+        "summary": "UpdateEmailTemplate updates an existing email template's event, subject,\nbody, or design. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateEmailTemplateRequest mirrors model.UpdateEmailTemplateRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_user": {
+      "post": {
+        "summary": "UpdateUser updates a user's profile, roles, MFA, or verification state and\nreturns the updated user. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use\nproto3 `optional` so an unset field is distinguishable from an empty value\n(e.g. clearing a name vs leaving it untouched, or email_verified=false).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_webhook": {
+      "post": {
+        "summary": "UpdateWebhook updates an existing webhook's event, endpoint, headers, or\nenabled state. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateWebhookRequest mirrors model.UpdateWebhookRequest. Nullable GraphQL\ninputs use proto3 `optional` so an unset field is distinguishable from an\nempty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/user": {
+      "post": {
+        "summary": "User returns a single user by id or email. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_User",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UserRequest fetches a single user by id or email; at least one must be set.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/users": {
+      "post": {
+        "summary": "Users returns a paginated list of all users. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Users",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UsersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/verification_requests": {
+      "post": {
+        "summary": "VerificationRequests returns a paginated list of pending verification\nrequests. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_VerificationRequests",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerificationRequestsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerificationRequestsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhook": {
+      "post": {
+        "summary": "GetWebhook returns a single webhook by id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_GetWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "GetWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from DeleteWebhookRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhook_logs": {
+      "post": {
+        "summary": "WebhookLogs returns a paginated list of webhook delivery logs, optionally\nfiltered by webhook id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_WebhookLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebhookLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is\noptional; when unset logs for all webhooks are returned.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebhookLogsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhooks": {
+      "post": {
+        "summary": "Webhooks returns a paginated list of webhooks. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Webhooks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebhooksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebhooksRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/check_permissions": {
       "post": {
         "summary": "CheckPermissions evaluates one or more fine-grained permission checks\n(\"does the subject have \u003crelation\u003e on \u003cobject\u003e?\") in a single call and\nreturns one result per check, in order. The subject defaults to the\nauthenticated caller; an explicit `user` is honored only for super-admins\nor when it equals the caller's own subject. Fail-closed.",
@@ -639,6 +1679,30 @@
     }
   },
   "definitions": {
+    "authorizerv1AdminMeta": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "protected_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "AdminMeta mirrors model.AdminMeta exactly (no version field)."
+    },
     "authorizerv1Meta": {
       "type": "object",
       "properties": {
@@ -705,6 +1769,81 @@
       },
       "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
     },
+    "authorizerv1User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "description": "Either email or phone_number is always present."
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "signup_methods": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "preferred_username": {
+          "type": "string",
+          "description": "Defaults to email when unset."
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "phone_number_verified": {
+          "type": "boolean"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "revoked_timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData",
+          "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+        }
+      },
+      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -741,6 +1880,101 @@
         }
       }
     },
+    "v1AddEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "event_name": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        }
+      },
+      "description": "AddEmailTemplateRequest mirrors model.AddEmailTemplateRequest. design is\noptional."
+    },
+    "v1AddEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AddWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "AddWebhookRequest mirrors model.AddWebhookRequest. event_description is\noptional; when unset it defaults to the event name with dots replaced by\nspaces."
+    },
+    "v1AddWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminLoginRequest": {
+      "type": "object",
+      "properties": {
+        "admin_secret": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminLoginResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminLogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminMetaResponse": {
+      "type": "object",
+      "properties": {
+        "admin_meta": {
+          "$ref": "#/definitions/authorizerv1AdminMeta"
+        }
+      }
+    },
+    "v1AdminSessionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1AppData": {
       "type": "object",
       "properties": {
@@ -749,6 +1983,90 @@
         }
       },
       "description": "AppData is a free-form key/value bag stored against a user. Mirrors the\nGraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,\nnested object, nested array) to match what the existing storage layer\naccepts."
+    },
+    "v1AuditLog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "actor_type": {
+          "type": "string"
+        },
+        "actor_email": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "resource_id": {
+          "type": "string"
+        },
+        "ip_address": {
+          "type": "string"
+        },
+        "user_agent": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "AuditLog mirrors model.AuditLog field-for-field."
+    },
+    "v1AuditLogsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "action": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "resource_id": {
+          "type": "string"
+        },
+        "from_timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "to_timestamp": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are\noptional; when unset no filtering is applied for that field."
+    },
+    "v1AuditLogsResponse": {
+      "type": "object",
+      "properties": {
+        "audit_logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1AuditLog"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
     },
     "v1AuthResponse": {
       "type": "object",
@@ -779,7 +2097,7 @@
           "format": "int64"
         },
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
         },
         "authenticator_scanner_image": {
           "type": "string",
@@ -838,6 +2156,250 @@
         }
       }
     },
+    "v1DeleteEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id)."
+    },
+    "v1DeleteEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteUserRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteUserRequest mirrors model.DeleteUserRequest."
+    },
+    "v1DeleteUserResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from GetWebhookRequest per buf's one-message-per-RPC rule."
+    },
+    "v1DeleteWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1EmailTemplate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "EmailTemplate mirrors model.EmailTemplate field-for-field."
+    },
+    "v1EmailTemplatesRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1EmailTemplatesResponse": {
+      "type": "object",
+      "properties": {
+        "email_templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1EmailTemplate"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1EnableAccessRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "description": "EnableAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from RevokeAccessRequest per buf's one-message-per-RPC rule."
+    },
+    "v1EnableAccessResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaDeleteTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTupleInput"
+          }
+        }
+      },
+      "description": "FgaDeleteTuplesRequest mirrors model.FgaWriteTuplesInput (same shape as a\nwrite; the tuples to remove)."
+    },
+    "v1FgaDeleteTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaExpandRequest": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaExpandRequest mirrors model.FgaExpandInput."
+    },
+    "v1FgaExpandResponse": {
+      "type": "object",
+      "properties": {
+        "tree": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaGetModelResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/definitions/v1FgaModel"
+        }
+      }
+    },
+    "v1FgaListUsersRequest": {
+      "type": "object",
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "user_type": {
+          "type": "string"
+        }
+      },
+      "description": "FgaListUsersRequest mirrors model.FgaListUsersInput."
+    },
+    "v1FgaListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1FgaModel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "dsl": {
+          "type": "string"
+        }
+      },
+      "description": "FgaModel is a fine-grained authorization model: its id and DSL form. Mirrors\nmodel.FgaModel field-for-field. An empty model (both fields empty) is the\nvalid \"no model written yet\" state."
+    },
+    "v1FgaReadTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "string",
+          "format": "int64"
+        },
+        "continuation_token": {
+          "type": "string"
+        }
+      },
+      "description": "FgaReadTuplesRequest mirrors model.FgaReadTuplesInput. All filter fields are\noptional; an empty filter reads all tuples (paginated)."
+    },
+    "v1FgaReadTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTuple"
+          }
+        },
+        "continuation_token": {
+          "type": "string"
+        }
+      }
+    },
     "v1FgaRelationInput": {
       "type": "object",
       "properties": {
@@ -849,6 +2411,33 @@
         }
       },
       "description": "FgaRelationInput is a (relation, object) requirement evaluated against the\nauthenticated caller during Session / ValidateJwtToken / ValidateSession.\nAND semantics, fail-closed. Mirrors the GraphQL FgaRelationInput type."
+    },
+    "v1FgaResetRequest": {
+      "type": "object",
+      "description": "FgaResetRequest takes no parameters; the whole store is reset."
+    },
+    "v1FgaResetResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaTuple": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaTuple is one persisted relationship tuple returned by FgaReadTuples.\nMirrors model.FgaTuple field-for-field (the read shape; writes use the shared\nFgaTupleInput)."
     },
     "v1FgaTupleInput": {
       "type": "object",
@@ -864,6 +2453,44 @@
         }
       },
       "description": "FgaTupleInput is one relationship tuple supplied as request-scoped context\nfor a permission check; contextual tuples are never persisted. Mirrors the\nGraphQL FgaTupleInput type."
+    },
+    "v1FgaWriteModelRequest": {
+      "type": "object",
+      "properties": {
+        "dsl": {
+          "type": "string"
+        }
+      },
+      "description": "FgaWriteModelRequest mirrors model.FgaWriteModelInput (the model DSL)."
+    },
+    "v1FgaWriteModelResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/definitions/v1FgaModel"
+        }
+      }
+    },
+    "v1FgaWriteTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTupleInput"
+          }
+        }
+      },
+      "description": "FgaWriteTuplesRequest mirrors model.FgaWriteTuplesInput, reusing the shared\nFgaTupleInput message."
+    },
+    "v1FgaWriteTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "v1ForgotPasswordRequest": {
       "type": "object",
@@ -893,6 +2520,54 @@
           "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
         }
       }
+    },
+    "v1GetWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "GetWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from DeleteWebhookRequest per buf's one-message-per-RPC rule."
+    },
+    "v1GetWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "webhook": {
+          "$ref": "#/definitions/v1Webhook"
+        }
+      }
+    },
+    "v1InviteMembersRequest": {
+      "type": "object",
+      "properties": {
+        "emails": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      },
+      "description": "InviteMembersRequest mirrors model.InviteMemberRequest. redirect_uri is\noptional; when unset the configured app URL is used."
+    },
+    "v1InviteMembersResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authorizerv1User"
+          }
+        }
+      },
+      "description": "InviteMembersResponse mirrors model.InviteMembersResponse (a message plus the\nlist of newly invited users)."
     },
     "v1ListPermissionsRequest": {
       "type": "object",
@@ -1022,6 +2697,50 @@
         }
       }
     },
+    "v1Pagination": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "page": {
+          "type": "string",
+          "format": "int64"
+        },
+        "offset": {
+          "type": "string",
+          "format": "int64"
+        },
+        "total": {
+          "type": "string",
+          "format": "int64"
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "Opaque cursor for the next page; empty when no more pages."
+        }
+      }
+    },
+    "v1PaginationRequest": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string",
+          "format": "int64",
+          "description": "1-based page number. Ignored when page_token is set. Default 1."
+        },
+        "limit": {
+          "type": "string",
+          "format": "int64",
+          "description": "Page size. Server enforces an upper bound (typically 100). Default 10."
+        },
+        "page_token": {
+          "type": "string",
+          "description": "Opaque cursor returned by the previous List call's `next_page_token`.\nPreferred for new clients (AIP-158). When set, `page` is ignored."
+        }
+      }
+    },
     "v1Permission": {
       "type": "object",
       "properties": {
@@ -1072,7 +2791,7 @@
       "type": "object",
       "properties": {
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
         }
       }
     },
@@ -1142,6 +2861,23 @@
       }
     },
     "v1ResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeAccessRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "description": "RevokeAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from EnableAccessRequest per buf's one-message-per-RPC rule."
+    },
+    "v1RevokeAccessResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -1271,6 +3007,66 @@
         }
       }
     },
+    "v1TestEndpointRequest": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "TestEndpointRequest mirrors model.TestEndpointRequest. event_description is\noptional and unused by the test payload but accepted for parity."
+    },
+    "v1TestEndpointResponse": {
+      "type": "object",
+      "properties": {
+        "http_status": {
+          "type": "string",
+          "format": "int64"
+        },
+        "response": {
+          "type": "string"
+        }
+      },
+      "description": "TestEndpointResponse mirrors model.TestEndpointResponse."
+    },
+    "v1UpdateEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        }
+      },
+      "description": "UpdateEmailTemplateRequest mirrors model.UpdateEmailTemplateRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value."
+    },
+    "v1UpdateEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1UpdateProfileRequest": {
       "type": "object",
       "properties": {
@@ -1326,21 +3122,17 @@
         }
       }
     },
-    "v1User": {
+    "v1UpdateUserRequest": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
         },
         "email": {
-          "type": "string",
-          "description": "Either email or phone_number is always present."
+          "type": "string"
         },
         "email_verified": {
           "type": "boolean"
-        },
-        "signup_methods": {
-          "type": "string"
         },
         "given_name": {
           "type": "string"
@@ -1353,10 +3145,6 @@
         },
         "nickname": {
           "type": "string"
-        },
-        "preferred_username": {
-          "type": "string",
-          "description": "Defaults to email when unset."
         },
         "gender": {
           "type": "string"
@@ -1379,27 +3167,97 @@
             "type": "string"
           }
         },
-        "created_at": {
-          "type": "string",
-          "format": "int64"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "int64"
-        },
-        "revoked_timestamp": {
-          "type": "string",
-          "format": "int64"
-        },
         "is_multi_factor_auth_enabled": {
           "type": "boolean"
         },
         "app_data": {
-          "$ref": "#/definitions/v1AppData",
-          "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+          "$ref": "#/definitions/v1AppData"
         }
       },
-      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+      "description": "UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use\nproto3 `optional` so an unset field is distinguishable from an empty value\n(e.g. clearing a name vs leaving it untouched, or email_verified=false)."
+    },
+    "v1UpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1UpdateWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "UpdateWebhookRequest mirrors model.UpdateWebhookRequest. Nullable GraphQL\ninputs use proto3 `optional` so an unset field is distinguishable from an\nempty value."
+    },
+    "v1UpdateWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1UserRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "description": "UserRequest fetches a single user by id or email; at least one must be set."
+    },
+    "v1UserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1UsersRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1UsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authorizerv1User"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
     },
     "v1ValidateJwtTokenRequest": {
       "type": "object",
@@ -1467,7 +3325,66 @@
           "type": "boolean"
         },
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1VerificationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expires": {
+          "type": "string",
+          "format": "int64"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      },
+      "description": "VerificationRequest mirrors model.VerificationRequest field-for-field."
+    },
+    "v1VerificationRequestsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1VerificationRequestsResponse": {
+      "type": "object",
+      "properties": {
+        "verification_requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1VerificationRequest"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     },
@@ -1516,6 +3433,118 @@
       "properties": {
         "auth": {
           "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1Webhook": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "Webhook mirrors model.Webhook field-for-field. headers is a free-form JSON\nobject (reusing the shared AppData wrapper around google.protobuf.Struct)."
+    },
+    "v1WebhookLog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string",
+          "format": "int64"
+        },
+        "response": {
+          "type": "string"
+        },
+        "request": {
+          "type": "string"
+        },
+        "webhook_id": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "WebhookLog mirrors model.WebhookLog field-for-field."
+    },
+    "v1WebhookLogsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "webhook_id": {
+          "type": "string"
+        }
+      },
+      "description": "WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is\noptional; when unset logs for all webhooks are returned."
+    },
+    "v1WebhookLogsResponse": {
+      "type": "object",
+      "properties": {
+        "webhook_logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WebhookLog"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1WebhooksRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1WebhooksResponse": {
+      "type": "object",
+      "properties": {
+        "webhooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Webhook"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     }

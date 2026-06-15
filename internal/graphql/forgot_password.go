@@ -124,14 +124,16 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			return nil, err
 		}
 		// execute it as go routine so that we can reduce the api latency
-		go g.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
-			"user":             user.ToMap(),
-			"organization":     utils.GetOrganization(g.Config),
-			"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
-		})
+		go func() {
+			_ = g.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
+				"user":             user.ToMap(),
+				"organization":     utils.GetOrganization(g.Config),
+				"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
+			})
+		}()
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditForgotPasswordEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditForgotPasswordEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   email,
 			ResourceType: constants.AuditResourceTypeUser,
@@ -177,8 +179,8 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			// continue
 		}
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditForgotPasswordEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditForgotPasswordEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,

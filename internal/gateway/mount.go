@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -25,6 +26,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
@@ -63,7 +65,25 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 		// the same spoof-hardened resolution the gin path uses;
 		// transport.MetaFromGRPC reads `x-authorizer-url` first.
 		runtime.WithMetadata(func(_ context.Context, r *http.Request) metadata.MD {
-			return metadata.Pairs("x-authorizer-url", parsers.GetHostFromRequest(r))
+			// x-authorizer-transport=rest lets transport.MetaFromGRPC tag the
+			// request protocol as REST (vs a direct gRPC call) for audit logs
+			// and the api-operations metric.
+			return metadata.Pairs(
+				"x-authorizer-url", parsers.GetHostFromRequest(r),
+				"x-authorizer-transport", constants.ProtocolREST,
+			)
+		}),
+		// Forward the custom admin-secret header to the gRPC layer. The default
+		// matcher only forwards permanent headers (Authorization, Cookie), but
+		// admin header-auth also accepts x-authorizer-admin-secret; without this
+		// REST callers could only authenticate via the admin cookie. All other
+		// headers fall through to the default matcher so existing behaviour is
+		// unchanged.
+		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+			if strings.EqualFold(key, "x-authorizer-admin-secret") {
+				return key, true
+			}
+			return runtime.DefaultHeaderMatcher(key)
 		}),
 		// Consistent error envelope across the REST surface (see errorHandler).
 		runtime.WithErrorHandler(errorHandler),
@@ -175,7 +195,10 @@ func codeName(c codes.Code) string {
 }
 
 func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-	// Single AuthorizerService. As more services land (admin-side ones
-	// that today stay GraphQL-only), add their registrar here.
-	return authorizerv1.RegisterAuthorizerServiceHandler(ctx, mux, conn)
+	// Public + admin surfaces share this gateway mux (one REST port serves
+	// both). Both dial the same in-process gRPC server over the bufconn.
+	if err := authorizerv1.RegisterAuthorizerServiceHandler(ctx, mux, conn); err != nil {
+		return err
+	}
+	return authorizerv1.RegisterAuthorizerAdminServiceHandler(ctx, mux, conn)
 }

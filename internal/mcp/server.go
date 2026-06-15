@@ -109,7 +109,7 @@ func New(log *zerolog.Logger, grpcSrv *grpc.Server, opts Options) (*Server, erro
 	}, nil)
 
 	s := &Server{
-		log:     log,
+		log:           log,
 		mcpSrv:        mcpSrv,
 		gwConn:        conn,
 		lis:           lis,

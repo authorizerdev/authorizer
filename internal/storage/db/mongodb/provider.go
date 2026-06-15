@@ -32,7 +32,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	mongodbOptions := options.Client().ApplyURI(dbURL)
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	mongoClient, err := mongo.Connect(ctx, mongodbOptions)
 	if err != nil {
 		return nil, err
@@ -49,9 +50,9 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}
 	mongodb := mongoClient.Database(dbName, options.Database())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.User, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(schemas.Collections.User, options.Collection())
-	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
@@ -63,77 +64,77 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 			}),
 		},
 	}, options.CreateIndexes())
-	mongodb.CreateCollection(ctx, schemas.Collections.VerificationRequest, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(schemas.Collections.VerificationRequest, options.Collection())
-	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"email": 1, "identifier": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
-	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"token": 1},
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.Session, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Session, options.CreateCollection())
 	sessionCollection := mongodb.Collection(schemas.Collections.Session, options.Collection())
-	sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"user_id": 1},
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.Env, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Env, options.CreateCollection())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.Webhook, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Webhook, options.CreateCollection())
 	webhookCollection := mongodb.Collection(schemas.Collections.Webhook, options.Collection())
-	webhookCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = webhookCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"event_name": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.WebhookLog, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.WebhookLog, options.CreateCollection())
 	webhookLogCollection := mongodb.Collection(schemas.Collections.WebhookLog, options.Collection())
-	webhookLogCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = webhookLogCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"webhook_id": 1},
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.EmailTemplate, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.EmailTemplate, options.CreateCollection())
 	emailTemplateCollection := mongodb.Collection(schemas.Collections.EmailTemplate, options.Collection())
-	emailTemplateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = emailTemplateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"event_name": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.OTP, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.OTP, options.CreateCollection())
 	otpCollection := mongodb.Collection(schemas.Collections.OTP, options.Collection())
-	otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
-	otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"phone_number": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, schemas.Collections.Authenticators, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Authenticators, options.CreateCollection())
 	authenticatorsCollection := mongodb.Collection(schemas.Collections.Authenticators, options.Collection())
-	authenticatorsCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = authenticatorsCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"user_id": 1},
 			Options: options.Index().SetSparse(true),
@@ -141,9 +142,9 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, options.CreateIndexes())
 
 	// SessionToken collection and indexes
-	mongodb.CreateCollection(ctx, schemas.Collections.SessionToken, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.SessionToken, options.CreateCollection())
 	sessionTokenCollection := mongodb.Collection(schemas.Collections.SessionToken, options.Collection())
-	sessionTokenCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = sessionTokenCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"user_id": 1, "key_name": 1},
 			Options: options.Index().SetSparse(true),
@@ -155,9 +156,9 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, options.CreateIndexes())
 
 	// MFASession collection and indexes
-	mongodb.CreateCollection(ctx, schemas.Collections.MFASession, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.MFASession, options.CreateCollection())
 	mfaSessionCollection := mongodb.Collection(schemas.Collections.MFASession, options.Collection())
-	mfaSessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = mfaSessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"user_id": 1, "key_name": 1},
 			Options: options.Index().SetSparse(true),
@@ -169,9 +170,9 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, options.CreateIndexes())
 
 	// OAuthState collection and indexes
-	mongodb.CreateCollection(ctx, schemas.Collections.OAuthState, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.OAuthState, options.CreateCollection())
 	oauthStateCollection := mongodb.Collection(schemas.Collections.OAuthState, options.Collection())
-	oauthStateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = oauthStateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"state_key": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
@@ -179,9 +180,9 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, options.CreateIndexes())
 
 	// AuditLog collection and indexes
-	mongodb.CreateCollection(ctx, schemas.Collections.AuditLog, options.CreateCollection())
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.AuditLog, options.CreateCollection())
 	auditLogCollection := mongodb.Collection(schemas.Collections.AuditLog, options.Collection())
-	auditLogCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	_, _ = auditLogCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"actor_id": 1},
 			Options: options.Index().SetSparse(true),

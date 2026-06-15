@@ -60,7 +60,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if authenticators == nil {

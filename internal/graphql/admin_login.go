@@ -2,58 +2,22 @@ package graphql
 
 import (
 	"context"
-	"crypto/subtle"
-	"fmt"
 
-	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AdminLogin is the method to login as admin.
+// AdminLogin delegates to the transport-agnostic service layer and applies the
+// admin session cookie side-effect. Resolver is a thin transport adapter.
+//
 // Permissions: none
 func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLoginRequest) (*model.Response, error) {
-	log := g.Log.With().Str("func", "AdminLogin").Logger()
-	var res *model.Response
-	gc, err := utils.GinContextFromContext(ctx)
+	gc, _ := utils.GinContextFromContext(ctx)
+	res, side, err := g.adminService().AdminLogin(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get GinContext")
-		return res, fmt.Errorf("internal server error")
+		return nil, err
 	}
-	if subtle.ConstantTimeCompare([]byte(params.AdminSecret), []byte(g.Config.AdminSecret)) != 1 {
-		log.Debug().Msg("Invalid admin secret")
-		metrics.RecordAuthEvent(metrics.EventAdminLogin, metrics.StatusFailure)
-		metrics.RecordSecurityEvent("invalid_admin_secret", "admin_login")
-		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditAdminLoginFailedEvent,
-			ActorType:    constants.AuditActorTypeAdmin,
-			ResourceType: constants.AuditResourceTypeAdminSession,
-			IPAddress:    utils.GetIP(gc.Request),
-			UserAgent:    utils.GetUserAgent(gc.Request),
-		})
-		return res, fmt.Errorf(`invalid admin secret`)
-	}
-
-	hashedKey, err := crypto.EncryptPassword(g.Config.AdminSecret)
-	if err != nil {
-		return res, err
-	}
-	cookie.SetAdminCookie(gc, hashedKey, g.Config.AdminCookieSecure)
-
-	metrics.RecordAuthEvent(metrics.EventAdminLogin, metrics.StatusSuccess)
-	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminLoginSuccessEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
-		ResourceType: constants.AuditResourceTypeAdminSession,
-		IPAddress:    utils.GetIP(gc.Request),
-		UserAgent:    utils.GetUserAgent(gc.Request),
-	})
-	res = &model.Response{
-		Message: "admin logged in successfully",
-	}
+	service.ApplyToGin(gc, side)
 	return res, nil
 }

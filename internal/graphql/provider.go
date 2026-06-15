@@ -68,6 +68,14 @@ type graphqlProvider struct {
 // Ensure that graphqlProvider implements the Provider interface
 var _ Provider = &graphqlProvider{}
 
+// adminService returns the admin operations of the underlying service provider.
+// The concrete service value implements both service.Provider and
+// service.AdminProvider (compile-time asserted in the service package), so this
+// assertion always succeeds; admin resolvers delegate through it.
+func (g *graphqlProvider) adminService() service.AdminProvider {
+	return g.ServiceProvider.(service.AdminProvider)
+}
+
 // Provider is the interface that provides the methods to interact with the graphql mutations and queries.
 type Provider interface {
 	// AddEmailTemplate is the method to add email template.

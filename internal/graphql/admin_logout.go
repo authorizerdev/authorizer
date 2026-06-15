@@ -2,42 +2,22 @@ package graphql
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AdminLogout is the method to logout as admin.
+// AdminLogout delegates to the transport-agnostic service layer and applies the
+// cookie-clearing side-effect. Resolver is a thin transport adapter.
+//
 // Permissions: authorizer:admin
 func (g *graphqlProvider) AdminLogout(ctx context.Context) (*model.Response, error) {
-	log := g.Log.With().Str("func", "AdminLogout").Logger()
-	gc, err := utils.GinContextFromContext(ctx)
+	gc, _ := utils.GinContextFromContext(ctx)
+	res, side, err := g.adminService().AdminLogout(ctx, service.MetaFromGin(gc))
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get GinContext")
 		return nil, err
 	}
-	if !g.TokenProvider.IsSuperAdmin(gc) {
-		log.Debug().Msg("Not logged in as super admin")
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	cookie.DeleteAdminCookie(gc, g.Config.AdminCookieSecure)
-	metrics.RecordAuthEvent(metrics.EventAdminLogout, metrics.StatusSuccess)
-	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditAdminLogoutEvent,
-		ActorType:    constants.AuditActorTypeAdmin,
-		ResourceType: constants.AuditResourceTypeAdminSession,
-		IPAddress:    utils.GetIP(gc.Request),
-		UserAgent:    utils.GetUserAgent(gc.Request),
-	})
-
-	res := &model.Response{
-		Message: "admin logged out successfully",
-	}
+	service.ApplyToGin(gc, side)
 	return res, nil
 }

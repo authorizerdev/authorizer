@@ -43,7 +43,7 @@ func (user *User) AsAPIUser() *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
 	appDataMap := make(map[string]interface{})
-	json.Unmarshal([]byte(refs.StringValue(user.AppData)), &appDataMap)
+	_ = json.Unmarshal([]byte(refs.StringValue(user.AppData)), &appDataMap)
 	// id := user.ID
 	// if strings.Contains(id, Collections.User+"/") {
 	// 	id = strings.TrimPrefix(id, Collections.User+"/")
@@ -74,7 +74,7 @@ func (user *User) AsAPIUser() *model.User {
 
 func (user *User) ToMap() map[string]interface{} {
 	res := map[string]interface{}{}
-	data, _ := json.Marshal(user) // Convert to a json string
-	json.Unmarshal(data, &res)    // Convert to a map
+	data, _ := json.Marshal(user)  // Convert to a json string
+	_ = json.Unmarshal(data, &res) // Convert to a map
 	return res
 }

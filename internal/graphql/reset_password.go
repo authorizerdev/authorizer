@@ -177,8 +177,8 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 		}
 	}
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditPasswordResetEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditPasswordResetEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

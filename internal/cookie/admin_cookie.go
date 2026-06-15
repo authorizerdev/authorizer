@@ -12,12 +12,27 @@ import (
 
 // SetAdminCookie sets the admin cookie in the response
 func SetAdminCookie(gc *gin.Context, token string, adminCookieSecure bool) {
-	secure := adminCookieSecure
-	httpOnly := true
-	hostname := parsers.GetHost(gc)
+	c := BuildAdminCookie(parsers.GetHost(gc), token, adminCookieSecure)
+	gc.SetSameSite(c.SameSite)
+	gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
+}
+
+// BuildAdminCookie returns the admin session cookie to set on the response.
+// Transport-agnostic so non-gin callers (the service layer, gRPC handlers) can
+// produce it as a side-effect. Mirrors SetAdminCookie: host-scoped, HttpOnly,
+// SameSite=Strict, 1-hour lifetime.
+func BuildAdminCookie(hostname, token string, adminCookieSecure bool) *http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
-	gc.SetSameSite(http.SameSiteStrictMode)
-	gc.SetCookie(constants.AdminCookieName, token, 3600, "/", host, secure, httpOnly)
+	return &http.Cookie{
+		Name:     constants.AdminCookieName,
+		Value:    token,
+		MaxAge:   3600,
+		Path:     "/",
+		Domain:   host,
+		Secure:   adminCookieSecure,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
 }
 
 // GetAdminCookie gets the admin cookie from the request
@@ -38,10 +53,24 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 
 // DeleteAdminCookie sets the response cookie to empty
 func DeleteAdminCookie(gc *gin.Context, adminCookieSecure bool) {
-	secure := adminCookieSecure
-	httpOnly := true
-	hostname := parsers.GetHost(gc)
+	c := BuildDeleteAdminCookie(parsers.GetHost(gc), adminCookieSecure)
+	gc.SetSameSite(c.SameSite)
+	gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
+}
+
+// BuildDeleteAdminCookie returns a zero-value, expired admin cookie that causes
+// browsers to delete the admin session cookie. Transport-agnostic mirror of
+// DeleteAdminCookie.
+func BuildDeleteAdminCookie(hostname string, adminCookieSecure bool) *http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
-	gc.SetSameSite(http.SameSiteStrictMode)
-	gc.SetCookie(constants.AdminCookieName, "", -1, "/", host, secure, httpOnly)
+	return &http.Cookie{
+		Name:     constants.AdminCookieName,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/",
+		Domain:   host,
+		Secure:   adminCookieSecure,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
 }

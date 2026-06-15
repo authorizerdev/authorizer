@@ -41,12 +41,12 @@ func (g *graphqlProvider) DeactivateAccount(ctx context.Context) (*model.Respons
 		return res, err
 	}
 	go func() {
-		g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
-		g.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
+		_ = g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
+		_ = g.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
 	}()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditUserDeactivatedEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditUserDeactivatedEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

@@ -78,7 +78,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }
 
@@ -95,7 +95,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
@@ -124,7 +124,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
@@ -151,7 +151,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
@@ -200,7 +200,7 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if user == nil {

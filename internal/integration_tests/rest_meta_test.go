@@ -53,7 +53,7 @@ func TestRESTMeta(t *testing.T) {
 
 	resp, err := http.Get(ts.URL + "/v1/meta")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)

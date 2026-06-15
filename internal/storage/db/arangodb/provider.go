@@ -104,11 +104,11 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
-	userCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = userCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -127,11 +127,11 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	verificationRequestCollection.EnsureHashIndex(ctx, []string{"email", "identifier"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = verificationRequestCollection.EnsureHashIndex(ctx, []string{"email", "identifier"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
-	verificationRequestCollection.EnsureHashIndex(ctx, []string{"token"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = verificationRequestCollection.EnsureHashIndex(ctx, []string{"token"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 
@@ -149,7 +149,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 	envCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Env)
@@ -176,7 +176,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	webhookCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = webhookCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -195,7 +195,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	webhookLogCollection.EnsureHashIndex(ctx, []string{"webhook_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = webhookLogCollection.EnsureHashIndex(ctx, []string{"webhook_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 
@@ -213,7 +213,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	emailTemplateCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = emailTemplateCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -232,7 +232,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	otpCollection.EnsureHashIndex(ctx, []string{schemas.FieldNameEmail, schemas.FieldNamePhoneNumber}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = otpCollection.EnsureHashIndex(ctx, []string{schemas.FieldNameEmail, schemas.FieldNamePhoneNumber}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -252,7 +252,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 
@@ -271,10 +271,10 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	sessionTokenCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = sessionTokenCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
-	sessionTokenCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
+	_, _, _ = sessionTokenCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
 		Sparse: true,
 	})
 
@@ -293,10 +293,10 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	mfaSessionCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = mfaSessionCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
-	mfaSessionCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
+	_, _, _ = mfaSessionCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
 		Sparse: true,
 	})
 
@@ -315,11 +315,11 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	oauthStateCollection.EnsureHashIndex(ctx, []string{"state_key"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = oauthStateCollection.EnsureHashIndex(ctx, []string{"state_key"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
-	authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 
@@ -338,13 +338,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	auditLogCollection.EnsureHashIndex(ctx, []string{"actor_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = auditLogCollection.EnsureHashIndex(ctx, []string{"actor_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
-	auditLogCollection.EnsureHashIndex(ctx, []string{"action"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = auditLogCollection.EnsureHashIndex(ctx, []string{"action"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
-	auditLogCollection.EnsurePersistentIndex(ctx, []string{"timestamp"}, &arangoDriver.EnsurePersistentIndexOptions{
+	_, _, _ = auditLogCollection.EnsurePersistentIndex(ctx, []string{"timestamp"}, &arangoDriver.EnsurePersistentIndexOptions{
 		Sparse: true,
 	})
 

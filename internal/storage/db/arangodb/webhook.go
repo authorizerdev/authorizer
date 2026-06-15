@@ -60,7 +60,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
@@ -90,7 +90,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
 			if webhook == nil {
@@ -116,7 +116,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	webhooks := []*schemas.Webhook{}
 	for {
 		var webhook *schemas.Webhook
@@ -146,6 +146,6 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	defer func() { _ = cursor.Close() }()
 	return nil
 }

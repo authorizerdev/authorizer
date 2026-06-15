@@ -258,7 +258,7 @@ func (p *provider) GetState(key string) (string, error) {
 	// Enforce 10-minute TTL consistent with Redis provider.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
 		// Clean up expired entry asynchronously.
-		go p.deleteOAuthStateByKey(context.Background(), key)
+		go func() { _ = p.deleteOAuthStateByKey(context.Background(), key) }()
 		return "", fmt.Errorf("state expired")
 	}
 	return oauthState.State, nil

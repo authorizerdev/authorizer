@@ -159,22 +159,22 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 			}); err != nil {
 				log.Debug().Err(err).Msg("Failed to send email")
 			}
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
 	} else {
 		go func() {
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 			if err := g.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 				log.Debug().Err(err).Msg("Failed to send sms")
 			}
 		}()
 	}
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditOTPResentEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditOTPResentEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,

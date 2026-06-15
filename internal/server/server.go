@@ -17,7 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 )
 
-// Configuration of a server.
+// Config holds the configuration of a server.
 type Config struct {
 	// Host address to accept requests on
 	Host string

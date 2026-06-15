@@ -95,14 +95,16 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 	}
 
 	// exec it as go routine so that we can reduce the api latency
-	go g.EmailProvider.SendEmail([]string{params.Email}, params.Identifier, map[string]interface{}{
-		"user":             user.ToMap(),
-		"organization":     utils.GetOrganization(g.Config),
-		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
-	})
+	go func() {
+		_ = g.EmailProvider.SendEmail([]string{params.Email}, params.Identifier, map[string]interface{}{
+			"user":             user.ToMap(),
+			"organization":     utils.GetOrganization(g.Config),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
+		})
+	}()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditVerifyEmailResentEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditVerifyEmailResentEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   params.Email,
 		ResourceType: constants.AuditResourceTypeUser,

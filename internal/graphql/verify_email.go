@@ -163,7 +163,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 			} else {
 				nonce = authorizeState
 			}
-			go g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+			go func() { _ = g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State)) }()
 		}
 	}
 	if nonce == "" {
@@ -193,11 +193,11 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	// }
 	go func() {
 		if isSignUp {
-			g.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
 			// User is also logged in with signup
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		} else {
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		}
 
 		if err := g.StorageProvider.AddSession(ctx, &schemas.Session{
@@ -209,8 +209,8 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		}
 	}()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditEmailVerifiedEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditEmailVerifiedEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,
@@ -233,12 +233,12 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 
 	sessionKey := loginMethod + ":" + user.ID
 	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
-	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	_ = g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 	return res, nil
 }

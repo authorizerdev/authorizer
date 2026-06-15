@@ -26,7 +26,7 @@ func TestRESTCheckPermissionsFailClosed(t *testing.T) {
 	resp, err := http.Post(base+"/v1/check_permissions", "application/json",
 		strings.NewReader(`{"checks":[{"relation":"can_view","object":"document:1"}]}`))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	env := readEnvelope(t, resp)
@@ -42,7 +42,7 @@ func TestRESTListPermissionsFailClosed(t *testing.T) {
 	resp, err := http.Post(base+"/v1/list_permissions", "application/json",
 		strings.NewReader(`{}`))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	env := readEnvelope(t, resp)
@@ -60,7 +60,7 @@ func TestRESTCheckPermissionsEmptyChecksRejected(t *testing.T) {
 	resp, err := http.Post(base+"/v1/check_permissions", "application/json",
 		strings.NewReader(`{"checks":[]}`))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	env := readEnvelope(t, resp)
@@ -101,7 +101,7 @@ func TestRESTGatewayForwardsAuthorizerHost(t *testing.T) {
 	req.Header.Set("X-Authorizer-URL", hostURL)
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var signup struct {
@@ -132,7 +132,7 @@ func TestRESTGatewayForwardsAuthorizerHost(t *testing.T) {
 	preq.Header.Set("X-Authorizer-URL", hostURL)
 	presp, err := http.DefaultClient.Do(preq)
 	require.NoError(t, err)
-	defer presp.Body.Close()
+	defer func() { _ = presp.Body.Close() }()
 	require.Equal(t, http.StatusOK, presp.StatusCode)
 	var profile struct {
 		User struct {

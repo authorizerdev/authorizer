@@ -106,7 +106,7 @@ type AuthToken struct {
 	IDToken               *JWTToken `json:"id_token"`
 }
 
-// SessionData
+// SessionData holds the session claims persisted for a user session.
 type SessionData struct {
 	Subject     string   `json:"sub"`
 	Roles       []string `json:"roles"`
@@ -247,7 +247,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 		resUser := cfg.User.AsAPIUser()
 		userBytes, _ := json.Marshal(&resUser)
 		var userMap map[string]interface{}
-		json.Unmarshal(userBytes, &userMap)
+		_ = json.Unmarshal(userBytes, &userMap)
 		p.runCustomAccessTokenScript(userBytes, customClaims)
 	}
 	token, err := p.SignJWTToken(customClaims)
@@ -431,7 +431,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	resUser := cfg.User.AsAPIUser()
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
-	json.Unmarshal(userBytes, &userMap)
+	_ = json.Unmarshal(userBytes, &userMap)
 
 	customClaims := jwt.MapClaims{
 		"iss":                 cfg.HostName,
@@ -615,7 +615,7 @@ func (p *provider) runCustomAccessTokenScript(userBytes []byte, customClaims jwt
 	}()
 
 	claimBytes, _ := json.Marshal(customClaims)
-	vm.Run(fmt.Sprintf(`
+	_, _ = vm.Run(fmt.Sprintf(`
 		var user = %s;
 		var tokenPayload = %s;
 		var customFunction = %s;

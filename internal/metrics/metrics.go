@@ -64,6 +64,19 @@ var (
 		[]string{"event", "status"},
 	)
 
+	// APIOperationsTotal counts API operations by the protocol they were served
+	// over (graphql, grpc, rest), the operation name, and the result status.
+	// All three labels are low-cardinality (protocol constants, method/operation
+	// names, ok|error), so this lets dashboards attribute every operation to its
+	// transport.
+	APIOperationsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_api_operations_total",
+			Help: "Total number of API operations by protocol, operation, and status",
+		},
+		[]string{"protocol", "operation", "status"},
+	)
+
 	// ActiveSessions is the current number of active sessions.
 	ActiveSessions = prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -241,6 +254,7 @@ func Init() {
 		prometheus.MustRegister(HTTPRequestsTotal)
 		prometheus.MustRegister(HTTPRequestDuration)
 		prometheus.MustRegister(AuthEventsTotal)
+		prometheus.MustRegister(APIOperationsTotal)
 		prometheus.MustRegister(ActiveSessions)
 		prometheus.MustRegister(SecurityEventsTotal)
 		prometheus.MustRegister(GraphQLErrorsTotal)
@@ -268,6 +282,21 @@ func GraphQLOperationPrometheusLabel(operationName string) string {
 // event and status must be low-cardinality values (package constants); do not pass user input.
 func RecordAuthEvent(event, status string) {
 	AuthEventsTotal.WithLabelValues(event, status).Inc()
+}
+
+// OperationStatusOK / OperationStatusError are the low-cardinality status label
+// values for RecordAPIOperation.
+const (
+	OperationStatusOK    = "ok"
+	OperationStatusError = "error"
+)
+
+// RecordAPIOperation records a performed API operation labeled by transport
+// protocol (constants.Protocol*), operation name, and status. All three must be
+// low-cardinality (protocol constants, method/operation names, ok|error) — never
+// pass user-controlled strings.
+func RecordAPIOperation(protocol, operation, status string) {
+	APIOperationsTotal.WithLabelValues(protocol, operation, status).Inc()
 }
 
 // RecordSecurityEvent records a security-relevant event for alerting.

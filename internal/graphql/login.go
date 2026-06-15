@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -100,14 +101,14 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		// Equalise response timing with the real bcrypt path so an attacker
 		// cannot distinguish "no such user" from "wrong password" by latency.
 		performDummyPasswordCheck(params.Password)
-		return nil, fmt.Errorf(genericLoginErrMsg)
+		return nil, errors.New(genericLoginErrMsg)
 	}
 	if user.RevokedTimestamp != nil {
 		log.Debug().Str("reason", "account_revoked").Msg("login failed")
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("account_revoked", "login_attempt")
 		performDummyPasswordCheck(params.Password)
-		return nil, fmt.Errorf(genericLoginErrMsg)
+		return nil, errors.New(genericLoginErrMsg)
 	}
 	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
@@ -151,7 +152,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 			log.Debug().Str("reason", "wrong_signup_method").Msg("login failed")
 			performDummyPasswordCheck(params.Password)
-			return nil, fmt.Errorf(genericLoginErrMsg)
+			return nil, errors.New(genericLoginErrMsg)
 		}
 
 		if user.EmailVerifiedAt == nil {
@@ -160,7 +161,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			if !isEmailServiceEnabled {
 				log.Debug().Str("reason", "email_not_verified_no_email_service").Msg("login failed")
 				performDummyPasswordCheck(params.Password)
-				return nil, fmt.Errorf(genericLoginErrMsg)
+				return nil, errors.New(genericLoginErrMsg)
 			} else {
 				if vreq, err := g.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup); err == nil && vreq != nil {
 					// if verification request exists and not expired then return
@@ -168,7 +169,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 					if vreq.ExpiresAt > time.Now().Unix() {
 						log.Debug().Str("reason", "email_verification_pending").Msg("login failed")
 						performDummyPasswordCheck(params.Password)
-						return nil, fmt.Errorf(genericLoginErrMsg)
+						return nil, errors.New(genericLoginErrMsg)
 					} else {
 						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
 							log.Debug().Msg("Failed to delete verification request")
@@ -197,7 +198,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 					}); err != nil {
 						log.Debug().Msg("Failed to send otp email")
 					}
-					g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+					_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 				}()
 				return &model.AuthResponse{
 					Message:                  "Please check email inbox for the OTP",
@@ -209,14 +210,14 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodMobileBasicAuth) {
 			log.Debug().Str("reason", "wrong_signup_method_phone").Msg("login failed")
 			performDummyPasswordCheck(params.Password)
-			return nil, fmt.Errorf(genericLoginErrMsg)
+			return nil, errors.New(genericLoginErrMsg)
 		}
 
 		if user.PhoneNumberVerifiedAt == nil {
 			if !isSMSServiceEnabled {
 				log.Debug().Str("reason", "phone_not_verified_no_sms_service").Msg("login failed")
 				performDummyPasswordCheck(params.Password)
-				return nil, fmt.Errorf(genericLoginErrMsg)
+				return nil, errors.New(genericLoginErrMsg)
 			} else {
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
 				otpData, err := generateOTP(expiresAt)
@@ -232,7 +233,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 					smsBody := strings.Builder{}
 					smsBody.WriteString("Your verification code is: ")
 					smsBody.WriteString(otpData.Otp)
-					g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+					_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 					if err := g.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 						log.Debug().Msg("Failed to send sms")
 					}
@@ -250,8 +251,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("invalid_credentials", "bad_password")
 		g.AuditProvider.LogEvent(audit.Event{
-			Action:       constants.AuditLoginFailedEvent,
-			ActorID:      user.ID,
+			Action:   constants.AuditLoginFailedEvent,
+			Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
@@ -259,7 +260,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
-		return nil, fmt.Errorf(genericLoginErrMsg)
+		return nil, errors.New(genericLoginErrMsg)
 	}
 	roles := g.Config.DefaultRoles
 	currentRoles := strings.Split(user.Roles, ",")
@@ -301,7 +302,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			}); err != nil {
 				log.Debug().Msg("Failed to send otp email")
 			}
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
 		return &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
@@ -324,7 +325,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 			if err := g.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 				log.Debug().Msg("Failed to send sms")
 			}
@@ -396,7 +397,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			} else {
 				nonce = authorizeState
 			}
-			g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+			_ = g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
 	}
 
@@ -442,23 +443,23 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 
 	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	_ = g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
 	go func() {
 		// Register event
 		if isEmailLogin {
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		} else {
-			g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			_ = g.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		}
 		// Record session
-		g.StorageProvider.AddSession(ctx, &schemas.Session{
+		_ = g.StorageProvider.AddSession(ctx, &schemas.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),
@@ -467,8 +468,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusSuccess)
 	metrics.ActiveSessions.Inc()
 	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditLoginSuccessEvent,
-		ActorID:      user.ID,
+		Action:   constants.AuditLoginSuccessEvent,
+		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeSession,
