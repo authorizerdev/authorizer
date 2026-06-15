@@ -290,6 +290,265 @@
         ]
       }
     },
+    "/v1/admin/fga/expand": {
+      "post": {
+        "summary": "FgaExpand returns the OpenFGA relationship/userset tree for (relation,\nobject) as a JSON string (the explainability primitive). Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaExpand",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaExpandResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaExpandRequest mirrors model.FgaExpandInput.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaExpandRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/list_users": {
+      "post": {
+        "summary": "FgaListUsers returns the fully-qualified user ids of user_type that have\nrelation on object (\"who can access this object?\"). Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_FgaListUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaListUsersRequest mirrors model.FgaListUsersInput.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaListUsersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/model": {
+      "get": {
+        "summary": "FgaGetModel returns the active fine-grained authorization model as DSL. A\nstore with no model yet returns an empty model (not an error). Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaGetModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaGetModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      },
+      "post": {
+        "summary": "FgaWriteModel installs a new fine-grained authorization model from its DSL\nand returns the new model id. Requires super-admin auth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaWriteModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaWriteModelRequest mirrors model.FgaWriteModelInput (the model DSL).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteModelRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/reset": {
+      "post": {
+        "summary": "FgaReset deletes the entire fine-grained authorization store (the model,\nall its versions, and all tuples) and starts a fresh, empty store. Refused\nwhile any tuples still exist. Requires super-admin auth. Destructive and\naudited.",
+        "operationId": "AuthorizerAdminService_FgaReset",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaResetResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaResetRequest takes no parameters; the whole store is reset.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaResetRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples": {
+      "post": {
+        "summary": "FgaWriteTuples persists the given relationship tuples (additive). Requires\nsuper-admin auth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaWriteTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaWriteTuplesRequest mirrors model.FgaWriteTuplesInput, reusing the shared\nFgaTupleInput message.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaWriteTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples/delete": {
+      "post": {
+        "summary": "FgaDeleteTuples removes the given relationship tuples. Requires super-admin\nauth. Audited.",
+        "operationId": "AuthorizerAdminService_FgaDeleteTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaDeleteTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaDeleteTuplesRequest mirrors model.FgaWriteTuplesInput (same shape as a\nwrite; the tuples to remove).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaDeleteTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/fga/tuples/read": {
+      "post": {
+        "summary": "FgaReadTuples returns a page of persisted tuples matching the filter.\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_FgaReadTuples",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FgaReadTuplesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "FgaReadTuplesRequest mirrors model.FgaReadTuplesInput. All filter fields are\noptional; an empty filter reads all tuples (paginated).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1FgaReadTuplesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/invite_members": {
       "post": {
         "summary": "InviteMembers creates accounts for new emails and sends invite emails.\nRequires super-admin auth and a configured email service.",
@@ -2017,6 +2276,130 @@
         }
       }
     },
+    "v1FgaDeleteTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTupleInput"
+          }
+        }
+      },
+      "description": "FgaDeleteTuplesRequest mirrors model.FgaWriteTuplesInput (same shape as a\nwrite; the tuples to remove)."
+    },
+    "v1FgaDeleteTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaExpandRequest": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaExpandRequest mirrors model.FgaExpandInput."
+    },
+    "v1FgaExpandResponse": {
+      "type": "object",
+      "properties": {
+        "tree": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaGetModelResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/definitions/v1FgaModel"
+        }
+      }
+    },
+    "v1FgaListUsersRequest": {
+      "type": "object",
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "user_type": {
+          "type": "string"
+        }
+      },
+      "description": "FgaListUsersRequest mirrors model.FgaListUsersInput."
+    },
+    "v1FgaListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1FgaModel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "dsl": {
+          "type": "string"
+        }
+      },
+      "description": "FgaModel is a fine-grained authorization model: its id and DSL form. Mirrors\nmodel.FgaModel field-for-field. An empty model (both fields empty) is the\nvalid \"no model written yet\" state."
+    },
+    "v1FgaReadTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "string",
+          "format": "int64"
+        },
+        "continuation_token": {
+          "type": "string"
+        }
+      },
+      "description": "FgaReadTuplesRequest mirrors model.FgaReadTuplesInput. All filter fields are\noptional; an empty filter reads all tuples (paginated)."
+    },
+    "v1FgaReadTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTuple"
+          }
+        },
+        "continuation_token": {
+          "type": "string"
+        }
+      }
+    },
     "v1FgaRelationInput": {
       "type": "object",
       "properties": {
@@ -2028,6 +2411,33 @@
         }
       },
       "description": "FgaRelationInput is a (relation, object) requirement evaluated against the\nauthenticated caller during Session / ValidateJwtToken / ValidateSession.\nAND semantics, fail-closed. Mirrors the GraphQL FgaRelationInput type."
+    },
+    "v1FgaResetRequest": {
+      "type": "object",
+      "description": "FgaResetRequest takes no parameters; the whole store is reset."
+    },
+    "v1FgaResetResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaTuple": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaTuple is one persisted relationship tuple returned by FgaReadTuples.\nMirrors model.FgaTuple field-for-field (the read shape; writes use the shared\nFgaTupleInput)."
     },
     "v1FgaTupleInput": {
       "type": "object",
@@ -2043,6 +2453,44 @@
         }
       },
       "description": "FgaTupleInput is one relationship tuple supplied as request-scoped context\nfor a permission check; contextual tuples are never persisted. Mirrors the\nGraphQL FgaTupleInput type."
+    },
+    "v1FgaWriteModelRequest": {
+      "type": "object",
+      "properties": {
+        "dsl": {
+          "type": "string"
+        }
+      },
+      "description": "FgaWriteModelRequest mirrors model.FgaWriteModelInput (the model DSL)."
+    },
+    "v1FgaWriteModelResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/definitions/v1FgaModel"
+        }
+      }
+    },
+    "v1FgaWriteTuplesRequest": {
+      "type": "object",
+      "properties": {
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTupleInput"
+          }
+        }
+      },
+      "description": "FgaWriteTuplesRequest mirrors model.FgaWriteTuplesInput, reusing the shared\nFgaTupleInput message."
+    },
+    "v1FgaWriteTuplesResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "v1ForgotPasswordRequest": {
       "type": "object",

@@ -316,3 +316,79 @@ func projectAuditLogs(a *model.AuditLogs) *authorizerv1.AuditLogsResponse {
 		Pagination: projectPagination(a.Pagination),
 	}
 }
+
+// modelFgaTupleInputs converts proto FgaTupleInput messages (the shared request
+// shape for tuple writes/deletes) into the GraphQL model's []*FgaTupleInput. A
+// nil/empty input yields nil so the service layer's "at least one tuple" guard
+// fires consistently across transports.
+func modelFgaTupleInputs(in []*authorizerv1.FgaTupleInput) []*model.FgaTupleInput {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]*model.FgaTupleInput, 0, len(in))
+	for _, t := range in {
+		if t == nil {
+			continue
+		}
+		out = append(out, &model.FgaTupleInput{
+			User:     t.GetUser(),
+			Relation: t.GetRelation(),
+			Object:   t.GetObject(),
+		})
+	}
+	return out
+}
+
+// projectFgaModel converts the GraphQL FgaModel model (model id + DSL) into the
+// proto message. An empty model is the valid "no model written yet" state.
+func projectFgaModel(m *model.FgaModel) *authorizerv1.FgaModel {
+	if m == nil {
+		return nil
+	}
+	return &authorizerv1.FgaModel{
+		Id:  m.ID,
+		Dsl: m.Dsl,
+	}
+}
+
+// projectFgaTuples converts the GraphQL FgaTuples model (a page of persisted
+// tuples plus its continuation token) into the proto response.
+func projectFgaTuples(t *model.FgaTuples) *authorizerv1.FgaReadTuplesResponse {
+	if t == nil {
+		return &authorizerv1.FgaReadTuplesResponse{}
+	}
+	tuples := make([]*authorizerv1.FgaTuple, 0, len(t.Tuples))
+	for _, item := range t.Tuples {
+		if item == nil {
+			continue
+		}
+		tuples = append(tuples, &authorizerv1.FgaTuple{
+			User:     item.User,
+			Relation: item.Relation,
+			Object:   item.Object,
+		})
+	}
+	return &authorizerv1.FgaReadTuplesResponse{
+		Tuples:            tuples,
+		ContinuationToken: t.ContinuationToken,
+	}
+}
+
+// projectFgaListUsersResponse converts the GraphQL FgaListUsersResponse model
+// (the fully-qualified user ids that hold a relation on an object) into the proto
+// response.
+func projectFgaListUsersResponse(r *model.FgaListUsersResponse) *authorizerv1.FgaListUsersResponse {
+	if r == nil {
+		return &authorizerv1.FgaListUsersResponse{}
+	}
+	return &authorizerv1.FgaListUsersResponse{Users: r.Users}
+}
+
+// projectFgaExpandResponse converts the GraphQL FgaExpandResponse model (the
+// relationship/userset tree as a JSON string) into the proto response.
+func projectFgaExpandResponse(r *model.FgaExpandResponse) *authorizerv1.FgaExpandResponse {
+	if r == nil {
+		return &authorizerv1.FgaExpandResponse{}
+	}
+	return &authorizerv1.FgaExpandResponse{Tree: r.Tree}
+}

@@ -339,3 +339,103 @@ func (h *AdminHandler) AuditLogs(ctx context.Context, req *authorizerv1.AuditLog
 	}
 	return projectAuditLogs(res), nil
 }
+
+// FgaGetModel delegates to service.FgaGetModel and projects the active model.
+// Fails closed when no FGA engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaGetModel(ctx context.Context, _ *authorizerv1.FgaGetModelRequest) (*authorizerv1.FgaGetModelResponse, error) {
+	res, _, err := h.Service.FgaGetModel(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.FgaGetModelResponse{Model: projectFgaModel(res)}, nil
+}
+
+// FgaWriteModel delegates to service.FgaWriteModel and projects the new model.
+// Fails closed when no FGA engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaWriteModel(ctx context.Context, req *authorizerv1.FgaWriteModelRequest) (*authorizerv1.FgaWriteModelResponse, error) {
+	res, _, err := h.Service.FgaWriteModel(ctx, transport.MetaFromGRPC(ctx), &model.FgaWriteModelInput{
+		Dsl: req.GetDsl(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.FgaWriteModelResponse{Model: projectFgaModel(res)}, nil
+}
+
+// FgaWriteTuples delegates to service.FgaWriteTuples. Fails closed when no FGA
+// engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaWriteTuples(ctx context.Context, req *authorizerv1.FgaWriteTuplesRequest) (*authorizerv1.FgaWriteTuplesResponse, error) {
+	res, _, err := h.Service.FgaWriteTuples(ctx, transport.MetaFromGRPC(ctx), &model.FgaWriteTuplesInput{
+		Tuples: modelFgaTupleInputs(req.GetTuples()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.FgaWriteTuplesResponse{Message: res.Message}, nil
+}
+
+// FgaDeleteTuples delegates to service.FgaDeleteTuples. Fails closed when no FGA
+// engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaDeleteTuples(ctx context.Context, req *authorizerv1.FgaDeleteTuplesRequest) (*authorizerv1.FgaDeleteTuplesResponse, error) {
+	res, _, err := h.Service.FgaDeleteTuples(ctx, transport.MetaFromGRPC(ctx), &model.FgaWriteTuplesInput{
+		Tuples: modelFgaTupleInputs(req.GetTuples()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.FgaDeleteTuplesResponse{Message: res.Message}, nil
+}
+
+// FgaReadTuples delegates to service.FgaReadTuples and projects the page. All
+// filter fields are optional. Fails closed when no FGA engine is configured.
+// Requires super-admin auth.
+func (h *AdminHandler) FgaReadTuples(ctx context.Context, req *authorizerv1.FgaReadTuplesRequest) (*authorizerv1.FgaReadTuplesResponse, error) {
+	res, _, err := h.Service.FgaReadTuples(ctx, transport.MetaFromGRPC(ctx), &model.FgaReadTuplesInput{
+		User:              req.User,
+		Relation:          req.Relation,
+		Object:            req.Object,
+		PageSize:          req.PageSize,
+		ContinuationToken: req.ContinuationToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectFgaTuples(res), nil
+}
+
+// FgaListUsers delegates to service.FgaListUsers and projects the result. Fails
+// closed when no FGA engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaListUsers(ctx context.Context, req *authorizerv1.FgaListUsersRequest) (*authorizerv1.FgaListUsersResponse, error) {
+	res, _, err := h.Service.FgaListUsers(ctx, transport.MetaFromGRPC(ctx), &model.FgaListUsersInput{
+		Object:   req.GetObject(),
+		Relation: req.GetRelation(),
+		UserType: req.GetUserType(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectFgaListUsersResponse(res), nil
+}
+
+// FgaExpand delegates to service.FgaExpand and projects the result. Fails closed
+// when no FGA engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaExpand(ctx context.Context, req *authorizerv1.FgaExpandRequest) (*authorizerv1.FgaExpandResponse, error) {
+	res, _, err := h.Service.FgaExpand(ctx, transport.MetaFromGRPC(ctx), &model.FgaExpandInput{
+		Relation: req.GetRelation(),
+		Object:   req.GetObject(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectFgaExpandResponse(res), nil
+}
+
+// FgaReset delegates to service.FgaReset. Refused while tuples still exist. Fails
+// closed when no FGA engine is configured. Requires super-admin auth.
+func (h *AdminHandler) FgaReset(ctx context.Context, _ *authorizerv1.FgaResetRequest) (*authorizerv1.FgaResetResponse, error) {
+	res, _, err := h.Service.FgaReset(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.FgaResetResponse{Message: res.Message}, nil
+}

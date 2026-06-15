@@ -52,6 +52,14 @@ const (
 	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
 	AuthorizerAdminService_EmailTemplates_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
 	AuthorizerAdminService_AuditLogs_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
+	AuthorizerAdminService_FgaGetModel_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/FgaGetModel"
+	AuthorizerAdminService_FgaWriteModel_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaWriteModel"
+	AuthorizerAdminService_FgaWriteTuples_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/FgaWriteTuples"
+	AuthorizerAdminService_FgaDeleteTuples_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/FgaDeleteTuples"
+	AuthorizerAdminService_FgaReadTuples_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaReadTuples"
+	AuthorizerAdminService_FgaListUsers_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/FgaListUsers"
+	AuthorizerAdminService_FgaExpand_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/FgaExpand"
+	AuthorizerAdminService_FgaReset_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaReset"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -128,6 +136,35 @@ type AuthorizerAdminServiceClient interface {
 	// AuditLogs returns a paginated, optionally-filtered list of audit log
 	// entries. Requires super-admin auth.
 	AuditLogs(ctx context.Context, in *AuditLogsRequest, opts ...grpc.CallOption) (*AuditLogsResponse, error)
+	// FgaGetModel returns the active fine-grained authorization model as DSL. A
+	// store with no model yet returns an empty model (not an error). Requires
+	// super-admin auth.
+	FgaGetModel(ctx context.Context, in *FgaGetModelRequest, opts ...grpc.CallOption) (*FgaGetModelResponse, error)
+	// FgaWriteModel installs a new fine-grained authorization model from its DSL
+	// and returns the new model id. Requires super-admin auth. Audited.
+	FgaWriteModel(ctx context.Context, in *FgaWriteModelRequest, opts ...grpc.CallOption) (*FgaWriteModelResponse, error)
+	// FgaWriteTuples persists the given relationship tuples (additive). Requires
+	// super-admin auth. Audited.
+	FgaWriteTuples(ctx context.Context, in *FgaWriteTuplesRequest, opts ...grpc.CallOption) (*FgaWriteTuplesResponse, error)
+	// FgaDeleteTuples removes the given relationship tuples. Requires super-admin
+	// auth. Audited.
+	FgaDeleteTuples(ctx context.Context, in *FgaDeleteTuplesRequest, opts ...grpc.CallOption) (*FgaDeleteTuplesResponse, error)
+	// FgaReadTuples returns a page of persisted tuples matching the filter.
+	// Requires super-admin auth.
+	FgaReadTuples(ctx context.Context, in *FgaReadTuplesRequest, opts ...grpc.CallOption) (*FgaReadTuplesResponse, error)
+	// FgaListUsers returns the fully-qualified user ids of user_type that have
+	// relation on object ("who can access this object?"). Requires super-admin
+	// auth.
+	FgaListUsers(ctx context.Context, in *FgaListUsersRequest, opts ...grpc.CallOption) (*FgaListUsersResponse, error)
+	// FgaExpand returns the OpenFGA relationship/userset tree for (relation,
+	// object) as a JSON string (the explainability primitive). Requires
+	// super-admin auth.
+	FgaExpand(ctx context.Context, in *FgaExpandRequest, opts ...grpc.CallOption) (*FgaExpandResponse, error)
+	// FgaReset deletes the entire fine-grained authorization store (the model,
+	// all its versions, and all tuples) and starts a fresh, empty store. Refused
+	// while any tuples still exist. Requires super-admin auth. Destructive and
+	// audited.
+	FgaReset(ctx context.Context, in *FgaResetRequest, opts ...grpc.CallOption) (*FgaResetResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -378,6 +415,86 @@ func (c *authorizerAdminServiceClient) AuditLogs(ctx context.Context, in *AuditL
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) FgaGetModel(ctx context.Context, in *FgaGetModelRequest, opts ...grpc.CallOption) (*FgaGetModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaGetModelResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaGetModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaWriteModel(ctx context.Context, in *FgaWriteModelRequest, opts ...grpc.CallOption) (*FgaWriteModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaWriteModelResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaWriteModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaWriteTuples(ctx context.Context, in *FgaWriteTuplesRequest, opts ...grpc.CallOption) (*FgaWriteTuplesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaWriteTuplesResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaWriteTuples_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaDeleteTuples(ctx context.Context, in *FgaDeleteTuplesRequest, opts ...grpc.CallOption) (*FgaDeleteTuplesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaDeleteTuplesResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaDeleteTuples_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaReadTuples(ctx context.Context, in *FgaReadTuplesRequest, opts ...grpc.CallOption) (*FgaReadTuplesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaReadTuplesResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaReadTuples_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaListUsers(ctx context.Context, in *FgaListUsersRequest, opts ...grpc.CallOption) (*FgaListUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaListUsersResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaExpand(ctx context.Context, in *FgaExpandRequest, opts ...grpc.CallOption) (*FgaExpandResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaExpandResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaExpand_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) FgaReset(ctx context.Context, in *FgaResetRequest, opts ...grpc.CallOption) (*FgaResetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FgaResetResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_FgaReset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -452,6 +569,35 @@ type AuthorizerAdminServiceServer interface {
 	// AuditLogs returns a paginated, optionally-filtered list of audit log
 	// entries. Requires super-admin auth.
 	AuditLogs(context.Context, *AuditLogsRequest) (*AuditLogsResponse, error)
+	// FgaGetModel returns the active fine-grained authorization model as DSL. A
+	// store with no model yet returns an empty model (not an error). Requires
+	// super-admin auth.
+	FgaGetModel(context.Context, *FgaGetModelRequest) (*FgaGetModelResponse, error)
+	// FgaWriteModel installs a new fine-grained authorization model from its DSL
+	// and returns the new model id. Requires super-admin auth. Audited.
+	FgaWriteModel(context.Context, *FgaWriteModelRequest) (*FgaWriteModelResponse, error)
+	// FgaWriteTuples persists the given relationship tuples (additive). Requires
+	// super-admin auth. Audited.
+	FgaWriteTuples(context.Context, *FgaWriteTuplesRequest) (*FgaWriteTuplesResponse, error)
+	// FgaDeleteTuples removes the given relationship tuples. Requires super-admin
+	// auth. Audited.
+	FgaDeleteTuples(context.Context, *FgaDeleteTuplesRequest) (*FgaDeleteTuplesResponse, error)
+	// FgaReadTuples returns a page of persisted tuples matching the filter.
+	// Requires super-admin auth.
+	FgaReadTuples(context.Context, *FgaReadTuplesRequest) (*FgaReadTuplesResponse, error)
+	// FgaListUsers returns the fully-qualified user ids of user_type that have
+	// relation on object ("who can access this object?"). Requires super-admin
+	// auth.
+	FgaListUsers(context.Context, *FgaListUsersRequest) (*FgaListUsersResponse, error)
+	// FgaExpand returns the OpenFGA relationship/userset tree for (relation,
+	// object) as a JSON string (the explainability primitive). Requires
+	// super-admin auth.
+	FgaExpand(context.Context, *FgaExpandRequest) (*FgaExpandResponse, error)
+	// FgaReset deletes the entire fine-grained authorization store (the model,
+	// all its versions, and all tuples) and starts a fresh, empty store. Refused
+	// while any tuples still exist. Requires super-admin auth. Destructive and
+	// audited.
+	FgaReset(context.Context, *FgaResetRequest) (*FgaResetResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -532,6 +678,30 @@ func (UnimplementedAuthorizerAdminServiceServer) EmailTemplates(context.Context,
 }
 func (UnimplementedAuthorizerAdminServiceServer) AuditLogs(context.Context, *AuditLogsRequest) (*AuditLogsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuditLogs not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaGetModel(context.Context, *FgaGetModelRequest) (*FgaGetModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaGetModel not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaWriteModel(context.Context, *FgaWriteModelRequest) (*FgaWriteModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaWriteModel not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaWriteTuples(context.Context, *FgaWriteTuplesRequest) (*FgaWriteTuplesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaWriteTuples not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaDeleteTuples(context.Context, *FgaDeleteTuplesRequest) (*FgaDeleteTuplesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaDeleteTuples not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaReadTuples(context.Context, *FgaReadTuplesRequest) (*FgaReadTuplesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaReadTuples not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaListUsers(context.Context, *FgaListUsersRequest) (*FgaListUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaListUsers not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaExpand(context.Context, *FgaExpandRequest) (*FgaExpandResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaExpand not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) FgaReset(context.Context, *FgaResetRequest) (*FgaResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FgaReset not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -985,6 +1155,150 @@ func _AuthorizerAdminService_AuditLogs_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_FgaGetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaGetModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaGetModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaGetModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaGetModel(ctx, req.(*FgaGetModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaWriteModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaWriteModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaWriteModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaWriteModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaWriteModel(ctx, req.(*FgaWriteModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaWriteTuples_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaWriteTuplesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaWriteTuples(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaWriteTuples_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaWriteTuples(ctx, req.(*FgaWriteTuplesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaDeleteTuples_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaDeleteTuplesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaDeleteTuples(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaDeleteTuples_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaDeleteTuples(ctx, req.(*FgaDeleteTuplesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaReadTuples_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaReadTuplesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaReadTuples(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaReadTuples_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaReadTuples(ctx, req.(*FgaReadTuplesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaListUsers(ctx, req.(*FgaListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaExpand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaExpandRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaExpand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaExpand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaExpand(ctx, req.(*FgaExpandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_FgaReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FgaResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).FgaReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_FgaReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).FgaReset(ctx, req.(*FgaResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1087,6 +1401,38 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuditLogs",
 			Handler:    _AuthorizerAdminService_AuditLogs_Handler,
+		},
+		{
+			MethodName: "FgaGetModel",
+			Handler:    _AuthorizerAdminService_FgaGetModel_Handler,
+		},
+		{
+			MethodName: "FgaWriteModel",
+			Handler:    _AuthorizerAdminService_FgaWriteModel_Handler,
+		},
+		{
+			MethodName: "FgaWriteTuples",
+			Handler:    _AuthorizerAdminService_FgaWriteTuples_Handler,
+		},
+		{
+			MethodName: "FgaDeleteTuples",
+			Handler:    _AuthorizerAdminService_FgaDeleteTuples_Handler,
+		},
+		{
+			MethodName: "FgaReadTuples",
+			Handler:    _AuthorizerAdminService_FgaReadTuples_Handler,
+		},
+		{
+			MethodName: "FgaListUsers",
+			Handler:    _AuthorizerAdminService_FgaListUsers_Handler,
+		},
+		{
+			MethodName: "FgaExpand",
+			Handler:    _AuthorizerAdminService_FgaExpand_Handler,
+		},
+		{
+			MethodName: "FgaReset",
+			Handler:    _AuthorizerAdminService_FgaReset_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

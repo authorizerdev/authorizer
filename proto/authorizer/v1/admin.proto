@@ -232,6 +232,86 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === FGA (fine-grained authorization) admin ===
+  //
+  // Every FGA admin RPC fails closed when no authorization engine is configured
+  // (no --fga-store): it returns FailedPrecondition rather than nil-deref or
+  // silently succeeding. Requires super-admin auth.
+
+  // FgaGetModel returns the active fine-grained authorization model as DSL. A
+  // store with no model yet returns an empty model (not an error). Requires
+  // super-admin auth.
+  rpc FgaGetModel(FgaGetModelRequest) returns (FgaGetModelResponse) {
+    option (google.api.http) = {get: "/v1/admin/fga/model"};
+  }
+
+  // FgaWriteModel installs a new fine-grained authorization model from its DSL
+  // and returns the new model id. Requires super-admin auth. Audited.
+  rpc FgaWriteModel(FgaWriteModelRequest) returns (FgaWriteModelResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/model"
+      body: "*"
+    };
+  }
+
+  // FgaWriteTuples persists the given relationship tuples (additive). Requires
+  // super-admin auth. Audited.
+  rpc FgaWriteTuples(FgaWriteTuplesRequest) returns (FgaWriteTuplesResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/tuples"
+      body: "*"
+    };
+  }
+
+  // FgaDeleteTuples removes the given relationship tuples. Requires super-admin
+  // auth. Audited.
+  rpc FgaDeleteTuples(FgaDeleteTuplesRequest) returns (FgaDeleteTuplesResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/tuples/delete"
+      body: "*"
+    };
+  }
+
+  // FgaReadTuples returns a page of persisted tuples matching the filter.
+  // Requires super-admin auth.
+  rpc FgaReadTuples(FgaReadTuplesRequest) returns (FgaReadTuplesResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/tuples/read"
+      body: "*"
+    };
+  }
+
+  // FgaListUsers returns the fully-qualified user ids of user_type that have
+  // relation on object ("who can access this object?"). Requires super-admin
+  // auth.
+  rpc FgaListUsers(FgaListUsersRequest) returns (FgaListUsersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/list_users"
+      body: "*"
+    };
+  }
+
+  // FgaExpand returns the OpenFGA relationship/userset tree for (relation,
+  // object) as a JSON string (the explainability primitive). Requires
+  // super-admin auth.
+  rpc FgaExpand(FgaExpandRequest) returns (FgaExpandResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/expand"
+      body: "*"
+    };
+  }
+
+  // FgaReset deletes the entire fine-grained authorization store (the model,
+  // all its versions, and all tuples) and starts a fresh, empty store. Refused
+  // while any tuples still exist. Requires super-admin auth. Destructive and
+  // audited.
+  rpc FgaReset(FgaResetRequest) returns (FgaResetResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/fga/reset"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -568,4 +648,94 @@ message AuditLogsRequest {
 message AuditLogsResponse {
   repeated AuditLog audit_logs = 1;
   authorizer.common.v1.Pagination pagination = 2;
+}
+
+// === FGA (fine-grained authorization) admin ===
+
+// FgaModel is a fine-grained authorization model: its id and DSL form. Mirrors
+// model.FgaModel field-for-field. An empty model (both fields empty) is the
+// valid "no model written yet" state.
+message FgaModel {
+  string id = 1;
+  string dsl = 2;
+}
+
+// FgaTuple is one persisted relationship tuple returned by FgaReadTuples.
+// Mirrors model.FgaTuple field-for-field (the read shape; writes use the shared
+// FgaTupleInput).
+message FgaTuple {
+  string user = 1;
+  string relation = 2;
+  string object = 3;
+}
+
+// FgaGetModelRequest takes no parameters; the active model is implied.
+message FgaGetModelRequest {}
+message FgaGetModelResponse {
+  FgaModel model = 1;
+}
+
+// FgaWriteModelRequest mirrors model.FgaWriteModelInput (the model DSL).
+message FgaWriteModelRequest {
+  string dsl = 1 [(buf.validate.field).string.min_len = 1];
+}
+message FgaWriteModelResponse {
+  FgaModel model = 1;
+}
+
+// FgaWriteTuplesRequest mirrors model.FgaWriteTuplesInput, reusing the shared
+// FgaTupleInput message.
+message FgaWriteTuplesRequest {
+  repeated FgaTupleInput tuples = 1;
+}
+message FgaWriteTuplesResponse {
+  string message = 1;
+}
+
+// FgaDeleteTuplesRequest mirrors model.FgaWriteTuplesInput (same shape as a
+// write; the tuples to remove).
+message FgaDeleteTuplesRequest {
+  repeated FgaTupleInput tuples = 1;
+}
+message FgaDeleteTuplesResponse {
+  string message = 1;
+}
+
+// FgaReadTuplesRequest mirrors model.FgaReadTuplesInput. All filter fields are
+// optional; an empty filter reads all tuples (paginated).
+message FgaReadTuplesRequest {
+  optional string user = 1;
+  optional string relation = 2;
+  optional string object = 3;
+  optional int64 page_size = 4;
+  optional string continuation_token = 5;
+}
+message FgaReadTuplesResponse {
+  repeated FgaTuple tuples = 1;
+  optional string continuation_token = 2;
+}
+
+// FgaListUsersRequest mirrors model.FgaListUsersInput.
+message FgaListUsersRequest {
+  string object = 1 [(buf.validate.field).string.min_len = 1];
+  string relation = 2 [(buf.validate.field).string.min_len = 1];
+  string user_type = 3 [(buf.validate.field).string.min_len = 1];
+}
+message FgaListUsersResponse {
+  repeated string users = 1;
+}
+
+// FgaExpandRequest mirrors model.FgaExpandInput.
+message FgaExpandRequest {
+  string relation = 1 [(buf.validate.field).string.min_len = 1];
+  string object = 2 [(buf.validate.field).string.min_len = 1];
+}
+message FgaExpandResponse {
+  string tree = 1;
+}
+
+// FgaResetRequest takes no parameters; the whole store is reset.
+message FgaResetRequest {}
+message FgaResetResponse {
+  string message = 1;
 }
