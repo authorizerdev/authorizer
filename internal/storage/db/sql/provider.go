@@ -108,6 +108,18 @@ func NewProvider(
 					deps.Log.Debug().Err(dropErr).Str("constraint", name).Msg("failed to drop stale unique constraint")
 				}
 			}
+			// Some v1 releases enforced uniqueness with a standalone UNIQUE INDEX
+			// under these same GORM-default names rather than a CONSTRAINT. On
+			// Postgres those are indexes, not constraints, so HasConstraint above
+			// misses them and GORM AutoMigrate later aborts trying to
+			// DROP CONSTRAINT "uni_<table>_<col>" (SQLSTATE 42704). Drop the index
+			// form by name too — this is the case the name-agnostic sweep below
+			// can miss when GORM under-reports the index's uniqueness.
+			if sqlDB.Migrator().HasIndex(c.model, name) {
+				if dropErr := sqlDB.Migrator().DropIndex(c.model, name); dropErr != nil {
+					deps.Log.Debug().Err(dropErr).Str("index", name).Msg("failed to drop stale unique index")
+				}
+			}
 		}
 	}
 

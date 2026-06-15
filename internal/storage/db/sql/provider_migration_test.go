@@ -195,8 +195,16 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 			require.NoError(t, p1.db.Exec(`ALTER TABLE authorizer_users ADD CONSTRAINT authorizer_users_email_key UNIQUE (email)`).Error)
 			require.NoError(t, p1.db.Exec(`DROP INDEX IF EXISTS idx_authorizer_otps_phone_number`).Error)
 			require.NoError(t, p1.db.Exec(`CREATE UNIQUE INDEX idx_authorizer_otps_phone_number ON authorizer_otps (phone_number)`).Error)
+			// Also seed the GORM-default `uni_<table>_<col>` form as a standalone
+			// UNIQUE INDEX (not a constraint) on otps.email — the case reported in
+			// the field that the name-agnostic sweep missed, leaving AutoMigrate to
+			// abort with `DROP CONSTRAINT "uni_authorizer_otps_email"` (42704).
+			require.NoError(t, p1.db.Exec(`DROP INDEX IF EXISTS uni_authorizer_otps_email`).Error)
+			require.NoError(t, p1.db.Exec(`CREATE UNIQUE INDEX uni_authorizer_otps_email ON authorizer_otps (email)`).Error)
 			require.True(t, p1.db.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_email_key"),
 				"precondition: stale unique constraint seeded")
+			require.True(t, p1.db.Migrator().HasIndex(&schemas.OTP{}, "uni_authorizer_otps_email"),
+				"precondition: stale uni_ unique index seeded")
 
 			// Second boot must clear the stale uniqueness and complete migration.
 			p2, err := NewProvider(cfg, deps)
@@ -204,6 +212,8 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 
 			assert.False(t, p2.db.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_email_key"),
 				"stale unique constraint should be dropped")
+			assert.False(t, p2.db.Migrator().HasIndex(&schemas.OTP{}, "uni_authorizer_otps_email"),
+				"stale uni_ unique index should be dropped")
 
 			// The search index is preserved, just no longer unique: AutoMigrate
 			// recreates idx_authorizer_otps_phone_number as a non-unique index.
