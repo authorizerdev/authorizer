@@ -74,71 +74,21 @@ func NewProvider(
 		return nil, err
 	}
 
-	// v1 declared the email and phone_number columns of authorizer_users and
-	// authorizer_otps as UNIQUE. v2 keeps plain (non-unique) indexes and enforces
-	// uniqueness in the application layer (see AddUser/UpdateUser) so behaviour is
-	// identical across all supported databases and these fields can stay optional
-	// (email-only or phone-only signups).
+	// Older Authorizer releases (< 2.3.0) declared the email and phone_number
+	// columns of authorizer_users and authorizer_otps as UNIQUE. v2 keeps plain
+	// (non-unique) indexes and enforces uniqueness in the application layer (see
+	// AddUser/UpdateUser), so behaviour is identical across all supported
+	// databases and these fields can stay optional (email-only / phone-only
+	// signups).
 	//
-	// On an upgraded SQL database those columns are still unique, so GORM
-	// AutoMigrate tries to DROP CONSTRAINT "uni_<table>_<col>" — a name that does
-	// not match what the database actually created — failing with SQLSTATE 42704
-	// ("constraint does not exist") and aborting the whole migration. Depending on
-	// the v1 release, the old uniqueness exists either as a CONSTRAINT
-	// (<table>_<col>_key) or as a standalone UNIQUE INDEX (idx_<table>_<col>), so
-	// we clear both forms before AutoMigrate. Non-fatal: fresh installs have
-	// nothing to drop.
-	staleUniqueColumns := []struct {
-		model      any
-		table, col string
-	}{
-		{&schemas.User{}, "authorizer_users", "email"},
-		{&schemas.User{}, "authorizer_users", "phone_number"},
-		{&schemas.OTP{}, "authorizer_otps", "email"},
-		{&schemas.OTP{}, "authorizer_otps", "phone_number"},
-	}
-
-	// 1) Drop stale unique CONSTRAINTs by their well-known names.
-	//    "<table>_<col>_key" is the Postgres/MySQL default; "uni_<table>_<col>" is
-	//    GORM's default unique-constraint name.
-	for _, c := range staleUniqueColumns {
-		for _, name := range []string{c.table + "_" + c.col + "_key", "uni_" + c.table + "_" + c.col} {
-			if sqlDB.Migrator().HasConstraint(c.model, name) {
-				if dropErr := sqlDB.Migrator().DropConstraint(c.model, name); dropErr != nil {
-					deps.Log.Debug().Err(dropErr).Str("constraint", name).Msg("failed to drop stale unique constraint")
-				}
-			}
-		}
-	}
-
-	// 2) Drop stale standalone UNIQUE INDEXes on the same columns (e.g.
-	//    idx_authorizer_otps_phone_number created by a v1 gorm:"uniqueIndex").
-	//    This is name-agnostic: only single-column UNIQUE indexes on email /
-	//    phone_number are removed, so the current schema's non-unique indexes are
-	//    left intact and AutoMigrate recreates anything it needs as non-unique.
-	uniqueColTargets := map[string]bool{"email": true, "phone_number": true}
-	for _, model := range []any{&schemas.User{}, &schemas.OTP{}} {
-		indexes, idxErr := sqlDB.Migrator().GetIndexes(model)
-		if idxErr != nil {
-			deps.Log.Debug().Err(idxErr).Msg("failed to list indexes while clearing stale unique indexes")
-			continue
-		}
-		for _, idx := range indexes {
-			unique, ok := idx.Unique()
-			if !ok || !unique {
-				continue
-			}
-			cols := idx.Columns()
-			if len(cols) != 1 || !uniqueColTargets[cols[0]] {
-				continue
-			}
-			if dropErr := sqlDB.Migrator().DropIndex(model, idx.Name()); dropErr != nil {
-				// Constraint-backed indexes (handled in step 1) can't be dropped
-				// directly on Postgres — that's expected and harmless here.
-				deps.Log.Debug().Err(dropErr).Str("index", idx.Name()).Msg("failed to drop stale unique index")
-			}
-		}
-	}
+	// On an upgraded SQL database those columns are still unique, so GORM 1.25.x
+	// AutoMigrate reconciles them by issuing DROP CONSTRAINT "uni_<table>_<col>"
+	// — a fixed name (NamingStrategy.UniqueName) that rarely matches what the old
+	// DB actually created (authorizer_users_email_key, idx_authorizer_otps_phone_number,
+	// or any custom name) — failing with "constraint does not exist" (Postgres
+	// SQLSTATE 42704) and aborting startup. Clear the legacy uniqueness up front,
+	// name-agnostically, before AutoMigrate runs.
+	clearLegacyColumnUniqueness(sqlDB, deps.Log)
 
 	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{})
 	if err != nil {
@@ -188,4 +138,81 @@ func (p *provider) Close() error {
 		return err
 	}
 	return sqlDB.Close()
+}
+
+// clearLegacyColumnUniqueness removes any single-column UNIQUE constraint or
+// index on the email / phone_number columns of authorizer_users and
+// authorizer_otps, regardless of its name. See the call site in NewProvider for
+// why this must run before AutoMigrate. Best-effort and non-fatal: fresh
+// installs, and catalogs without information_schema (sqlite), simply find
+// nothing to drop.
+func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
+	targets := map[string]bool{"email": true, "phone_number": true}
+	tables := []struct {
+		model any
+		name  string
+	}{
+		{&schemas.User{}, "authorizer_users"},
+		{&schemas.OTP{}, "authorizer_otps"},
+	}
+
+	for _, t := range tables {
+		// 1) Drop single-column UNIQUE *constraints* by their real names, read
+		//    from the same catalog GORM uses (information_schema). This matches
+		//    ANY name — ..._key, uni_..., idx_..., or custom — which is what
+		//    actually prevents the DROP CONSTRAINT "uni_..." 42704 abort. A
+		//    constraint's backing index cannot be removed with DROP INDEX, so it
+		//    must go via DropConstraint.
+		var rows []struct {
+			ConstraintName string `gorm:"column:constraint_name"`
+			ColumnName     string `gorm:"column:column_name"`
+		}
+		const q = `SELECT tc.constraint_name AS constraint_name, kcu.column_name AS column_name
+			FROM information_schema.table_constraints tc
+			JOIN information_schema.key_column_usage kcu
+			  ON tc.constraint_name = kcu.constraint_name
+			 AND tc.table_schema = kcu.table_schema
+			 AND tc.table_name = kcu.table_name
+			WHERE tc.constraint_type = 'UNIQUE' AND tc.table_name = ?`
+		if err := db.Raw(q, t.name).Scan(&rows).Error; err != nil {
+			// sqlite and other catalogs without information_schema land here; they
+			// are not affected by the GORM unique-reconciliation behaviour.
+			log.Debug().Err(err).Str("table", t.name).Msg("skip legacy unique-constraint scan")
+		} else {
+			columnsByConstraint := map[string][]string{}
+			for _, r := range rows {
+				columnsByConstraint[r.ConstraintName] = append(columnsByConstraint[r.ConstraintName], r.ColumnName)
+			}
+			for name, cols := range columnsByConstraint {
+				if len(cols) == 1 && targets[cols[0]] {
+					if err := db.Migrator().DropConstraint(t.model, name); err != nil {
+						log.Debug().Err(err).Str("constraint", name).Msg("failed to drop legacy unique constraint")
+					}
+				}
+			}
+		}
+
+		// 2) Drop any standalone single-column UNIQUE *index* (CREATE UNIQUE
+		//    INDEX, not a constraint) on the same columns. These do not cause the
+		//    abort — GORM reads column-uniqueness from table_constraints only —
+		//    but removing them makes the column genuinely non-unique, matching the
+		//    v2 application-layer model. GetIndexes already excludes
+		//    constraint-backed indexes, so this only sees the standalone form;
+		//    AutoMigrate then recreates the plain non-unique search index.
+		indexes, err := db.Migrator().GetIndexes(t.model)
+		if err != nil {
+			log.Debug().Err(err).Str("table", t.name).Msg("skip legacy unique-index scan")
+			continue
+		}
+		for _, idx := range indexes {
+			if unique, ok := idx.Unique(); !ok || !unique {
+				continue
+			}
+			if cols := idx.Columns(); len(cols) == 1 && targets[cols[0]] {
+				if err := db.Migrator().DropIndex(t.model, idx.Name()); err != nil {
+					log.Debug().Err(err).Str("index", idx.Name()).Msg("failed to drop legacy unique index")
+				}
+			}
+		}
+	}
 }

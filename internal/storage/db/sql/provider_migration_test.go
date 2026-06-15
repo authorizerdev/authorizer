@@ -187,16 +187,37 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 			p1, err := NewProvider(cfg, deps)
 			require.NoError(t, err)
 
-			// Simulate a v1 database: a UNIQUE CONSTRAINT on users.email and a
-			// standalone UNIQUE INDEX on otps.phone_number — the two real-world
-			// forms reported in the field. Idempotent so reruns against the shared
-			// test DB don't fail on pre-existing objects.
-			require.NoError(t, p1.db.Exec(`ALTER TABLE authorizer_users DROP CONSTRAINT IF EXISTS authorizer_users_email_key`).Error)
-			require.NoError(t, p1.db.Exec(`ALTER TABLE authorizer_users ADD CONSTRAINT authorizer_users_email_key UNIQUE (email)`).Error)
-			require.NoError(t, p1.db.Exec(`DROP INDEX IF EXISTS idx_authorizer_otps_phone_number`).Error)
-			require.NoError(t, p1.db.Exec(`CREATE UNIQUE INDEX idx_authorizer_otps_phone_number ON authorizer_otps (phone_number)`).Error)
+			// Simulate a v1 database, covering every real-world stale form so the
+			// name-agnostic cleanup is exercised end-to-end:
+			//   - users.email:         UNIQUE CONSTRAINT "authorizer_users_email_key"
+			//                          (Postgres default for a gorm:"unique" tag)
+			//   - users.phone_number:  UNIQUE CONSTRAINT "my_legacy_phone_uq"
+			//                          (arbitrary/custom name — only a catalog-driven
+			//                          drop, not name enumeration, can catch this)
+			//   - otps.phone_number:   UNIQUE CONSTRAINT "idx_authorizer_otps_phone_number"
+			//                          (idx_-named constraint; backing index can NOT
+			//                          be dropped with DROP INDEX — field-reported case)
+			//   - otps.email:          standalone UNIQUE INDEX "idx_authorizer_otps_email"
+			// Idempotent so reruns against the shared test DB don't clash.
+			for _, stmt := range []string{
+				`ALTER TABLE authorizer_users DROP CONSTRAINT IF EXISTS authorizer_users_email_key`,
+				`ALTER TABLE authorizer_users ADD CONSTRAINT authorizer_users_email_key UNIQUE (email)`,
+				`ALTER TABLE authorizer_users DROP CONSTRAINT IF EXISTS my_legacy_phone_uq`,
+				`ALTER TABLE authorizer_users ADD CONSTRAINT my_legacy_phone_uq UNIQUE (phone_number)`,
+				`ALTER TABLE authorizer_otps DROP CONSTRAINT IF EXISTS idx_authorizer_otps_phone_number`,
+				`DROP INDEX IF EXISTS idx_authorizer_otps_phone_number`,
+				`ALTER TABLE authorizer_otps ADD CONSTRAINT idx_authorizer_otps_phone_number UNIQUE (phone_number)`,
+				`DROP INDEX IF EXISTS idx_authorizer_otps_email`,
+				`CREATE UNIQUE INDEX idx_authorizer_otps_email ON authorizer_otps (email)`,
+			} {
+				require.NoError(t, p1.db.Exec(stmt).Error, stmt)
+			}
 			require.True(t, p1.db.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_email_key"),
 				"precondition: stale unique constraint seeded")
+			require.True(t, p1.db.Migrator().HasConstraint(&schemas.User{}, "my_legacy_phone_uq"),
+				"precondition: custom-named unique constraint seeded")
+			require.True(t, p1.db.Migrator().HasConstraint(&schemas.OTP{}, "idx_authorizer_otps_phone_number"),
+				"precondition: idx_-named unique constraint seeded")
 
 			// Second boot must clear the stale uniqueness and complete migration.
 			p2, err := NewProvider(cfg, deps)
@@ -204,6 +225,10 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 
 			assert.False(t, p2.db.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_email_key"),
 				"stale unique constraint should be dropped")
+			assert.False(t, p2.db.Migrator().HasConstraint(&schemas.User{}, "my_legacy_phone_uq"),
+				"custom-named unique constraint should be dropped")
+			assert.False(t, p2.db.Migrator().HasConstraint(&schemas.OTP{}, "idx_authorizer_otps_phone_number"),
+				"stale idx_-named unique constraint should be dropped")
 
 			// The search index is preserved, just no longer unique: AutoMigrate
 			// recreates idx_authorizer_otps_phone_number as a non-unique index.
