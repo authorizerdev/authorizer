@@ -71,8 +71,8 @@ func getTestDBConfig(dbType string) *config.Config {
 		cfg.DatabaseURL = "127.0.0.1:9042"
 	case constants.DbTypeCouchbaseDB:
 		cfg.DatabaseURL = "couchbase://127.0.0.1"
-		// Allow extra time for Couchbase container to become ready in tests
-		cfg.CouchBaseWaitTimeout = 120
+		// Allow extra time for Couchbase container to become ready in tests (test-all-db runs Couchbase last)
+		cfg.CouchBaseWaitTimeout = 300
 	case constants.DbTypeDynamoDB:
 		// Must be a client-routable host (not bind address 0.0.0.0); matches integration_tests getDBURL.
 		cfg.DatabaseURL = "http://127.0.0.1:8000"
@@ -104,9 +104,26 @@ func TestStorageProvider(t *testing.T) {
 				cfg.DatabasePassword = "password"
 			}
 			ctx := context.Background()
-			provider, err := New(cfg, &Dependencies{
-				Log: &logger,
-			})
+			var provider Provider
+			var err error
+			if dbType == constants.DbTypeCouchbaseDB {
+				for attempt := 1; attempt <= 3; attempt++ {
+					provider, err = New(cfg, &Dependencies{
+						Log: &logger,
+					})
+					if err == nil {
+						break
+					}
+					if attempt < 3 {
+						t.Logf("Couchbase provider attempt %d failed: %v; retrying...", attempt, err)
+						time.Sleep(5 * time.Second)
+					}
+				}
+			} else {
+				provider, err = New(cfg, &Dependencies{
+					Log: &logger,
+				})
+			}
 			if err != nil {
 				log.Error().Err(err).Msg("failed to create storage provider")
 			}

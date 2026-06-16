@@ -60,20 +60,16 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		filterValues = append(filterValues, actorID)
 	}
 
-	allowFiltering := ""
-	if whereClause != "" {
-		allowFiltering = " ALLOW FILTERING"
-	}
-
-	// Count total
-	countQuery := countBase + whereClause + allowFiltering
+	// Count total — equality on indexed columns (action, actor_id) must not
+	// use ALLOW FILTERING; Scylla builds secondary indexes as materialized views.
+	countQuery := countBase + whereClause
 	err := p.db.Query(countQuery, filterValues...).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Fetch with pagination
-	query := queryBase + whereClause + fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset) + allowFiltering
+	query := queryBase + whereClause + fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset)
 	scanner := p.db.Query(query, filterValues...).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
@@ -97,8 +93,8 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 
 // DeleteAuditLogsBefore removes logs older than a timestamp
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
-	// Cassandra doesn't support range deletes without knowing the partition key
-	// So we need to first fetch IDs, then delete them
+	// Partition key is id only; range scans on created_at require ALLOW FILTERING.
+	// Secondary indexes support equality on created_at, not created_at < ?.
 	query := fmt.Sprintf("SELECT id FROM %s WHERE created_at < ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.AuditLog)
 	scanner := p.db.Query(query, before).Iter().Scanner()
 	for scanner.Next() {
@@ -111,5 +107,5 @@ func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) erro
 			return err
 		}
 	}
-	return nil
+	return scanner.Err()
 }

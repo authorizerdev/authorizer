@@ -33,7 +33,7 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 	if len(params.Checks) > maxPermissionChecks {
 		return nil, nil, InvalidArgument(fmt.Sprintf("too many checks: max %d per request", maxPermissionChecks))
 	}
-	subject, err := p.resolveFgaSubject(meta, refs.StringValue(params.User))
+	subject, err := p.resolveFgaSubject(ctx, meta, refs.StringValue(params.User))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, nil, err

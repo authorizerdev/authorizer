@@ -141,7 +141,7 @@ test-couchbase: test-cleanup-couchbase
 	docker rm -vf authorizer_couchbase
 
 test-all-db: test-cleanup test-docker-up test-cleanup
-	go clean --testcache && TEST_DBS="postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" $(GO_TEST_ALL)
+	go clean --testcache && TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL)
 	$(MAKE) test-cleanup
 
 # Start all test database containers
@@ -191,7 +191,7 @@ generate-db-template:
 BUF ?= $(shell command -v buf 2>/dev/null)
 BUF_VERSION ?= v1.47.2
 
-.PHONY: proto-tools proto-lint proto-breaking proto-gen
+.PHONY: proto-tools proto-lint proto-breaking proto-gen proto-check
 
 proto-tools:
 	@if [ -z "$(BUF)" ]; then \
@@ -210,6 +210,10 @@ proto-breaking: proto-tools
 
 proto-gen: proto-tools
 	cd proto && buf dep update && buf generate
+
+# Fail when proto sources changed but gen/ was not regenerated and committed.
+proto-check: proto-gen
+	@git diff --exit-code -- gen/ || (echo "gen/ is stale; run make proto-gen and commit the result" && exit 1)
 
 # ----------------------------------------------------------------------------
 # Formatting & linting (Go + TypeScript). `make fmt` before committing,

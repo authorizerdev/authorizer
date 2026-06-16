@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
@@ -52,15 +53,19 @@ const maxContextualTuplesPerCheck = 100
 // also be allowed to pass an explicit user once that caller type exists;
 // extend the trust check here (the rule must stay centralized in this one
 // helper).
-func (p *provider) resolveFgaSubject(meta RequestMetadata, explicitUser string) (string, error) {
-	gc := &gin.Context{Request: meta.Request}
+func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, explicitUser string) (string, error) {
 	explicitUser = strings.TrimSpace(explicitUser)
 
 	// The caller's own subject, when they carry a user token/session. Resolved
 	// lazily-ish here because both branches may need it.
 	ownSubject := ""
-	if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && strings.TrimSpace(tokenData.UserID) != "" {
-		ownSubject = "user:" + tokenData.UserID
+	if principal, ok := authctx.FromContext(ctx); ok && strings.TrimSpace(principal.UserID) != "" {
+		ownSubject = "user:" + principal.UserID
+	} else {
+		gc := &gin.Context{Request: meta.Request}
+		if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && strings.TrimSpace(tokenData.UserID) != "" {
+			ownSubject = "user:" + tokenData.UserID
+		}
 	}
 
 	if explicitUser == "" {
@@ -85,6 +90,10 @@ func (p *provider) resolveFgaSubject(meta RequestMetadata, explicitUser string) 
 	}
 	// Only a super-admin may evaluate a different subject. The trust level is
 	// derived from the admin cookie/secret — never from client input.
+	if principal, ok := authctx.FromContext(ctx); ok && principal.IsSuperAdmin {
+		return subject, nil
+	}
+	gc := &gin.Context{Request: meta.Request}
 	if p.TokenProvider.IsSuperAdmin(gc) {
 		return subject, nil
 	}

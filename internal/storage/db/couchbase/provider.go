@@ -79,6 +79,11 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	scope := bucket.Scope(scopeName)
 	scopeIdentifier := fmt.Sprintf("%s.%s", bucketName, scopeName)
 	v := reflect.ValueOf(schemas.Collections)
+	indexQueryTimeout := 30 * time.Second
+	if waitTimeout > indexQueryTimeout {
+		indexQueryTimeout = waitTimeout / 4
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		collectionName := v.Field(i)
 		user := gocb.CollectionSpec{
@@ -92,12 +97,12 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		if err != nil && !errors.Is(err, gocb.ErrCollectionExists) {
 			return nil, err
 		}
-		// TODO: find how to fix this sleep time.
-		// Add wait time for successful collection creation
-		time.Sleep(5 * time.Second)
-		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, collectionName.String())
-		_, err = scope.Query(indexQuery, nil)
-		if err != nil && !strings.Contains(err.Error(), "The index #primary already exists") {
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		collectionName := v.Field(i).String()
+		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, collectionName)
+		if err := execIndexQuery(scope, indexQuery, indexQueryTimeout); err != nil {
 			return nil, err
 		}
 	}
@@ -106,13 +111,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		for _, indexQuery := range indices[field.String()] {
-			_, qerr := scope.Query(indexQuery, nil)
-			if qerr != nil {
-				msg := qerr.Error()
-				if strings.Contains(msg, "already exists") || (strings.Contains(msg, "Index") && strings.Contains(msg, "already")) {
-					continue
-				}
-				return nil, fmt.Errorf("couchbase secondary index: %s: %w", indexQuery, qerr)
+			if err := execIndexQuery(scope, indexQuery, indexQueryTimeout); err != nil {
+				return nil, fmt.Errorf("couchbase secondary index: %s: %w", indexQuery, err)
 			}
 		}
 	}
@@ -131,6 +131,49 @@ func (p *provider) Close() error {
 		return nil
 	}
 	return p.cluster.Close(&gocb.ClusterCloseOptions{})
+}
+
+func isIndexExistsErr(msg string) bool {
+	return strings.Contains(msg, "already exists") ||
+		strings.Contains(msg, "The index #primary already exists") ||
+		(strings.Contains(msg, "Index") && strings.Contains(msg, "already"))
+}
+
+func isTransientQueryErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "eof") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "not_ready") ||
+		strings.Contains(msg, "collection_not_found") ||
+		strings.Contains(msg, "indexnotfound") ||
+		strings.Contains(msg, "servicenotavailable") ||
+		strings.Contains(msg, "unambiguous timeout") ||
+		strings.Contains(msg, "temporary failure")
+}
+
+// execIndexQuery runs a CREATE INDEX statement with retries for transient query-service errors.
+func execIndexQuery(scope *gocb.Scope, query string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	delay := 500 * time.Millisecond
+	for {
+		_, err := scope.Query(query, nil)
+		if err == nil {
+			return nil
+		}
+		if isIndexExistsErr(err.Error()) {
+			return nil
+		}
+		if time.Now().After(deadline) || !isTransientQueryErr(err) {
+			return err
+		}
+		time.Sleep(delay)
+		if delay < 3*time.Second {
+			delay += 500 * time.Millisecond
+		}
+	}
 }
 
 func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string, ramQuota string, waitTimeout time.Duration) (*gocb.Bucket, error) {
@@ -240,7 +283,7 @@ func getIndex(scopeName string) map[string][]string {
 	// AuditLog indexes
 	auditLogIndex1 := fmt.Sprintf("CREATE INDEX AuditLogActorIdIndex ON %s.%s(actor_id)", scopeName, schemas.Collections.AuditLog)
 	auditLogIndex2 := fmt.Sprintf("CREATE INDEX AuditLogActionIndex ON %s.%s(action)", scopeName, schemas.Collections.AuditLog)
-	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogTimestampIndex ON %s.%s(timestamp)", scopeName, schemas.Collections.AuditLog)
+	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogCreatedAtIndex ON %s.%s(created_at)", scopeName, schemas.Collections.AuditLog)
 	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3}
 
 	return indices

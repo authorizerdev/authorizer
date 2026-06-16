@@ -35,6 +35,7 @@ func newPublicClient(t *testing.T) (authorizerv1.AuthorizerServiceClient, *confi
 		Log:             ts.Logger,
 		Config:          cfg,
 		ServiceProvider: ts.ServiceProvider,
+		TokenProvider:   ts.TokenProvider,
 	})
 	require.NoError(t, err)
 
@@ -174,4 +175,77 @@ func TestUpdateProfileGRPCDoesNotDisableMFA(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, refs.BoolValue(got.IsMultiFactorAuthEnabled),
 		"a partial UpdateProfile that omits is_multi_factor_auth_enabled must not disable MFA")
+}
+
+// TestProfileGRPCUnauthenticatedIsRejectedBeforeHandler proves the auth
+// interceptor blocks unauthenticated Profile calls before handler execution.
+// The server is wired with a nil ServiceProvider so any handler execution would
+// panic and surface as Internal; getting Unauthenticated proves interception.
+func TestProfileGRPCUnauthenticatedIsRejectedBeforeHandler(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	srv, err := grpcsrv.New(":0", &grpcsrv.Dependencies{
+		Log:             ts.Logger,
+		Config:          cfg,
+		ServiceProvider: nil,
+		TokenProvider:   ts.TokenProvider,
+	})
+	require.NoError(t, err)
+
+	lis := bufconn.Listen(1 << 20)
+	t.Cleanup(func() { _ = lis.Close() })
+	go func() { _ = srv.GRPCServer().Serve(lis) }()
+	t.Cleanup(srv.GRPCServer().GracefulStop)
+
+	conn, err := grpc.NewClient(
+		"passthrough:///bufconn",
+		grpc.WithContextDialer(func(_ context.Context, _ string) (net.Conn, error) { return lis.Dial() }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	client := authorizerv1.NewAuthorizerServiceClient(conn)
+	_, err = client.Profile(context.Background(), &authorizerv1.ProfileRequest{})
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
+// TestSessionGRPCRequiresCookieOnly proves the Session RPC rejects bearer-only
+// auth at the interceptor and succeeds with a session cookie.
+func TestSessionGRPCRequiresCookieOnly(t *testing.T) {
+	c, _, _ := newPublicClient(t)
+	ctx := context.Background()
+
+	email := "grpc_session_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	var header metadata.MD
+	_, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+		Email:           email,
+		Password:        password,
+		ConfirmPassword: password,
+	}, grpc.Header(&header))
+	require.NoError(t, err)
+
+	loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{Email: email, Password: password}, grpc.Header(&header))
+	require.NoError(t, err)
+	require.NotEmpty(t, loginResp.AccessToken)
+
+	t.Run("bearer only is rejected", func(t *testing.T) {
+		_, err := c.Session(bearerCtx(loginResp.AccessToken), &authorizerv1.SessionRequest{})
+		require.Error(t, err)
+		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	})
+
+	t.Run("session cookie succeeds", func(t *testing.T) {
+		cookies := header.Get("Set-Cookie")
+		require.NotEmpty(t, cookies, "login must return session cookies via gRPC metadata")
+		sessCtx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs("cookie", cookies[0]))
+		resp, err := c.Session(sessCtx, &authorizerv1.SessionRequest{})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		assert.NotEmpty(t, resp.AccessToken)
+	})
 }

@@ -28,6 +28,7 @@ func newAdminRESTServer(t *testing.T, ts *testSetup) string {
 		Log:             ts.Logger,
 		Config:          ts.Config,
 		ServiceProvider: ts.ServiceProvider,
+		TokenProvider:   ts.TokenProvider,
 	})
 	require.NoError(t, err)
 

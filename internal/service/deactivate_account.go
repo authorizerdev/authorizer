@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -20,11 +18,13 @@ import (
 func (p *provider) DeactivateAccount(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeactivateAccount").Logger()
 
-	gc := &gin.Context{Request: meta.Request}
-	tokenData, err := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
+	tokenData, err := p.callerTokenData(ctx, meta)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
-		return nil, nil, Unauthenticated(err.Error())
+		return nil, nil, Unauthenticated("unauthorized")
+	}
+	if tokenData == nil || tokenData.UserID == "" {
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 	log = log.With().Str("userID", tokenData.UserID).Logger()
 	user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)

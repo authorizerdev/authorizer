@@ -366,6 +366,8 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// ScyllaDB builds materialized views for secondary indexes asynchronously.
+	time.Sleep(5 * time.Second)
 
 	return &provider{
 		config:       cfg,

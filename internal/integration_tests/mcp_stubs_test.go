@@ -5,13 +5,11 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	authmcp "github.com/authorizerdev/authorizer/internal/mcp"
-	"github.com/authorizerdev/authorizer/internal/service"
 )
 
 // TestMCPToolErrorSurfacesAsIsErrorResult verifies that when the underlying
@@ -30,15 +28,24 @@ import (
 func TestMCPToolErrorSurfacesAsIsErrorResult(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"
-	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	ts := initTestSetup(t, cfg)
+	bearer := testAccessToken(t, ts)
+	authorizerURL := testAuthorizerHost(ts)
 
-	svc, err := service.New(cfg, &service.Dependencies{Log: &log})
+	grpcSrv, err := grpcsrv.New(":0", &grpcsrv.Dependencies{
+		Log:             ts.Logger,
+		Config:          cfg,
+		ServiceProvider: ts.ServiceProvider,
+		TokenProvider:   ts.TokenProvider,
+	})
 	require.NoError(t, err)
-	grpcSrv, err := grpcsrv.New(":0", &grpcsrv.Dependencies{Log: &log, Config: cfg, ServiceProvider: svc})
-	require.NoError(t, err)
-	// Note: opts.Bearer deliberately empty — the server runs anonymously,
-	// so identity-bearing tools must fail with a clean tool error.
-	mcpSrv, err := authmcp.New(&log, grpcSrv.GRPCServer(), authmcp.Options{Name: "authorizer-test", Version: "v0"})
+
+	mcpSrv, err := authmcp.New(ts.Logger, grpcSrv.GRPCServer(), authmcp.Options{
+		Name:          "authorizer-test",
+		Version:       "v0",
+		Bearer:        bearer,
+		AuthorizerURL: authorizerURL,
+	})
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,8 +62,6 @@ func TestMCPToolErrorSurfacesAsIsErrorResult(t *testing.T) {
 
 	res, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name: "check_permissions",
-		// At least one check is required by the proto validation; the call
-		// gets far enough to hit the fail-closed FGA gate in the service.
 		Arguments: map[string]any{
 			"checks": []map[string]any{
 				{"relation": "can_view", "object": "document:1"},

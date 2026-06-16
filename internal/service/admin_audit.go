@@ -23,7 +23,7 @@ const (
 // Requires super-admin auth. Logic migrated from internal/graphql/audit_logs.go.
 func (p *provider) AuditLogs(ctx context.Context, meta RequestMetadata, params *model.ListAuditLogRequest) (*model.AuditLogs, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "AuditLogs").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 

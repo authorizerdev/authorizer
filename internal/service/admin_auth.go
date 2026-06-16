@@ -53,7 +53,7 @@ func (p *provider) AdminLogin(ctx context.Context, meta RequestMetadata, params 
 // AdminLogout clears the admin session cookie. Requires super-admin auth.
 // Logic migrated from internal/graphql/admin_logout.go.
 func (p *provider) AdminLogout(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error) {
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	side := &ResponseSideEffects{}
@@ -73,7 +73,7 @@ func (p *provider) AdminLogout(ctx context.Context, meta RequestMetadata) (*mode
 // AdminSession refreshes the admin session cookie. Requires super-admin auth.
 // Logic migrated from internal/graphql/admin_session.go.
 func (p *provider) AdminSession(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error) {
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	hashedKey, err := crypto.EncryptPassword(p.Config.AdminSecret)
@@ -90,7 +90,7 @@ func (p *provider) AdminSession(ctx context.Context, meta RequestMetadata) (*mod
 // from internal/graphql/admin_meta.go. The schema fields are non-null lists, so
 // nil slices are normalized to empty slices.
 func (p *provider) AdminMeta(ctx context.Context, meta RequestMetadata) (*model.AdminMeta, *ResponseSideEffects, error) {
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	roles := p.Config.Roles

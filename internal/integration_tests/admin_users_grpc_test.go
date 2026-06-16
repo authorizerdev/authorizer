@@ -33,6 +33,7 @@ func newAdminClientWithSetup(t *testing.T) (authorizerv1.AuthorizerAdminServiceC
 		Log:             ts.Logger,
 		Config:          cfg,
 		ServiceProvider: ts.ServiceProvider,
+		TokenProvider:   ts.TokenProvider,
 	})
 	require.NoError(t, err)
 

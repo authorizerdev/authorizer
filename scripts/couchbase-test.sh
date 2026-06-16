@@ -1,39 +1,59 @@
 #!/bin/sh
 
-set -x
-set -m
+set -eu
 
-sleep 15
+wait_for_admin() {
+	i=0
+	while [ "$i" -lt 90 ]; do
+		if curl -sf http://127.0.0.1:8091/pools >/dev/null 2>&1; then
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 2
+	done
+	echo "Couchbase admin UI not ready on 127.0.0.1:8091" >&2
+	return 1
+}
 
-# Setup index and memory quota
-# curl -v -X POST http://127.0.0.1:8091/pools/default -d memoryQuota=300 -d indexMemoryQuota=300
+wait_for_healthy() {
+	i=0
+	while [ "$i" -lt 90 ]; do
+		if curl -sf -u Administrator:password http://127.0.0.1:8091/pools/default | grep -q '"status":"healthy"'; then
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 2
+	done
+	echo "Couchbase cluster did not reach healthy status" >&2
+	return 1
+}
+
+wait_for_admin
 
 # Setup services
-curl -v http://127.0.0.1:8091/node/controller/setupServices -d services=kv%2Cn1ql%2Cindex
+curl -sf http://127.0.0.1:8091/node/controller/setupServices -d services=kv%2Cn1ql%2Cindex
 
 # Setup credentials
-curl -v http://127.0.0.1:8091/settings/web -d port=8091 -d username=Administrator -d password=password
+curl -sf http://127.0.0.1:8091/settings/web -d port=8091 -d username=Administrator -d password=password
 
 # Setup Memory Optimized Indexes
-curl -i -u Administrator:password -X POST http://127.0.0.1:8091/settings/indexes -d 'storageMode=memory_optimized'
+curl -sf -u Administrator:password -X POST http://127.0.0.1:8091/settings/indexes -d 'storageMode=memory_optimized'
 
-# Load travel-sample bucket
-#curl -v -u Administrator:password -X POST http://127.0.0.1:8091/sampleBuckets/install -d '["travel-sample"]'
+wait_for_healthy
 
-echo "Type: $TYPE"
+echo "Type: ${TYPE:-}"
 
-if [ "$TYPE" = "WORKER" ]; then
-  echo "Sleeping ..."
-  sleep 15
+if [ "${TYPE:-}" = "WORKER" ]; then
+	echo "Sleeping ..."
+	sleep 15
 
-  #IP=`hostname -s`
-  IP=`hostname -I | cut -d ' ' -f1`
-  echo "IP: " $IP
+	IP=$(hostname -I | cut -d ' ' -f1)
+	echo "IP: $IP"
 
-  echo "Auto Rebalance: $AUTO_REBALANCE"
-  if [ "$AUTO_REBALANCE" = "true" ]; then
-    couchbase-cli rebalance --cluster=$COUCHBASE_MASTER:8091 --user=Administrator --password=password --server-add=$IP --server-add-username=Administrator --server-add-password=password
-  else
-    couchbase-cli server-add --cluster=$COUCHBASE_MASTER:8091 --user=Administrator --password=password --server-add=$IP --server-add-username=Administrator --server-add-password=password
-  fi;
-fi;
+	echo "Auto Rebalance: ${AUTO_REBALANCE:-}"
+	if [ "${AUTO_REBALANCE:-}" = "true" ]; then
+		couchbase-cli rebalance --cluster="${COUCHBASE_MASTER}:8091" --user=Administrator --password=password --server-add="$IP" --server-add-username=Administrator --server-add-password=password
+	else
+		couchbase-cli server-add --cluster="${COUCHBASE_MASTER}:8091" --user=Administrator --password=password --server-add="$IP" --server-add-username=Administrator --server-add-password=password
+	fi
+fi

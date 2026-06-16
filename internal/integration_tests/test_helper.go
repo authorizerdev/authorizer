@@ -2,6 +2,9 @@ package integration_tests
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -19,6 +23,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
@@ -63,6 +68,48 @@ func createContext(s *testSetup) (*http.Request, context.Context) {
 	ctx := utils.ContextWithGin(req.Context(), s.GinContext)
 	s.GinContext.Request = req
 	return req, ctx
+}
+
+// testAccessToken signs up a user via GraphQL and returns a bearer access token.
+func testAccessToken(t *testing.T, ts *testSetup) string {
+	t.Helper()
+	_, ctx := createContext(ts)
+	email := "test_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+	res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res.AccessToken)
+	require.NotEmpty(t, *res.AccessToken)
+	return *res.AccessToken
+}
+
+// testAuthorizerHost returns the host URL tokens minted via testAccessToken use as iss.
+func testAuthorizerHost(ts *testSetup) string {
+	return "http://" + ts.HttpServer.Listener.Addr().String()
+}
+
+// restAccessToken signs up a user via the REST gateway and returns a bearer token.
+func restAccessToken(t *testing.T, baseURL string) string {
+	t.Helper()
+	email := "rest_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+	body := fmt.Sprintf(`{"email":%q,"password":%q,"confirm_password":%q}`, email, password, password)
+	resp, err := http.Post(baseURL+"/v1/signup", "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	raw, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	var signup struct {
+		AccessToken string `json:"access_token"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &signup))
+	require.NotEmpty(t, signup.AccessToken)
+	return signup.AccessToken
 }
 
 // getTestConfig returns config for integration tests using SQLite.

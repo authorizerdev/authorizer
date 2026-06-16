@@ -91,7 +91,7 @@ type AuthorizerServiceClient interface {
 	DeactivateAccount(ctx context.Context, in *DeactivateAccountRequest, opts ...grpc.CallOption) (*DeactivateAccountResponse, error)
 	// Revoke invalidates a refresh token. Typed mirror of RFC 7009.
 	Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error)
-	// Session returns the AuthResponse bound to the caller's cookie/bearer.
+	// Session returns the AuthResponse bound to the caller's session cookie only.
 	// NOT exposed as an MCP tool — SessionResponse carries access_token,
 	// refresh_token, id_token, authenticator_secret, and recovery codes,
 	// none of which should land in an LLM transcript. (Security audit C1.)
@@ -354,7 +354,7 @@ type AuthorizerServiceServer interface {
 	DeactivateAccount(context.Context, *DeactivateAccountRequest) (*DeactivateAccountResponse, error)
 	// Revoke invalidates a refresh token. Typed mirror of RFC 7009.
 	Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error)
-	// Session returns the AuthResponse bound to the caller's cookie/bearer.
+	// Session returns the AuthResponse bound to the caller's session cookie only.
 	// NOT exposed as an MCP tool — SessionResponse carries access_token,
 	// refresh_token, id_token, authenticator_secret, and recovery codes,
 	// none of which should land in an LLM transcript. (Security audit C1.)
