@@ -70,7 +70,9 @@ func Auth(tp token.Provider) grpc.UnaryServerInterceptor {
 		}
 
 		// Session rotates the browser session cookie only; bearer tokens are ignored.
-		if string(methodDesc.Name()) == sessionMethodName {
+		// Guard on publicServiceName to prevent a future method named "Session" on
+		// another service from inheriting cookie-only auth.
+		if serviceName == publicServiceName && string(methodDesc.Name()) == sessionMethodName {
 			sessionToken, err := cookie.GetSession(gc)
 			if err != nil || sessionToken == "" {
 				return nil, status.Error(codes.Unauthenticated, "unauthorized")

@@ -41,6 +41,11 @@ func (p *provider) IsSuperAdmin(gc *gin.Context) bool {
 			return false
 		}
 
+		// Reject header auth if no AdminSecret is configured — an unconfigured
+		// secret must never grant super-admin access.
+		if p.config.AdminSecret == "" {
+			return false
+		}
 		secret := gc.Request.Header.Get("x-authorizer-admin-secret")
 		if secret == "" {
 			return false

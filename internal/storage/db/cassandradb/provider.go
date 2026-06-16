@@ -366,14 +366,36 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds materialized views for secondary indexes asynchronously.
-	time.Sleep(5 * time.Second)
+	// ScyllaDB builds secondary indexes asynchronously. Poll with a probe query
+	// that requires the actor_id index until it succeeds instead of a fixed sleep.
+	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog, 30*time.Second)
 
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
 		db:           session,
 	}, err
+}
+
+// waitForCassandraIndexes polls a probe query that requires the actor_id secondary
+// index until it succeeds or the timeout is reached. ScyllaDB builds secondary
+// indexes asynchronously; queries on indexed columns fail until the index is ready.
+func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
+	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
+	deadline := time.Now().Add(timeout)
+	delay := 500 * time.Millisecond
+	for {
+		if err := session.Query(probe).Exec(); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			return
+		}
+		time.Sleep(delay)
+		if delay < 3*time.Second {
+			delay += 500 * time.Millisecond
+		}
+	}
 }
 
 // Close closes the Cassandra session.

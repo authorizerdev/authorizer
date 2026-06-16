@@ -234,3 +234,39 @@ func TestShouldRejectUnlistedService(t *testing.T) {
 	assert.False(t, shouldRejectUnlistedService("grpc.health.v1.Health"))
 	assert.True(t, shouldRejectUnlistedService("other.v1.UnknownService"))
 }
+
+// TestAuth_NilTokenProviderFailsClosed asserts the interceptor fails closed when
+// no TokenProvider is wired (e.g. during early startup).
+func TestAuth_NilTokenProviderFailsClosed(t *testing.T) {
+	mw := Auth(nil)
+	called := false
+	_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(_ context.Context, _ any) (any, error) {
+		called = true
+		return &authorizerv1.User{}, nil
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	assert.False(t, called)
+}
+
+// TestAuth_SessionOnlyAcceptsPublicService asserts that the cookie-only Session
+// path is guarded on publicServiceName so a future method named "Session" on
+// another service does not inherit cookie-only auth.
+func TestAuth_SessionOnlyAcceptsPublicService(t *testing.T) {
+	// Session on the known publicServiceName — cookie path applies.
+	stub := &stubTokenProvider{
+		sessionData: &token.SessionData{Subject: "user-1", LoginMethod: "basic_auth", Nonce: "n"},
+	}
+	mw := Auth(stub)
+	cookieName := constants.AppCookieName + "_session"
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("cookie", cookieName+"=tok"))
+	_, err := mw(ctx, &authorizerv1.SessionRequest{}, info(authorizerv1.AuthorizerService_Session_FullMethodName), func(ctx context.Context, _ any) (any, error) {
+		p, ok := authctx.FromContext(ctx)
+		require.True(t, ok)
+		assert.Equal(t, "user-1", p.UserID)
+		return &authorizerv1.AuthResponse{}, nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, stub.sessionChecks)
+	assert.Equal(t, 0, stub.userChecks)
+}
