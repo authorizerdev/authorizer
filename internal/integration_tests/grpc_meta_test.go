@@ -52,7 +52,7 @@ func TestGRPCMeta(t *testing.T) {
 	client := authorizerv1.NewAuthorizerServiceClient(conn)
 	resp, err := client.Meta(context.Background(), &authorizerv1.MetaRequest{})
 	require.NoError(t, err)
-	require.NotNil(t, resp.Meta)
-	require.Equal(t, "test-client", resp.Meta.ClientId)
-	require.NotEmpty(t, resp.Meta.Version)
+	require.NotNil(t, resp)
+	require.Equal(t, "test-client", resp.ClientId)
+	require.NotEmpty(t, resp.Version)
 }

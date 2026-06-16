@@ -50,17 +50,16 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 	return conn
 }
 
-// TestAuthorizerServiceStubsReturnUnimplemented locks down the contract for
-// every not-yet-migrated method on the consolidated AuthorizerService.
-//
-// The service exposes 20 RPCs. Real today (10): Signup, Meta, Profile, Logout,
-// Revoke, Session, ValidateJwtToken, ValidateSession, CheckPermissions,
-// ListPermissions (the last two cover the former single Permissions RPC and are
-// exercised in grpc_permissions_test.go / rest_permissions_test.go). The
-// remaining 10 are still stubs and MUST return codes.Unimplemented — that
-// invariant is what this test guards. As each handler is wired up, drop its
-// entry below.
-func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
+// TestAuthorizerServiceMigratedRPCsAreImplemented is the positive contract for
+// the 10 auth RPCs that were migrated from the GraphQL resolvers into the
+// shared service layer (Login, MagicLinkLogin, VerifyEmail, ResendVerifyEmail,
+// VerifyOtp, ResendOtp, ForgotPassword, ResetPassword, UpdateProfile,
+// DeactivateAccount). With the rest of the surface this brings all 20
+// AuthorizerService RPCs live. Each is invoked with minimal/invalid input —
+// the exact status varies (InvalidArgument / Unauthenticated /
+// FailedPrecondition / Internal, or a deliberately-generic success on the
+// account-enumeration-safe paths) but it MUST NEVER be codes.Unimplemented.
+func TestAuthorizerServiceMigratedRPCsAreImplemented(t *testing.T) {
 	conn := bootGRPCBufconn(t)
 	ctx := context.Background()
 	c := authorizerv1.NewAuthorizerServiceClient(conn)
@@ -68,7 +67,7 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 	type call func(context.Context) error
 	cases := map[string]call{
 		"Login": func(c0 context.Context) error {
-			_, err := c.Login(c0, &authorizerv1.LoginRequest{Password: "p"})
+			_, err := c.Login(c0, &authorizerv1.LoginRequest{Email: "x@example.com", Password: "p"})
 			return err
 		},
 		"MagicLinkLogin": func(c0 context.Context) error {
@@ -100,7 +99,7 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 			return err
 		},
 		"UpdateProfile": func(c0 context.Context) error {
-			_, err := c.UpdateProfile(c0, &authorizerv1.UpdateProfileRequest{})
+			_, err := c.UpdateProfile(c0, &authorizerv1.UpdateProfileRequest{GivenName: "x"})
 			return err
 		},
 		"DeactivateAccount": func(c0 context.Context) error {
@@ -112,11 +111,15 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 	for name, fn := range cases {
 		t.Run(name, func(t *testing.T) {
 			err := fn(ctx)
-			require.Error(t, err)
+			if err == nil {
+				// A deliberately-generic success (enumeration-safe path) is
+				// itself proof the handler is wired.
+				return
+			}
 			st, ok := status.FromError(err)
 			require.True(t, ok)
-			assert.Equal(t, codes.Unimplemented, st.Code(),
-				"stub for AuthorizerService.%s should return Unimplemented until its handler is wired", name)
+			assert.NotEqual(t, codes.Unimplemented, st.Code(),
+				"AuthorizerService.%s is migrated and must not return Unimplemented", name)
 		})
 	}
 }

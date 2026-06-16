@@ -20,9 +20,8 @@ import (
 // TestRESTMeta exercises GET /v1/meta through the grpc-gateway. Validates
 // that the gateway translates the REST call into an in-process gRPC
 // invocation against AuthorizerService.Meta, then renders the response as
-// JSON. The wrapped response shape (`{"meta": {...}}`) is intentional:
-// every AuthorizerService RPC's response is a thin wrapper around the
-// inner type so buf STANDARD's RPC_REQUEST_RESPONSE_UNIQUE lint is satisfied.
+// JSON. The response is the flat Meta object (no wrapper), byte-identical to
+// the GraphQL `meta` query response.
 func TestRESTMeta(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"
@@ -60,12 +59,10 @@ func TestRESTMeta(t *testing.T) {
 	require.NoError(t, err)
 
 	var got struct {
-		Meta struct {
-			ClientID string `json:"client_id"`
-			Version  string `json:"version"`
-		} `json:"meta"`
+		ClientID string `json:"client_id"`
+		Version  string `json:"version"`
 	}
 	require.NoError(t, json.Unmarshal(body, &got))
-	require.Equal(t, "test-client", got.Meta.ClientID)
-	require.NotEmpty(t, got.Meta.Version)
+	require.Equal(t, "test-client", got.ClientID)
+	require.NotEmpty(t, got.Version)
 }

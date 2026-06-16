@@ -85,6 +85,19 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 			}
 			return runtime.DefaultHeaderMatcher(key)
 		}),
+		// Promote the service layer's session/MFA cookies to real Set-Cookie
+		// response headers. Handlers emit them via transport.ApplyToGRPC ->
+		// grpc.SendHeader as `set-cookie` server metadata; grpc-gateway's
+		// default outgoing matcher would rename that to `Grpc-Metadata-Set-Cookie`
+		// (which browsers ignore), so login/signup/session/verify_* would set no
+		// cookie over REST. Returning false for every other key also stops
+		// internal gRPC metadata leaking as Grpc-Metadata-* response headers.
+		runtime.WithOutgoingHeaderMatcher(func(key string) (string, bool) {
+			if strings.EqualFold(key, "set-cookie") {
+				return "Set-Cookie", true
+			}
+			return "", false
+		}),
 		// Consistent error envelope across the REST surface (see errorHandler).
 		runtime.WithErrorHandler(errorHandler),
 		// Preserve true HTTP routing statuses (e.g. 405 for a method mismatch

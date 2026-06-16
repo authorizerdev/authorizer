@@ -129,7 +129,7 @@ func TestValidate_AllowsValidRequest(t *testing.T) {
 	called := false
 	_, err = mw(context.Background(), &authorizerv1.MetaRequest{}, info("/authorizer.v1.Authorizer/Meta"), func(_ context.Context, _ any) (any, error) {
 		called = true
-		return &authorizerv1.MetaResponse{}, nil
+		return &authorizerv1.Meta{}, nil
 	})
 	require.NoError(t, err)
 	assert.True(t, called, "valid request must reach the handler")

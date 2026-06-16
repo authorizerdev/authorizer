@@ -72,8 +72,8 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	require.False(t, gotNames["session"],
 		"session tool MUST NOT be exposed via MCP (carries access_token/refresh_token/etc.)")
 
-	// tools/call meta — should invoke AuthorizerService.Meta and return JSON
-	// wrapped in the per-RPC MetaResponse shape.
+	// tools/call meta — should invoke AuthorizerService.Meta and return the
+	// flat Meta JSON (matching the GraphQL `meta` response; no wrapper).
 	call, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name:      "meta",
 		Arguments: map[string]any{},
@@ -84,12 +84,10 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	body, err := json.Marshal(call.StructuredContent)
 	require.NoError(t, err)
 	var got struct {
-		Meta struct {
-			ClientID string `json:"client_id"`
-			Version  string `json:"version"`
-		} `json:"meta"`
+		ClientID string `json:"client_id"`
+		Version  string `json:"version"`
 	}
 	require.NoError(t, json.Unmarshal(body, &got))
-	require.Equal(t, "test-client", got.Meta.ClientID)
-	require.NotEmpty(t, got.Meta.Version)
+	require.Equal(t, "test-client", got.ClientID)
+	require.NotEmpty(t, got.Version)
 }

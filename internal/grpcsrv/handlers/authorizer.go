@@ -35,7 +35,7 @@ type AuthorizerHandler struct {
 // so optional string inputs collapse empty -> nil via optionalString to match
 // the GraphQL "field omitted" semantics. Signup is intentionally NOT MCP-
 // exposed (it returns credentials).
-func (h *AuthorizerHandler) Signup(ctx context.Context, req *authorizerv1.SignupRequest) (*authorizerv1.SignupResponse, error) {
+func (h *AuthorizerHandler) Signup(ctx context.Context, req *authorizerv1.SignupRequest) (*authorizerv1.AuthResponse, error) {
 	res, side, err := h.Service.SignUp(ctx, transport.MetaFromGRPC(ctx), &model.SignUpRequest{
 		Email:                    optionalString(req.Email),
 		PhoneNumber:              optionalString(req.PhoneNumber),
@@ -59,7 +59,7 @@ func (h *AuthorizerHandler) Signup(ctx context.Context, req *authorizerv1.Signup
 		return nil, err
 	}
 	_ = transport.ApplyToGRPC(ctx, side)
-	return &authorizerv1.SignupResponse{Auth: projectAuthResponse(res)}, nil
+	return projectAuthResponse(res), nil
 }
 
 // Revoke delegates to service.Revoke and projects the result.
@@ -109,7 +109,7 @@ func (h *AuthorizerHandler) ValidateSession(ctx context.Context, req *authorizer
 // Session delegates to service.Session, applies the rotated session cookie
 // to the outgoing stream, and projects the AuthResponse. SessionResponse
 // carries credentials and is intentionally NOT MCP-exposed (audit C1).
-func (h *AuthorizerHandler) Session(ctx context.Context, req *authorizerv1.SessionRequest) (*authorizerv1.SessionResponse, error) {
+func (h *AuthorizerHandler) Session(ctx context.Context, req *authorizerv1.SessionRequest) (*authorizerv1.AuthResponse, error) {
 	res, side, err := h.Service.Session(ctx, transport.MetaFromGRPC(ctx), &model.SessionQueryRequest{
 		Roles:             req.Roles,
 		Scope:             req.Scope,
@@ -120,18 +120,18 @@ func (h *AuthorizerHandler) Session(ctx context.Context, req *authorizerv1.Sessi
 		return nil, err
 	}
 	_ = transport.ApplyToGRPC(ctx, side)
-	return &authorizerv1.SessionResponse{Auth: projectAuthResponse(res)}, nil
+	return projectAuthResponse(res), nil
 }
 
 // Profile delegates to service.Profile and projects the result into the
 // proto ProfileResponse. Requires session/bearer auth (handled inside the
 // service via TokenProvider.GetUserIDFromSessionOrAccessToken).
-func (h *AuthorizerHandler) Profile(ctx context.Context, _ *authorizerv1.ProfileRequest) (*authorizerv1.ProfileResponse, error) {
+func (h *AuthorizerHandler) Profile(ctx context.Context, _ *authorizerv1.ProfileRequest) (*authorizerv1.User, error) {
 	u, _, err := h.Service.Profile(ctx, transport.MetaFromGRPC(ctx))
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.ProfileResponse{User: projectUser(u)}, nil
+	return projectUser(u), nil
 }
 
 // CheckPermissions delegates to service.CheckPermissions and projects the
@@ -201,35 +201,204 @@ func (h *AuthorizerHandler) Logout(ctx context.Context, _ *authorizerv1.LogoutRe
 	return &authorizerv1.LogoutResponse{Message: res.Message}, nil
 }
 
+// ResendVerifyEmail delegates to service.ResendVerifyEmail. Public — the
+// response is generic to avoid account enumeration.
+func (h *AuthorizerHandler) ResendVerifyEmail(ctx context.Context, req *authorizerv1.ResendVerifyEmailRequest) (*authorizerv1.ResendVerifyEmailResponse, error) {
+	res, side, err := h.Service.ResendVerifyEmail(ctx, transport.MetaFromGRPC(ctx), &model.ResendVerifyEmailRequest{
+		Email:      req.Email,
+		Identifier: req.Identifier,
+		State:      optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.ResendVerifyEmailResponse{Message: res.Message}, nil
+}
+
+// ResendOtp delegates to service.ResendOTP. Public. Applies any MFA-session
+// cookie side-effects to the outgoing stream.
+func (h *AuthorizerHandler) ResendOtp(ctx context.Context, req *authorizerv1.ResendOtpRequest) (*authorizerv1.ResendOtpResponse, error) {
+	res, side, err := h.Service.ResendOTP(ctx, transport.MetaFromGRPC(ctx), &model.ResendOTPRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+		State:       optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.ResendOtpResponse{Message: res.Message}, nil
+}
+
+// ForgotPassword delegates to service.ForgotPassword. Public — the response is
+// generic to avoid account enumeration. Applies any MFA-session cookie
+// side-effects (SMS flow) to the outgoing stream.
+func (h *AuthorizerHandler) ForgotPassword(ctx context.Context, req *authorizerv1.ForgotPasswordRequest) (*authorizerv1.ForgotPasswordResponse, error) {
+	res, side, err := h.Service.ForgotPassword(ctx, transport.MetaFromGRPC(ctx), &model.ForgotPasswordRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+		State:       optionalString(req.State),
+		RedirectURI: optionalString(req.RedirectUri),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.ForgotPasswordResponse{
+		Message:                   res.Message,
+		ShouldShowMobileOtpScreen: refs.BoolValue(res.ShouldShowMobileOtpScreen),
+	}, nil
+}
+
+// Login delegates to service.Login, applies session/MFA cookie side-effects
+// to the outgoing stream (grpc-gateway lifts them to Set-Cookie for REST
+// callers), and projects the AuthResponse. Login is intentionally NOT
+// MCP-exposed (it returns credentials).
+func (h *AuthorizerHandler) Login(ctx context.Context, req *authorizerv1.LoginRequest) (*authorizerv1.AuthResponse, error) {
+	res, side, err := h.Service.Login(ctx, transport.MetaFromGRPC(ctx), &model.LoginRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+		Password:    req.Password,
+		Roles:       req.Roles,
+		Scope:       req.Scope,
+		State:       optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return projectAuthResponse(res), nil
+}
+
+// MagicLinkLogin delegates to service.MagicLinkLogin. Public — the response is
+// generic to avoid account enumeration.
+func (h *AuthorizerHandler) MagicLinkLogin(ctx context.Context, req *authorizerv1.MagicLinkLoginRequest) (*authorizerv1.MagicLinkLoginResponse, error) {
+	res, side, err := h.Service.MagicLinkLogin(ctx, transport.MetaFromGRPC(ctx), &model.MagicLinkLoginRequest{
+		Email:       req.Email,
+		Roles:       req.Roles,
+		Scope:       req.Scope,
+		State:       optionalString(req.State),
+		RedirectURI: optionalString(req.RedirectUri),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.MagicLinkLoginResponse{Message: res.Message}, nil
+}
+
+// VerifyEmail delegates to service.VerifyEmail, applies the session cookie
+// side-effect to the outgoing stream, and projects the AuthResponse.
+func (h *AuthorizerHandler) VerifyEmail(ctx context.Context, req *authorizerv1.VerifyEmailRequest) (*authorizerv1.AuthResponse, error) {
+	res, side, err := h.Service.VerifyEmail(ctx, transport.MetaFromGRPC(ctx), &model.VerifyEmailRequest{
+		Token: req.Token,
+		State: optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return projectAuthResponse(res), nil
+}
+
+// VerifyOtp delegates to service.VerifyOTP, applies the session cookie
+// side-effect to the outgoing stream, and projects the AuthResponse.
+func (h *AuthorizerHandler) VerifyOtp(ctx context.Context, req *authorizerv1.VerifyOtpRequest) (*authorizerv1.AuthResponse, error) {
+	res, side, err := h.Service.VerifyOTP(ctx, transport.MetaFromGRPC(ctx), &model.VerifyOTPRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+		Otp:         req.Otp,
+		IsTotp:      &req.IsTotp,
+		State:       optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return projectAuthResponse(res), nil
+}
+
+// ResetPassword delegates to service.ResetPassword. Public.
+func (h *AuthorizerHandler) ResetPassword(ctx context.Context, req *authorizerv1.ResetPasswordRequest) (*authorizerv1.ResetPasswordResponse, error) {
+	res, side, err := h.Service.ResetPassword(ctx, transport.MetaFromGRPC(ctx), &model.ResetPasswordRequest{
+		Token:           optionalString(req.Token),
+		Otp:             optionalString(req.Otp),
+		PhoneNumber:     optionalString(req.PhoneNumber),
+		Password:        req.Password,
+		ConfirmPassword: req.ConfirmPassword,
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.ResetPasswordResponse{Message: res.Message}, nil
+}
+
+// UpdateProfile delegates to service.UpdateProfile. Requires session/bearer
+// auth (enforced inside the service). On email change the service rotates the
+// session via cookie side-effects (lifted to Set-Cookie for REST callers).
+func (h *AuthorizerHandler) UpdateProfile(ctx context.Context, req *authorizerv1.UpdateProfileRequest) (*authorizerv1.UpdateProfileResponse, error) {
+	res, side, err := h.Service.UpdateProfile(ctx, transport.MetaFromGRPC(ctx), &model.UpdateProfileRequest{
+		OldPassword:              optionalString(req.OldPassword),
+		NewPassword:              optionalString(req.NewPassword),
+		ConfirmNewPassword:       optionalString(req.ConfirmNewPassword),
+		Email:                    optionalString(req.Email),
+		GivenName:                optionalString(req.GivenName),
+		FamilyName:               optionalString(req.FamilyName),
+		MiddleName:               optionalString(req.MiddleName),
+		Nickname:                 optionalString(req.Nickname),
+		Gender:                   optionalString(req.Gender),
+		Birthdate:                optionalString(req.Birthdate),
+		PhoneNumber:              optionalString(req.PhoneNumber),
+		Picture:                  optionalString(req.Picture),
+		IsMultiFactorAuthEnabled: req.IsMultiFactorAuthEnabled,
+		AppData:                  appDataToMap(req.AppData),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.UpdateProfileResponse{Message: res.Message}, nil
+}
+
+// DeactivateAccount delegates to service.DeactivateAccount. Requires
+// session/bearer auth (enforced inside the service).
+func (h *AuthorizerHandler) DeactivateAccount(ctx context.Context, _ *authorizerv1.DeactivateAccountRequest) (*authorizerv1.DeactivateAccountResponse, error) {
+	res, _, err := h.Service.DeactivateAccount(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeactivateAccountResponse{Message: res.Message}, nil
+}
+
 // Meta delegates to service.Meta and projects the GraphQL Meta model into
 // the proto MetaResponse.
-func (h *AuthorizerHandler) Meta(ctx context.Context, _ *authorizerv1.MetaRequest) (*authorizerv1.MetaResponse, error) {
+func (h *AuthorizerHandler) Meta(ctx context.Context, _ *authorizerv1.MetaRequest) (*authorizerv1.Meta, error) {
 	m, _, err := h.Service.Meta(ctx, transport.MetaFromGRPC(ctx))
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.MetaResponse{
-		Meta: &authorizerv1.Meta{
-			Version:                            m.Version,
-			ClientId:                           m.ClientID,
-			IsGoogleLoginEnabled:               m.IsGoogleLoginEnabled,
-			IsFacebookLoginEnabled:             m.IsFacebookLoginEnabled,
-			IsGithubLoginEnabled:               m.IsGithubLoginEnabled,
-			IsLinkedinLoginEnabled:             m.IsLinkedinLoginEnabled,
-			IsAppleLoginEnabled:                m.IsAppleLoginEnabled,
-			IsDiscordLoginEnabled:              m.IsDiscordLoginEnabled,
-			IsTwitterLoginEnabled:              m.IsTwitterLoginEnabled,
-			IsMicrosoftLoginEnabled:            m.IsMicrosoftLoginEnabled,
-			IsTwitchLoginEnabled:               m.IsTwitchLoginEnabled,
-			IsRobloxLoginEnabled:               m.IsRobloxLoginEnabled,
-			IsEmailVerificationEnabled:         m.IsEmailVerificationEnabled,
-			IsBasicAuthenticationEnabled:       m.IsBasicAuthenticationEnabled,
-			IsMagicLinkLoginEnabled:            m.IsMagicLinkLoginEnabled,
-			IsSignUpEnabled:                    m.IsSignUpEnabled,
-			IsStrongPasswordEnabled:            m.IsStrongPasswordEnabled,
-			IsMultiFactorAuthEnabled:           m.IsMultiFactorAuthEnabled,
-			IsMobileBasicAuthenticationEnabled: m.IsMobileBasicAuthenticationEnabled,
-			IsPhoneVerificationEnabled:         m.IsPhoneVerificationEnabled,
-		},
+	return &authorizerv1.Meta{
+		Version:                            m.Version,
+		ClientId:                           m.ClientID,
+		IsGoogleLoginEnabled:               m.IsGoogleLoginEnabled,
+		IsFacebookLoginEnabled:             m.IsFacebookLoginEnabled,
+		IsGithubLoginEnabled:               m.IsGithubLoginEnabled,
+		IsLinkedinLoginEnabled:             m.IsLinkedinLoginEnabled,
+		IsAppleLoginEnabled:                m.IsAppleLoginEnabled,
+		IsDiscordLoginEnabled:              m.IsDiscordLoginEnabled,
+		IsTwitterLoginEnabled:              m.IsTwitterLoginEnabled,
+		IsMicrosoftLoginEnabled:            m.IsMicrosoftLoginEnabled,
+		IsTwitchLoginEnabled:               m.IsTwitchLoginEnabled,
+		IsRobloxLoginEnabled:               m.IsRobloxLoginEnabled,
+		IsEmailVerificationEnabled:         m.IsEmailVerificationEnabled,
+		IsBasicAuthenticationEnabled:       m.IsBasicAuthenticationEnabled,
+		IsMagicLinkLoginEnabled:            m.IsMagicLinkLoginEnabled,
+		IsSignUpEnabled:                    m.IsSignUpEnabled,
+		IsStrongPasswordEnabled:            m.IsStrongPasswordEnabled,
+		IsMultiFactorAuthEnabled:           m.IsMultiFactorAuthEnabled,
+		IsMobileBasicAuthenticationEnabled: m.IsMobileBasicAuthenticationEnabled,
+		IsPhoneVerificationEnabled:         m.IsPhoneVerificationEnabled,
 	}, nil
 }

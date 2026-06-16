@@ -105,16 +105,14 @@ func TestRESTGatewayForwardsAuthorizerHost(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var signup struct {
-		Auth struct {
-			AccessToken string `json:"access_token"`
-		} `json:"auth"`
+		AccessToken string `json:"access_token"`
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&signup))
-	require.NotEmpty(t, signup.Auth.AccessToken)
+	require.NotEmpty(t, signup.AccessToken)
 
 	// The iss claim must be the host the gateway forwarded — not the
 	// in-process bufconn authority.
-	parts := strings.Split(signup.Auth.AccessToken, ".")
+	parts := strings.Split(signup.AccessToken, ".")
 	require.Len(t, parts, 3)
 	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	require.NoError(t, err)
@@ -128,17 +126,15 @@ func TestRESTGatewayForwardsAuthorizerHost(t *testing.T) {
 	// Round-trip: the REST-minted token authenticates a REST identity call.
 	preq, err := http.NewRequest(http.MethodGet, base+"/v1/profile", nil)
 	require.NoError(t, err)
-	preq.Header.Set("Authorization", "Bearer "+signup.Auth.AccessToken)
+	preq.Header.Set("Authorization", "Bearer "+signup.AccessToken)
 	preq.Header.Set("X-Authorizer-URL", hostURL)
 	presp, err := http.DefaultClient.Do(preq)
 	require.NoError(t, err)
 	defer func() { _ = presp.Body.Close() }()
 	require.Equal(t, http.StatusOK, presp.StatusCode)
 	var profile struct {
-		User struct {
-			Email string `json:"email"`
-		} `json:"user"`
+		Email string `json:"email"`
 	}
 	require.NoError(t, json.NewDecoder(presp.Body).Decode(&profile))
-	require.Equal(t, "rest-host@test.dev", profile.User.Email)
+	require.Equal(t, "rest-host@test.dev", profile.Email)
 }

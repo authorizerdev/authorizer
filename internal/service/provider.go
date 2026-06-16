@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -23,6 +24,9 @@ type Dependencies struct {
 	Log *zerolog.Logger
 
 	AuditProvider audit.Provider
+	// AuthenticatorProvider registers and validates TOTP authenticators
+	// (Google Authenticator) and recovery codes for MFA flows.
+	AuthenticatorProvider authenticators.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
 	// It is nil unless an FGA store is configured (--fga-store);
 	// FGA-gated operations MUST fail closed (return an error) when it is nil.
@@ -81,6 +85,48 @@ type Provider interface {
 	// AND rotates the session token. Browser callers get a fresh
 	// Set-Cookie via side-effects.
 	Session(ctx context.Context, meta RequestMetadata, params *model.SessionQueryRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// DeactivateAccount marks the authenticated caller's account as revoked
+	// and drops all of their sessions. Requires auth.
+	DeactivateAccount(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+
+	// ResendVerifyEmail re-issues a pending email-verification link. Public —
+	// response is generic to avoid account enumeration.
+	ResendVerifyEmail(ctx context.Context, meta RequestMetadata, params *model.ResendVerifyEmailRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// ResendOTP re-issues a one-time passcode for an MFA/verification
+	// challenge. Public.
+	ResendOTP(ctx context.Context, meta RequestMetadata, params *model.ResendOTPRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// ForgotPassword issues a password-reset token (email) or OTP (SMS).
+	// Public — response is generic to avoid account enumeration.
+	ForgotPassword(ctx context.Context, meta RequestMetadata, params *model.ForgotPasswordRequest) (*model.ForgotPasswordResponse, *ResponseSideEffects, error)
+
+	// ResetPassword completes a password reset using a verification token
+	// (email) or OTP (SMS). Public.
+	ResetPassword(ctx context.Context, meta RequestMetadata, params *model.ResetPasswordRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// UpdateProfile updates the authenticated caller's profile. Requires auth.
+	// May rotate/clear the session cookie (e.g. on email change) via
+	// side-effects.
+	UpdateProfile(ctx context.Context, meta RequestMetadata, params *model.UpdateProfileRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// MagicLinkLogin sends a passwordless login link. Public — response is
+	// generic to avoid account enumeration.
+	MagicLinkLogin(ctx context.Context, meta RequestMetadata, params *model.MagicLinkLoginRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// Login authenticates a user via email/phone + password, issuing tokens
+	// or initiating an MFA challenge. Browser callers get Set-Cookie via
+	// side-effects. Public.
+	Login(ctx context.Context, meta RequestMetadata, params *model.LoginRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// VerifyEmail completes email verification and logs the user in. Browser
+	// callers get a session cookie via side-effects. Public.
+	VerifyEmail(ctx context.Context, meta RequestMetadata, params *model.VerifyEmailRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// VerifyOTP validates an email/SMS OTP or TOTP/recovery code and logs the
+	// user in. Browser callers get a session cookie via side-effects. Public.
+	VerifyOTP(ctx context.Context, meta RequestMetadata, params *model.VerifyOTPRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 }
 
 // New constructs a new service provider.

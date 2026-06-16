@@ -1,0 +1,37 @@
+# Client SDK stub generation (separate from server codegen in buf.gen.yaml).
+# Generated artifacts are vendored into the standalone SDK repos.
+#   Python -> gen/python      (vendored into authorizer-python as authorizer/_grpc)
+#   Go     -> gen/go-client   (vendored into authorizer-go as internal/genpb)
+# Run from proto/: buf generate --template buf.gen.clients.yaml --include-imports
+version: v2
+managed:
+  enabled: true
+  disable:
+    - module: buf.build/bufbuild/protovalidate
+      file_option: go_package_prefix
+    - module: buf.build/googleapis/googleapis
+      file_option: go_package_prefix
+  override:
+    - file_option: go_package_prefix
+      value: github.com/authorizerdev/authorizer-go/internal/genpb
+plugins:
+  - remote: buf.build/protocolbuffers/python:v27.3
+    out: ../gen/python
+  - remote: buf.build/grpc/python:v1.66.0
+    out: ../gen/python
+  - remote: buf.build/protocolbuffers/go:v1.35.2
+    out: ../gen/go-client
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go:v1.5.1
+    out: ../gen/go-client
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  # TypeScript message types (protobuf-es) — vendored into authorizer-js for
+  # typed admin/auth request+response shapes. JS uses graphql/rest, so service
+  # clients are not generated; message types only.
+  - remote: buf.build/bufbuild/es:v2.2.3
+    out: ../gen/ts
+    opt:
+      - target=ts
+      - import_extension=js

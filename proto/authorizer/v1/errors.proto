@@ -1,0 +1,54 @@
+// proto/authorizer/v1/errors.proto
+//
+// Domain-specific error reasons attached to google.rpc.Status via ErrorInfo.
+//
+// Wire shape: handlers return standard gRPC status codes (e.g.
+// PERMISSION_DENIED, INVALID_ARGUMENT) and attach an ErrorInfo detail whose
+// `reason` field is one of the enum values below. The gateway surfaces the
+// same ErrorInfo in the REST response body. Clients should branch on the
+// enum, not on the human-readable message.
+syntax = "proto3";
+
+package authorizer.v1;
+
+enum ErrorReason {
+  ERROR_REASON_UNSPECIFIED = 0;
+
+  // Authentication failed (bad credentials, expired token, missing cookie).
+  // Maps to gRPC UNAUTHENTICATED / HTTP 401.
+  ERROR_REASON_INVALID_CREDENTIALS = 1;
+
+  // Caller is authenticated but lacks the required permission.
+  // Maps to PERMISSION_DENIED / HTTP 403.
+  ERROR_REASON_PERMISSION_DENIED = 2;
+
+  // The targeted resource does not exist. NOT_FOUND / 404.
+  ERROR_REASON_NOT_FOUND = 3;
+
+  // A unique constraint was violated (e.g. email already registered).
+  // ALREADY_EXISTS / 409.
+  ERROR_REASON_ALREADY_EXISTS = 4;
+
+  // Request validation failed beyond what protovalidate caught
+  // (cross-field, business-rule). INVALID_ARGUMENT / 400.
+  ERROR_REASON_INVALID_REQUEST = 5;
+
+  // A required identity-verification step has not been completed
+  // (email not verified, phone not verified, MFA required). FAILED_PRECONDITION / 412.
+  ERROR_REASON_VERIFICATION_REQUIRED = 6;
+
+  // The current configuration disables the requested operation
+  // (sign-up disabled, magic-link login disabled, etc.). FAILED_PRECONDITION / 412.
+  ERROR_REASON_OPERATION_DISABLED = 7;
+
+  // Caller exceeded the configured rate limit. RESOURCE_EXHAUSTED / 429.
+  ERROR_REASON_RATE_LIMITED = 8;
+
+  // A verification token (email, password reset, magic link, OTP) is expired
+  // or has already been consumed. FAILED_PRECONDITION / 412.
+  ERROR_REASON_TOKEN_EXPIRED = 9;
+
+  // The account is deactivated or its access has been revoked by an admin.
+  // FAILED_PRECONDITION / 412.
+  ERROR_REASON_ACCOUNT_DEACTIVATED = 10;
+}

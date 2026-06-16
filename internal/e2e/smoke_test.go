@@ -292,13 +292,13 @@ func TestReleaseSmoke(t *testing.T) {
 		assert.False(t, checkOut.Results[1].Allowed)
 
 		profile := mcp.toolCall(t, "profile", map[string]any{})
+		// Profile returns the flat User object (no wrapper), matching the
+		// GraphQL `profile` response.
 		var profOut struct {
-			User struct {
-				Email string `json:"email"`
-			} `json:"user"`
+			Email string `json:"email"`
 		}
 		require.NoError(t, json.Unmarshal([]byte(profile), &profOut))
-		assert.Equal(t, smokeUserEmail, profOut.User.Email)
+		assert.Equal(t, smokeUserEmail, profOut.Email)
 	})
 }
 

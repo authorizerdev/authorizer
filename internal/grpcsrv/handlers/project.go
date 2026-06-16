@@ -11,7 +11,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 
-	commonv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/common/v1"
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
@@ -87,7 +86,7 @@ func projectAuthResponse(a *model.AuthResponse) *authorizerv1.AuthResponse {
 // claims payload. The inputs are produced by our own storage/JWT layers, so a
 // failure here indicates corrupt data worth surfacing out-of-band, not a
 // client error.
-func mapToAppData(m map[string]any) *commonv1.AppData {
+func mapToAppData(m map[string]any) *authorizerv1.AppData {
 	if len(m) == 0 {
 		return nil
 	}
@@ -105,13 +104,13 @@ func mapToAppData(m map[string]any) *commonv1.AppData {
 	if err != nil {
 		return nil
 	}
-	return &commonv1.AppData{Value: s}
+	return &authorizerv1.AppData{Value: s}
 }
 
 // appDataToMap is the inverse of mapToAppData: it unwraps the proto AppData
 // (google.protobuf.Struct) back into a free-form map for the model layer.
 // Returns nil for an absent/empty AppData so optional semantics are preserved.
-func appDataToMap(in *commonv1.AppData) map[string]any {
+func appDataToMap(in *authorizerv1.AppData) map[string]any {
 	if in == nil || in.GetValue() == nil {
 		return nil
 	}
