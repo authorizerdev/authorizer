@@ -40,8 +40,13 @@ jobs:
       - name: Lint
         run: buf lint proto
       # Compare against the published module so a PR that would break
-      # wire/source compatibility fails before it lands.
+      # wire/source compatibility fails before it lands. Intentional,
+      # reviewed breaks (e.g. the v1 package consolidation / response-envelope
+      # flatten) are allowed only when a maintainer applies the
+      # `proto-breaking-approved` label — the gate still hard-fails on every
+      # unlabeled PR, so accidental breaks are caught.
       - name: Breaking-change check
+        continue-on-error: ${{ contains(github.event.pull_request.labels.*.name, 'proto-breaking-approved') }}
         run: buf breaking proto --against buf.build/authorizerdev/authorizer
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
