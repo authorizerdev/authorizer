@@ -101,7 +101,9 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	}
 	if otpData == nil {
 		log.Debug().Msg("Failed to get otp for given email")
-		return nil, nil, errors.New("failed to get otp for given email")
+		return &model.Response{
+			Message: "Failed to get for given email",
+		}, nil, errors.New("failed to get otp for given email")
 	}
 	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
 	generateOTP := func(expiresAt int64) (*schemas.OTP, error) {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -134,7 +135,7 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 		user, err = p.StorageProvider.UpdateUser(ctx, user)
 		if err != nil {
 			log.Debug().Msg("Failed to update user")
-			return nil, nil, err
+			return nil, nil, errors.New("failed to update user")
 		}
 	}
 

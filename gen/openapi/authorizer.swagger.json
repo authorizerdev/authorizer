@@ -3067,7 +3067,8 @@
           "type": "string"
         },
         "is_multi_factor_auth_enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "optional: absent means \"leave MFA unchanged\"; present false explicitly\ndisables MFA. A non-optional bool would make every partial update send\nfalse and silently disable MFA."
         },
         "app_data": {
           "$ref": "#/definitions/v1AppData"

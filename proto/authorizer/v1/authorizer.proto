@@ -371,7 +371,10 @@ message UpdateProfileRequest {
   string birthdate = 10;
   string phone_number = 11 [(buf.validate.field).string.max_len = 32];
   string picture = 12;
-  bool is_multi_factor_auth_enabled = 13;
+  // optional: absent means "leave MFA unchanged"; present false explicitly
+  // disables MFA. A non-optional bool would make every partial update send
+  // false and silently disable MFA.
+  optional bool is_multi_factor_auth_enabled = 13;
   AppData app_data = 14;
 }
 message UpdateProfileResponse {

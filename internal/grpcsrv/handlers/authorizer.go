@@ -352,7 +352,7 @@ func (h *AuthorizerHandler) UpdateProfile(ctx context.Context, req *authorizerv1
 		Birthdate:                optionalString(req.Birthdate),
 		PhoneNumber:              optionalString(req.PhoneNumber),
 		Picture:                  optionalString(req.Picture),
-		IsMultiFactorAuthEnabled: &req.IsMultiFactorAuthEnabled,
+		IsMultiFactorAuthEnabled: req.IsMultiFactorAuthEnabled,
 		AppData:                  appDataToMap(req.AppData),
 	})
 	if err != nil {

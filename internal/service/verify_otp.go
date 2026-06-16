@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -74,7 +75,7 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		status, err := p.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to validate passcode")
-			return nil, nil, err
+			return nil, nil, errors.New("error while validating passcode")
 		}
 		if !status {
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
@@ -83,7 +84,7 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			isValidRecoveryCode, err := p.AuthenticatorProvider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to validate recovery code")
-				return nil, nil, err
+				return nil, nil, errors.New("error while validating recovery code")
 			}
 			if !isValidRecoveryCode {
 				log.Debug().Msg("Failed to verify otp request: Incorrect value")

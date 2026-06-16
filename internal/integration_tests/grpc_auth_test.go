@@ -17,6 +17,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
+	"github.com/authorizerdev/authorizer/internal/refs"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
@@ -25,7 +26,7 @@ import (
 // service provider the GraphQL path uses (via initTestSetup) and returns an
 // AuthorizerService client plus the test config. This is the public-API
 // counterpart to newAdminClient.
-func newPublicClient(t *testing.T) (authorizerv1.AuthorizerServiceClient, *config.Config) {
+func newPublicClient(t *testing.T) (authorizerv1.AuthorizerServiceClient, *config.Config, *testSetup) {
 	t.Helper()
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
@@ -50,7 +51,7 @@ func newPublicClient(t *testing.T) (authorizerv1.AuthorizerServiceClient, *confi
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 
-	return authorizerv1.NewAuthorizerServiceClient(conn), cfg
+	return authorizerv1.NewAuthorizerServiceClient(conn), cfg, ts
 }
 
 // bearerCtx returns a context carrying a Bearer access token that
@@ -65,7 +66,7 @@ func bearerCtx(token string) context.Context {
 // shared service layer (this was the original "Login not implemented for gRPC"
 // gap).
 func TestLoginGRPC(t *testing.T) {
-	c, _ := newPublicClient(t)
+	c, _, _ := newPublicClient(t)
 	ctx := context.Background()
 
 	email := "grpc_login_" + uuid.New().String() + "@authorizer.dev"
@@ -104,7 +105,7 @@ func TestLoginGRPC(t *testing.T) {
 // authentication and, with a valid bearer token from Login, applies the update
 // through the shared service layer.
 func TestUpdateProfileGRPC(t *testing.T) {
-	c, _ := newPublicClient(t)
+	c, _, _ := newPublicClient(t)
 	ctx := context.Background()
 
 	email := "grpc_updprofile_" + uuid.New().String() + "@authorizer.dev"
@@ -135,4 +136,42 @@ func TestUpdateProfileGRPC(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Message)
 	})
+}
+
+// TestUpdateProfileGRPCDoesNotDisableMFA is the regression test for the proto3
+// presence bug: is_multi_factor_auth_enabled is `optional`, so a partial update
+// that omits it must leave MFA untouched. A non-optional bool would default to
+// false on every call and silently disable a user's MFA.
+func TestUpdateProfileGRPCDoesNotDisableMFA(t *testing.T) {
+	c, _, ts := newPublicClient(t)
+	ctx := context.Background()
+
+	email := "grpc_mfa_keep_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupRes, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+		Email:           email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, signupRes.AccessToken)
+
+	// Turn MFA on for this user directly in storage.
+	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+	_, err = ts.StorageProvider.UpdateUser(ctx, user)
+	require.NoError(t, err)
+
+	// Update an unrelated field; do NOT send is_multi_factor_auth_enabled.
+	_, err = c.UpdateProfile(bearerCtx(signupRes.AccessToken), &authorizerv1.UpdateProfileRequest{
+		GivenName: "KeepMFA",
+	})
+	require.NoError(t, err)
+
+	got, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	assert.True(t, refs.BoolValue(got.IsMultiFactorAuthEnabled),
+		"a partial UpdateProfile that omits is_multi_factor_auth_enabled must not disable MFA")
 }
