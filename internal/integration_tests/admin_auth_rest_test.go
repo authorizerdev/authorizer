@@ -3,8 +3,10 @@ package integration_tests
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,6 +57,33 @@ func TestAdminAuthREST(t *testing.T) {
 			fmt.Sprintf(`{"admin_secret":%q}`, secret), &out)
 		require.Equal(t, http.StatusOK, status)
 		require.Equal(t, "admin logged in successfully", out.Message)
+	})
+
+	t.Run("login returns a real Set-Cookie header", func(t *testing.T) {
+		// Regression: admin login sets the admin session cookie as gRPC
+		// `set-cookie` metadata; the gateway's outgoing-header matcher must
+		// promote it to a real Set-Cookie header (not Grpc-Metadata-Set-Cookie).
+		req, err := http.NewRequest(http.MethodPost, baseURL+"/v1/admin/login", strings.NewReader(
+			fmt.Sprintf(`{"admin_secret":%q}`, secret)))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		cookies := resp.Header.Values("Set-Cookie")
+		require.NotEmpty(t, cookies, "admin login must return a real Set-Cookie header over REST")
+		found := false
+		for _, c := range cookies {
+			if strings.HasPrefix(c, constants.AdminCookieName+"=") {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "expected %s cookie; got %v", constants.AdminCookieName, cookies)
+		require.Empty(t, resp.Header.Values("Grpc-Metadata-Set-Cookie"),
+			"raw gRPC metadata cookie header must not leak over REST")
 	})
 
 	t.Run("session fail-closed then happy", func(t *testing.T) {

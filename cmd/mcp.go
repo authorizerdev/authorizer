@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -45,7 +46,7 @@ var mcpArgs struct {
 //	  --database-type=sqlite --database-url=auth.db --mcp-bearer=$TOKEN
 //
 // Which tools are exposed is declared at the proto layer via the
-// `(authorizer.common.v1.mcp_tool).exposed` option; the MCP server discovers
+// `(authorizer.v1.mcp_tool).exposed` option; the MCP server discovers
 // them at startup.
 //
 // Transport: STDIO ONLY. The MCP server has no auth/rate-limit interceptors
@@ -55,7 +56,7 @@ var mcpCmd = &cobra.Command{
 	Use:   "mcp",
 	Short: "Serve Authorizer's MCP tool surface over stdio",
 	Long: "Exposes a subset of Authorizer's gRPC methods (those marked " +
-		"(authorizer.common.v1.mcp_tool).exposed=true in proto) as MCP " +
+		"(authorizer.v1.mcp_tool).exposed=true in proto) as MCP " +
 		"tools, suitable for use with Claude Code or any MCP-compatible " +
 		"host. Stdio is the only supported transport.",
 	Run: runMCP,
@@ -131,16 +132,27 @@ func runMCP(_ *cobra.Command, _ []string) {
 	authzEngine, closeAuthzEngine := initAuthzEngine(&rootArgs.config, &log)
 	defer closeAuthzEngine()
 
+	// Authenticator provider — required by the service layer's TOTP/MFA
+	// verification flows (verify_otp, login).
+	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
+		Log:             &log,
+		StorageProvider: storageProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authenticator provider")
+	}
+
 	svc, err := service.New(&rootArgs.config, &service.Dependencies{
-		Log:                 &log,
-		AuditProvider:       auditProvider,
-		AuthzEngine:         authzEngine,
-		EmailProvider:       emailProvider,
-		EventsProvider:      eventsProvider,
-		MemoryStoreProvider: memoryStoreProvider,
-		SMSProvider:         smsProvider,
-		StorageProvider:     storageProvider,
-		TokenProvider:       tokenProvider,
+		Log:                   &log,
+		AuditProvider:         auditProvider,
+		AuthenticatorProvider: authenticatorProvider,
+		AuthzEngine:           authzEngine,
+		EmailProvider:         emailProvider,
+		EventsProvider:        eventsProvider,
+		MemoryStoreProvider:   memoryStoreProvider,
+		SMSProvider:           smsProvider,
+		StorageProvider:       storageProvider,
+		TokenProvider:         tokenProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

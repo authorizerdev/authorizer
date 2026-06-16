@@ -20,8 +20,8 @@ syntax = "proto3";
 
 package authorizer.v1;
 
-import "authorizer/common/v1/annotations.proto";
-import "authorizer/common/v1/types.proto";
+import "authorizer/v1/annotations.proto";
+import "authorizer/v1/common.proto";
 import "authorizer/v1/types.proto";
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
@@ -31,25 +31,25 @@ service AuthorizerService {
 
   // Signup registers a new user. Public; requires sign-up enabled in config.
   // Returns AuthResponse with tokens + (browser callers) Set-Cookie headers.
-  rpc Signup(SignupRequest) returns (SignupResponse) {
+  rpc Signup(SignupRequest) returns (AuthResponse) {
     option (google.api.http) = {
       post: "/v1/signup"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
-    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+    option (authorizer.v1.mcp_tool) = {exposed: false}; // creds
   }
 
   // Login authenticates with email/phone + password.
-  rpc Login(LoginRequest) returns (LoginResponse) {
+  rpc Login(LoginRequest) returns (AuthResponse) {
     option (google.api.http) = {
       post: "/v1/login"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
-    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+    option (authorizer.v1.mcp_tool) = {exposed: false}; // creds
   }
 
   // Logout ends the caller's current session. POST, not GET: logout mutates
@@ -57,7 +57,7 @@ service AuthorizerService {
   // a "safe" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.
   rpc Logout(LogoutRequest) returns (LogoutResponse) {
     option (google.api.http) = {post: "/v1/logout"};
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // MagicLinkLogin dispatches a passwordless email link. The clicked link
@@ -67,19 +67,19 @@ service AuthorizerService {
       post: "/v1/magic_link_login"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // === Email + OTP verification ===
 
-  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
+  rpc VerifyEmail(VerifyEmailRequest) returns (AuthResponse) {
     option (google.api.http) = {
       post: "/v1/verify_email"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   rpc ResendVerifyEmail(ResendVerifyEmailRequest) returns (ResendVerifyEmailResponse) {
@@ -87,16 +87,16 @@ service AuthorizerService {
       post: "/v1/resend_verify_email"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
+    option (authorizer.v1.public) = true;
   }
 
-  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse) {
+  rpc VerifyOtp(VerifyOtpRequest) returns (AuthResponse) {
     option (google.api.http) = {
       post: "/v1/verify_otp"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   rpc ResendOtp(ResendOtpRequest) returns (ResendOtpResponse) {
@@ -104,7 +104,7 @@ service AuthorizerService {
       post: "/v1/resend_otp"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
+    option (authorizer.v1.public) = true;
   }
 
   // === Password lifecycle ===
@@ -114,7 +114,7 @@ service AuthorizerService {
       post: "/v1/forgot_password"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
+    option (authorizer.v1.public) = true;
   }
 
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
@@ -122,16 +122,16 @@ service AuthorizerService {
       post: "/v1/reset_password"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // === Profile + account ===
 
   // Profile returns the authenticated user.
-  rpc Profile(ProfileRequest) returns (ProfileResponse) {
+  rpc Profile(ProfileRequest) returns (User) {
     option (google.api.http) = {get: "/v1/profile"};
-    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+    option (authorizer.v1.mcp_tool) = {exposed: true};
   }
 
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
@@ -139,7 +139,7 @@ service AuthorizerService {
       post: "/v1/update_profile"
       body: "*"
     };
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // DeactivateAccount soft-deletes the caller's account and revokes all
@@ -150,8 +150,8 @@ service AuthorizerService {
       post: "/v1/deactivate_account"
       body: "*"
     };
-    option (authorizer.common.v1.audit_log) = true;
-    option (authorizer.common.v1.mcp_tool) = {
+    option (authorizer.v1.audit_log) = true;
+    option (authorizer.v1.mcp_tool) = {
       exposed: false
       destructive: true
     };
@@ -165,14 +165,14 @@ service AuthorizerService {
       post: "/v1/revoke"
       body: "*"
     };
-    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // Session returns the AuthResponse bound to the caller's cookie/bearer.
   // NOT exposed as an MCP tool — SessionResponse carries access_token,
   // refresh_token, id_token, authenticator_secret, and recovery codes,
   // none of which should land in an LLM transcript. (Security audit C1.)
-  rpc Session(SessionRequest) returns (SessionResponse) {
+  rpc Session(SessionRequest) returns (AuthResponse) {
     option (google.api.http) = {
       post: "/v1/session"
       body: "*"
@@ -184,7 +184,7 @@ service AuthorizerService {
       post: "/v1/validate_jwt_token"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
+    option (authorizer.v1.public) = true;
   }
 
   rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse) {
@@ -192,16 +192,16 @@ service AuthorizerService {
       post: "/v1/validate_session"
       body: "*"
     };
-    option (authorizer.common.v1.public) = true;
+    option (authorizer.v1.public) = true;
   }
 
   // === Server discovery + caller authz ===
 
   // Meta returns server feature flags. No auth required.
-  rpc Meta(MetaRequest) returns (MetaResponse) {
+  rpc Meta(MetaRequest) returns (authorizer.v1.Meta) {
     option (google.api.http) = {get: "/v1/meta"};
-    option (authorizer.common.v1.public) = true;
-    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.mcp_tool) = {exposed: true};
   }
 
   // CheckPermissions evaluates one or more fine-grained permission checks
@@ -214,7 +214,7 @@ service AuthorizerService {
       post: "/v1/check_permissions"
       body: "*"
     };
-    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+    option (authorizer.v1.mcp_tool) = {exposed: true};
   }
 
   // ListPermissions enumerates what the subject can access. With both
@@ -228,7 +228,7 @@ service AuthorizerService {
       post: "/v1/list_permissions"
       body: "*"
     };
-    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+    option (authorizer.v1.mcp_tool) = {exposed: true};
   }
 }
 
@@ -265,12 +265,8 @@ message SignupRequest {
   string redirect_uri = 14;
   bool is_multi_factor_auth_enabled = 15;
   string state = 16;
-  authorizer.common.v1.AppData app_data = 17;
+  AppData app_data = 17;
 }
-message SignupResponse {
-  AuthResponse auth = 1;
-}
-
 message LoginRequest {
   string email = 1 [(buf.validate.field).string.max_len = 320];
   string phone_number = 2 [(buf.validate.field).string.max_len = 32];
@@ -282,10 +278,6 @@ message LoginRequest {
   repeated string scope = 5;
   string state = 6;
 }
-message LoginResponse {
-  AuthResponse auth = 1;
-}
-
 message LogoutRequest {}
 message LogoutResponse {
   string message = 1;
@@ -306,10 +298,6 @@ message VerifyEmailRequest {
   string token = 1 [(buf.validate.field).string.min_len = 1];
   string state = 2;
 }
-message VerifyEmailResponse {
-  AuthResponse auth = 1;
-}
-
 message ResendVerifyEmailRequest {
   string email = 1 [(buf.validate.field).string = {max_len: 320}];
   string identifier = 2 [(buf.validate.field).string.min_len = 1];
@@ -330,10 +318,6 @@ message VerifyOtpRequest {
   bool is_totp = 4;
   string state = 5;
 }
-message VerifyOtpResponse {
-  AuthResponse auth = 1;
-}
-
 message ResendOtpRequest {
   string email = 1 [(buf.validate.field).string.max_len = 320];
   string phone_number = 2 [(buf.validate.field).string.max_len = 32];
@@ -374,10 +358,6 @@ message ResetPasswordResponse {
 }
 
 message ProfileRequest {}
-message ProfileResponse {
-  User user = 1;
-}
-
 message UpdateProfileRequest {
   string old_password = 1;
   string new_password = 2 [(buf.validate.field).string.max_len = 128];
@@ -392,7 +372,7 @@ message UpdateProfileRequest {
   string phone_number = 11 [(buf.validate.field).string.max_len = 32];
   string picture = 12;
   bool is_multi_factor_auth_enabled = 13;
-  authorizer.common.v1.AppData app_data = 14;
+  AppData app_data = 14;
 }
 message UpdateProfileResponse {
   string message = 1;
@@ -419,10 +399,6 @@ message SessionRequest {
   // Requires fine-grained authorization enabled (--fga-store).
   repeated FgaRelationInput required_relations = 4;
 }
-message SessionResponse {
-  AuthResponse auth = 1;
-}
-
 message ValidateJwtTokenRequest {
   string token_type = 1 [(buf.validate.field).string.min_len = 1];
   string token = 2 [(buf.validate.field).string.min_len = 1];
@@ -433,7 +409,7 @@ message ValidateJwtTokenRequest {
 message ValidateJwtTokenResponse {
   bool is_valid = 1;
   // Free-form JWT claims (matches GraphQL ValidateJWTTokenResponse.claims).
-  authorizer.common.v1.AppData claims = 2;
+  AppData claims = 2;
 }
 
 message ValidateSessionRequest {
@@ -448,10 +424,6 @@ message ValidateSessionResponse {
 }
 
 message MetaRequest {}
-message MetaResponse {
-  Meta meta = 1;
-}
-
 message CheckPermissionsRequest {
   // The checks to evaluate; at least one, at most 100.
   repeated PermissionCheckInput checks = 1 [(buf.validate.field).repeated = {

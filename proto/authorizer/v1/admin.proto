@@ -10,8 +10,8 @@ syntax = "proto3";
 
 package authorizer.v1;
 
-import "authorizer/common/v1/pagination.proto";
-import "authorizer/common/v1/types.proto";
+import "authorizer/v1/common.proto";
+import "authorizer/v1/pagination.proto";
 import "authorizer/v1/types.proto";
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
@@ -353,11 +353,11 @@ message AdminMeta {
 // === Users ===
 
 message UsersRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
 }
 message UsersResponse {
   repeated User users = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // UserRequest fetches a single user by id or email; at least one must be set.
@@ -387,7 +387,7 @@ message UpdateUserRequest {
   optional string picture = 12;
   repeated string roles = 13;
   optional bool is_multi_factor_auth_enabled = 14;
-  authorizer.common.v1.AppData app_data = 15;
+  AppData app_data = 15;
 }
 message UpdateUserResponse {
   User user = 1;
@@ -402,11 +402,11 @@ message DeleteUserResponse {
 }
 
 message VerificationRequestsRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
 }
 message VerificationRequestsResponse {
   repeated VerificationRequest verification_requests = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // VerificationRequest mirrors model.VerificationRequest field-for-field.
@@ -448,6 +448,7 @@ message InviteMembersRequest {
   repeated string emails = 1;
   optional string redirect_uri = 2;
 }
+
 // InviteMembersResponse mirrors model.InviteMembersResponse (a message plus the
 // list of newly invited users).
 message InviteMembersResponse {
@@ -465,7 +466,7 @@ message Webhook {
   string event_description = 3;
   string endpoint = 4;
   bool enabled = 5;
-  authorizer.common.v1.AppData headers = 6;
+  AppData headers = 6;
   int64 created_at = 7;
   int64 updated_at = 8;
 }
@@ -489,7 +490,7 @@ message AddWebhookRequest {
   optional string event_description = 2;
   string endpoint = 3 [(buf.validate.field).string.min_len = 1];
   bool enabled = 4;
-  authorizer.common.v1.AppData headers = 5;
+  AppData headers = 5;
 }
 message AddWebhookResponse {
   string message = 1;
@@ -504,7 +505,7 @@ message UpdateWebhookRequest {
   optional string event_description = 3;
   optional string endpoint = 4;
   optional bool enabled = 5;
-  authorizer.common.v1.AppData headers = 6;
+  AppData headers = 6;
 }
 message UpdateWebhookResponse {
   string message = 1;
@@ -529,22 +530,22 @@ message GetWebhookResponse {
 }
 
 message WebhooksRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
 }
 message WebhooksResponse {
   repeated Webhook webhooks = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is
 // optional; when unset logs for all webhooks are returned.
 message WebhookLogsRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
   optional string webhook_id = 2;
 }
 message WebhookLogsResponse {
   repeated WebhookLog webhook_logs = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // TestEndpointRequest mirrors model.TestEndpointRequest. event_description is
@@ -553,8 +554,9 @@ message TestEndpointRequest {
   string endpoint = 1 [(buf.validate.field).string.min_len = 1];
   string event_name = 2 [(buf.validate.field).string.min_len = 1];
   optional string event_description = 3;
-  authorizer.common.v1.AppData headers = 4;
+  AppData headers = 4;
 }
+
 // TestEndpointResponse mirrors model.TestEndpointResponse.
 message TestEndpointResponse {
   int64 http_status = 1;
@@ -610,11 +612,11 @@ message DeleteEmailTemplateResponse {
 }
 
 message EmailTemplatesRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
 }
 message EmailTemplatesResponse {
   repeated EmailTemplate email_templates = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // === Audit ===
@@ -637,7 +639,7 @@ message AuditLog {
 // AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are
 // optional; when unset no filtering is applied for that field.
 message AuditLogsRequest {
-  authorizer.common.v1.PaginationRequest pagination = 1;
+  PaginationRequest pagination = 1;
   optional string action = 2;
   optional string actor_id = 3;
   optional string resource_type = 4;
@@ -647,7 +649,7 @@ message AuditLogsRequest {
 }
 message AuditLogsResponse {
   repeated AuditLog audit_logs = 1;
-  authorizer.common.v1.Pagination pagination = 2;
+  Pagination pagination = 2;
 }
 
 // === FGA (fine-grained authorization) admin ===

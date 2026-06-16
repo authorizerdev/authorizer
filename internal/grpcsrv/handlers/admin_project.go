@@ -8,7 +8,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 
-	commonv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/common/v1"
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
@@ -30,7 +29,7 @@ func projectAdminMeta(m *model.AdminMeta) *authorizerv1.AdminMeta {
 // list RPCs into the GraphQL model.PaginatedRequest consumed by the service
 // layer. A nil proto pagination yields a nil request so service.GetPagination
 // applies its defaults (page 1, default limit).
-func modelPaginatedRequest(in *commonv1.PaginationRequest) *model.PaginatedRequest {
+func modelPaginatedRequest(in *authorizerv1.PaginationRequest) *model.PaginatedRequest {
 	if in == nil {
 		return nil
 	}
@@ -50,7 +49,7 @@ func modelPaginatedRequest(in *commonv1.PaginationRequest) *model.PaginatedReque
 // model.PaginationRequest (the inner pagination shape carried by
 // ListWebhookLogRequest, as opposed to the PaginatedRequest wrapper). A nil
 // proto pagination yields nil so service.GetPagination applies its defaults.
-func modelPaginationRequest(in *commonv1.PaginationRequest) *model.PaginationRequest {
+func modelPaginationRequest(in *authorizerv1.PaginationRequest) *model.PaginationRequest {
 	if in == nil {
 		return nil
 	}
@@ -83,11 +82,11 @@ func protoToModelStringSlice(in []string) []*string {
 
 // projectPagination converts the GraphQL Pagination model into the shared proto
 // Pagination message used by every admin list response.
-func projectPagination(p *model.Pagination) *commonv1.Pagination {
+func projectPagination(p *model.Pagination) *authorizerv1.Pagination {
 	if p == nil {
 		return nil
 	}
-	return &commonv1.Pagination{
+	return &authorizerv1.Pagination{
 		Limit:  p.Limit,
 		Page:   p.Page,
 		Offset: p.Offset,

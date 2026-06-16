@@ -76,7 +76,7 @@ type Options struct {
 }
 
 // New builds an MCP server that exposes every gRPC method on `grpcSrv`
-// whose proto annotation has `(authorizer.common.v1.mcp_tool).exposed = true`.
+// whose proto annotation has `(authorizer.v1.mcp_tool).exposed = true`.
 // The gRPC server is served over an in-process bufconn — same pattern as
 // the REST gateway — so MCP tool invocations become local method calls with
 // no extra network hop.

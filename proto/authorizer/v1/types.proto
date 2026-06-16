@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package authorizer.v1;
 
-import "authorizer/common/v1/types.proto";
+import "authorizer/v1/common.proto";
 
 // User mirrors the GraphQL User type. Returned by Profile and embedded in
 // AuthResponse.
@@ -31,7 +31,7 @@ message User {
   int64 revoked_timestamp = 18;
   bool is_multi_factor_auth_enabled = 19;
   // Free-form key/value bag — same as GraphQL `app_data: Map`.
-  authorizer.common.v1.AppData app_data = 20;
+  AppData app_data = 20;
 }
 
 // AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by

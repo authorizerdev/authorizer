@@ -2,60 +2,20 @@ package graphql
 
 import (
 	"context"
-	"time"
 
-	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeactivateAccount is the method for the deactivate_account field.
-// Permissions: authorized user
+// DeactivateAccount delegates to the transport-agnostic service layer.
+// Permissions: authenticated user.
 func (g *graphqlProvider) DeactivateAccount(ctx context.Context) (*model.Response, error) {
-	log := g.Log.With().Str("func", "DeactivateAccount").Logger()
-	var res *model.Response
-	gc, err := utils.GinContextFromContext(ctx)
+	gc, _ := utils.GinContextFromContext(ctx)
+	res, side, err := g.ServiceProvider.DeactivateAccount(ctx, service.MetaFromGin(gc))
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get GinContext")
-		return res, err
+		return nil, err
 	}
-
-	tokenData, err := g.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
-		return res, err
-	}
-	log = log.With().Str("userID", tokenData.UserID).Logger()
-	user, err := g.StorageProvider.GetUserByID(ctx, tokenData.UserID)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by id")
-		return res, err
-	}
-	now := time.Now().Unix()
-	user.RevokedTimestamp = &now
-	user, err = g.StorageProvider.UpdateUser(ctx, user)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to update user")
-		return res, err
-	}
-	go func() {
-		_ = g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
-		_ = g.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
-	}()
-	g.AuditProvider.LogEvent(audit.Event{
-		Action:   constants.AuditUserDeactivatedEvent,
-		Protocol: constants.ProtocolGraphQL, ActorID: user.ID,
-		ActorType:    constants.AuditActorTypeUser,
-		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: constants.AuditResourceTypeUser,
-		ResourceID:   user.ID,
-		IPAddress:    utils.GetIP(gc.Request),
-		UserAgent:    utils.GetUserAgent(gc.Request),
-	})
-	res = &model.Response{
-		Message: `user account deactivated successfully`,
-	}
+	service.ApplyToGin(gc, side)
 	return res, nil
 }

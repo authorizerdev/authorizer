@@ -1,6 +1,6 @@
 // Package mcp exposes a subset of Authorizer's gRPC methods as MCP tools.
 // Which methods are exposed is declared at the proto layer via the custom
-// option `authorizer.common.v1.mcp_tool` — the scanner reads it at startup
+// option `authorizer.v1.mcp_tool` — the scanner reads it at startup
 // to build the tool registry. No service-by-service hand-registration.
 package mcp
 
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
-	commonv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/common/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
 // ToolBinding is one MCP-exposed RPC: a tool name, plus enough metadata to
@@ -38,7 +38,7 @@ type ToolBinding struct {
 }
 
 // Scan walks the supplied gRPC server's registered services and returns the
-// set of methods marked `(authorizer.common.v1.mcp_tool).exposed = true`.
+// set of methods marked `(authorizer.v1.mcp_tool).exposed = true`.
 // Methods that aren't exposed (the default) are silently skipped.
 func Scan(srv *grpc.Server) ([]ToolBinding, error) {
 	var bindings []ToolBinding
@@ -81,14 +81,14 @@ func Scan(srv *grpc.Server) ([]ToolBinding, error) {
 	return bindings, nil
 }
 
-// mcpToolFromMethod reads the (authorizer.common.v1.mcp_tool) option off a
+// mcpToolFromMethod reads the (authorizer.v1.mcp_tool) option off a
 // method descriptor. Returns nil when the option is absent or unset.
-func mcpToolFromMethod(m protoreflect.MethodDescriptor) *commonv1.McpTool {
+func mcpToolFromMethod(m protoreflect.MethodDescriptor) *authorizerv1.McpTool {
 	opts := m.Options()
 	if opts == nil {
 		return nil
 	}
-	t, ok := proto.GetExtension(opts, commonv1.E_McpTool).(*commonv1.McpTool)
+	t, ok := proto.GetExtension(opts, authorizerv1.E_McpTool).(*authorizerv1.McpTool)
 	if !ok || t == nil {
 		return nil
 	}

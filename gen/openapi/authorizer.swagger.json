@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "authorizer/common/v1/annotations.proto",
+    "title": "authorizer/v1/common.proto",
     "version": "version not set"
   },
   "tags": [
@@ -1195,7 +1195,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1LoginResponse"
+              "$ref": "#/definitions/v1AuthResponse"
             }
           },
           "default": {
@@ -1284,7 +1284,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1MetaResponse"
+              "$ref": "#/definitions/authorizerv1Meta"
             }
           },
           "default": {
@@ -1307,7 +1307,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1ProfileResponse"
+              "$ref": "#/definitions/authorizerv1User"
             }
           },
           "default": {
@@ -1459,7 +1459,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1SessionResponse"
+              "$ref": "#/definitions/v1AuthResponse"
             }
           },
           "default": {
@@ -1492,7 +1492,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1SignupResponse"
+              "$ref": "#/definitions/v1AuthResponse"
             }
           },
           "default": {
@@ -1620,7 +1620,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1VerifyEmailResponse"
+              "$ref": "#/definitions/v1AuthResponse"
             }
           },
           "default": {
@@ -1652,7 +1652,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1VerifyOtpResponse"
+              "$ref": "#/definitions/v1AuthResponse"
             }
           },
           "default": {
@@ -2639,14 +2639,6 @@
         }
       }
     },
-    "v1LoginResponse": {
-      "type": "object",
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/v1AuthResponse"
-        }
-      }
-    },
     "v1LogoutResponse": {
       "type": "object",
       "properties": {
@@ -2686,14 +2678,6 @@
       "properties": {
         "message": {
           "type": "string"
-        }
-      }
-    },
-    "v1MetaResponse": {
-      "type": "object",
-      "properties": {
-        "meta": {
-          "$ref": "#/definitions/authorizerv1Meta"
         }
       }
     },
@@ -2786,14 +2770,6 @@
         }
       },
       "description": "PermissionCheckResult is the outcome of one permission check, echoing the\nchecked pair so batch results are self-describing (and positionally\naligned). Mirrors the GraphQL PermissionCheckResult type."
-    },
-    "v1ProfileResponse": {
-      "type": "object",
-      "properties": {
-        "user": {
-          "$ref": "#/definitions/authorizerv1User"
-        }
-      }
     },
     "v1ResendOtpRequest": {
       "type": "object",
@@ -2929,14 +2905,6 @@
         }
       }
     },
-    "v1SessionResponse": {
-      "type": "object",
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/v1AuthResponse"
-        }
-      }
-    },
     "v1SignupRequest": {
       "type": "object",
       "properties": {
@@ -2996,14 +2964,6 @@
         },
         "app_data": {
           "$ref": "#/definitions/v1AppData"
-        }
-      }
-    },
-    "v1SignupResponse": {
-      "type": "object",
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/v1AuthResponse"
         }
       }
     },
@@ -3399,14 +3359,6 @@
         }
       }
     },
-    "v1VerifyEmailResponse": {
-      "type": "object",
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/v1AuthResponse"
-        }
-      }
-    },
     "v1VerifyOtpRequest": {
       "type": "object",
       "properties": {
@@ -3425,14 +3377,6 @@
         },
         "state": {
           "type": "string"
-        }
-      }
-    },
-    "v1VerifyOtpResponse": {
-      "type": "object",
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/v1AuthResponse"
         }
       }
     },

@@ -10,6 +10,12 @@ lint:
     - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX
+    # The public auth RPCs intentionally reuse shared domain messages as their
+    # response type (Login/Signup/VerifyEmail/VerifyOtp/Session -> AuthResponse,
+    # Profile -> User, Meta -> Meta) so the REST/gRPC JSON is byte-identical to
+    # the GraphQL response. That deliberately trips two naming rules:
+    - RPC_RESPONSE_STANDARD_NAME
+    - RPC_REQUEST_RESPONSE_UNIQUE
   ignore: []
 breaking:
   use:
