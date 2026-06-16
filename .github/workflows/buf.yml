@@ -8,6 +8,9 @@ name: Buf
 #   - push to main -> publish (buf push)
 on:
   pull_request:
+    # `labeled`/`unlabeled` so toggling `proto-breaking-approved` re-runs the
+    # breaking gate with the current label set in the event payload.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - "proto/**"
       - ".github/workflows/buf.yml"
