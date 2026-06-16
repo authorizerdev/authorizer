@@ -33,6 +33,7 @@ func TestGRPCMeta(t *testing.T) {
 		Log:             &log,
 		Config:          cfg,
 		ServiceProvider: svc,
+		TokenProvider:   nil,
 	})
 	require.NoError(t, err)
 

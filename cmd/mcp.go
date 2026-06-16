@@ -162,6 +162,7 @@ func runMCP(_ *cobra.Command, _ []string) {
 		Log:             &log,
 		Config:          &rootArgs.config,
 		ServiceProvider: svc,
+		TokenProvider:   tokenProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create grpc server")

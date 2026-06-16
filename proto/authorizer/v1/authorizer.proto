@@ -165,10 +165,11 @@ service AuthorizerService {
       post: "/v1/revoke"
       body: "*"
     };
+    option (authorizer.v1.public) = true;
     option (authorizer.v1.audit_log) = true;
   }
 
-  // Session returns the AuthResponse bound to the caller's cookie/bearer.
+  // Session returns the AuthResponse bound to the caller's session cookie only.
   // NOT exposed as an MCP tool — SessionResponse carries access_token,
   // refresh_token, id_token, authenticator_secret, and recovery codes,
   // none of which should land in an LLM transcript. (Security audit C1.)

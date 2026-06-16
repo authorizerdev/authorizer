@@ -18,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv/handlers"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv/interceptors"
 	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/token"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
@@ -27,6 +28,7 @@ type Dependencies struct {
 	Log             *zerolog.Logger
 	Config          *config.Config
 	ServiceProvider service.Provider
+	TokenProvider   token.Provider
 }
 
 // Server wraps a *grpc.Server plus its listener address.
@@ -52,6 +54,7 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 			// Records authorizer_api_operations_total{protocol,operation,status}
 			// for every RPC (covers both gRPC and REST-via-gateway).
 			interceptors.Metrics(),
+			interceptors.Auth(deps.TokenProvider),
 			validate,
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay

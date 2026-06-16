@@ -13,18 +13,20 @@ import (
 )
 
 // TestRESTCheckPermissionsFailClosed mirrors the gRPC fail-closed contract over
-// the grpc-gateway REST surface: POST /v1/check_permissions with no FGA engine
-// configured returns the service.ErrFgaNotEnabled error. That plain error maps
-// to codes.FailedPrecondition -> HTTP 400, rendered in the stable snake_case
-// envelope {"code": "failed_precondition", "message": "..."}.
-//
-// The engine-nil guard is the first check in the service method, so even this
-// unauthenticated request surfaces the FGA-disabled error rather than a 401.
+// the grpc-gateway REST surface: POST /v1/check_permissions with a bearer token
+// and no FGA engine configured returns service.ErrFgaNotEnabled ->
+// codes.FailedPrecondition -> HTTP 400 in the stable snake_case envelope.
 func TestRESTCheckPermissionsFailClosed(t *testing.T) {
 	base := bootRESTGateway(t)
+	token := restAccessToken(t, base)
 
-	resp, err := http.Post(base+"/v1/check_permissions", "application/json",
+	req, err := http.NewRequest(http.MethodPost, base+"/v1/check_permissions",
 		strings.NewReader(`{"checks":[{"relation":"can_view","object":"document:1"}]}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -38,9 +40,15 @@ func TestRESTCheckPermissionsFailClosed(t *testing.T) {
 // FGA engine, POST /v1/list_permissions fails closed with the same envelope.
 func TestRESTListPermissionsFailClosed(t *testing.T) {
 	base := bootRESTGateway(t)
+	token := restAccessToken(t, base)
 
-	resp, err := http.Post(base+"/v1/list_permissions", "application/json",
+	req, err := http.NewRequest(http.MethodPost, base+"/v1/list_permissions",
 		strings.NewReader(`{}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -52,13 +60,19 @@ func TestRESTListPermissionsFailClosed(t *testing.T) {
 
 // TestRESTCheckPermissionsEmptyChecksRejected verifies the protovalidate
 // min_items=1 constraint on CheckPermissionsRequest.checks is enforced over
-// REST too: an empty checks array is rejected by the validate interceptor with
-// codes.InvalidArgument -> HTTP 400, before the handler/engine guard runs.
+// REST too: an authenticated caller with an empty checks array is rejected by
+// the validate interceptor with codes.InvalidArgument -> HTTP 400.
 func TestRESTCheckPermissionsEmptyChecksRejected(t *testing.T) {
 	base := bootRESTGateway(t)
+	token := restAccessToken(t, base)
 
-	resp, err := http.Post(base+"/v1/check_permissions", "application/json",
+	req, err := http.NewRequest(http.MethodPost, base+"/v1/check_permissions",
 		strings.NewReader(`{"checks":[]}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 

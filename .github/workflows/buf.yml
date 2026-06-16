@@ -13,11 +13,15 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - "proto/**"
+      - "gen/**"
+      - "Makefile"
       - ".github/workflows/buf.yml"
   push:
     branches: [main]
     paths:
       - "proto/**"
+      - "gen/**"
+      - "Makefile"
       - ".github/workflows/buf.yml"
 
 permissions:
@@ -42,6 +46,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Lint
         run: buf lint proto
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      # Regenerate gen/ from proto/ and fail if the committed output is stale.
+      - name: Verify generated protobuf output
+        run: make proto-check
       # Compare against the published module so a PR that would break
       # wire/source compatibility fails before it lands. Intentional,
       # reviewed breaks (e.g. the v1 package consolidation / response-envelope

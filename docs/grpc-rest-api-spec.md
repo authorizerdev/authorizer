@@ -107,6 +107,103 @@ The following endpoints remain as pure HTTP handlers to comply with strict OIDC/
 - `POST /oauth/introspect`
 - `GET /oauth_login/:oauth_provider`
 
+### 2.3. Authentication for gRPC Clients
+
+gRPC has no native cookie jar. Callers authenticate by attaching **metadata**
+(key/value pairs on the RPC context). The server maps this metadata into the
+same `RequestMetadata` the GraphQL and REST paths use
+(`internal/grpcsrv/transport/grpc_metadata.go`).
+
+#### User authentication
+
+Authenticated public RPCs accept either:
+
+| Mechanism | gRPC metadata key | Value |
+| :--- | :--- | :--- |
+| Bearer access token | `authorization` | `Bearer <access_token>` |
+| Session cookie | `cookie` | `authorizer_session=<value>` (semicolon-separated if multiple) |
+
+Over REST via grpc-gateway, the browser's cookies and `Authorization` header
+are forwarded automatically (`grpcgateway-cookie`, `grpcgateway-authorization`).
+Pure gRPC clients must set these metadata keys explicitly.
+
+#### Admin authentication
+
+All `AuthorizerAdminService` RPCs except `AdminLogin` require super-admin auth:
+
+| Mechanism | gRPC metadata key | Value |
+| :--- | :--- | :--- |
+| Admin secret header | `x-authorizer-admin-secret` | The configured admin secret |
+| Admin session cookie | `cookie` | `authorizer_admin_session=<value>` |
+
+`AdminLogin` is public — it validates the admin secret in the request body and
+returns an admin session cookie via response metadata (`Set-Cookie` trailers).
+
+#### Pure gRPC: `x-authorizer-url` is required
+
+REST callers inherit the host from the HTTP request. Pure gRPC callers **must**
+set `x-authorizer-url` to the Authorizer instance's public base URL (e.g.
+`https://auth.example.com`). The server uses this value to:
+
+- Resolve JWT issuer/audience during token validation
+- Mint tokens with the correct issuer claim
+- Build redirect URLs and cookie domain scoping
+
+When absent, the server falls back to the gRPC `:authority` pseudo-header
+(`http://<host>`), which is usually wrong behind TLS terminators or when the
+gRPC port differs from the public URL. Always set `x-authorizer-url` in
+production gRPC clients.
+
+#### Token validation RPCs: credentials in the request body
+
+`ValidateJwtToken` and `ValidateSession` are **public** service-to-service
+RPCs. The token or session cookie to validate is passed in the **request
+message**, not in metadata:
+
+- `ValidateJwtTokenRequest.token` + `token_type` — the JWT to inspect
+- `ValidateSessionRequest.cookie` — the session cookie value to inspect
+
+These RPCs do not require (and do not read) `authorization` metadata. Callers
+may still attach `x-authorizer-url` so issuer checks resolve correctly.
+
+#### Cookie vs bearer matrix (authenticated public RPCs)
+
+| RPC | Session cookie | Bearer token | Notes |
+| :--- | :---: | :---: | :--- |
+| `Session` | Required | — | Cookie only (`cookie.GetSession`); bearer is ignored |
+| `Profile` | ✓ | ✓ | Either mechanism |
+| `UpdateProfile` | ✓ | ✓ | Either mechanism |
+| `Logout` | ✓ | ✓ | Either mechanism |
+| `DeactivateAccount` | ✓ | ✓ | Either mechanism |
+| `CheckPermissions` | ✓ | ✓ | Either mechanism; subject defaults to caller |
+| `ListPermissions` | ✓ | ✓ | Either mechanism; subject defaults to caller |
+| `Revoke` | — | — | `refresh_token` in request body only |
+
+All other public RPCs (`Signup`, `Login`, `Meta`, `ValidateJwtToken`,
+`ValidateSession`, password-reset flows, etc.) are unauthenticated entry points.
+
+#### TLS in production
+
+Development and integration tests may use plaintext gRPC (`insecure` credentials).
+**Production gRPC clients must use TLS** (`grpc.WithTransportCredentials`) against
+the Authorizer gRPC listener. Bearer tokens and session cookies must never
+traverse an unencrypted channel outside local development.
+
+#### Client helpers
+
+Go callers should use the helpers in
+[`internal/grpcsrv/client`](https://github.com/authorizerdev/authorizer/tree/main/internal/grpcsrv/client)
+(`WithBearerToken`, `WithAuthorizerURL`, `WithAdminSecret`, `WithCookies`) to attach
+metadata consistently:
+
+```go
+import grpcclient "github.com/authorizerdev/authorizer/internal/grpcsrv/client"
+
+ctx = grpcclient.WithBearerToken(ctx, accessToken)
+ctx = grpcclient.WithAuthorizerURL(ctx, "https://auth.example.com")
+resp, err := client.Profile(ctx, &authorizerv1.ProfileRequest{})
+```
+
 ---
 
 ## 3. Required Relations: Fine-Grained Authorization Gates

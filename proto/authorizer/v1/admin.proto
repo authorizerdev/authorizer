@@ -10,6 +10,7 @@ syntax = "proto3";
 
 package authorizer.v1;
 
+import "authorizer/v1/annotations.proto";
 import "authorizer/v1/common.proto";
 import "authorizer/v1/pagination.proto";
 import "authorizer/v1/types.proto";
@@ -30,6 +31,7 @@ service AuthorizerAdminService {
       post: "/v1/admin/login"
       body: "*"
     };
+    option (authorizer.v1.public) = true;
   }
 
   // AdminLogout clears the admin session cookie. Requires super-admin auth.

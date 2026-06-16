@@ -25,7 +25,7 @@ import (
 // Requires super-admin auth. Logic migrated from internal/graphql/revoke_access.go.
 func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, params *model.UpdateAccessRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "RevokeAccess").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -68,7 +68,7 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 // Logic migrated from internal/graphql/enable_access.go.
 func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, params *model.UpdateAccessRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "EnableAccess").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -112,7 +112,7 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 // internal/graphql/invite_members.go.
 func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, params *model.InviteMemberRequest) (*model.InviteMembersResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "InviteMembers").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 

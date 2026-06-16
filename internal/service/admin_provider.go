@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -79,7 +80,10 @@ var _ AdminProvider = (*provider)(nil)
 // TokenProvider.IsSuperAdmin check runs identically across every transport.
 // Returns an Unauthenticated service error (mapped to gRPC Unauthenticated /
 // HTTP 401) when the caller is not a super admin.
-func (p *provider) requireSuperAdmin(meta RequestMetadata) error {
+func (p *provider) requireSuperAdmin(ctx context.Context, meta RequestMetadata) error {
+	if principal, ok := authctx.FromContext(ctx); ok && principal.IsSuperAdmin {
+		return nil
+	}
 	gc := &gin.Context{Request: meta.Request}
 	if !p.TokenProvider.IsSuperAdmin(gc) {
 		return Unauthenticated("unauthorized")

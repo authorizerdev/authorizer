@@ -19,7 +19,7 @@ import (
 // internal/graphql/add_email_template.go.
 func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "AddEmailTemplate").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -75,7 +75,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, p
 // Logic migrated from internal/graphql/update_email_template.go.
 func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "UpdateEmailTemplate").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -151,7 +151,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 // internal/graphql/delete_email_template.go.
 func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.DeleteEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteEmailTemplate").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -191,7 +191,7 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata
 // super-admin auth. Logic migrated from internal/graphql/email_templates.go.
 func (p *provider) EmailTemplates(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.EmailTemplates, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "EmailTemplates").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 

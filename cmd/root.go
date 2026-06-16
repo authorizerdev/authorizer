@@ -578,6 +578,7 @@ func runRoot(c *cobra.Command, args []string) {
 		Log:             &log,
 		Config:          &rootArgs.config,
 		ServiceProvider: serviceProvider,
+		TokenProvider:   tokenProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create grpc server")

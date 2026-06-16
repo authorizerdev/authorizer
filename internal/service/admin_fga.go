@@ -32,7 +32,7 @@ const maxFgaReadPageSize = 100
 // Permission: authorizer:admin.
 func (p *provider) FgaGetModel(ctx context.Context, meta RequestMetadata) (*model.FgaModel, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaGetModel").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -59,7 +59,7 @@ func (p *provider) FgaGetModel(ctx context.Context, meta RequestMetadata) (*mode
 // Permission: authorizer:admin.
 func (p *provider) FgaWriteModel(ctx context.Context, meta RequestMetadata, params *model.FgaWriteModelInput) (*model.FgaModel, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaWriteModel").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -93,7 +93,7 @@ func (p *provider) FgaWriteModel(ctx context.Context, meta RequestMetadata, para
 // Permission: authorizer:admin.
 func (p *provider) FgaWriteTuples(ctx context.Context, meta RequestMetadata, params *model.FgaWriteTuplesInput) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaWriteTuples").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -127,7 +127,7 @@ func (p *provider) FgaWriteTuples(ctx context.Context, meta RequestMetadata, par
 // Permission: authorizer:admin.
 func (p *provider) FgaDeleteTuples(ctx context.Context, meta RequestMetadata, params *model.FgaWriteTuplesInput) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaDeleteTuples").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -160,7 +160,7 @@ func (p *provider) FgaDeleteTuples(ctx context.Context, meta RequestMetadata, pa
 // Permission: authorizer:admin.
 func (p *provider) FgaReadTuples(ctx context.Context, meta RequestMetadata, params *model.FgaReadTuplesInput) (*model.FgaTuples, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaReadTuples").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -210,7 +210,7 @@ func (p *provider) FgaReadTuples(ctx context.Context, meta RequestMetadata, para
 // Permission: authorizer:admin.
 func (p *provider) FgaListUsers(ctx context.Context, meta RequestMetadata, params *model.FgaListUsersInput) (*model.FgaListUsersResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaListUsers").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -241,7 +241,7 @@ func (p *provider) FgaListUsers(ctx context.Context, meta RequestMetadata, param
 // Permission: authorizer:admin.
 func (p *provider) FgaExpand(ctx context.Context, meta RequestMetadata, params *model.FgaExpandInput) (*model.FgaExpandResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaExpand").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {
@@ -272,7 +272,7 @@ func (p *provider) FgaExpand(ctx context.Context, meta RequestMetadata, params *
 // Permission: authorizer:admin.
 func (p *provider) FgaReset(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "FgaReset").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	if p.AuthzEngine == nil {

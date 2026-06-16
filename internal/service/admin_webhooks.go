@@ -29,7 +29,7 @@ const testEndpointHTTPTimeout = time.Second * 30
 // Requires super-admin auth. Logic migrated from internal/graphql/add_webhook.go.
 func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params *model.AddWebhookRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "AddWebhook").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -89,7 +89,7 @@ func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params 
 // migrated from internal/graphql/update_webhook.go.
 func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, params *model.UpdateWebhookRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "UpdateWebhook").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -183,7 +183,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, para
 // super-admin auth. Logic migrated from internal/graphql/delete_webhook.go.
 func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, params *model.WebhookRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteWebhook").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -223,7 +223,7 @@ func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, para
 // migrated from internal/graphql/webhook.go.
 func (p *provider) Webhook(ctx context.Context, meta RequestMetadata, params *model.WebhookRequest) (*model.Webhook, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Webhook").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -239,7 +239,7 @@ func (p *provider) Webhook(ctx context.Context, meta RequestMetadata, params *mo
 // Logic migrated from internal/graphql/webhooks.go.
 func (p *provider) Webhooks(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Webhooks, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Webhooks").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -264,7 +264,7 @@ func (p *provider) Webhooks(ctx context.Context, meta RequestMetadata, params *m
 // internal/graphql/webhook_logs.go.
 func (p *provider) WebhookLogs(ctx context.Context, meta RequestMetadata, params *model.ListWebhookLogRequest) (*model.WebhookLogs, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "WebhookLogs").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -300,7 +300,7 @@ func (p *provider) WebhookLogs(ctx context.Context, meta RequestMetadata, params
 // migrated from internal/graphql/test_endpoint.go.
 func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, params *model.TestEndpointRequest) (*model.TestEndpointResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "TestEndpoint").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 

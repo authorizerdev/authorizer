@@ -46,7 +46,7 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 	}
 	relationFilter := strings.TrimSpace(refs.StringValue(params.Relation))
 	typeFilter := strings.TrimSpace(refs.StringValue(params.ObjectType))
-	subject, err := p.resolveFgaSubject(meta, refs.StringValue(params.User))
+	subject, err := p.resolveFgaSubject(ctx, meta, refs.StringValue(params.User))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, nil, err

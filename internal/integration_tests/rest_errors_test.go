@@ -39,6 +39,7 @@ func bootRESTGateway(t *testing.T) string {
 		Log:             s.Logger,
 		Config:          cfg,
 		ServiceProvider: s.ServiceProvider,
+		TokenProvider:   s.TokenProvider,
 	})
 	require.NoError(t, err)
 
@@ -128,6 +129,7 @@ func TestErrorMessageConsistencyAcrossProtocols(t *testing.T) {
 		Log:             s.Logger,
 		Config:          cfg,
 		ServiceProvider: s.ServiceProvider,
+		TokenProvider:   s.TokenProvider,
 	})
 	require.NoError(t, err)
 

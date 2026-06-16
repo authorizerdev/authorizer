@@ -19,8 +19,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
-
-	"github.com/gin-gonic/gin"
 )
 
 // UpdateProfile updates the authenticated caller's profile. When the email
@@ -34,13 +32,13 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 	log := p.Log.With().Str("func", "UpdateProfile").Logger()
 	side := &ResponseSideEffects{}
 
-	gc := &gin.Context{Request: meta.Request}
-	tokenData, err := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
+	tokenData, err := p.callerTokenData(ctx, meta)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed GetUserIDFromSessionOrAccessToken")
-		// No valid session/bearer -> 401, not 500. Preserve the underlying
-		// message while classifying the failure as an auth error.
 		return nil, nil, Unauthenticated(err.Error())
+	}
+	if tokenData == nil || tokenData.UserID == "" {
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 
 	// validate if all params are not empty

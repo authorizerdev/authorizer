@@ -25,7 +25,7 @@ import (
 // Logic migrated from internal/graphql/users.go.
 func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Users, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Users").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -49,7 +49,7 @@ func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *mode
 // Logic migrated from internal/graphql/user.go.
 func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model.GetUserRequest) (*model.User, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "User").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 	// Try getting user by ID.
@@ -79,7 +79,7 @@ func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model
 // internal/graphql/update_user.go.
 func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params *model.UpdateUserRequest) (*model.User, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "UpdateUser").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -311,7 +311,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 // Requires super-admin auth. Logic migrated from internal/graphql/delete_user.go.
 func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params *model.DeleteUserRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteUser").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
@@ -394,7 +394,7 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 // internal/graphql/verification_requests.go.
 func (p *provider) VerificationRequests(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.VerificationRequests, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "VerificationRequests").Logger()
-	if err := p.requireSuperAdmin(meta); err != nil {
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
