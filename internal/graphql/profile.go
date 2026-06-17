@@ -11,7 +11,10 @@ import (
 // Profile delegates to the transport-agnostic service layer.
 // Permissions: authenticated user.
 func (g *graphqlProvider) Profile(ctx context.Context) (*model.User, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.Profile(ctx, service.MetaFromGin(gc))
 	return res, err
 }
