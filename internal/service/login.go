@@ -189,6 +189,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					return nil, nil, err
 				}
 				go func() {
+					ctx := context.WithoutCancel(ctx)
 					// exec it as go routine so that we can reduce the api latency
 					if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
 						"user":         user.ToMap(),
@@ -229,6 +230,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					return nil, nil, err
 				}
 				go func() {
+					ctx := context.WithoutCancel(ctx)
 					smsBody := strings.Builder{}
 					smsBody.WriteString("Your verification code is: ")
 					smsBody.WriteString(otpData.Otp)
@@ -293,6 +295,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return nil, nil, err
 		}
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
 			if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
 				"user":         user.ToMap(),
@@ -321,6 +324,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return nil, nil, err
 		}
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
@@ -459,6 +463,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	}
 
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		// Register event
 		if isEmailLogin {
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -13,7 +14,12 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		g.Log.Debug().Err(err).Msg("failed to get gin context")
+		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
+		return nil, err
+	}
 	res, _, err := g.adminService().FgaWriteModel(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

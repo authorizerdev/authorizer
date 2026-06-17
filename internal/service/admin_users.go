@@ -333,6 +333,7 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 	}
 
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		// delete otp for given email
 		otp, err := p.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(user.Email))
 		if err != nil {

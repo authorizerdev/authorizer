@@ -211,6 +211,7 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	}
 
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		if isSignUp {
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
 			// User is also logged in with signup

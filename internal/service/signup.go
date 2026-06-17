@@ -234,6 +234,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}
 		// exec it as go routine so that we can reduce the api latency
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
@@ -277,6 +278,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			side.AddCookie(c)
 		}
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			_ = p.SMSProvider.SendSMS(phoneNumber, smsBody.String())
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		}()
@@ -375,6 +377,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	ipAddress := meta.IPAddress
 	userAgent := meta.UserAgent
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		if isEmailSignup {
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)

@@ -40,6 +40,7 @@ func (p *provider) DeactivateAccount(ctx context.Context, meta RequestMetadata) 
 		return nil, nil, err
 	}
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
 	}()

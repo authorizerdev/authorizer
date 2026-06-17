@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -13,7 +14,12 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) AdminLogout(ctx context.Context) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		g.Log.Debug().Err(err).Msg("failed to get gin context")
+		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
+		return nil, err
+	}
 	res, side, err := g.adminService().AdminLogout(ctx, service.MetaFromGin(gc))
 	if err != nil {
 		return nil, err

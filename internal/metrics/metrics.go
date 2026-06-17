@@ -35,6 +35,16 @@ const (
 	StatusFailure = "failure"
 )
 
+// Security event labels for RecordSecurityEvent. All values must be
+// low-cardinality; never pass user-controlled strings as event or reason.
+const (
+	// SecurityEventGinContextMissing fires when a GraphQL resolver cannot
+	// extract a gin.Context from the request context. This should never happen
+	// in production — it indicates the resolver was called outside the normal
+	// HTTP middleware chain.
+	SecurityEventGinContextMissing = "gin_context_missing"
+)
+
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
 	HTTPRequestsTotal = prometheus.NewCounterVec(
