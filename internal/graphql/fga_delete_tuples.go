@@ -13,7 +13,10 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) FgaDeleteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().FgaDeleteTuples(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

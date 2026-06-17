@@ -13,7 +13,10 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) User(ctx context.Context, params *model.GetUserRequest) (*model.User, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().User(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

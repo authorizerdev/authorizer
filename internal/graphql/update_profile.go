@@ -11,7 +11,10 @@ import (
 // UpdateProfile delegates to the transport-agnostic service layer.
 // Permissions: authenticated user.
 func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.UpdateProfileRequest) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.UpdateProfile(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

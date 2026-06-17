@@ -13,7 +13,10 @@ import (
 //
 // Permissions: none
 func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLoginRequest) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.adminService().AdminLogin(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

@@ -11,7 +11,10 @@ import (
 // ListPermissions delegates to the transport-agnostic service layer, which
 // owns the subject trust gate, result caps, and fail-closed semantics.
 func (g *graphqlProvider) ListPermissions(ctx context.Context, params *model.ListPermissionsInput) (*model.ListPermissionsResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.ListPermissions(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

@@ -13,7 +13,10 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) AdminLogout(ctx context.Context) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.adminService().AdminLogout(ctx, service.MetaFromGin(gc))
 	if err != nil {
 		return nil, err

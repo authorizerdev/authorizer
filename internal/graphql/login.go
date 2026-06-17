@@ -11,7 +11,10 @@ import (
 // Login delegates to the transport-agnostic service layer.
 // Permissions: none.
 func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest) (*model.AuthResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.Login(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

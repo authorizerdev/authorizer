@@ -11,7 +11,10 @@ import (
 // VerifyEmail delegates to the transport-agnostic service layer.
 // Permissions: none.
 func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyEmailRequest) (*model.AuthResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.VerifyEmail(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

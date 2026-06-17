@@ -13,7 +13,10 @@ import (
 //
 // Permissions: none
 func (g *graphqlProvider) Meta(ctx context.Context) (*model.Meta, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.Meta(ctx, service.MetaFromGin(gc))
 	return res, err
 }

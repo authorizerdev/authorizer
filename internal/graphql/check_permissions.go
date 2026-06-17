@@ -11,7 +11,10 @@ import (
 // CheckPermissions delegates to the transport-agnostic service layer, which
 // owns the subject trust gate and fail-closed semantics.
 func (g *graphqlProvider) CheckPermissions(ctx context.Context, params *model.CheckPermissionsInput) (*model.CheckPermissionsResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.CheckPermissions(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

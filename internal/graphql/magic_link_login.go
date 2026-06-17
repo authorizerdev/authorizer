@@ -11,7 +11,10 @@ import (
 // MagicLinkLogin delegates to the transport-agnostic service layer.
 // Permissions: none.
 func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.MagicLinkLoginRequest) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.MagicLinkLogin(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

@@ -13,7 +13,10 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().VerificationRequests(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

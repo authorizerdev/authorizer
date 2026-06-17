@@ -10,7 +10,10 @@ import (
 
 // ValidateJWTToken delegates to the transport-agnostic service layer.
 func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.ValidateJwtToken(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

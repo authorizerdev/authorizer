@@ -10,7 +10,10 @@ import (
 
 // Revoke delegates to the transport-agnostic service layer.
 func (g *graphqlProvider) Revoke(ctx context.Context, params *model.OAuthRevokeRequest) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.ServiceProvider.Revoke(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

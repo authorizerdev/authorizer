@@ -11,7 +11,10 @@ import (
 // Logout delegates to the transport-agnostic service layer.
 // Permissions: authenticated user.
 func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.Logout(ctx, service.MetaFromGin(gc))
 	if err != nil {
 		return nil, err

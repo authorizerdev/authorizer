@@ -11,7 +11,10 @@ import (
 // ResetPassword delegates to the transport-agnostic service layer.
 // Permissions: none.
 func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.ResetPasswordRequest) (*model.Response, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.ResetPassword(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

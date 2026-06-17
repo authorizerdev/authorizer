@@ -13,7 +13,10 @@ import (
 //
 // Permission: authorizer:admin
 func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().TestEndpoint(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

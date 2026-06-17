@@ -13,7 +13,10 @@ import (
 //
 // Permission: authorizer:admin
 func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().Webhooks(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

@@ -13,7 +13,10 @@ import (
 //
 // Permissions: authorizer:admin
 func (g *graphqlProvider) FgaGetModel(ctx context.Context) (*model.FgaModel, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().FgaGetModel(ctx, service.MetaFromGin(gc))
 	return res, err
 }

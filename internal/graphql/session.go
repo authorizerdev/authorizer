@@ -11,7 +11,10 @@ import (
 // Session delegates to the transport-agnostic service layer; the rotated
 // session cookie is applied back to the gin response from side-effects.
 func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQueryRequest) (*model.AuthResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.Session(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

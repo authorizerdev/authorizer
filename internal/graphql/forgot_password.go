@@ -11,7 +11,10 @@ import (
 // ForgotPassword delegates to the transport-agnostic service layer.
 // Permissions: none.
 func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.ForgotPasswordRequest) (*model.ForgotPasswordResponse, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, side, err := g.ServiceProvider.ForgotPassword(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err

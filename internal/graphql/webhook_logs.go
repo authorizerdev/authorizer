@@ -13,7 +13,10 @@ import (
 //
 // Permission: authorizer:admin
 func (g *graphqlProvider) WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
-	gc, _ := utils.GinContextFromContext(ctx)
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := g.adminService().WebhookLogs(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }
