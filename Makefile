@@ -88,7 +88,7 @@ dev:
 		--admin-secret=admin \
 		--client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH \
 		--client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa \
-		--allowed-origins=localhost:8080,localhost:8090,localhost:9091
+		--allowed-origins=localhost:8080,localhost:8090,localhost:9091,localhost:5173
 
 test:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
