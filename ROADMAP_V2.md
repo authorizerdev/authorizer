@@ -1,6 +1,6 @@
 # Authorizer v2 Roadmap
 
-> Comprehensive roadmap based on competitive analysis of WorkOS, Clerk, Keycloak, and emerging standards (A2A, MCP, OAuth 2.1). Organized by priority phases.
+> Comprehensive roadmap covering enterprise auth requirements, A2A/MCP standards, and OAuth 2.1 specifications. Organized by priority phases.
 
 ---
 
@@ -9,21 +9,32 @@
 | Capability | Status | Notes |
 |---|---|---|
 | Basic Auth (email/password, magic link, OTP) | Done | Solid foundation |
-| Social OAuth (11 providers) | Done | Google, GitHub, Facebook, Apple, etc. |
+| Social OAuth (11 providers) | Done | Google, GitHub, Facebook, Apple, Discord, Twitter, Twitch, Roblox, Microsoft, LinkedIn |
 | MFA/TOTP | Done | Google Authenticator compatible |
-| JWT tokens (HS/RS/ES families) | Done | JWKS endpoint, custom claims |
-| Webhooks (8 event types) | Done | No structured audit log |
+| SMS OTP | Done | Twilio integration |
+| JWT tokens (HS/RS/ES families) | Done | JWKS endpoint, custom claims, secondary JWT support |
+| Webhooks (8 event types) | Done | Structured audit log exists |
 | PKCE (RFC 7636) | Done | OAuth authorization code flow |
-| Basic RBAC | Done | Comma-separated role strings, no permissions model |
+| Basic RBAC | Done | Comma-separated role strings |
+| Fine-Grained Permissions (ReBAC) | Done | Embedded OpenFGA engine; Check/ListPermissions on all three transports; see specs/FGA_OPENFGA_MIGRATION_PLAN.md |
 | 13+ Database backends | Done | Unique differentiator |
-| Rate Limiting / Brute Force | Missing | No protection at all |
+| Rate Limiting / Brute Force | Done | Per-IP rate limiter with Redis + in-memory backends; fail-closed option |
+| CSRF / Security hardening | Done | CSRF middleware, trusted proxies, HSTS, CSP, cookie hardening |
+| Audit Logs | Partial | Structured AuditLog + audit provider (single actor); delegation-chain fields for agents pending — see specs/AGENTIC_DELEGATION_DESIGN.md |
+| Monitoring / Metrics | Done | Prometheus `/metrics` on dedicated port; health + readiness endpoints |
+| GraphQL API | Done | Full schema; introspection toggle |
+| REST API | Done | Typed endpoints generated from proto (grpc-gateway) |
+| gRPC API | Done | All 20 public ops + 32 admin ops on port 9091; separate `AuthorizerAdminService` |
+| Admin API | Done | 32 admin operations (users, webhooks, email templates, audit logs, FGA model/tuples) over all three transports |
+| Go SDK | Done | `authorizer-go`; user + admin client; protocol selection (gRPC / REST / GraphQL) |
+| JavaScript / TypeScript SDK | Done | `authorizer-js` v3.2.1; user + admin client; GraphQL + REST protocols |
+| Python SDK | Done | `authorizer-python` v0.2.0; sync + async; admin client |
+| React SDK | Done | `authorizer-react` v2.1.0; `protocol` prop; pre-built login/signup/MFA components |
+| Kubernetes Helm Chart | Done | v2.2.0 / appVersion 2.3.0; all env vars wired |
 | M2M / Client Credentials | Missing | No service accounts or API keys |
-| Fine-Grained Permissions | In progress (pre-stable) | RBAC/ABAC Resource/Scope/Policy/Permission engine exists; migrating to OpenFGA ReBAC — see specs/FGA_OPENFGA_MIGRATION_PLAN.md (authorizer-docs repo) |
 | SAML | Missing | Zero support |
 | SCIM / Directory Sync | Missing | No provisioning |
-| Audit Logs | Partial | Structured AuditLog + audit provider exist (single actor); needs delegation-chain fields for agents — see specs/AGENTIC_DELEGATION_DESIGN.md (authorizer-docs repo) |
 | Bot Detection | Missing | No CAPTCHA, no fingerprinting |
-| Monitoring / Metrics | Missing | Health check only, no Prometheus |
 | MCP Auth | Missing | No OAuth 2.1 AS capabilities |
 | A2A / Agent Auth | Missing | No agent identity support |
 | Passkeys / WebAuthn | Missing | Not implemented |
@@ -33,11 +44,10 @@
 
 ## Phase 1: Security Hardening & Enterprise Foundation (Q2-Q3 2026)
 
-These are table-stakes features that every competitor has. Without them, Authorizer cannot be recommended for production enterprise use.
 
 ### 1.1 Rate Limiting & Brute Force Protection
 
-**Why**: Every competitor (WorkOS Radar, Clerk, Keycloak) has this. Currently zero protection against credential stuffing or brute force.
+**Why**: Essential for defending against credential stuffing and brute-force attacks in production.
 
 - [ ] **Configurable rate limiter middleware** (per-IP and per-user)
   - Token bucket or sliding window algorithm
@@ -58,7 +68,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 1.2 Bot Detection & CAPTCHA
 
-**Why**: WorkOS Radar and Clerk both have sophisticated bot protection. This is a top enterprise requirement.
+**Why**: Bot and CAPTCHA protection is a standard enterprise requirement for login and signup flows.
 
 - [ ] **Pluggable CAPTCHA integration**
   - Support Cloudflare Turnstile (free, privacy-friendly) and Google reCAPTCHA v3
@@ -71,7 +81,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 1.3 Structured Audit Log System
 
-**Why**: WorkOS, Keycloak, and Clerk all have audit logs. Required for SOC 2, HIPAA, GDPR compliance.
+**Why**: Audit logs are required for SOC 2, HIPAA, and GDPR compliance.
 
 - [ ] **New `AuditLog` schema**
   ```
@@ -95,10 +105,10 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 1.4 Prometheus Metrics & Health
 
-**Why**: Keycloak has full Prometheus/Grafana support. Essential for production deployments.
+**Why**: Structured metrics are essential for monitoring production auth deployments.
 
 - [x] **`/metrics` endpoint** (OpenMetrics/Prometheus format) — implemented (`authorizer_*` metrics; always on dedicated `--metrics-host`:`--metrics-port`). Further metric parity (below) remains roadmap.
-  - Planned / partial vs Keycloak-style names: `authorizer_login_total{method,status}`, `authorizer_signup_total{method,status}`, `authorizer_token_issued_total{type}`, `authorizer_db_query_duration_seconds`, `authorizer_failed_login_total`, `authorizer_account_lockouts_total`, Go runtime metrics (goroutines, memory, GC)
+  - Planned metric names: `authorizer_login_total{method,status}`, `authorizer_signup_total{method,status}`, `authorizer_token_issued_total{type}`, `authorizer_db_query_duration_seconds`, `authorizer_failed_login_total`, `authorizer_account_lockouts_total`, Go runtime metrics (goroutines, memory, GC)
 - [ ] **Enhanced `/health` endpoint** returning JSON with component status
   ```json
   {"status": "healthy", "db": "ok", "redis": "ok", "uptime": "72h"}
@@ -123,7 +133,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 2.1 Fine-Grained Permissions Model
 
-**Why**: WorkOS FGA, Keycloak Authorization Services, and Clerk all go beyond simple roles. This is the most requested enterprise feature.
+**Why**: Fine-grained, resource-level authorization is the most requested enterprise feature beyond simple roles.
 
 - [ ] **New data model: Permissions and Resources**
   ```
@@ -145,7 +155,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 2.2 Machine-to-Machine Authentication
 
-**Why**: WorkOS M2M, Clerk M2M tokens, Keycloak client credentials. Core requirement for any auth platform.
+**Why**: OAuth 2.0 Client Credentials is a core requirement for service-to-service and machine-to-machine auth.
 
 - [ ] **OAuth 2.0 Client Credentials Grant** (`grant_type=client_credentials`)
   - New endpoint: `POST /oauth/token`
@@ -166,7 +176,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 2.3 API Key Management
 
-**Why**: WorkOS API Keys widget, Clerk API Keys. Enables end-users to create programmatic access.
+**Why**: API keys enable end-users to create long-lived programmatic access tokens for their accounts.
 
 - [ ] **API Key schema**
   ```
@@ -185,7 +195,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 2.4 Organization / Multi-Tenancy Enhancements
 
-**Why**: WorkOS Organizations, Clerk Organizations, Keycloak Organizations/Realms. B2B requires this.
+**Why**: Multi-tenancy and organization-scoped auth is a core requirement for B2B applications.
 
 - [ ] **Organization schema** (if not already robust)
   ```
@@ -205,7 +215,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 3.1 SAML 2.0 Support
 
-**Why**: WorkOS, Keycloak both support SAML. Required for enterprise customers using Okta, Azure AD, OneLogin.
+**Why**: SAML 2.0 is required by enterprise customers using identity providers like Okta, Azure AD, and OneLogin.
 
 - [ ] **SAML Service Provider (SP)** -- Authorizer acts as SP, enterprise IdPs (Okta, Azure AD) as IdP
   - SP metadata endpoint: `/.well-known/saml-metadata`
@@ -220,7 +230,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 3.2 SCIM 2.0 / Directory Sync
 
-**Why**: WorkOS Directory Sync, Keycloak LDAP federation. Enables automated user provisioning from enterprise directories.
+**Why**: SCIM enables automated user provisioning and de-provisioning from enterprise directories.
 
 - [ ] **SCIM 2.0 server endpoints**
   - `GET /scim/v2/Users` -- list/filter users
@@ -238,7 +248,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 3.3 Authorizer as OIDC Provider
 
-**Why**: WorkOS Connect, Clerk as IdP, Keycloak as IdP. Enables downstream services to use Authorizer for SSO.
+**Why**: Acting as a full OIDC provider enables downstream services to use Authorizer as their SSO identity source.
 
 - [ ] **Full OIDC Provider implementation**
   - Authorization endpoint: `/oauth/authorize`
@@ -255,7 +265,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 3.4 Admin Portal (Self-Service)
 
-**Why**: WorkOS Admin Portal is a key differentiator. Lets customer IT admins configure SSO without engineering support.
+**Why**: A self-service admin portal lets customer IT admins configure SSO connections without involving your engineering team.
 
 - [ ] **Embeddable/hosted admin portal** for organization IT admins
   - Configure SAML/OIDC connections
@@ -272,7 +282,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 4.1 OAuth 2.1 Authorization Server for MCP
 
-**Why**: WorkOS, Keycloak 26.4, and Clerk all support MCP auth. This is the fastest-growing auth use case in 2026.
+**Why**: OAuth 2.1 AS support for MCP is the fastest-growing auth use case in 2026, required for AI agent tool servers.
 
 - [ ] **OAuth 2.1 compliance**
   - Mandatory PKCE (S256) on all authorization code flows
@@ -297,7 +307,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 4.2 Agent-to-Agent (A2A) Protocol Support
 
-**Why**: Google A2A protocol backed by 50+ partners. Authorizer can be the identity backbone for agent ecosystems.
+**Why**: Agent-to-agent protocols are emerging as a standard for AI agent identity and delegation.
 
 - [ ] **Agent identity via service accounts**
   - Each AI agent registered as a service account with `agent_type` metadata
@@ -316,7 +326,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ### 4.3 User-Delegated Agent Access
 
-**Why**: WorkOS and Clerk both support this pattern. Users authorize AI agents to act on their behalf with limited scope.
+**Why**: Delegated agent access lets users authorize AI agents to act on their behalf with explicitly scoped permissions.
 
 - [ ] **Delegated authorization flow**
   - User authenticates via standard OAuth flow
@@ -366,7 +376,7 @@ Human approval and safe third-party access.
 
 ### 5.1 Passkeys / WebAuthn
 
-**Why**: Keycloak 26.4, Clerk both support passkeys. Industry moving toward passwordless.
+**Why**: Passkeys/WebAuthn are the industry direction for strong, phishing-resistant passwordless authentication.
 
 - [ ] **WebAuthn registration and authentication** (FIDO2 / Passkeys)
   - Registration: `POST /webauthn/register/begin` + `POST /webauthn/register/finish`
@@ -383,7 +393,7 @@ Human approval and safe third-party access.
 
 ### 5.2 DPoP (Proof-of-Possession Tokens)
 
-**Why**: Keycloak 26.4 has full DPoP, FAPI 2.0 requires it. Prevents stolen token replay.
+**Why**: DPoP (RFC 9449) is required by FAPI 2.0 and prevents stolen access-token replay attacks.
 
 - [ ] **DPoP token binding (RFC 9449)**
   - Client sends `DPoP` header (signed JWT proving key possession) with token requests
@@ -393,7 +403,7 @@ Human approval and safe third-party access.
 
 ### 5.3 Advanced Bot Protection (Radar-style)
 
-**Why**: WorkOS Radar is a major differentiator. Goes beyond CAPTCHA.
+**Why**: Device fingerprinting and risk scoring go beyond CAPTCHA to catch sophisticated automated attacks.
 
 - [ ] **Device fingerprinting**
   - Client-side JS collects browser/OS/hardware signals
@@ -410,7 +420,7 @@ Human approval and safe third-party access.
 
 ### 5.4 Log Streaming & SIEM Integration
 
-**Why**: WorkOS Log Streams. Enterprise customers need to feed auth events into their existing security tooling.
+**Why**: Enterprise customers need to stream auth events into their existing SIEM and security tooling.
 
 - [ ] **Log stream configuration**
   - Stream audit events to external destinations in real-time
@@ -430,7 +440,7 @@ Human approval and safe third-party access.
 
 ### 5.5 Token Exchange (RFC 8693)
 
-**Why**: Keycloak 26.2 added this. Enables complex microservice and agent delegation patterns.
+**Why**: Token exchange (RFC 8693) enables secure delegation patterns across microservices and AI agents.
 
 - [ ] **Standard token exchange endpoint** at `POST /oauth/token` with `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`
 - [ ] **Supported exchange patterns**
@@ -444,11 +454,14 @@ Human approval and safe third-party access.
 
 ### 6.1 SDKs & Libraries
 
-- [ ] **Go SDK** -- `authorizer-go` with typed client for all APIs
-- [ ] **Node.js/TypeScript SDK** -- `authorizer-js` (enhance existing)
-- [ ] **Python SDK** -- `authorizer-python`
-- [ ] **React components** -- pre-built login, signup, org switcher, API key manager, session manager
+- [x] **Go SDK** -- `authorizer-go`; typed user + admin client; protocol selection (gRPC / REST / GraphQL); FGA check/list helpers
+- [x] **Node.js/TypeScript SDK** -- `authorizer-js` v3.2.1; user + admin client; GraphQL + REST (gRPC not supported in browsers)
+- [x] **Python SDK** -- `authorizer-python` v0.2.0; sync + async clients; admin API
+- [x] **React SDK** -- `authorizer-react` v2.1.0; `protocol` prop; pre-built login, signup, MFA, magic-link, social login components
+- [ ] **Vue / Svelte SDKs** -- admin client and protocol selection parity with authorizer-js
 - [ ] **Permission check middleware** for popular frameworks (Gin, Express, FastAPI, Next.js)
+- [ ] **Org switcher, API key manager, session manager** React components
+- [ ] **React Native SDK**
 
 ### 6.2 Dashboard Enhancements
 
@@ -530,18 +543,7 @@ Phase 5 (can partially parallelize with Phase 3-4)
 
 ---
 
-## Competitive Positioning
-
-### vs. WorkOS
-WorkOS is SaaS-only, expensive at scale ($125/SSO connection/month). Authorizer's advantage is **self-hosted, open-source, database-agnostic**. Closing the feature gap in M2M, FGA, SAML, MCP auth, and bot protection makes Authorizer a credible self-hosted WorkOS alternative.
-
-### vs. Clerk
-Clerk is developer-experience-first but SaaS-only with vendor lock-in. Authorizer can match their DX with better SDKs and pre-built UI components while offering self-hosting and data sovereignty.
-
-### vs. Keycloak
-Keycloak is the closest competitor (open-source, self-hosted). Authorizer's advantages: **simpler deployment** (single binary vs. Java app server), **13+ database backends** (vs. 5 SQL-only), **GraphQL API** (vs. REST-only), **lighter resource footprint**. The gap is in enterprise features (SAML, SCIM, Authorization Services, passkeys, DPoP) which this roadmap addresses.
-
-### Unique Differentiators to Maintain
+## Unique Differentiators
 1. **Database-agnostic** -- 13+ backends including NoSQL (MongoDB, DynamoDB, Cassandra, Couchbase, ArangoDB)
 2. **Single binary deployment** -- no JVM, no app server, no dependencies
 3. **GraphQL-first API** -- modern API design, introspectable schema
@@ -569,5 +571,5 @@ Keycloak is the closest competitor (open-source, self-hosted). Authorizer's adva
 
 ---
 
-*Last updated: 2026-03-27*
-*Based on analysis of: WorkOS, Clerk, Keycloak, and emerging A2A/MCP standards*
+*Last updated: 2026-06-17*
+*Based on analysis of: enterprise auth requirements, A2A/MCP standards, and OIDC/OAuth 2.1 specifications*

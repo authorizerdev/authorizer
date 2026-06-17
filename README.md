@@ -54,36 +54,46 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 - ✅ Sign-in / Sign-up with email ID and password
 - ✅ Secure session management
 - ✅ Email verification
-- ✅ OAuth2 and OpenID compatible APIs
+- ✅ OAuth2 and OpenID Connect compatible APIs
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
-- ✅ Social logins (Google, Github, Facebook, LinkedIn, Apple more coming soon)
+- ✅ Social logins (Google, GitHub, Facebook, LinkedIn, Apple, Discord, Twitter, Twitch, Roblox, Microsoft)
 - ✅ Role-based access management
-- ✅ Password-less login with magic link login
-- ✅ Multi factor authentication
+- ✅ Fine-grained authorization (ReBAC via embedded OpenFGA)
+- ✅ Password-less login with magic link
+- ✅ TOTP-based multi-factor authentication
+- ✅ SMS OTP via Twilio
 - ✅ Email templating
 - ✅ Webhooks
+- ✅ GraphQL, REST, and gRPC APIs (all transports share the same service layer)
+- ✅ Admin API — user management, webhooks, email templates, audit logs, and FGA model/tuples over all three transports
+- ✅ Rate limiting and security hardening (CSRF, CORS, HSTS, CSP, trusted proxies)
+- ✅ Prometheus metrics and health/readiness endpoints
 
 ## Roadmap
 
-- [VueJS SDK](https://github.com/authorizerdev/authorizer-vue)
-- [Svelte SDK](https://github.com/authorizerdev/authorizer-svelte)
-- [Golang SDK](https://github.com/authorizerdev/authorizer-go)
+**Shipped**
+
+- ✅ [Go SDK](https://github.com/authorizerdev/authorizer-go) — user + admin client, protocol selection (gRPC / REST / GraphQL)
+- ✅ [JavaScript / TypeScript SDK](https://github.com/authorizerdev/authorizer-js) — v3.2.1; user + admin client, GraphQL + REST
+- ✅ [Python SDK](https://github.com/authorizerdev/authorizer-python) — v0.2.0; sync + async clients, admin API
+- ✅ [React SDK](https://github.com/authorizerdev/authorizer-react) — v2.1.0; `protocol` prop, pre-built login/signup components
+- ✅ [Vue SDK](https://github.com/authorizerdev/authorizer-vue)
+- ✅ [Svelte SDK](https://github.com/authorizerdev/authorizer-svelte)
+- ✅ [Flutter SDK](https://github.com/nickolasgomez/authorizer-flutter-sdk) (community)
+- ✅ Kubernetes Helm Chart (v2.2.0, appVersion 2.3.0)
+- ✅ Render one-click deploy
+- ✅ Edge deployment via Fly.io
+
+**Planned**
+
 - React Native SDK
-- Flutter SDK
 - Android Native SDK
 - iOS native SDK
-- Python SDK
 - PHP SDK
 - WordPress plugin
-- Kubernetes Helm Chart
-- [Local Stack](https://github.com/localstack/localstack)
-- AMI
-- Digital Ocean Droplet
-- Azure
-- Render
-- Edge Deployment using Fly.io
-- Password-less login with mobile number and OTP SMS
+- AMI / Digital Ocean Droplet / Azure
+- Password-less login with mobile number and OTP SMS (non-Twilio)
 
 # Getting Started
 

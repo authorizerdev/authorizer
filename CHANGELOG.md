@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **gRPC transport (port 9091)**: all 20 public auth operations and 32 admin operations are now served over native gRPC alongside GraphQL and REST. The listener binds to `--grpc-port` (default `9091`), separate from the HTTP port. All three transports share the same service layer and return identical flat response shapes ([#634](https://github.com/authorizerdev/authorizer/pull/634), [#635](https://github.com/authorizerdev/authorizer/pull/635)).
+- **`AuthorizerAdminService` gRPC + REST**: 32 admin operations — user management (`Users`, `User`, `UpdateUser`, `DeleteUser`, `InviteMembers`), verification requests, tokens, webhooks, email templates, audit logs, FGA model/tuples (`_fga_model`, `_fga_tuples`, `_add_fga_tuple`, `_delete_fga_tuple`), and admin session/meta — are now reachable over all three transports. Previously admin ops were GraphQL-only ([#631](https://github.com/authorizerdev/authorizer/pull/631)).
+- **gRPC auth interceptor**: bearer-token / session-cookie authentication is applied uniformly by a gRPC server interceptor. The verified identity is attached as `authctx.Principal` so all handlers share a single auth path with no per-handler duplication ([#636](https://github.com/authorizerdev/authorizer/pull/636)).
+- **Client metadata helpers** (`transport.MetaFromGRPC`): extract client ID, session token, and access token from gRPC incoming metadata using the same keys as the HTTP handlers, enabling consistent context propagation across transports ([#636](https://github.com/authorizerdev/authorizer/pull/636)).
+
 ### Changed
 
 - **License: relicensed from MIT to Apache License 2.0.** Per the CNCF IP Policy ([Charter §11(b)(iii)](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy)), Authorizer's outbound code is now distributed under the Apache License 2.0. Existing copies distributed under the MIT License remain valid under their original grant; this change applies to the project's outbound license going forward. See [NOTICE](NOTICE) for attribution.
