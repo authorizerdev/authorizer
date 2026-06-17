@@ -151,6 +151,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	}
 	if email != "" {
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
 			if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
 				"user":         user.ToMap(),
@@ -163,6 +164,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 		}()
 	} else {
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)

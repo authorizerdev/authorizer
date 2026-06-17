@@ -74,6 +74,7 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 		user.Roles = strings.Join(inputRoles, ",")
 		user, _ = p.StorageProvider.AddUser(ctx, user)
 		go func() {
+			ctx := context.WithoutCancel(ctx)
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
 		}()
 	} else {

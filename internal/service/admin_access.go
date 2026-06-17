@@ -46,6 +46,7 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 	}
 
 	go func() {
+		ctx := context.WithoutCancel(ctx)
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
 	}()
@@ -91,7 +92,10 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
-	go func() { _ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user) }()
+	go func() {
+		ctx := context.WithoutCancel(ctx)
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
+	}()
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminAccessEnabledEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,

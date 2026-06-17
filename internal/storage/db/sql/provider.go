@@ -1,6 +1,10 @@
 package sql
 
 import (
+	golog "log"
+	"os"
+	"time"
+
 	libsql "github.com/ekristen/gorm-libsql"
 	"github.com/rs/zerolog"
 	"gorm.io/driver/mysql"
@@ -48,11 +52,27 @@ func NewProvider(
 	var sqlDB *gorm.DB
 	var err error
 
+	// Route GORM's own logger to stderr so it never writes to stdout.
+	// GORM's default logger uses os.Stdout; the MCP server speaks JSON-RPC over
+	// stdio, so any stray stdout line (slow-query warnings, migration errors)
+	// would corrupt the stream and produce "unexpected end of JSON input" on the
+	// client. Routing to stderr keeps GORM diagnostics visible in logs while
+	// leaving stdout clean for stdio transports.
+	gormLog := logger.New(
+		golog.New(os.Stderr, "\r\n", golog.LstdFlags),
+		logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
+		},
+	)
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: schemas.Prefix,
 		},
 		AllowGlobalUpdate: false,
+		Logger:            gormLog,
 	}
 
 	dbType := config.DatabaseType
