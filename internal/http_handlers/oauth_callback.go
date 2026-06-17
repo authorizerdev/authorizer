@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -352,18 +353,21 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
 
+		bgCtx := context.WithoutCancel(ctx)
+		userAgent := utils.GetUserAgent(ctx.Request)
+		ip := utils.GetIP(ctx.Request)
 		go func() {
 			if isSignUp {
-				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserSignUpWebhookEvent, provider, user)
 				// User is also logged in with signup
-				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserLoginWebhookEvent, provider, user)
 			} else {
-				_ = h.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserLoginWebhookEvent, provider, user)
 			}
-			if err := h.StorageProvider.AddSession(ctx, &schemas.Session{
+			if err := h.StorageProvider.AddSession(bgCtx, &schemas.Session{
 				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(ctx.Request),
-				IP:        utils.GetIP(ctx.Request),
+				UserAgent: userAgent,
+				IP:        ip,
 			}); err != nil {
 				log.Debug().Err(err).Msg("Failed to add session")
 			}

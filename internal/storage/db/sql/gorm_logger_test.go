@@ -181,10 +181,11 @@ func TestZerologGORMLogger_StdoutSafety(t *testing.T) {
 	// info path
 	l.Info(ctx, "hello")
 
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = origStdout
 
 	captured := &bytes.Buffer{}
-	captured.ReadFrom(r)
+	_, err = captured.ReadFrom(r)
+	require.NoError(t, err)
 	assert.Empty(t, captured.Bytes(), "zerologGORMLogger must never write to os.Stdout")
 }
