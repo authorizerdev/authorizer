@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -225,18 +226,21 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			IPAddress:    utils.GetIP(c.Request),
 			UserAgent:    utils.GetUserAgent(c.Request),
 		})
+		bgCtx := context.WithoutCancel(c)
+		userAgent := utils.GetUserAgent(c.Request)
+		ip := utils.GetIP(c.Request)
 		go func() {
 			if isSignUp {
-				_ = h.EventsProvider.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserSignUpWebhookEvent, loginMethod, user)
 				// User is also logged in with signup
-				_ = h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserLoginWebhookEvent, loginMethod, user)
 			} else {
-				_ = h.EventsProvider.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserLoginWebhookEvent, loginMethod, user)
 			}
-			if err := h.StorageProvider.AddSession(c, &schemas.Session{
+			if err := h.StorageProvider.AddSession(bgCtx, &schemas.Session{
 				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(c.Request),
-				IP:        utils.GetIP(c.Request),
+				UserAgent: userAgent,
+				IP:        ip,
 			}); err != nil {
 				log.Debug().Err(err).Msg("Error adding session")
 			}
