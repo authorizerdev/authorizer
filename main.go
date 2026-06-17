@@ -1,7 +1,13 @@
 package main
 
-import "github.com/authorizerdev/authorizer/cmd"
+import (
+	"os"
+
+	"github.com/authorizerdev/authorizer/cmd"
+)
 
 func main() {
-	_ = cmd.RootCmd.Execute()
+	if err := cmd.RootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
