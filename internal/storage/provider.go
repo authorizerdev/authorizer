@@ -174,6 +174,39 @@ type Provider interface {
 
 	// Close releases resources held by the provider (e.g. database connection pools).
 	Close() error
+
+	// ServiceAccount methods.
+
+	// AddServiceAccount creates a new service account record.
+	AddServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error)
+	// UpdateServiceAccount updates name, description, allowed_scopes, or is_active.
+	UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error)
+	// DeleteServiceAccount removes a service account. Callers must delete
+	// associated TrustedIssuers before or within the same logical operation.
+	DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error
+	// GetServiceAccountByID fetches a service account by its primary key (= client_id).
+	GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error)
+	// ListServiceAccounts returns a paginated list of all service accounts.
+	ListServiceAccounts(ctx context.Context, pagination *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error)
+
+	// TrustedIssuer methods.
+
+	// AddTrustedIssuer creates a new trusted issuer record.
+	AddTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error)
+	// UpdateTrustedIssuer updates mutable fields: jwks_url, expected_aud,
+	// is_active, spiffe_refresh_hint_seconds, enable_token_review,
+	// kubernetes_api_server_url, trusted_proxy_header, trusted_proxy_cidrs.
+	UpdateTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error)
+	// DeleteTrustedIssuer removes a trusted issuer.
+	DeleteTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) error
+	// GetTrustedIssuerByID fetches a trusted issuer by primary key.
+	GetTrustedIssuerByID(ctx context.Context, id string) (*schemas.TrustedIssuer, error)
+	// GetTrustedIssuerByIssuerURL fetches by issuer URL (unique index).
+	// This is called on every client_assertion validation — keep it fast.
+	GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL string) (*schemas.TrustedIssuer, error)
+	// ListTrustedIssuers returns trusted issuers filtered by serviceAccountID.
+	// Pass an empty serviceAccountID to list all issuers.
+	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
 }
 
 // New creates a new database provider based on the configuration
