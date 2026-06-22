@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +17,9 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 		issuer.ID = uuid.New().String()
 	}
 	issuer.Key = issuer.ID
-	issuer.CreatedAt = time.Now().Unix()
-	issuer.UpdatedAt = time.Now().Unix()
+	now := time.Now().Unix()
+	issuer.CreatedAt = now
+	issuer.UpdatedAt = now
 	res := p.db.Create(issuer)
 	if res.Error != nil {
 		return nil, res.Error
@@ -26,7 +28,13 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 }
 
 // UpdateTrustedIssuer updates a trusted issuer record.
+// Callers MUST load the existing record and mutate it before calling this
+// method — Save writes every column and will blank zero-value fields on a
+// partial struct (e.g. IssuerURL, ServiceAccountID, KeySourceType).
 func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {
+	if issuer.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateTrustedIssuer: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	issuer.UpdatedAt = time.Now().Unix()
 	res := p.db.Save(issuer)
 	if res.Error != nil {
@@ -37,8 +45,7 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 
 // DeleteTrustedIssuer removes a trusted issuer record.
 func (p *provider) DeleteTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) error {
-	res := p.db.Delete(issuer)
-	return res.Error
+	return p.db.Delete(issuer).Error
 }
 
 // GetTrustedIssuerByID fetches a trusted issuer by primary key.
@@ -78,7 +85,10 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	if serviceAccountID != "" {
 		countQ = countQ.Where("service_account_id = ?", serviceAccountID)
 	}
-	countQ.Count(&total)
+	countRes := countQ.Count(&total)
+	if countRes.Error != nil {
+		return nil, nil, countRes.Error
+	}
 	return issuers, &model.Pagination{
 		Limit:  pagination.Limit,
 		Page:   pagination.Page,

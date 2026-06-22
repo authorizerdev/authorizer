@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +17,9 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
-	sa.CreatedAt = time.Now().Unix()
-	sa.UpdatedAt = time.Now().Unix()
+	now := time.Now().Unix()
+	sa.CreatedAt = now
+	sa.UpdatedAt = now
 	res := p.db.Create(sa)
 	if res.Error != nil {
 		return nil, res.Error
@@ -26,7 +28,13 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 }
 
 // UpdateServiceAccount updates a service account record.
+// Callers MUST load the existing record and mutate it before calling this
+// method — Save writes every column and will blank zero-value fields on a
+// partial struct.
 func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+	if sa.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	sa.UpdatedAt = time.Now().Unix()
 	res := p.db.Save(sa)
 	if res.Error != nil {
@@ -35,10 +43,13 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 	return sa, nil
 }
 
-// DeleteServiceAccount removes a service account record.
+// DeleteServiceAccount removes a service account and all its associated
+// TrustedIssuers. Mirrors the webhook cascade-delete pattern.
 func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error {
-	res := p.db.Delete(sa)
-	return res.Error
+	if err := p.db.Where("service_account_id = ?", sa.ID).Delete(&schemas.TrustedIssuer{}).Error; err != nil {
+		return err
+	}
+	return p.db.Delete(sa).Error
 }
 
 // GetServiceAccountByID fetches a service account by primary key.
@@ -59,7 +70,10 @@ func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pa
 		return nil, nil, res.Error
 	}
 	var total int64
-	p.db.Model(&schemas.ServiceAccount{}).Count(&total)
+	countRes := p.db.Model(&schemas.ServiceAccount{}).Count(&total)
+	if countRes.Error != nil {
+		return nil, nil, countRes.Error
+	}
 	return sas, &model.Pagination{
 		Limit:  pagination.Limit,
 		Page:   pagination.Page,

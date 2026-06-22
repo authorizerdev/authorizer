@@ -32,12 +32,22 @@ type ServiceAccount struct {
 
 	// AllowedScopes is a comma-separated list of OAuth2 scopes this service
 	// account may request. Scopes in a client_credentials request MUST be a
-	// strict subset of this list. Empty means all default scopes are permitted.
+	// strict subset of this list.
+	//
+	// SECURITY: the service layer MUST trim whitespace and drop empty segments
+	// when parsing this field (e.g. "read, write" → ["read","write"]).
+	// Empty string MUST be treated as DENY-ALL, not grant-all, in the token
+	// endpoint — an unparseable or empty AllowedScopes must reject the request.
 	AllowedScopes string `json:"allowed_scopes" bson:"allowed_scopes" cql:"allowed_scopes" dynamo:"allowed_scopes"`
 
 	// IsActive controls whether this service account may authenticate.
 	// Flipping to false blocks new token issuance immediately; existing
 	// tokens remain valid until their exp.
+	//
+	// GORM NOTE: gorm:"default:true" means db.Create with IsActive=false will
+	// persist as true (Go zero-value triggers the column default). The service
+	// layer must always set IsActive explicitly and use Save (not Create-only)
+	// when creating a disabled account.
 	IsActive bool `json:"is_active" bson:"is_active" cql:"is_active" dynamo:"is_active" gorm:"default:true"`
 
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`

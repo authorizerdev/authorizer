@@ -38,7 +38,7 @@ type TrustedIssuer struct {
 	ID string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 
 	// ServiceAccountID links this issuer to the ServiceAccount it authenticates.
-	ServiceAccountID string `json:"service_account_id" bson:"service_account_id" cql:"service_account_id" dynamo:"service_account_id" index:"service_account_id,hash"`
+	ServiceAccountID string `json:"service_account_id" bson:"service_account_id" cql:"service_account_id" dynamo:"service_account_id" gorm:"index" index:"service_account_id,hash"`
 
 	// Name is a human-readable label (e.g. "prod-k8s-cluster").
 	Name string `json:"name" bson:"name" cql:"name" dynamo:"name"`

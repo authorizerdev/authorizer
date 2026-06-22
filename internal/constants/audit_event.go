@@ -139,6 +139,12 @@ const (
 	AuditServiceAccountDeletedEvent = "admin.service_account_deleted"
 	// AuditServiceAccountSecretRotatedEvent is logged when a service account secret is rotated.
 	AuditServiceAccountSecretRotatedEvent = "admin.service_account_secret_rotated"
+	// AuditServiceAccountDeactivatedEvent is logged when an admin disables a service account.
+	// Distinct from the generic update event so incident responders can query the kill-switch
+	// signal directly without scanning all update payloads.
+	AuditServiceAccountDeactivatedEvent = "admin.service_account_deactivated"
+	// AuditServiceAccountActivatedEvent is logged when an admin re-enables a service account.
+	AuditServiceAccountActivatedEvent = "admin.service_account_activated"
 
 	// AuditTrustedIssuerCreatedEvent is logged when an admin adds a trusted issuer.
 	AuditTrustedIssuerCreatedEvent = "admin.trusted_issuer_created"
@@ -146,6 +152,10 @@ const (
 	AuditTrustedIssuerUpdatedEvent = "admin.trusted_issuer_updated"
 	// AuditTrustedIssuerDeletedEvent is logged when an admin deletes a trusted issuer.
 	AuditTrustedIssuerDeletedEvent = "admin.trusted_issuer_deleted"
+	// AuditTrustedIssuerTokenReviewChangedEvent is logged when EnableTokenReview is toggled.
+	// Downgrading from online (true) to offline (false) is a security-posture change and
+	// must be queryable independently of generic trusted_issuer_updated events.
+	AuditTrustedIssuerTokenReviewChangedEvent = "admin.trusted_issuer_token_review_changed"
 
 	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
 	// via the client_credentials grant (RFC 6749 §4.4).
