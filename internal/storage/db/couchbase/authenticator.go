@@ -28,7 +28,11 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.Authenticators).Insert(authenticators.ID, authenticators, &insertOpt)
+	doc, err := structToDocument(authenticators)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.Authenticators).Insert(authenticators.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

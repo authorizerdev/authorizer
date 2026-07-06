@@ -22,7 +22,11 @@ func (p *provider) AddSessionToken(ctx context.Context, token *schemas.SessionTo
 	if token.UpdatedAt == 0 {
 		token.UpdatedAt = time.Now().Unix()
 	}
-	_, err := p.db.Collection(schemas.Collections.SessionToken).Insert(token.ID, token, &gocb.InsertOptions{Context: ctx})
+	doc, err := structToDocument(token)
+	if err != nil {
+		return err
+	}
+	_, err = p.db.Collection(schemas.Collections.SessionToken).Insert(token.ID, doc, &gocb.InsertOptions{Context: ctx})
 	return err
 }
 
@@ -180,7 +184,11 @@ func (p *provider) AddMFASession(ctx context.Context, session *schemas.MFASessio
 	if session.UpdatedAt == 0 {
 		session.UpdatedAt = time.Now().Unix()
 	}
-	_, err := p.db.Collection(schemas.Collections.MFASession).Insert(session.ID, session, &gocb.InsertOptions{Context: ctx})
+	doc, err := structToDocument(session)
+	if err != nil {
+		return err
+	}
+	_, err = p.db.Collection(schemas.Collections.MFASession).Insert(session.ID, doc, &gocb.InsertOptions{Context: ctx})
 	return err
 }
 
@@ -328,7 +336,11 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 			_, _ = p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
 		}
 	}
-	_, err := p.db.Collection(schemas.Collections.OAuthState).Insert(state.ID, state, &gocb.InsertOptions{Context: ctx})
+	doc, err := structToDocument(state)
+	if err != nil {
+		return err
+	}
+	_, err = p.db.Collection(schemas.Collections.OAuthState).Insert(state.ID, doc, &gocb.InsertOptions{Context: ctx})
 	return err
 }
 

@@ -24,7 +24,11 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.WebhookLog).Insert(webhookLog.ID, webhookLog, &insertOpt)
+	doc, err := structToDocument(webhookLog)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.WebhookLog).Insert(webhookLog.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

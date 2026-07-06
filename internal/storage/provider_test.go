@@ -204,6 +204,13 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	require.NotNil(t, fetchedUser)
 	assert.Equal(t, user.Email, fetchedUser.Email)
 
+	// Password is tagged json:"-" for API safety but must still persist to and load
+	// from the database. Couchbase (de)serializes structs via encoding/json, which
+	// honors json:"-" and previously dropped the password entirely.
+	// Regression guard: fix/couchbase-secret-json-tag-persistence.
+	require.NotNil(t, fetchedUser.Password, "stored password must round-trip from the database")
+	assert.Equal(t, *user.Password, *fetchedUser.Password)
+
 	// Test UpdateUser
 	fetchedUser.GivenName = refs.NewStringRef("Updated")
 	updatedUser, err := provider.UpdateUser(ctx, fetchedUser)

@@ -49,7 +49,11 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 		insertOpt := gocb.InsertOptions{
 			Context: ctx,
 		}
-		_, err := p.db.Collection(schemas.Collections.OTP).Insert(otp.ID, otp, &insertOpt)
+		doc, err := structToDocument(otp)
+		if err != nil {
+			return nil, err
+		}
+		_, err = p.db.Collection(schemas.Collections.OTP).Insert(otp.ID, doc, &insertOpt)
 		if err != nil {
 			return nil, err
 		}
