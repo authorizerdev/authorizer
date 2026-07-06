@@ -28,7 +28,9 @@ type ServiceAccount struct {
 
 	// ClientSecret holds the bcrypt hash of the credential.
 	// Never expose this value in API responses.
-	ClientSecret string `json:"client_secret" bson:"client_secret" cql:"client_secret" dynamo:"client_secret"`
+	// json:"-" keeps it out of any json.Marshal of this struct (structured
+	// logging, webhook payloads, error dumps), matching User.Password.
+	ClientSecret string `json:"-" bson:"client_secret" cql:"client_secret" dynamo:"client_secret"`
 
 	// AllowedScopes is a comma-separated list of OAuth2 scopes this service
 	// account may request. Scopes in a client_credentials request MUST be a
