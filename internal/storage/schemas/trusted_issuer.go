@@ -1,5 +1,12 @@
 package schemas
 
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
+)
+
 // TrustedIssuer registers an external JWT issuer whose tokens are accepted as
 // client credentials for a ServiceAccount (RFC 7523 client_assertion flow).
 //
@@ -110,4 +117,29 @@ type TrustedIssuer struct {
 
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// AsAPITrustedIssuer converts the storage record into the GraphQL model. The
+// Phase 4/5/6 fields (EnableTokenReview, KubernetesAPIServerURL, SPIFFE/mTLS
+// proxy) are intentionally not surfaced in the Phase 1 admin API.
+func (t *TrustedIssuer) AsAPITrustedIssuer() *model.TrustedIssuer {
+	id := t.ID
+	if strings.Contains(id, Collections.TrustedIssuer+"/") {
+		id = strings.TrimPrefix(id, Collections.TrustedIssuer+"/")
+	}
+	return &model.TrustedIssuer{
+		ID:                       id,
+		ServiceAccountID:         t.ServiceAccountID,
+		Name:                     t.Name,
+		IssuerURL:                t.IssuerURL,
+		KeySourceType:            t.KeySourceType,
+		JwksURL:                  t.JWKSUrl,
+		ExpectedAud:              t.ExpectedAud,
+		SubjectClaim:             t.SubjectClaim,
+		IssuerType:               t.IssuerType,
+		IsActive:                 t.IsActive,
+		SpiffeRefreshHintSeconds: refs.NewInt64Ref(t.SpiffeRefreshHintSeconds),
+		CreatedAt:                refs.NewInt64Ref(t.CreatedAt),
+		UpdatedAt:                refs.NewInt64Ref(t.UpdatedAt),
+	}
 }

@@ -152,6 +152,41 @@ func (r *mutationResolver) DeleteWebhook(ctx context.Context, params model.Webho
 	return r.GraphQLProvider.DeleteWebhook(ctx, &params)
 }
 
+// CreateServiceAccount is the resolver for the _create_service_account field.
+func (r *mutationResolver) CreateServiceAccount(ctx context.Context, params model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, error) {
+	return r.GraphQLProvider.CreateServiceAccount(ctx, &params)
+}
+
+// UpdateServiceAccount is the resolver for the _update_service_account field.
+func (r *mutationResolver) UpdateServiceAccount(ctx context.Context, params model.UpdateServiceAccountRequest) (*model.ServiceAccount, error) {
+	return r.GraphQLProvider.UpdateServiceAccount(ctx, &params)
+}
+
+// DeleteServiceAccount is the resolver for the _delete_service_account field.
+func (r *mutationResolver) DeleteServiceAccount(ctx context.Context, params model.ServiceAccountRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteServiceAccount(ctx, &params)
+}
+
+// RotateServiceAccountSecret is the resolver for the _rotate_service_account_secret field.
+func (r *mutationResolver) RotateServiceAccountSecret(ctx context.Context, params model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, error) {
+	return r.GraphQLProvider.RotateServiceAccountSecret(ctx, &params)
+}
+
+// AddTrustedIssuer is the resolver for the _add_trusted_issuer field.
+func (r *mutationResolver) AddTrustedIssuer(ctx context.Context, params model.AddTrustedIssuerRequest) (*model.TrustedIssuer, error) {
+	return r.GraphQLProvider.AddTrustedIssuer(ctx, &params)
+}
+
+// UpdateTrustedIssuer is the resolver for the _update_trusted_issuer field.
+func (r *mutationResolver) UpdateTrustedIssuer(ctx context.Context, params model.UpdateTrustedIssuerRequest) (*model.TrustedIssuer, error) {
+	return r.GraphQLProvider.UpdateTrustedIssuer(ctx, &params)
+}
+
+// DeleteTrustedIssuer is the resolver for the _delete_trusted_issuer field.
+func (r *mutationResolver) DeleteTrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteTrustedIssuer(ctx, &params)
+}
+
 // TestEndpoint is the resolver for the _test_endpoint field.
 func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
 	return r.GraphQLProvider.TestEndpoint(ctx, &params)
@@ -260,6 +295,26 @@ func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginatedReq
 // WebhookLogs is the resolver for the _webhook_logs field.
 func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
 	return r.GraphQLProvider.WebhookLogs(ctx, params)
+}
+
+// ServiceAccount is the resolver for the _service_account field.
+func (r *queryResolver) ServiceAccount(ctx context.Context, params model.ServiceAccountRequest) (*model.ServiceAccount, error) {
+	return r.GraphQLProvider.ServiceAccount(ctx, &params)
+}
+
+// ServiceAccounts is the resolver for the _service_accounts field.
+func (r *queryResolver) ServiceAccounts(ctx context.Context, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, error) {
+	return r.GraphQLProvider.ServiceAccounts(ctx, params)
+}
+
+// TrustedIssuer is the resolver for the _trusted_issuer field.
+func (r *queryResolver) TrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.TrustedIssuer, error) {
+	return r.GraphQLProvider.TrustedIssuer(ctx, &params)
+}
+
+// TrustedIssuers is the resolver for the _trusted_issuers field.
+func (r *queryResolver) TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error) {
+	return r.GraphQLProvider.TrustedIssuers(ctx, params)
 }
 
 // EmailTemplates is the resolver for the _email_templates field.
