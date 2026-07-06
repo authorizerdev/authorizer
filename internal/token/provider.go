@@ -31,6 +31,8 @@ type Provider interface {
 	CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error)
 	// CreateAuthToken creates all types of auth token
 	CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*AuthToken, error)
+	// CreateMachineAuthToken creates a client_credentials access token (RFC 6749 §4.4)
+	CreateMachineAuthToken(cfg *AuthTokenConfig) (*JWTToken, error)
 	// CreateIDToken creates an id token
 	CreateIDToken(cfg *AuthTokenConfig) (string, int64, error)
 	// CreateRefreshToken creates a refresh token

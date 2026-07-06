@@ -63,6 +63,22 @@ type ServiceAccount struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 }
 
+// ParsedAllowedScopes returns AllowedScopes as a slice: comma-separated,
+// whitespace trimmed, empty segments dropped. This is the single source of
+// truth for interpreting the stored scope string — the token endpoint uses it
+// to enforce that a client_credentials request stays within the authorized set.
+// An empty or whitespace-only AllowedScopes yields an empty slice, which the
+// token endpoint MUST treat as DENY-ALL (schema § AllowedScopes comment).
+func (s *ServiceAccount) ParsedAllowedScopes() []string {
+	scopes := []string{}
+	for _, sc := range strings.Split(s.AllowedScopes, ",") {
+		if sc = strings.TrimSpace(sc); sc != "" {
+			scopes = append(scopes, sc)
+		}
+	}
+	return scopes
+}
+
 // AsAPIServiceAccount converts the storage record into the GraphQL model.
 // It never exposes ClientSecret — there is no client_secret field on
 // model.ServiceAccount by design; the plaintext is surfaced only once via
@@ -72,17 +88,11 @@ func (s *ServiceAccount) AsAPIServiceAccount() *model.ServiceAccount {
 	if strings.Contains(id, Collections.ServiceAccount+"/") {
 		id = strings.TrimPrefix(id, Collections.ServiceAccount+"/")
 	}
-	scopes := []string{}
-	for _, sc := range strings.Split(s.AllowedScopes, ",") {
-		if sc = strings.TrimSpace(sc); sc != "" {
-			scopes = append(scopes, sc)
-		}
-	}
 	return &model.ServiceAccount{
 		ID:            id,
 		Name:          s.Name,
 		Description:   s.Description,
-		AllowedScopes: scopes,
+		AllowedScopes: s.ParsedAllowedScopes(),
 		IsActive:      s.IsActive,
 		CreatedAt:     refs.NewInt64Ref(s.CreatedAt),
 		UpdatedAt:     refs.NewInt64Ref(s.UpdatedAt),
