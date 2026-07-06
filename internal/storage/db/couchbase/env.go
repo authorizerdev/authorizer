@@ -23,7 +23,11 @@ func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, 
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.Env).Insert(env.ID, env, &insertOpt)
+	doc, err := structToDocument(env)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.Env).Insert(env.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

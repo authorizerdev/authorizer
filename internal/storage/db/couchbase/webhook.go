@@ -28,7 +28,11 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*s
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.Webhook).Insert(webhook.ID, webhook, &insertOpt)
+	doc, err := structToDocument(webhook)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.Webhook).Insert(webhook.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

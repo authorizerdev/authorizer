@@ -24,7 +24,11 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.VerificationRequest).Insert(verificationRequest.ID, verificationRequest, &insertOpt)
+	doc, err := structToDocument(verificationRequest)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.VerificationRequest).Insert(verificationRequest.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

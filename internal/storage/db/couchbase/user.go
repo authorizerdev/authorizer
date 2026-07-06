@@ -2,6 +2,7 @@ package couchbase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -40,7 +41,11 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.User).Insert(user.ID, user, &insertOpt)
+	doc, err := structToDocument(user)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.User).Insert(user.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +58,11 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	upsertOpt := gocb.UpsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.User).Upsert(user.ID, user, &upsertOpt)
+	doc, err := structToDocument(user)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.User).Upsert(user.ID, doc, &upsertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +100,15 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	}
 	paginationClone.Total = total
 	for queryResult.Next() {
-		var user schemas.User
-		err := queryResult.Row(&user)
-		if err != nil {
+		var raw json.RawMessage
+		if err := queryResult.Row(&raw); err != nil {
 			log.Fatal(err)
 		}
-		users = append(users, &user)
+		user := &schemas.User{}
+		if err := decodeDocument(raw, user); err != nil {
+			log.Fatal(err)
+		}
+		users = append(users, user)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
@@ -106,7 +118,6 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
-	var user *schemas.User
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -116,8 +127,12 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&user)
-	if err != nil {
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	user := &schemas.User{}
+	if err := decodeDocument(raw, user); err != nil {
 		return nil, err
 	}
 	return user, nil
@@ -125,7 +140,6 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
-	var user *schemas.User
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -135,8 +149,12 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&user)
-	if err != nil {
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	user := &schemas.User{}
+	if err := decodeDocument(raw, user); err != nil {
 		return nil, err
 	}
 	return user, nil
@@ -178,7 +196,6 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
-	var user *schemas.User
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE phone_number = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -188,8 +205,12 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&user)
-	if err != nil {
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	user := &schemas.User{}
+	if err := decodeDocument(raw, user); err != nil {
 		return nil, err
 	}
 	return user, nil
