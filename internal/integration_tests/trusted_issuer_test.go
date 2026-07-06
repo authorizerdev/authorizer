@@ -94,6 +94,18 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 		assert.Equal(t, saID, updated.ServiceAccountID)
 	})
 
+	t.Run("update rejects blanking expected_aud", func(t *testing.T) {
+		saID := createSA(t)
+		created, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, newIssuerReq(saID))
+		require.NoError(t, err)
+
+		_, err = ts.GraphQLProvider.UpdateTrustedIssuer(ctx, &model.UpdateTrustedIssuerRequest{
+			ID:          created.ID,
+			ExpectedAud: refs.NewStringRef("  "),
+		})
+		require.Error(t, err)
+	})
+
 	t.Run("list filters by service_account_id", func(t *testing.T) {
 		saID := createSA(t)
 		_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, newIssuerReq(saID))

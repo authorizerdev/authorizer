@@ -110,6 +110,10 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata
 		issuer.JWKSUrl = params.JwksURL
 	}
 	if params.ExpectedAud != nil {
+		if strings.TrimSpace(*params.ExpectedAud) == "" {
+			log.Debug().Msg("expected_aud cannot be empty")
+			return nil, nil, fmt.Errorf("expected_aud cannot be empty")
+		}
 		issuer.ExpectedAud = *params.ExpectedAud
 	}
 	if params.IsActive != nil {
