@@ -653,6 +653,9 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, c
 	// reconstructs this exact key from the token's login_method + sub claims.
 	sessionKey := constants.AuthRecipeMethodServiceAccount + ":" + sa.ID
 
+	// ponytail: aud is the global ClientID, same as human tokens. RFC 8707
+	// resource-bound audience binding (spec S8) is deliberately deferred to
+	// the Phase 2 token-exchange work, not silently forgotten.
 	authToken, err := h.TokenProvider.CreateMachineAuthToken(&token.AuthTokenConfig{
 		ServiceAccountID: sa.ID,
 		Scope:            grantedScopes,
