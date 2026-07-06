@@ -2,46 +2,155 @@ package cassandradb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/gocql/gocql"
+	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
+const serviceAccountColumns = "id, name, description, client_secret, allowed_scopes, is_active, created_at, updated_at"
+
 // AddServiceAccount creates a new service account record.
-// TODO(phase1-pr3): implement CassandraDB provider.
-// DDL required before implementation:
-//
-//	CREATE TABLE IF NOT EXISTS authorizer_service_accounts (
-//	  id text PRIMARY KEY,
-//	  name text, description text, client_secret text,
-//	  allowed_scopes text, is_active boolean,
-//	  created_at bigint, updated_at bigint
-//	);
-func (p *provider) AddServiceAccount(_ context.Context, _ *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
-	return nil, fmt.Errorf("cassandradb: AddServiceAccount not implemented")
+func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+	if sa.ID == "" {
+		sa.ID = uuid.New().String()
+	}
+	sa.Key = sa.ID
+	now := time.Now().Unix()
+	sa.CreatedAt = now
+	sa.UpdatedAt = now
+	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.ServiceAccount, serviceAccountColumns)
+	err := p.db.Query(insertQuery, sa.ID, sa.Name, sa.Description, sa.ClientSecret, sa.AllowedScopes, sa.IsActive, sa.CreatedAt, sa.UpdatedAt).Exec()
+	if err != nil {
+		return nil, err
+	}
+	return sa, nil
 }
 
 // UpdateServiceAccount updates a service account record.
-// TODO(phase1-pr3): implement CassandraDB provider.
-func (p *provider) UpdateServiceAccount(_ context.Context, _ *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
-	return nil, fmt.Errorf("cassandradb: UpdateServiceAccount not implemented")
+// Callers MUST load the existing record and mutate it before calling this
+// method — a partial struct blanks columns it does not carry.
+func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+	if sa.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
+	sa.UpdatedAt = time.Now().Unix()
+	bytes, err := json.Marshal(sa)
+	if err != nil {
+		return nil, err
+	}
+	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
+	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
+	decoder.UseNumber()
+	saMap := map[string]interface{}{}
+	err = decoder.Decode(&saMap)
+	if err != nil {
+		return nil, err
+	}
+	convertMapValues(saMap)
+	updateFields := ""
+	var updateValues []interface{}
+	for key, value := range saMap {
+		if key == "_id" {
+			continue
+		}
+		if key == "_key" {
+			continue
+		}
+		if value == nil {
+			updateFields += fmt.Sprintf("%s = null,", key)
+			continue
+		}
+		updateFields += fmt.Sprintf("%s = ?, ", key)
+		updateValues = append(updateValues, value)
+	}
+	updateFields = strings.Trim(updateFields, " ")
+	updateFields = strings.TrimSuffix(updateFields, ",")
+	updateValues = append(updateValues, sa.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.ServiceAccount, updateFields)
+	err = p.db.Query(query, updateValues...).Exec()
+	if err != nil {
+		return nil, err
+	}
+	return sa, nil
 }
 
-// DeleteServiceAccount removes a service account record.
-// TODO(phase1-pr3): implement CassandraDB provider.
-func (p *provider) DeleteServiceAccount(_ context.Context, _ *schemas.ServiceAccount) error {
-	return fmt.Errorf("cassandradb: DeleteServiceAccount not implemented")
+// DeleteServiceAccount removes a service account and all its associated
+// TrustedIssuers. Mirrors the webhook cascade-delete pattern.
+func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error {
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.ServiceAccount)
+	err := p.db.Query(query, sa.ID).Exec()
+	if err != nil {
+		return err
+	}
+
+	getIssuersQuery := fmt.Sprintf("SELECT id FROM %s WHERE service_account_id = ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.TrustedIssuer)
+	scanner := p.db.Query(getIssuersQuery, sa.ID).Iter().Scanner()
+	var issuerIDList []string
+	for scanner.Next() {
+		var issuerID string
+		if err := scanner.Scan(&issuerID); err != nil {
+			return err
+		}
+		issuerIDList = append(issuerIDList, issuerID)
+	}
+	if len(issuerIDList) > 0 {
+		placeholders := strings.Repeat("?,", len(issuerIDList))
+		placeholders = strings.TrimSuffix(placeholders, ",")
+		deleteValues := make([]interface{}, len(issuerIDList))
+		for i, id := range issuerIDList {
+			deleteValues[i] = id
+		}
+		query = fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.TrustedIssuer, placeholders)
+		if err := p.db.Query(query, deleteValues...).Exec(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GetServiceAccountByID fetches a service account by primary key.
-// TODO(phase1-pr3): implement CassandraDB provider.
-func (p *provider) GetServiceAccountByID(_ context.Context, _ string) (*schemas.ServiceAccount, error) {
-	return nil, fmt.Errorf("cassandradb: GetServiceAccountByID not implemented")
+func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error) {
+	var sa schemas.ServiceAccount
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id = ? LIMIT 1", serviceAccountColumns, KeySpace+"."+schemas.Collections.ServiceAccount)
+	err := p.db.Query(query, id).Consistency(gocql.One).Scan(&sa.ID, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.IsActive, &sa.CreatedAt, &sa.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &sa, nil
 }
 
 // ListServiceAccounts returns a paginated list of service accounts.
-// TODO(phase1-pr3): implement CassandraDB provider.
-func (p *provider) ListServiceAccounts(_ context.Context, _ *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error) {
-	return nil, nil, fmt.Errorf("cassandradb: ListServiceAccounts not implemented")
+func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error) {
+	serviceAccounts := []*schemas.ServiceAccount{}
+	paginationClone := pagination
+	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.ServiceAccount)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
+	if err != nil {
+		return nil, nil, err
+	}
+	// there is no offset in cassandra
+	// so we fetch till limit + offset
+	// and return the results from offset to limit
+	query := fmt.Sprintf("SELECT %s FROM %s LIMIT %d", serviceAccountColumns, KeySpace+"."+schemas.Collections.ServiceAccount, pagination.Limit+pagination.Offset)
+	scanner := p.db.Query(query).Iter().Scanner()
+	counter := int64(0)
+	for scanner.Next() {
+		if counter >= pagination.Offset {
+			var sa schemas.ServiceAccount
+			err := scanner.Scan(&sa.ID, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.IsActive, &sa.CreatedAt, &sa.UpdatedAt)
+			if err != nil {
+				return nil, nil, err
+			}
+			serviceAccounts = append(serviceAccounts, &sa)
+		}
+		counter++
+	}
+	return serviceAccounts, paginationClone, nil
 }
