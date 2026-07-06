@@ -26,7 +26,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/openfga/language/pkg/go v0.2.1
-	github.com/openfga/openfga v1.17.1
+	github.com/openfga/openfga v1.18.1
 	github.com/pquerna/otp v1.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.6.3
@@ -39,7 +39,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.9
 	golang.org/x/crypto v0.52.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.21.0
 	golang.org/x/time v0.15.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
 	google.golang.org/grpc v1.81.1
@@ -49,7 +49,7 @@ require (
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlserver v1.5.2
 	gorm.io/gorm v1.25.10
-	modernc.org/sqlite v1.51.0
+	modernc.org/sqlite v1.52.0
 )
 
 require (
