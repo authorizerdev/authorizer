@@ -197,6 +197,23 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// ServiceAccount collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.ServiceAccount, options.CreateCollection())
+
+	// TrustedIssuer collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.TrustedIssuer, options.CreateCollection())
+	trustedIssuerCollection := mongodb.Collection(schemas.Collections.TrustedIssuer, options.Collection())
+	_, _ = trustedIssuerCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"issuer_url": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"service_account_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

@@ -173,6 +173,26 @@ func (p *provider) ensureTables(ctx context.Context) error {
 				gsi("action", "action"),
 			},
 		},
+		{
+			name: schemas.Collections.ServiceAccount,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+		},
+		{
+			name: schemas.Collections.TrustedIssuer,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("issuer_url"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("service_account_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("issuer_url", "issuer_url"),
+				gsi("service_account_id", "service_account_id"),
+			},
+		},
 	}
 
 	for _, t := range tables {

@@ -370,6 +370,33 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// that requires the actor_id index until it succeeds instead of a fixed sleep.
 	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog, 30*time.Second)
 
+	// ServiceAccount table
+	serviceAccountCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, client_secret text, allowed_scopes text, is_active boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.ServiceAccount)
+	err = session.Query(serviceAccountCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// TrustedIssuer table and indexes
+	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, service_account_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
+	err = session.Query(trustedIssuerCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	trustedIssuerIssuerURLIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_trusted_issuer_issuer_url ON %s.%s (issuer_url)", KeySpace, schemas.Collections.TrustedIssuer)
+	err = session.Query(trustedIssuerIssuerURLIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	trustedIssuerServiceAccountIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_trusted_issuer_service_account_id ON %s.%s (service_account_id)", KeySpace, schemas.Collections.TrustedIssuer)
+	err = session.Query(trustedIssuerServiceAccountIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the issuer_url
+	// index (hot path for client_assertion validation) to become queryable.
+	waitForCassandraTrustedIssuerIndexes(session, KeySpace, schemas.Collections.TrustedIssuer, 30*time.Second)
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
@@ -382,6 +409,28 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 // indexes asynchronously; queries on indexed columns fail until the index is ready.
 func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
 	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
+	deadline := time.Now().Add(timeout)
+	delay := 500 * time.Millisecond
+	for {
+		if err := session.Query(probe).Exec(); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			return
+		}
+		time.Sleep(delay)
+		if delay < 3*time.Second {
+			delay += 500 * time.Millisecond
+		}
+	}
+}
+
+// waitForCassandraTrustedIssuerIndexes polls a probe query that requires the
+// issuer_url secondary index until it succeeds or the timeout is reached.
+// ScyllaDB builds secondary indexes asynchronously; the issuer_url lookup is a
+// hot path (client_assertion validation) so we wait for it to become queryable.
+func waitForCassandraTrustedIssuerIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
+	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE issuer_url='' LIMIT 1 ALLOW FILTERING", keyspace, table)
 	deadline := time.Now().Add(timeout)
 	delay := 500 * time.Millisecond
 	for {
