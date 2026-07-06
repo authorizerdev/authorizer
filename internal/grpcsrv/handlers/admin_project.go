@@ -391,3 +391,78 @@ func projectFgaExpandResponse(r *model.FgaExpandResponse) *authorizerv1.FgaExpan
 	}
 	return &authorizerv1.FgaExpandResponse{Tree: r.Tree}
 }
+
+// projectServiceAccount converts a single GraphQL ServiceAccount model into the
+// proto message. There is deliberately NO client-secret field on the proto
+// ServiceAccount: the plaintext secret is surfaced only by
+// CreateServiceAccountResponse, so no get/list/update path can leak it.
+func projectServiceAccount(s *model.ServiceAccount) *authorizerv1.ServiceAccount {
+	if s == nil {
+		return nil
+	}
+	return &authorizerv1.ServiceAccount{
+		Id:            s.ID,
+		Name:          s.Name,
+		Description:   refs.StringValue(s.Description),
+		AllowedScopes: s.AllowedScopes,
+		IsActive:      s.IsActive,
+		CreatedAt:     refs.Int64Value(s.CreatedAt),
+		UpdatedAt:     refs.Int64Value(s.UpdatedAt),
+	}
+}
+
+// projectServiceAccounts converts the GraphQL ServiceAccounts model (a page plus
+// its pagination cursor) into the proto response.
+func projectServiceAccounts(s *model.ServiceAccounts) *authorizerv1.ServiceAccountsResponse {
+	if s == nil {
+		return &authorizerv1.ServiceAccountsResponse{}
+	}
+	accounts := make([]*authorizerv1.ServiceAccount, 0, len(s.ServiceAccounts))
+	for _, item := range s.ServiceAccounts {
+		accounts = append(accounts, projectServiceAccount(item))
+	}
+	return &authorizerv1.ServiceAccountsResponse{
+		ServiceAccounts: accounts,
+		Pagination:      projectPagination(s.Pagination),
+	}
+}
+
+// projectTrustedIssuer converts a single GraphQL TrustedIssuer model into the
+// proto message. Optional pointer fields collapse to zero values; the issuer
+// references its parent via service_account_id.
+func projectTrustedIssuer(t *model.TrustedIssuer) *authorizerv1.TrustedIssuer {
+	if t == nil {
+		return nil
+	}
+	return &authorizerv1.TrustedIssuer{
+		Id:                       t.ID,
+		ServiceAccountId:         t.ServiceAccountID,
+		Name:                     t.Name,
+		IssuerUrl:                t.IssuerURL,
+		KeySourceType:            t.KeySourceType,
+		JwksUrl:                  refs.StringValue(t.JwksURL),
+		ExpectedAud:              t.ExpectedAud,
+		SubjectClaim:             t.SubjectClaim,
+		IssuerType:               t.IssuerType,
+		IsActive:                 t.IsActive,
+		SpiffeRefreshHintSeconds: refs.Int64Value(t.SpiffeRefreshHintSeconds),
+		CreatedAt:                refs.Int64Value(t.CreatedAt),
+		UpdatedAt:                refs.Int64Value(t.UpdatedAt),
+	}
+}
+
+// projectTrustedIssuers converts the GraphQL TrustedIssuers model (a page plus
+// its pagination cursor) into the proto response.
+func projectTrustedIssuers(t *model.TrustedIssuers) *authorizerv1.TrustedIssuersResponse {
+	if t == nil {
+		return &authorizerv1.TrustedIssuersResponse{}
+	}
+	issuers := make([]*authorizerv1.TrustedIssuer, 0, len(t.TrustedIssuers))
+	for _, item := range t.TrustedIssuers {
+		issuers = append(issuers, projectTrustedIssuer(item))
+	}
+	return &authorizerv1.TrustedIssuersResponse{
+		TrustedIssuers: issuers,
+		Pagination:     projectPagination(t.Pagination),
+	}
+}
