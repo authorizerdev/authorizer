@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -102,11 +101,11 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	for queryResult.Next() {
 		var raw json.RawMessage
 		if err := queryResult.Row(&raw); err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		user := &schemas.User{}
 		if err := decodeDocument(raw, user); err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		users = append(users, user)
 	}
