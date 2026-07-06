@@ -6,6 +6,9 @@ const (
 	AuditActorTypeUser = "user"
 	// AuditActorTypeAdmin identifies an admin as the audit actor.
 	AuditActorTypeAdmin = "admin"
+	// AuditActorTypeServiceAccount identifies a machine/workload service account
+	// as the audit actor (client_credentials grant, RFC 6749 §4.4).
+	AuditActorTypeServiceAccount = "service_account"
 )
 
 // Audit resource type constants identify the type of resource affected by an auditable action.

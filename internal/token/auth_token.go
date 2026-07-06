@@ -58,6 +58,14 @@ type AuthTokenConfig struct {
 	HostName   string
 	Roles      []string
 	Scope      []string
+	// ServiceAccountID is set — and User is nil — for machine access tokens
+	// issued via the client_credentials grant (RFC 6749 §4.4). When set,
+	// CreateAccessToken builds a machine token whose `sub` is this id, whose
+	// `scope` comes from Scope, and which carries NO roles/allowed_roles claim
+	// (machines have no roles). LoginMethod must be set to
+	// constants.AuthRecipeMethodServiceAccount so the token round-trips through
+	// ValidateAccessToken on the existing stateful path.
+	ServiceAccountID string
 	// AuthTime is the Unix timestamp (seconds) at which the user
 	// authenticated. OIDC Core §2 defines this as the `auth_time` ID
 	// token claim. If zero, CreateIDToken falls back to time.Now() so
@@ -224,6 +232,13 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error) {
+	// Machine identity (client_credentials, RFC 6749 §4.4): there is no
+	// resource owner, so cfg.User is nil. Building the human token below would
+	// nil-deref on cfg.User.ID/Roles — route to the machine builder instead.
+	// The human path below is left completely unchanged.
+	if cfg.User == nil && cfg.ServiceAccountID != "" {
+		return p.createMachineAccessToken(cfg)
+	}
 	expiryBound, err := utils.ParseDurationInSeconds(cfg.ExpireTime)
 	if err != nil {
 		expiryBound = time.Minute * 30
@@ -256,6 +271,54 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 	}
 
 	return token, expiresAt, nil
+}
+
+// createMachineAccessToken builds the OAuth2 access token JWT for a service
+// account (client_credentials, RFC 6749 §4.4). It is the machine counterpart
+// to the human path in CreateAccessToken: identical iss/aud/exp/iat/
+// token_type/nonce shape, but `sub` is the service account id, `scope` carries
+// the granted scopes, and there are NO roles/allowed_roles claims — machines
+// have no roles. The CUSTOM_ACCESS_TOKEN_SCRIPT is intentionally not run: its
+// contract is customFunction(user, tokenPayload) and there is no user.
+// login_method is set (to constants.AuthRecipeMethodServiceAccount by the
+// caller) so ValidateAccessToken derives the same memory-store session key the
+// token endpoint registered this token under.
+func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64, error) {
+	expiryBound, err := utils.ParseDurationInSeconds(cfg.ExpireTime)
+	if err != nil {
+		expiryBound = time.Minute * 30
+	}
+	expiresAt := time.Now().Add(expiryBound).Unix()
+	customClaims := jwt.MapClaims{
+		"iss":          cfg.HostName,
+		"aud":          p.config.ClientID,
+		"nonce":        cfg.Nonce,
+		"sub":          cfg.ServiceAccountID,
+		"exp":          expiresAt,
+		"iat":          time.Now().Unix(),
+		"token_type":   constants.TokenTypeAccessToken,
+		"scope":        cfg.Scope,
+		"login_method": cfg.LoginMethod,
+	}
+	token, err := p.SignJWTToken(customClaims)
+	if err != nil {
+		return "", 0, err
+	}
+	return token, expiresAt, nil
+}
+
+// CreateMachineAuthToken issues a stateful OAuth2 access token for a service
+// account (client_credentials, RFC 6749 §4.4). It returns ONLY an access token
+// — no id_token, no refresh_token, no browser/session token — because machines
+// have no OIDC identity and re-authenticate on expiry. The caller MUST register
+// the returned token in the memory store exactly as human access tokens are
+// (see the /oauth/token handler), or ValidateAccessToken will reject it.
+func (p *provider) CreateMachineAuthToken(cfg *AuthTokenConfig) (*JWTToken, error) {
+	accessToken, expiresAt, err := p.CreateAccessToken(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &JWTToken{Token: accessToken, ExpiresAt: expiresAt}, nil
 }
 
 // GetAccessToken returns the access token from the request (either from header or cookie)
