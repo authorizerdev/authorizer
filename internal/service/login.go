@@ -246,7 +246,15 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			}
 		}
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
+	if user.Password == nil {
+		// A basic_auth user with no stored hash (e.g. a pre-fix Couchbase
+		// record that never persisted one) must fail the same way as a
+		// wrong password, not nil-pointer-dereference.
+		loginPerformDummyPasswordCheck(params.Password)
+		err = bcrypt.ErrMismatchedHashAndPassword
+	} else {
+		err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
+	}
 	if err != nil {
 		log.Debug().Str("reason", "bad_password").Msg("login failed")
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
