@@ -300,6 +300,51 @@ type Webhooks {
   webhooks: [Webhook!]!
 }
 
+type ServiceAccount {
+  id: ID!
+  name: String!
+  description: String
+  allowed_scopes: [String!]!
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+  # client_secret is NEVER returned here. It is returned exactly once in
+  # CreateServiceAccountResponse (creation and rotation) and never again.
+}
+
+type CreateServiceAccountResponse {
+  service_account: ServiceAccount!
+  # client_secret is returned ONCE at creation and ONCE at rotation. Store it
+  # securely; it can never be retrieved again.
+  client_secret: String!
+}
+
+type ServiceAccounts {
+  pagination: Pagination!
+  service_accounts: [ServiceAccount!]!
+}
+
+type TrustedIssuer {
+  id: ID!
+  service_account_id: String!
+  name: String!
+  issuer_url: String!
+  key_source_type: String!
+  jwks_url: String
+  expected_aud: String!
+  subject_claim: String!
+  issuer_type: String!
+  is_active: Boolean!
+  spiffe_refresh_hint_seconds: Int64
+  created_at: Int64
+  updated_at: Int64
+}
+
+type TrustedIssuers {
+  pagination: Pagination!
+  trusted_issuers: [TrustedIssuer!]!
+}
+
 type WebhookLog {
   id: ID!
   http_status: Int64
@@ -669,6 +714,62 @@ input WebhookRequest {
   id: ID!
 }
 
+input CreateServiceAccountRequest {
+  name: String!
+  description: String
+  # allowed_scopes MUST contain at least one non-empty scope after trimming.
+  allowed_scopes: [String!]!
+}
+
+input UpdateServiceAccountRequest {
+  id: ID!
+  name: String
+  description: String
+  allowed_scopes: [String!]
+  is_active: Boolean
+}
+
+input ServiceAccountRequest {
+  id: ID!
+}
+
+input ListServiceAccountsRequest {
+  pagination: PaginatedRequest
+}
+
+input AddTrustedIssuerRequest {
+  service_account_id: String!
+  name: String!
+  issuer_url: String!
+  # key_source_type: "oidc_discovery" | "static_jwks_url" | "spiffe_bundle_endpoint"
+  key_source_type: String!
+  jwks_url: String
+  expected_aud: String!
+  # subject_claim defaults to "sub" if omitted
+  subject_claim: String
+  # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
+  issuer_type: String!
+  spiffe_refresh_hint_seconds: Int64
+}
+
+input UpdateTrustedIssuerRequest {
+  id: ID!
+  name: String
+  jwks_url: String
+  expected_aud: String
+  is_active: Boolean
+  spiffe_refresh_hint_seconds: Int64
+}
+
+input TrustedIssuerRequest {
+  id: ID!
+}
+
+input ListTrustedIssuersRequest {
+  service_account_id: String
+  pagination: PaginatedRequest
+}
+
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
@@ -844,6 +945,15 @@ type Mutation {
   _add_webhook(params: AddWebhookRequest!): Response!
   _update_webhook(params: UpdateWebhookRequest!): Response!
   _delete_webhook(params: WebhookRequest!): Response!
+  # Service accounts (machine/workload identity)
+  _create_service_account(params: CreateServiceAccountRequest!): CreateServiceAccountResponse!
+  _update_service_account(params: UpdateServiceAccountRequest!): ServiceAccount!
+  _delete_service_account(params: ServiceAccountRequest!): Response!
+  _rotate_service_account_secret(params: ServiceAccountRequest!): CreateServiceAccountResponse!
+  # Trusted issuers (external JWT issuers bound to a service account)
+  _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
+  _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
+  _delete_trusted_issuer(params: TrustedIssuerRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -874,6 +984,12 @@ type Query {
   _webhook(params: WebhookRequest!): Webhook!
   _webhooks(params: PaginatedRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+  # Service accounts (machine/workload identity)
+  _service_account(params: ServiceAccountRequest!): ServiceAccount!
+  _service_accounts(params: ListServiceAccountsRequest): ServiceAccounts!
+  # Trusted issuers
+  _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
+  _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)

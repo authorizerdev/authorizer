@@ -48,6 +48,21 @@ type AdminProvider interface {
 	WebhookLogs(ctx context.Context, meta RequestMetadata, params *model.ListWebhookLogRequest) (*model.WebhookLogs, *ResponseSideEffects, error)
 	TestEndpoint(ctx context.Context, meta RequestMetadata, params *model.TestEndpointRequest) (*model.TestEndpointResponse, *ResponseSideEffects, error)
 
+	// Service accounts.
+	CreateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error)
+	UpdateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.UpdateServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error)
+	DeleteServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.Response, *ResponseSideEffects, error)
+	RotateServiceAccountSecret(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error)
+	ServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error)
+	ServiceAccounts(ctx context.Context, meta RequestMetadata, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, *ResponseSideEffects, error)
+
+	// Trusted issuers.
+	AddTrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.AddTrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)
+	UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.UpdateTrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)
+	DeleteTrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.TrustedIssuerRequest) (*model.Response, *ResponseSideEffects, error)
+	TrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.TrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)
+	TrustedIssuers(ctx context.Context, meta RequestMetadata, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, *ResponseSideEffects, error)
+
 	// Email templates.
 	AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
 	UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)

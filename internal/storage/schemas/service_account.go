@@ -1,5 +1,12 @@
 package schemas
 
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
+)
+
 // ServiceAccount is the machine/workload identity primitive used for the
 // OAuth2 client_credentials grant and workload identity federation.
 //
@@ -52,4 +59,30 @@ type ServiceAccount struct {
 
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// AsAPIServiceAccount converts the storage record into the GraphQL model.
+// It never exposes ClientSecret — there is no client_secret field on
+// model.ServiceAccount by design; the plaintext is surfaced only once via
+// CreateServiceAccountResponse at creation/rotation.
+func (s *ServiceAccount) AsAPIServiceAccount() *model.ServiceAccount {
+	id := s.ID
+	if strings.Contains(id, Collections.ServiceAccount+"/") {
+		id = strings.TrimPrefix(id, Collections.ServiceAccount+"/")
+	}
+	scopes := []string{}
+	for _, sc := range strings.Split(s.AllowedScopes, ",") {
+		if sc = strings.TrimSpace(sc); sc != "" {
+			scopes = append(scopes, sc)
+		}
+	}
+	return &model.ServiceAccount{
+		ID:            id,
+		Name:          s.Name,
+		Description:   s.Description,
+		AllowedScopes: scopes,
+		IsActive:      s.IsActive,
+		CreatedAt:     refs.NewInt64Ref(s.CreatedAt),
+		UpdatedAt:     refs.NewInt64Ref(s.UpdatedAt),
+	}
 }
