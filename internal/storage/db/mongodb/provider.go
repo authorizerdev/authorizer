@@ -136,8 +136,13 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	authenticatorsCollection := mongodb.Collection(schemas.Collections.Authenticators, options.Collection())
 	_, _ = authenticatorsCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1},
-			Options: options.Index().SetSparse(true),
+			// Unique per (user_id, method) — prevents the check-then-insert race
+			// in AddAuthenticator from creating duplicate MFA enrollments.
+			// Also serves user_id-prefix lookups, so no separate user_id index.
+			// Compound index keys MUST use the ordered bson.D — the driver rejects
+			// a multi-key bson.M ("multi-key map passed in for ordered parameter keys").
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "method", Value: 1}},
+			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 

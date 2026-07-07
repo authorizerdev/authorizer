@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,7 +30,13 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 }
 
 // UpdateEmailTemplate to update EmailTemplate
+// Callers MUST load the existing record and mutate it before calling this
+// method — the $set write replaces every column and will blank zero-value
+// fields on a partial struct.
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
+	if emailTemplate.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateEmailTemplate: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	emailTemplateCollection := p.db.Collection(schemas.Collections.EmailTemplate, options.Collection())
 	_, err := emailTemplateCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": emailTemplate.ID}}, bson.M{"$set": emailTemplate}, options.Update())
