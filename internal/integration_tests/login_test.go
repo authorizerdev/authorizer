@@ -165,6 +165,35 @@ func TestLogin(t *testing.T) {
 		assert.Nil(t, res)
 	})
 
+	t.Run("should fail cleanly (not panic) when stored password hash is nil", func(t *testing.T) {
+		noHashEmail := "no_password_hash_" + uuid.New().String() + "@authorizer.dev"
+		signupReq3 := &model.SignUpRequest{
+			Email:           &noHashEmail,
+			Password:        password,
+			ConfirmPassword: password,
+		}
+		signupRes, err := ts.GraphQLProvider.SignUp(ctx, signupReq3)
+		assert.NoError(t, err)
+		assert.NotNil(t, signupRes)
+
+		// Simulate a record whose password hash was never persisted (e.g. the
+		// pre-fix Couchbase json:"-" bug) by nulling it out directly.
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, noHashEmail)
+		assert.NoError(t, err)
+		user.Password = nil
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		assert.NoError(t, err)
+
+		loginReq := &model.LoginRequest{
+			Email:    &noHashEmail,
+			Password: password,
+		}
+		res, err := ts.GraphQLProvider.Login(ctx, loginReq)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid credentials")
+		assert.Nil(t, res)
+	})
+
 	t.Run("mobile login", func(t *testing.T) {
 		mobile := fmt.Sprintf("%d", time.Now().Add(10*time.Second).Unix())
 		signUpReq := &model.SignUpRequest{

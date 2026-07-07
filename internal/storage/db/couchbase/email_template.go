@@ -29,7 +29,11 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 		Context: ctx,
 	}
 
-	_, err := p.db.Collection(schemas.Collections.EmailTemplate).Insert(emailTemplate.ID, emailTemplate, &insertOpt)
+	doc, err := structToDocument(emailTemplate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.EmailTemplate).Insert(emailTemplate.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,11 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.AuditLog).Insert(auditLog.ID, auditLog, &insertOpt)
+	doc, err := structToDocument(auditLog)
+	if err != nil {
+		return err
+	}
+	_, err = p.db.Collection(schemas.Collections.AuditLog).Insert(auditLog.ID, doc, &insertOpt)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,11 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.Session).Insert(session.ID, session, &insertOpt)
+	doc, err := structToDocument(session)
+	if err != nil {
+		return err
+	}
+	_, err = p.db.Collection(schemas.Collections.Session).Insert(session.ID, doc, &insertOpt)
 	if err != nil {
 		return err
 	}
