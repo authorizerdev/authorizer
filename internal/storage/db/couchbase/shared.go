@@ -21,9 +21,12 @@ import (
 // under its `bson` tag key so it is actually persisted. All Insert/Upsert call sites
 // pass their document through this helper.
 //
-// ponytail: paired with decodeDocument. If a schema gains a new `json:"-"` field, its
-// read path MUST decode via decodeDocument or the field will load empty. Today only
-// User.Password is affected, and only User's read methods use decodeDocument.
+// ponytail: paired with decodeDocument. Any struct carrying a `json:"-"` field MUST use
+// structToDocument on its write path and decodeDocument on its read path, or the field is
+// silently dropped. The `json:"-"` secret fields in the schemas are User.Password and
+// ServiceAccount.ClientSecret. TrustedIssuer is deliberately NOT converted — it has no
+// `json:"-"` field, so its Insert passes the raw struct; if a secret field is ever added
+// there, convert its write path to structToDocument and its read path to decodeDocument too.
 func structToDocument(v interface{}) (map[string]interface{}, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -121,7 +124,10 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 		}
 		if value == nil {
 			updateFields += fmt.Sprintf("%s=$%s,", key, key)
-			params[key] = "null"
+			// Bind an actual nil so the gocb N1QL driver serializes it to JSON
+			// null (a real N1QL NULL). Binding the string "null" here would
+			// persist the 4-char literal instead of clearing the field.
+			params[key] = nil
 			continue
 		}
 		valueType := reflect.TypeOf(value)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -98,7 +97,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		var webhook schemas.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		webhooks = append(webhooks, &webhook)
 	}
@@ -147,7 +146,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 		var webhook *schemas.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		webhooks = append(webhooks, webhook)
 	}

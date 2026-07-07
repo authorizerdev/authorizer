@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"strings"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -29,7 +27,11 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.ServiceAccount).Insert(sa.ID, sa, &insertOpt)
+	doc, err := structToDocument(sa)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.ServiceAccount).Insert(sa.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -44,15 +46,7 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sa.UpdatedAt = time.Now().Unix()
-	bytes, err := json.Marshal(sa)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	saMap := map[string]interface{}{}
-	err = decoder.Decode(&saMap)
+	saMap, err := structToDocument(sa)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +90,6 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.Service
 
 // GetServiceAccountByID fetches a service account by primary key.
 func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error) {
-	var sa *schemas.ServiceAccount
 	params := make(map[string]interface{}, 1)
 	params["_id"] = id
 	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE _id=$_id LIMIT 1`, serviceAccountColumns, p.scopeName, schemas.Collections.ServiceAccount)
@@ -108,8 +101,12 @@ func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schem
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&sa)
-	if err != nil {
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	sa := &schemas.ServiceAccount{}
+	if err := decodeDocument(raw, sa); err != nil {
 		return nil, err
 	}
 	return sa, nil
@@ -137,12 +134,15 @@ func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pa
 		return nil, nil, err
 	}
 	for queryResult.Next() {
-		var sa schemas.ServiceAccount
-		err := queryResult.Row(&sa)
-		if err != nil {
-			log.Fatal(err)
+		var raw json.RawMessage
+		if err := queryResult.Row(&raw); err != nil {
+			return nil, nil, err
 		}
-		serviceAccounts = append(serviceAccounts, &sa)
+		sa := &schemas.ServiceAccount{}
+		if err := decodeDocument(raw, sa); err != nil {
+			return nil, nil, err
+		}
+		serviceAccounts = append(serviceAccounts, sa)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err

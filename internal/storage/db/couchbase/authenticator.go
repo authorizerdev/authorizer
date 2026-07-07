@@ -14,6 +14,11 @@ import (
 )
 
 func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas.Authenticator) (*schemas.Authenticator, error) {
+	// ponytail: check-then-insert has no atomic uniqueness guard on (user_id, method).
+	// Collection.Insert only enforces uniqueness on the document key (authenticator ID), so
+	// two concurrent calls can both pass this pre-check and insert duplicate authenticators.
+	// Accepted for now (shared by the other NoSQL providers); a real fix needs a Couchbase
+	// unique secondary index on (user_id, method) plus a conditional/index-backed insert.
 	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
 	if exists != nil {
 		return authenticators, nil
@@ -69,7 +74,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators *schemas.Authenticator
-	query := fmt.Sprintf("SELECT _id, user_id, method, secret, recovery_code, verified_at, created_at, updated_at FROM %s.%s WHERE user_id = $1 AND method = $2 LIMIT 1", p.scopeName, schemas.Collections.Authenticators)
+	query := fmt.Sprintf("SELECT _id, user_id, method, secret, recovery_codes, verified_at, created_at, updated_at FROM %s.%s WHERE user_id = $1 AND method = $2 LIMIT 1", p.scopeName, schemas.Collections.Authenticators)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,

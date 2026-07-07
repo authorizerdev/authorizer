@@ -3,7 +3,6 @@ package couchbase
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -88,7 +87,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.VerificationRequest)
+	query := fmt.Sprintf("SELECT _id, token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s.%s OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.VerificationRequest)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -101,7 +100,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		var verificationRequest schemas.VerificationRequest
 		err := queryResult.Row(&verificationRequest)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		verificationRequests = append(verificationRequests, &verificationRequest)
 	}

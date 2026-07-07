@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -96,7 +95,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 		var emailTemplate *schemas.EmailTemplate
 		err := queryResult.Row(&emailTemplate)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		emailTemplates = append(emailTemplates, emailTemplate)
 	}

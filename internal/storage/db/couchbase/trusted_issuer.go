@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -170,7 +169,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 		var issuer schemas.TrustedIssuer
 		err := queryResult.Row(&issuer)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		issuers = append(issuers, &issuer)
 	}
