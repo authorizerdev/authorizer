@@ -33,7 +33,9 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 
 // UpdateTrustedIssuer updates a trusted issuer record.
 // Callers MUST load the existing record and mutate it before calling this
-// method — the document replace writes every field.
+// method — this is a partial update via UpdateDocument (ArangoDB PATCH
+// semantics), safe here because callers pass a fully-loaded struct, per this
+// method's "callers must load record first" contract.
 func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {
 	if issuer.CreatedAt == 0 {
 		return nil, fmt.Errorf("UpdateTrustedIssuer: caller must load record before updating (CreatedAt is zero — partial struct detected)")
@@ -60,9 +62,11 @@ func (p *provider) DeleteTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 }
 
 // GetTrustedIssuerByID fetches a trusted issuer by primary key.
+// Filters on _key, not _id: every real caller holds the bare id
+// AsAPITrustedIssuer exposes, never the full "collection/key" handle.
 func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schemas.TrustedIssuer, error) {
 	var issuer *schemas.TrustedIssuer
-	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", schemas.Collections.TrustedIssuer)
+	query := fmt.Sprintf("FOR d in %s FILTER d._key == @id LIMIT 1 RETURN d", schemas.Collections.TrustedIssuer)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}

@@ -22,7 +22,11 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
 	saCollection, _ := p.db.Collection(ctx, schemas.Collections.ServiceAccount)
-	meta, err := saCollection.CreateDocument(ctx, sa)
+	doc, err := structToDocument(sa)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := saCollection.CreateDocument(ctx, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +37,20 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 
 // UpdateServiceAccount updates a service account record.
 // Callers MUST load the existing record and mutate it before calling this
-// method — the document replace writes every field.
+// method — this is a partial update via UpdateDocument (ArangoDB PATCH
+// semantics), safe here because callers pass a fully-loaded struct, per this
+// method's "callers must load record first" contract.
 func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
 	if sa.CreatedAt == 0 {
 		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sa.UpdatedAt = time.Now().Unix()
 	saCollection, _ := p.db.Collection(ctx, schemas.Collections.ServiceAccount)
-	meta, err := saCollection.UpdateDocument(ctx, sa.Key, sa)
+	doc, err := structToDocument(sa)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := saCollection.UpdateDocument(ctx, sa.Key, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +69,11 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.Service
 	}
 	query := fmt.Sprintf("FOR d IN %s FILTER d.service_account_id == @service_account_id REMOVE { _key: d._key } IN %s", schemas.Collections.TrustedIssuer, schemas.Collections.TrustedIssuer)
 	bindVars := map[string]interface{}{
-		"service_account_id": sa.ID,
+		// TrustedIssuer.ServiceAccountID is stored as the bare key (it's set
+		// verbatim from the external, API-facing id) — sa.ID is always the
+		// full "collection/key" handle by the time this runs (populated from
+		// the document's _id on every read). Compare against sa.Key, not sa.ID.
+		"service_account_id": sa.Key,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
@@ -70,9 +84,12 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.Service
 }
 
 // GetServiceAccountByID fetches a service account by primary key.
+// Filters on _key, not _id: every real caller (admin API params, the
+// client_credentials token endpoint) holds the bare id AsAPIServiceAccount
+// exposes, never the full "collection/key" handle.
 func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error) {
 	var sa *schemas.ServiceAccount
-	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", schemas.Collections.ServiceAccount)
+	query := fmt.Sprintf("FOR d in %s FILTER d._key == @id LIMIT 1 RETURN d", schemas.Collections.ServiceAccount)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}
@@ -88,10 +105,11 @@ func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schem
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &sa)
-		if err != nil {
+		s := &schemas.ServiceAccount{}
+		if _, err := readDocument(ctx, cursor, s); err != nil {
 			return nil, err
 		}
+		sa = s
 	}
 	return sa, nil
 }
@@ -109,8 +127,8 @@ func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pa
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var sa *schemas.ServiceAccount
-		meta, err := cursor.ReadDocument(ctx, &sa)
+		sa := &schemas.ServiceAccount{}
+		meta, err := readDocument(ctx, cursor, sa)
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {

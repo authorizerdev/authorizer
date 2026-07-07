@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // AddSession to save session information in database
 func (p *provider) AddSession(ctx context.Context, session *schemas.Session) error {
 	if session.ID == "" {
-		session.Key = session.ID
+		session.ID = uuid.New().String()
 	}
+	session.Key = session.ID
 	session.CreatedAt = time.Now().Unix()
 	session.UpdatedAt = time.Now().Unix()
 	sessionCollection, _ := p.db.Collection(ctx, schemas.Collections.Session)
