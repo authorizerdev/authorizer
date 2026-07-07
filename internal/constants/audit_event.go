@@ -163,6 +163,10 @@ const (
 	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
 	// via the client_credentials grant (RFC 6749 §4.4).
 	AuditTokenClientCredentialsEvent = "token.client_credentials"
+	// AuditTokenClientCredentialsFailedEvent is logged when a client_credentials
+	// authentication attempt fails (unknown client_id, inactive account, or
+	// wrong secret) — mirrors AuditLoginFailedEvent for the human login path.
+	AuditTokenClientCredentialsFailedEvent = "token.client_credentials_failed"
 	// AuditTokenExchangeEvent is logged when a token exchange occurs (RFC 8693).
 	AuditTokenExchangeEvent = "token.exchange"
 	// AuditWorkloadAuthEvent is logged when a workload authenticates via client_assertion

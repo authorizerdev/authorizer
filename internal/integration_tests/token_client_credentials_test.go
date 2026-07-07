@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -237,5 +238,52 @@ func TestClientCredentialsGrant(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, w.Code)
 		body := decodeJSON(t, w)
 		assert.Equal(t, "invalid_request", body["error"])
+	})
+
+	// True end-to-end: unlike every subtest above (which fabricates a
+	// ServiceAccount + bcrypt hash directly via storage), this goes through
+	// the real admin API — the same path an operator actually uses — and
+	// proves the client_id/client_secret it hands back are genuinely usable
+	// at /oauth/token, not just internally-consistent test fixtures.
+	t.Run("admin_created_service_account_authenticates_end_to_end", func(t *testing.T) {
+		_, adminCtx := createContext(ts)
+		setAdminCookie(t, ts)
+
+		created, err := ts.GraphQLProvider.CreateServiceAccount(adminCtx, &model.CreateServiceAccountRequest{
+			Name:          "e2e-worker-" + uuid.New().String(),
+			AllowedScopes: []string{"read", "write"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, created)
+		require.NotEmpty(t, created.ClientSecret, "create must return the plaintext secret exactly once")
+
+		clientID := created.ServiceAccount.ID
+		clientSecret := created.ClientSecret
+
+		form := url.Values{}
+		form.Set("grant_type", constants.GrantTypeClientCredentials)
+		form.Set("scope", "read")
+
+		w := postClientCredentials(router, form, []string{clientID, clientSecret})
+		require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+
+		body := decodeJSON(t, w)
+		accessToken, _ := body["access_token"].(string)
+		require.NotEmpty(t, accessToken)
+		assert.Equal(t, "read", body["scope"])
+
+		// The issued token must actually validate downstream, and the fetched
+		// ServiceAccount (via the same admin API) must never expose the secret.
+		validateReq, _ := http.NewRequest(http.MethodGet, "/", nil)
+		validateReq.Header.Set("X-Authorizer-URL", ccTestAuthorizerURL)
+		gctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		gctx.Request = validateReq
+		claims, err := ts.TokenProvider.ValidateAccessToken(gctx, accessToken)
+		require.NoError(t, err)
+		assert.Equal(t, clientID, claims["sub"])
+
+		fetched, err := ts.GraphQLProvider.ServiceAccount(adminCtx, &model.ServiceAccountRequest{ID: clientID})
+		require.NoError(t, err)
+		assert.Equal(t, created.ServiceAccount.Name, fetched.Name)
 	})
 }

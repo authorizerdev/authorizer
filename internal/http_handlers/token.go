@@ -600,6 +600,20 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, c
 	secretErr := bcrypt.CompareHashAndPassword([]byte(sa.ClientSecret), []byte(clientSecret))
 	if !sa.IsActive || secretErr != nil {
 		log.Debug().Bool("is_active", sa.IsActive).Msg("client_credentials authentication failed")
+		// Audited here (not on the unknown-client_id path above) because we
+		// have a resolved ServiceAccount to attribute the attempt to — mirrors
+		// login.go's bad_password/account_revoked branches, which likewise
+		// don't audit the user-not-found case.
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditTokenClientCredentialsFailedEvent,
+			ActorID:      sa.ID,
+			ActorType:    constants.AuditActorTypeServiceAccount,
+			ResourceType: constants.AuditResourceTypeToken,
+			ResourceID:   sa.ID,
+			Metadata:     constants.GrantTypeClientCredentials,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
+		})
 		respondInvalidClient()
 		return
 	}
