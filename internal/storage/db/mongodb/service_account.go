@@ -1,0 +1,105 @@
+package mongodb
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+)
+
+// AddServiceAccount creates a new service account record.
+func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+	if sa.ID == "" {
+		sa.ID = uuid.New().String()
+	}
+	sa.Key = sa.ID
+	now := time.Now().Unix()
+	sa.CreatedAt = now
+	sa.UpdatedAt = now
+	saCollection := p.db.Collection(schemas.Collections.ServiceAccount, options.Collection())
+	_, err := saCollection.InsertOne(ctx, sa)
+	if err != nil {
+		return nil, err
+	}
+	return sa, nil
+}
+
+// UpdateServiceAccount updates a service account record.
+// Callers MUST load the existing record and mutate it before calling this
+// method — the $set write replaces every column and will blank zero-value
+// fields on a partial struct.
+func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+	if sa.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
+	sa.UpdatedAt = time.Now().Unix()
+	saCollection := p.db.Collection(schemas.Collections.ServiceAccount, options.Collection())
+	_, err := saCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": sa.ID}}, bson.M{"$set": sa}, options.MergeUpdateOptions())
+	if err != nil {
+		return nil, err
+	}
+	return sa, nil
+}
+
+// DeleteServiceAccount removes a service account and all its associated
+// TrustedIssuers. Mirrors the webhook cascade-delete pattern.
+func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error {
+	saCollection := p.db.Collection(schemas.Collections.ServiceAccount, options.Collection())
+	_, err := saCollection.DeleteOne(ctx, bson.M{"_id": sa.ID}, options.Delete())
+	if err != nil {
+		return err
+	}
+	issuerCollection := p.db.Collection(schemas.Collections.TrustedIssuer, options.Collection())
+	_, err = issuerCollection.DeleteMany(ctx, bson.M{"service_account_id": sa.ID}, options.Delete())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetServiceAccountByID fetches a service account by primary key.
+func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error) {
+	var sa *schemas.ServiceAccount
+	saCollection := p.db.Collection(schemas.Collections.ServiceAccount, options.Collection())
+	err := saCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&sa)
+	if err != nil {
+		return nil, err
+	}
+	return sa, nil
+}
+
+// ListServiceAccounts returns a paginated list of service accounts.
+func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error) {
+	serviceAccounts := []*schemas.ServiceAccount{}
+	opts := options.Find()
+	opts.SetLimit(pagination.Limit)
+	opts.SetSkip(pagination.Offset)
+	opts.SetSort(bson.M{"created_at": -1})
+	paginationClone := pagination
+	saCollection := p.db.Collection(schemas.Collections.ServiceAccount, options.Collection())
+	count, err := saCollection.CountDocuments(ctx, bson.M{}, options.Count())
+	if err != nil {
+		return nil, nil, err
+	}
+	paginationClone.Total = count
+	cursor, err := saCollection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = cursor.Close(ctx) }()
+	for cursor.Next(ctx) {
+		var sa *schemas.ServiceAccount
+		err := cursor.Decode(&sa)
+		if err != nil {
+			return nil, nil, err
+		}
+		serviceAccounts = append(serviceAccounts, sa)
+	}
+	return serviceAccounts, paginationClone, nil
+}

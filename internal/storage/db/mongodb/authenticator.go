@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +32,14 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	return authenticators, nil
 }
 
+// UpdateAuthenticator updates an authenticator record.
+// Callers MUST load the existing record and mutate it before calling this
+// method — the $set write replaces every column and will blank zero-value
+// fields on a partial struct.
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *schemas.Authenticator) (*schemas.Authenticator, error) {
+	if authenticators.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateAuthenticator: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	authenticators.UpdatedAt = time.Now().Unix()
 	authenticatorsCollection := p.db.Collection(schemas.Collections.Authenticators, options.Collection())
 	_, err := authenticatorsCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": authenticators.ID}}, bson.M{"$set": authenticators})

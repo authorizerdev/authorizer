@@ -103,6 +103,25 @@ func TestNilSecretFieldRoundTrip(t *testing.T) {
 	assert.Nil(t, out.Password)
 }
 
+// TestGetSetFieldsBindsNilNotStringNull proves a nil field value is bound as an actual
+// Go nil (which the gocb N1QL driver serializes to a real NULL), not the literal string
+// "null". Binding "null" would persist the 4-char text and surface it back through the API.
+func TestGetSetFieldsBindsNilNotStringNull(t *testing.T) {
+	in := map[string]interface{}{
+		"description": nil,
+		"name":        "keep-me",
+	}
+	_, params := GetSetFields(in)
+
+	got, ok := params["description"]
+	require.True(t, ok, "nil field must still be included in the UPDATE params")
+	assert.Nil(t, got, "nil field must bind Go nil, not the string \"null\"")
+	assert.NotEqual(t, "null", got, "nil field must not persist the literal string \"null\"")
+
+	// Non-nil values are untouched.
+	assert.Equal(t, "keep-me", params["name"])
+}
+
 // TestStructToDocumentNoOpForPlainStructs guarantees entities without json:"-"
 // fields serialize byte-identically to the previous raw-struct path.
 func TestStructToDocumentNoOpForPlainStructs(t *testing.T) {

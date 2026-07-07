@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -39,23 +38,13 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if !strings.Contains(webhook.EventName, "-") {
 		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	}
-	bytes, err := json.Marshal(webhook)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	webhookMap := map[string]interface{}{}
-	err = decoder.Decode(&webhookMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(webhookMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields — see buildCQLColumnMap).
+	webhookMap := buildCQLColumnMap(webhook)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range webhookMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 		if key == "_key" {
@@ -72,7 +61,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	updateFields = strings.TrimSuffix(updateFields, ",")
 	updateValues = append(updateValues, webhook.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.Webhook, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}

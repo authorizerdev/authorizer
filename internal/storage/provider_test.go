@@ -136,11 +136,11 @@ func TestStorageProvider(t *testing.T) {
 			})
 
 			t.Run("Authenticator Operations", func(t *testing.T) {
-				testAuthenticatorOperations(t, ctx, provider)
+				testAuthenticatorOperations(t, ctx, provider, dbType)
 			})
 
 			t.Run("Email Template Operations", func(t *testing.T) {
-				testEmailTemplateOperations(t, ctx, provider)
+				testEmailTemplateOperations(t, ctx, provider, dbType)
 			})
 
 			t.Run("OTP Operations", func(t *testing.T) {
@@ -152,7 +152,7 @@ func TestStorageProvider(t *testing.T) {
 			})
 
 			t.Run("User Operations", func(t *testing.T) {
-				testUserOperations(t, ctx, provider)
+				testUserOperations(t, ctx, provider, dbType)
 			})
 
 			t.Run("Verification Request Operations", func(t *testing.T) {
@@ -160,7 +160,7 @@ func TestStorageProvider(t *testing.T) {
 			})
 
 			t.Run("Webhook Operations", func(t *testing.T) {
-				testWebhookOperations(t, ctx, provider)
+				testWebhookOperations(t, ctx, provider, dbType)
 			})
 
 			t.Run("Session Token Operations", func(t *testing.T) {
@@ -179,11 +179,133 @@ func TestStorageProvider(t *testing.T) {
 				testAuditLogOperations(t, ctx, provider)
 			})
 
+			t.Run("Service Account Operations", func(t *testing.T) {
+				testServiceAccountOperations(t, ctx, provider)
+			})
+
+			t.Run("Trusted Issuer Operations", func(t *testing.T) {
+				testTrustedIssuerOperations(t, ctx, provider, dbType)
+			})
+
+			if isSQLTestDB(dbType) {
+				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
+					testSQLCRUDCorrectnessFixes(t, ctx, provider)
+				})
+			}
+
 		})
 	}
 }
 
-func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
+// isSQLTestDB reports whether dbType is backed by the shared GORM SQL provider.
+// The CRUD-correctness regression tests below assert behaviour specific to that
+// provider (uniqueness pre-check, LIKE anchoring, partial-struct guard).
+func isSQLTestDB(dbType string) bool {
+	switch dbType {
+	case constants.DbTypePostgres, constants.DbTypeSqlite, constants.DbTypeLibSQL,
+		constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypeSqlserver,
+		constants.DbTypeYugabyte, constants.DbTypeCockroachDB, constants.DbTypePlanetScaleDB:
+		return true
+	default:
+		return false
+	}
+}
+
+// testSQLCRUDCorrectnessFixes covers the SQL storage CRUD-correctness fixes:
+// #1 AddUser email uniqueness when a phone is also supplied, #2 anchored
+// session-token deletion, and #3 the UpdateUser partial-struct guard.
+func testSQLCRUDCorrectnessFixes(t *testing.T, ctx context.Context, provider Provider) {
+	// #1: AddUser must check email uniqueness even when a phone number is also
+	// supplied (previously an else-if skipped the email check).
+	sharedEmail := "crud_" + uuid.New().String() + "@test.com"
+	userA := &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef(sharedEmail),
+		PhoneNumber:   refs.NewStringRef("phoneA-" + uuid.New().String()),
+		Password:      refs.NewStringRef("hashA"),
+		SignupMethods: "basic_auth",
+	}
+	_, err := provider.AddUser(ctx, userA)
+	require.NoError(t, err)
+
+	userB := &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef(sharedEmail), // duplicate email
+		PhoneNumber:   refs.NewStringRef("phoneB-" + uuid.New().String()),
+		Password:      refs.NewStringRef("hashB"),
+		SignupMethods: "basic_auth",
+	}
+	_, err = provider.AddUser(ctx, userB)
+	require.Error(t, err, "duplicate email must be rejected even when phone differs")
+	assert.Contains(t, err.Error(), "email", "error should identify the email conflict")
+
+	require.NoError(t, provider.DeleteUser(ctx, userA))
+
+	// #2: DeleteAllSessionTokensByUserID must delete only the target user's
+	// tokens, not another user whose stored id contains the target as a
+	// substring. otherUser ("xu"+suffix) contains targetUser ("u"+suffix).
+	suffix := uuid.New().String()
+	targetUser := "u" + suffix
+	otherUser := "xu" + suffix
+	targetStored := "auth_provider:" + targetUser
+	otherStored := "auth_provider:" + otherUser
+
+	addToken := func(storedUserID, key string) {
+		require.NoError(t, provider.AddSessionToken(ctx, &schemas.SessionToken{
+			UserID:    storedUserID,
+			KeyName:   key,
+			Token:     "tok_" + uuid.New().String(),
+			ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+		}))
+	}
+	addToken(targetStored, "session_token_key")
+	addToken(otherStored, "session_token_key")
+
+	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
+
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetStored, "session_token_key")
+	assert.Error(t, err, "target user's session token should be deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
+	assert.NoError(t, err, "substring-matching other user's session token must survive")
+
+	// cleanup the surviving token
+	_ = provider.DeleteAllSessionTokensByUserID(ctx, otherUser)
+
+	// #3a: UpdateUser rejects a partial struct (CreatedAt == 0, i.e. never loaded).
+	_, err = provider.UpdateUser(ctx, &schemas.User{
+		ID:    uuid.New().String(),
+		Email: refs.NewStringRef("partial_" + uuid.New().String() + "@test.com"),
+	})
+	require.Error(t, err, "partial struct with zero CreatedAt must be rejected")
+	assert.Contains(t, err.Error(), "created_at")
+
+	// #3b: loading a user, mutating one field and saving must not blank other fields.
+	u := &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef("preserve_" + uuid.New().String() + "@test.com"),
+		Password:      refs.NewStringRef("secret-hash"),
+		Roles:         "user",
+		SignupMethods: "basic_auth",
+	}
+	created, err := provider.AddUser(ctx, u)
+	require.NoError(t, err)
+
+	loaded, err := provider.GetUserByID(ctx, created.ID)
+	require.NoError(t, err)
+	loaded.GivenName = refs.NewStringRef("UpdatedName")
+	_, err = provider.UpdateUser(ctx, loaded)
+	require.NoError(t, err)
+
+	refetched, err := provider.GetUserByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "UpdatedName", refs.StringValue(refetched.GivenName))
+	assert.Equal(t, "secret-hash", refs.StringValue(refetched.Password), "password must be preserved")
+	assert.Equal(t, "user", refetched.Roles, "roles must be preserved")
+
+	require.NoError(t, provider.DeleteUser(ctx, refetched))
+}
+
+func testUserOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	// Create test user
 	user := &schemas.User{
 		ID:            uuid.New().String(),
@@ -211,12 +333,57 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	require.NotNil(t, fetchedUser.Password, "stored password must round-trip from the database")
 	assert.Equal(t, *user.Password, *fetchedUser.Password)
 
-	// Test UpdateUser
+	// Test UpdateUser mutates only the changed field and preserves the rest.
 	fetchedUser.GivenName = refs.NewStringRef("Updated")
 	updatedUser, err := provider.UpdateUser(ctx, fetchedUser)
 	require.NoError(t, err)
 	require.NotNil(t, updatedUser)
 	assert.Equal(t, "Updated", *updatedUser.GivenName)
+	// Reload and assert unrelated fields were not blanked by the full-document write.
+	reloadedUser, err := provider.GetUserByID(ctx, createdUser.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated", *reloadedUser.GivenName)
+	assert.Equal(t, *user.Email, *reloadedUser.Email, "email must survive an unrelated update")
+	assert.Equal(t, "basic_auth", reloadedUser.SignupMethods, "signup_methods must survive an unrelated update")
+	require.NotNil(t, reloadedUser.Password, "password must survive an unrelated update")
+	assert.Equal(t, *user.Password, *reloadedUser.Password)
+
+	if dbType == constants.DbTypeMongoDB {
+		// Guard: a partial struct with no CreatedAt (caller forgot to load the
+		// record first) must be rejected, not silently blank every other field.
+		partial := &schemas.User{
+			ID:        createdUser.ID,
+			GivenName: refs.NewStringRef("ShouldNotPersist"),
+		}
+		_, err = provider.UpdateUser(ctx, partial)
+		require.Error(t, err, "UpdateUser must reject a partial struct with zero CreatedAt")
+		assert.Contains(t, err.Error(), "partial struct detected")
+		// The stored document must be untouched by the rejected write.
+		intact, err := provider.GetUserByID(ctx, createdUser.ID)
+		require.NoError(t, err)
+		require.NotNil(t, intact.Email, "rejected update must not blank the email")
+		assert.Equal(t, *user.Email, *intact.Email)
+		assert.Equal(t, "Updated", *intact.GivenName, "rejected update must not overwrite given_name")
+	}
+
+	// Nullable pointer fields must clear to null when set to nil on update.
+	// Regression guard: a nil pointer is omitted from the update, so a provider
+	// that does not explicitly clear the stored attribute (DynamoDB) would leave
+	// the stale value behind (e.g. an avatar URL that can never be removed).
+	fetchedUser.Picture = refs.NewStringRef("https://example.com/avatar.png")
+	_, err = provider.UpdateUser(ctx, fetchedUser)
+	require.NoError(t, err)
+	withPicture, err := provider.GetUserByID(ctx, fetchedUser.ID)
+	require.NoError(t, err)
+	require.NotNil(t, withPicture.Picture)
+	assert.Equal(t, "https://example.com/avatar.png", *withPicture.Picture)
+
+	withPicture.Picture = nil
+	_, err = provider.UpdateUser(ctx, withPicture)
+	require.NoError(t, err)
+	cleared, err := provider.GetUserByID(ctx, fetchedUser.ID)
+	require.NoError(t, err)
+	assert.Nil(t, cleared.Picture, "Picture must be cleared to nil, not left at the stale stored value")
 
 	// Test ListUsers
 	users, pagination, err := provider.ListUsers(ctx, &model.Pagination{
@@ -249,6 +416,10 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	require.NoError(t, err)
 	require.NotNil(t, fetchedUser)
 	assert.Equal(t, user.PhoneNumber, fetchedUser.PhoneNumber)
+	// Password must round-trip through the GetUserByID read path too, not just
+	// GetUserByEmail — each read method is a distinct provider call site.
+	require.NotNil(t, fetchedUser.Password, "GetUserByID must round-trip the stored password")
+	assert.Equal(t, *user.Password, *fetchedUser.Password)
 
 	// Test UpdateUsers
 	users, _, err = provider.ListUsers(ctx, &model.Pagination{
@@ -258,6 +429,18 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)
+	// ListUsers is a third read path that could silently drop the json:"-"
+	// Password field; verify the created user carries it in the list result.
+	var foundInList *schemas.User
+	for _, u := range users {
+		if u.ID == createdUser.ID {
+			foundInList = u
+			break
+		}
+	}
+	require.NotNil(t, foundInList, "created user should appear in ListUsers")
+	require.NotNil(t, foundInList.Password, "ListUsers must not drop the stored password")
+	assert.Equal(t, *user.Password, *foundInList.Password)
 	data := map[string]interface{}{
 		"phone_number": "+3216549870",
 	}
@@ -278,10 +461,12 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 
 func testVerificationRequestOperations(t *testing.T, ctx context.Context, provider Provider) {
 	vr := &schemas.VerificationRequest{
-		Token:      uuid.New().String(),
-		Email:      "test_" + uuid.New().String() + "@test.com",
-		ExpiresAt:  time.Now().Add(24 * time.Hour).Unix(),
-		Identifier: "email_verification",
+		Token:       uuid.New().String(),
+		Email:       "test_" + uuid.New().String() + "@test.com",
+		ExpiresAt:   time.Now().Add(24 * time.Hour).Unix(),
+		Identifier:  "email_verification",
+		Nonce:       uuid.New().String(),
+		RedirectURI: "https://app.example.com/callback",
 	}
 
 	// Test AddVerificationRequest
@@ -308,6 +493,23 @@ func testVerificationRequestOperations(t *testing.T, ctx context.Context, provid
 	assert.NotNil(t, requests)
 	assert.Greater(t, len(requests), 0)
 
+	// ListVerificationRequests must return the real record fields, not empty strings.
+	// (Regression guard: the Couchbase provider previously SELECTed a non-existent `env`
+	// column, so every listed record had empty token/identifier/email/nonce/redirect_uri.)
+	var listed *schemas.VerificationRequest
+	for _, r := range requests {
+		if r.Token == vr.Token {
+			listed = r
+			break
+		}
+	}
+	require.NotNil(t, listed, "created verification request must appear in ListVerificationRequests")
+	assert.Equal(t, vr.Email, listed.Email)
+	assert.Equal(t, vr.Identifier, listed.Identifier)
+	assert.Equal(t, vr.Nonce, listed.Nonce)
+	assert.Equal(t, vr.RedirectURI, listed.RedirectURI)
+	assert.Equal(t, vr.ExpiresAt, listed.ExpiresAt)
+
 	// Test DeleteVerificationRequest
 	err = provider.DeleteVerificationRequest(ctx, vr)
 	assert.NoError(t, err)
@@ -330,7 +532,7 @@ func testSessionOperations(t *testing.T, ctx context.Context, provider Provider)
 	assert.NoError(t, err)
 }
 
-func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider) {
+func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	webhook := &schemas.Webhook{
 		EventName: "test_event",
 		EndPoint:  "https://test.com/webhook",
@@ -353,11 +555,32 @@ func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider)
 	assert.NotNil(t, fetchedByEventName)
 	assert.Equal(t, created.ID, fetchedByEventName[0].ID)
 
-	// Test UpdateWebhook
+	// Test UpdateWebhook mutates only the changed field and preserves the rest.
 	webhook.EndPoint = "https://test.com/webhook_updated"
 	updated, err := provider.UpdateWebhook(ctx, webhook)
 	assert.NoError(t, err)
 	assert.Equal(t, webhook.EndPoint, updated.EndPoint)
+	// Reload and assert unrelated fields were not blanked by the full-document write.
+	reloadedWebhook, err := provider.GetWebhookByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, updated.EndPoint, reloadedWebhook.EndPoint)
+	assert.Equal(t, created.EventName, reloadedWebhook.EventName, "event_name must survive an unrelated update")
+	assert.Equal(t, created.Enabled, reloadedWebhook.Enabled, "enabled must survive an unrelated update")
+
+	if dbType == constants.DbTypeMongoDB {
+		// Guard: a partial struct with no CreatedAt must be rejected.
+		partial := &schemas.Webhook{
+			ID:       created.ID,
+			EndPoint: "https://should-not-persist.example.com",
+		}
+		_, err = provider.UpdateWebhook(ctx, partial)
+		require.Error(t, err, "UpdateWebhook must reject a partial struct with zero CreatedAt")
+		assert.Contains(t, err.Error(), "partial struct detected")
+		intact, err := provider.GetWebhookByID(ctx, created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, created.EventName, intact.EventName, "rejected update must not blank event_name")
+		assert.Equal(t, updated.EndPoint, intact.EndPoint, "rejected update must not overwrite endpoint")
+	}
 
 	// Test ListWebhook
 	webhooks, _, err := provider.ListWebhook(ctx, &model.Pagination{
@@ -382,7 +605,7 @@ func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider)
 	assert.NoError(t, err)
 }
 
-func testEmailTemplateOperations(t *testing.T, ctx context.Context, provider Provider) {
+func testEmailTemplateOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	template := &schemas.EmailTemplate{
 		EventName: "test_event_" + uuid.New().String(),
 		Template:  "Test template",
@@ -406,11 +629,33 @@ func testEmailTemplateOperations(t *testing.T, ctx context.Context, provider Pro
 	assert.Equal(t, template.EventName, fetchedByEventName.EventName)
 	assert.Equal(t, created.ID, fetchedByEventName.ID)
 
-	// Test UpdateEmailTemplate
+	// Test UpdateEmailTemplate mutates only the changed field and preserves the rest.
 	template.Template = "Updated template"
 	updated, err := provider.UpdateEmailTemplate(ctx, template)
 	assert.NoError(t, err)
 	assert.Equal(t, template.Template, updated.Template)
+	// Reload and assert unrelated fields were not blanked by the full-document write.
+	reloadedTemplate, err := provider.GetEmailTemplateByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated template", reloadedTemplate.Template)
+	assert.Equal(t, created.EventName, reloadedTemplate.EventName, "event_name must survive an unrelated update")
+	assert.Equal(t, created.Subject, reloadedTemplate.Subject, "subject must survive an unrelated update")
+
+	if dbType == constants.DbTypeMongoDB {
+		// Guard: a partial struct with no CreatedAt must be rejected.
+		partial := &schemas.EmailTemplate{
+			ID:       created.ID,
+			Template: "should not persist",
+		}
+		_, err = provider.UpdateEmailTemplate(ctx, partial)
+		require.Error(t, err, "UpdateEmailTemplate must reject a partial struct with zero CreatedAt")
+		assert.Contains(t, err.Error(), "partial struct detected")
+		intact, err := provider.GetEmailTemplateByID(ctx, created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, created.EventName, intact.EventName, "rejected update must not blank event_name")
+		assert.Equal(t, created.Subject, intact.Subject, "rejected update must not blank subject")
+		assert.Equal(t, "Updated template", intact.Template, "rejected update must not overwrite template")
+	}
 
 	// Test ListEmailTemplate
 	templates, _, err := provider.ListEmailTemplate(ctx, &model.Pagination{
@@ -469,7 +714,7 @@ func testOTPOperations(t *testing.T, ctx context.Context, provider Provider) {
 	assert.NoError(t, err)
 }
 
-func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Provider) {
+func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	auth := &schemas.Authenticator{
 		UserID:        uuid.New().String(),
 		Method:        constants.EnvKeyTOTPAuthenticator,
@@ -487,11 +732,48 @@ func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Pro
 	assert.NoError(t, err)
 	assert.Equal(t, auth.Secret, fetched.Secret)
 
-	// Test UpdateAuthenticator
+	// Test UpdateAuthenticator mutates only the changed field and preserves the rest.
 	auth.Secret = "updated_secret"
 	updated, err := provider.UpdateAuthenticator(ctx, auth)
 	assert.NoError(t, err)
 	assert.Equal(t, "updated_secret", updated.Secret)
+	// Reload and assert unrelated fields were not blanked by the full-document write.
+	reloaded, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+	require.NoError(t, err)
+	assert.Equal(t, "updated_secret", reloaded.Secret)
+	assert.Equal(t, auth.Method, reloaded.Method, "method must survive an unrelated update")
+	require.NotNil(t, reloaded.RecoveryCodes, "recovery_codes must survive an unrelated update")
+	assert.Equal(t, "test", *reloaded.RecoveryCodes)
+
+	if dbType == constants.DbTypeMongoDB {
+		// Guard: a partial struct with no CreatedAt must be rejected, not silently
+		// blank the recovery codes / secret of an enrolled authenticator.
+		partial := &schemas.Authenticator{
+			ID:     created.ID,
+			Secret: "should_not_persist",
+		}
+		_, err = provider.UpdateAuthenticator(ctx, partial)
+		require.Error(t, err, "UpdateAuthenticator must reject a partial struct with zero CreatedAt")
+		assert.Contains(t, err.Error(), "partial struct detected")
+		intact, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+		require.NoError(t, err)
+		assert.Equal(t, "updated_secret", intact.Secret, "rejected update must not overwrite secret")
+		require.NotNil(t, intact.RecoveryCodes, "rejected update must not blank recovery_codes")
+
+		// Enrollment race: a second enrollment for the same (user_id, method) must
+		// not create a divergent duplicate. AddAuthenticator's pre-check returns the
+		// existing record; the unique (user_id, method) index backstops a true race.
+		dup := &schemas.Authenticator{
+			UserID: auth.UserID,
+			Method: constants.EnvKeyTOTPAuthenticator,
+			Secret: "second_enrollment_secret",
+		}
+		_, err = provider.AddAuthenticator(ctx, dup)
+		require.NoError(t, err)
+		afterDup, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+		require.NoError(t, err)
+		assert.Equal(t, "updated_secret", afterDup.Secret, "second enrollment must not create a divergent duplicate")
+	}
 }
 
 func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Provider) {
@@ -582,6 +864,20 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 	err = provider.AddSessionToken(ctx, token5)
 	require.NoError(t, err)
 
+	// A different user's token must NOT be swept up by DeleteAllSessionTokensByUserID.
+	// user_id is stored namespaced ("auth_provider:<uuid>") and the delete is called with
+	// the bare uuid, so the match is a suffix/substring — a second, distinct user's token
+	// (different uuid) must survive to prove no cross-user collateral deletion.
+	otherUser := "auth_provider:" + uuid.New().String()
+	otherToken := &schemas.SessionToken{
+		UserID:    otherUser,
+		KeyName:   "session_token_key",
+		Token:     "other_user_token",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddSessionToken(ctx, otherToken)
+	require.NoError(t, err)
+
 	// Extract just the user ID part for DeleteAllSessionTokensByUserID
 	userIDPart := userId2[len("auth_provider:"):]
 	err = provider.DeleteAllSessionTokensByUserID(ctx, userIDPart)
@@ -592,6 +888,16 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 	assert.Error(t, err)
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId2, "access_token_key")
 	assert.Error(t, err)
+
+	// The other user's session must still exist.
+	otherFetched, err := provider.GetSessionTokenByUserIDAndKey(ctx, otherUser, "session_token_key")
+	require.NoError(t, err, "deleting one user's sessions must not delete a distinct user's sessions")
+	require.NotNil(t, otherFetched)
+	assert.Equal(t, "other_user_token", otherFetched.Token)
+
+	// Clean up the other user's token so it does not leak into later assertions.
+	err = provider.DeleteAllSessionTokensByUserID(ctx, otherUser[len("auth_provider:"):])
+	assert.NoError(t, err)
 
 	// Test DeleteSessionTokensByNamespace
 	namespace := "auth_provider"
@@ -894,4 +1200,205 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 		}
 	}
 	assert.True(t, found, "Should find test_state_key_2 in all states")
+}
+
+// testServiceAccountOperations exercises ServiceAccount CRUD using the
+// *externally exposed* id (AsAPIServiceAccount().ID) for every lookup — not
+// the raw internal ID a provider returns from Add. This distinction matters:
+// on ArangoDB the raw internal ID is a "collection/key" handle, while the
+// API-facing id (what a real caller receives as client_id, and the only form
+// the admin API / token endpoint ever has) is the bare key. A provider whose
+// GetServiceAccountByID only matches the raw handle will pass a test that
+// round-trips through created.ID directly, while silently failing every real
+// caller — client_credentials authentication would be completely broken.
+func testServiceAccountOperations(t *testing.T, ctx context.Context, provider Provider) {
+	const initialSecretHash = "bcrypt-hash-placeholder-initial"
+	sa := &schemas.ServiceAccount{
+		Name:          "test_service_account_" + uuid.New().String(),
+		ClientSecret:  initialSecretHash,
+		AllowedScopes: "read,write",
+		IsActive:      true,
+	}
+
+	created, err := provider.AddServiceAccount(ctx, sa)
+	require.NoError(t, err)
+	require.NotNil(t, created)
+
+	clientID := created.AsAPIServiceAccount().ID
+	require.NotEmpty(t, clientID)
+
+	// GetServiceAccountByID MUST succeed when passed the id a real caller
+	// actually has (the client_id from the create response / admin API),
+	// not just the provider's raw internal representation.
+	fetched, err := provider.GetServiceAccountByID(ctx, clientID)
+	require.NoError(t, err, "GetServiceAccountByID must resolve the API-facing client_id")
+	assert.Equal(t, sa.Name, fetched.Name)
+	assert.True(t, fetched.IsActive)
+	assert.Equal(t, []string{"read", "write"}, fetched.ParsedAllowedScopes())
+	// ClientSecret has json:"-" (kept out of API responses/logs) — a storage
+	// provider that (de)serializes via encoding/json for persistence (e.g.
+	// Couchbase) can silently drop it on write or read unless it routes
+	// through a tag-aware helper. This must never regress: client_credentials
+	// authentication depends on the stored hash actually being there.
+	assert.Equal(t, initialSecretHash, fetched.ClientSecret, "ClientSecret must round-trip through storage")
+
+	// Rotation (UpdateServiceAccount with a new hash) must persist too —
+	// not just the initial Add.
+	const rotatedSecretHash = "bcrypt-hash-placeholder-rotated"
+	fetched.ClientSecret = rotatedSecretHash
+	rotated, err := provider.UpdateServiceAccount(ctx, fetched)
+	require.NoError(t, err)
+	assert.Equal(t, rotatedSecretHash, rotated.ClientSecret)
+	refetched, err := provider.GetServiceAccountByID(ctx, clientID)
+	require.NoError(t, err)
+	assert.Equal(t, rotatedSecretHash, refetched.ClientSecret, "rotated ClientSecret must persist, not silently no-op")
+	fetched = refetched
+
+	// UpdateServiceAccount: load-then-mutate, matching the service layer.
+	fetched.IsActive = false
+	updated, err := provider.UpdateServiceAccount(ctx, fetched)
+	require.NoError(t, err)
+	assert.False(t, updated.IsActive)
+
+	// A TrustedIssuer bound to this service account (via the API-facing id,
+	// exactly as the admin API stores it) must cascade-delete along with the
+	// service account — not survive as an orphan.
+	issuer, err := provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
+		ServiceAccountID: clientID,
+		Name:             "test_issuer_" + uuid.New().String(),
+		IssuerURL:        "https://issuer.example.com/" + uuid.New().String(),
+		KeySourceType:    "static_jwks_url",
+		ExpectedAud:      "https://authorizer.example.com",
+		SubjectClaim:     "sub",
+		IssuerType:       "oidc",
+		AuthMethod:       "jwt_assertion",
+		IsActive:         true,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, issuer)
+
+	// ListServiceAccounts should include the created account, with its
+	// (rotated) ClientSecret intact — this is the third read path that could
+	// silently drop a json:"-" field.
+	list, _, err := provider.ListServiceAccounts(ctx, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	var foundInList *schemas.ServiceAccount
+	for _, s := range list {
+		if s.AsAPIServiceAccount().ID == clientID {
+			foundInList = s
+			break
+		}
+	}
+	require.NotNil(t, foundInList, "created service account should appear in ListServiceAccounts")
+	assert.Equal(t, rotatedSecretHash, foundInList.ClientSecret, "ListServiceAccounts must not drop ClientSecret")
+
+	// DeleteServiceAccount must cascade: the bound TrustedIssuer must be gone too.
+	require.NoError(t, provider.DeleteServiceAccount(ctx, updated))
+
+	_, err = provider.GetServiceAccountByID(ctx, clientID)
+	assert.Error(t, err, "service account should be gone after delete")
+
+	issuerAPIID := issuer.AsAPITrustedIssuer().ID
+	_, err = provider.GetTrustedIssuerByID(ctx, issuerAPIID)
+	assert.Error(t, err, "trusted issuer must be cascade-deleted with its parent service account, not orphaned")
+
+	// Regression guard for a DynamoDB cascade bug that deleted the parent first
+	// and swallowed the child-query error, orphaning trusted issuers that could
+	// still authenticate client_assertion JWTs even after their SA was "deleted".
+	remainingIssuers, _, err := provider.ListTrustedIssuers(ctx, clientID, &model.Pagination{Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(remainingIssuers), "no orphaned trusted issuers should remain after cascade delete")
+}
+
+// testTrustedIssuerOperations exercises TrustedIssuer CRUD, again using the
+// API-facing id for every lookup — see testServiceAccountOperations for why.
+func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
+	sa, err := provider.AddServiceAccount(ctx, &schemas.ServiceAccount{
+		Name:          "test_ti_service_account_" + uuid.New().String(),
+		AllowedScopes: "read",
+		IsActive:      true,
+	})
+	require.NoError(t, err)
+	saClientID := sa.AsAPIServiceAccount().ID
+
+	issuerURL := "https://issuer.example.com/" + uuid.New().String()
+	issuer := &schemas.TrustedIssuer{
+		ServiceAccountID: saClientID,
+		Name:             "test_trusted_issuer_" + uuid.New().String(),
+		IssuerURL:        issuerURL,
+		KeySourceType:    "static_jwks_url",
+		ExpectedAud:      "https://authorizer.example.com",
+		SubjectClaim:     "sub",
+		IssuerType:       "oidc",
+		AuthMethod:       "jwt_assertion",
+		IsActive:         true,
+	}
+
+	created, err := provider.AddTrustedIssuer(ctx, issuer)
+	require.NoError(t, err)
+	require.NotNil(t, created)
+
+	issuerID := created.AsAPITrustedIssuer().ID
+	require.NotEmpty(t, issuerID)
+
+	fetched, err := provider.GetTrustedIssuerByID(ctx, issuerID)
+	require.NoError(t, err, "GetTrustedIssuerByID must resolve the API-facing id")
+	assert.Equal(t, issuer.Name, fetched.Name)
+	assert.Equal(t, issuerURL, fetched.IssuerURL)
+
+	fetchedByURL, err := provider.GetTrustedIssuerByIssuerURL(ctx, issuerURL)
+	require.NoError(t, err)
+	assert.Equal(t, fetched.Name, fetchedByURL.Name)
+
+	fetched.ExpectedAud = "https://updated-audience.example.com"
+	updated, err := provider.UpdateTrustedIssuer(ctx, fetched)
+	require.NoError(t, err)
+	assert.Equal(t, "https://updated-audience.example.com", updated.ExpectedAud)
+
+	// ListTrustedIssuers filtered by the API-facing service_account_id must
+	// find this issuer.
+	list, _, err := provider.ListTrustedIssuers(ctx, saClientID, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	foundInList := false
+	for _, i := range list {
+		if i.AsAPITrustedIssuer().ID == issuerID {
+			foundInList = true
+			break
+		}
+	}
+	assert.True(t, foundInList, "created trusted issuer should appear in ListTrustedIssuers filtered by service_account_id")
+
+	// IssuerURL must be unique per Authorizer instance: GetTrustedIssuerByIssuerURL
+	// runs on every client_assertion validation and expects a single deterministic
+	// match. A second issuer (even under a different service account) with the same
+	// issuer_url must be rejected. Only the SQL providers (gorm uniqueIndex) and
+	// Cassandra/ScyllaDB (check-then-insert guard) enforce this today; other NoSQL
+	// providers have no equivalent guard yet, so scope the assertion to enforcing DBs.
+	if dbType == constants.DbTypeSqlite || dbType == constants.DbTypePostgres || dbType == constants.DbTypeScyllaDB {
+		sa2, err := provider.AddServiceAccount(ctx, &schemas.ServiceAccount{
+			Name:          "test_ti_service_account_dup_" + uuid.New().String(),
+			AllowedScopes: "read",
+			IsActive:      true,
+		})
+		require.NoError(t, err)
+		_, err = provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
+			ServiceAccountID: sa2.AsAPIServiceAccount().ID,
+			Name:             "test_trusted_issuer_dup_" + uuid.New().String(),
+			IssuerURL:        issuerURL,
+			KeySourceType:    "static_jwks_url",
+			ExpectedAud:      "https://authorizer.example.com",
+			SubjectClaim:     "sub",
+			IssuerType:       "oidc",
+			AuthMethod:       "jwt_assertion",
+			IsActive:         true,
+		})
+		assert.Error(t, err, "second trusted issuer with a duplicate issuer_url must be rejected")
+		require.NoError(t, provider.DeleteServiceAccount(ctx, sa2))
+	}
+
+	require.NoError(t, provider.DeleteTrustedIssuer(ctx, updated))
+	_, err = provider.GetTrustedIssuerByID(ctx, issuerID)
+	assert.Error(t, err, "trusted issuer should be gone after delete")
+
+	require.NoError(t, provider.DeleteServiceAccount(ctx, sa))
 }

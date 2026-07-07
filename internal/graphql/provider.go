@@ -206,6 +206,39 @@ type Provider interface {
 	// Webhooks is the method to list webhooks.
 	// Permissions: authorizer:admin
 	Webhooks(ctx context.Context, in *model.PaginatedRequest) (*model.Webhooks, error)
+	// CreateServiceAccount creates a machine/workload service account.
+	// Permissions: authorizer:admin
+	CreateServiceAccount(ctx context.Context, params *model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, error)
+	// UpdateServiceAccount updates a service account.
+	// Permissions: authorizer:admin
+	UpdateServiceAccount(ctx context.Context, params *model.UpdateServiceAccountRequest) (*model.ServiceAccount, error)
+	// DeleteServiceAccount deletes a service account (cascades to trusted issuers).
+	// Permissions: authorizer:admin
+	DeleteServiceAccount(ctx context.Context, params *model.ServiceAccountRequest) (*model.Response, error)
+	// RotateServiceAccountSecret rotates a service account's client secret.
+	// Permissions: authorizer:admin
+	RotateServiceAccountSecret(ctx context.Context, params *model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, error)
+	// ServiceAccount returns a single service account by id.
+	// Permissions: authorizer:admin
+	ServiceAccount(ctx context.Context, params *model.ServiceAccountRequest) (*model.ServiceAccount, error)
+	// ServiceAccounts lists service accounts.
+	// Permissions: authorizer:admin
+	ServiceAccounts(ctx context.Context, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, error)
+	// AddTrustedIssuer registers an external JWT issuer for a service account.
+	// Permissions: authorizer:admin
+	AddTrustedIssuer(ctx context.Context, params *model.AddTrustedIssuerRequest) (*model.TrustedIssuer, error)
+	// UpdateTrustedIssuer updates a trusted issuer.
+	// Permissions: authorizer:admin
+	UpdateTrustedIssuer(ctx context.Context, params *model.UpdateTrustedIssuerRequest) (*model.TrustedIssuer, error)
+	// DeleteTrustedIssuer deletes a trusted issuer.
+	// Permissions: authorizer:admin
+	DeleteTrustedIssuer(ctx context.Context, params *model.TrustedIssuerRequest) (*model.Response, error)
+	// TrustedIssuer returns a single trusted issuer by id.
+	// Permissions: authorizer:admin
+	TrustedIssuer(ctx context.Context, params *model.TrustedIssuerRequest) (*model.TrustedIssuer, error)
+	// TrustedIssuers lists trusted issuers, optionally filtered by service account.
+	// Permissions: authorizer:admin
+	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
 	// FgaWriteModel installs a new fine-grained authorization model.
 	// Permissions: authorizer:admin
 	FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error)

@@ -136,8 +136,13 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	authenticatorsCollection := mongodb.Collection(schemas.Collections.Authenticators, options.Collection())
 	_, _ = authenticatorsCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1},
-			Options: options.Index().SetSparse(true),
+			// Unique per (user_id, method) — prevents the check-then-insert race
+			// in AddAuthenticator from creating duplicate MFA enrollments.
+			// Also serves user_id-prefix lookups, so no separate user_id index.
+			// Compound index keys MUST use the ordered bson.D — the driver rejects
+			// a multi-key bson.M ("multi-key map passed in for ordered parameter keys").
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "method", Value: 1}},
+			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 
@@ -193,6 +198,23 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 		{
 			Keys:    bson.M{"timestamp": -1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
+	// ServiceAccount collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.ServiceAccount, options.CreateCollection())
+
+	// TrustedIssuer collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.TrustedIssuer, options.CreateCollection())
+	trustedIssuerCollection := mongodb.Collection(schemas.Collections.TrustedIssuer, options.Collection())
+	_, _ = trustedIssuerCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"issuer_url": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"service_account_id": 1},
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())

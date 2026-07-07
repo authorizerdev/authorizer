@@ -33,7 +33,13 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*s
 }
 
 // UpdateWebhook to update webhook
+// Callers MUST load the existing record and mutate it before calling this
+// method — the $set write replaces every column and will blank zero-value
+// fields on a partial struct.
 func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
+	if webhook.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateWebhook: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {

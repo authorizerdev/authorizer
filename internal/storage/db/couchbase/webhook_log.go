@@ -3,7 +3,6 @@ package couchbase
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -67,7 +66,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 		var webhookLog schemas.WebhookLog
 		err := queryResult.Row(&webhookLog)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		webhookLogs = append(webhookLogs, &webhookLog)
 	}

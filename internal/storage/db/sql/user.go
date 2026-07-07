@@ -24,11 +24,16 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 		user.Roles = strings.Join(p.config.DefaultRoles, ",")
 	}
 
+	// Check email and phone uniqueness independently: a signup supplying both
+	// must be rejected if EITHER already exists. These were previously chained
+	// with else-if, which skipped the email check whenever a phone number was
+	// also supplied and let duplicate emails persist.
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
 		}
-	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+	}
+	if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
 		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given email already exists")
 		}
@@ -46,8 +51,17 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	return user, nil
 }
 
-// UpdateUser to update user information in database
+// UpdateUser to update user information in database.
+//
+// Callers MUST load the existing record (e.g. GetUserByID / GetUserByEmail)
+// before mutating and passing it here. GORM's Save writes every column, so a
+// partially-populated struct would silently blank Password, Roles and any other
+// unset field. A zero CreatedAt means the struct was never loaded from the
+// database, so reject it to prevent that data loss.
 func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
+	if user.CreatedAt == 0 {
+		return user, fmt.Errorf("cannot update user: record not loaded (created_at is zero — partial struct detected)")
+	}
 	user.UpdatedAt = time.Now().Unix()
 
 	result := p.db.Save(&user)
@@ -114,8 +128,10 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
+// UpdateUsers to update multiple users, identified by the ids slice.
+// If ids is nil / empty NO update is performed: GORM's AllowGlobalUpdate is
+// disabled (see NewProvider), so the call returns gorm.ErrMissingWhereClause
+// rather than silently updating every user — a deliberate fail-safe.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()

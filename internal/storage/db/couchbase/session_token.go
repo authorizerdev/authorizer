@@ -79,7 +79,14 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	return nil
 }
 
-// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
+//
+// ponytail: substring (CONTAINS) match is intentional, not a bug. Session tokens are
+// stored with user_id = "<authRecipeMethod>:<user.ID>" (e.g. "basic_auth:<uuid>"), but
+// this method is called with the bare user.ID, which is the suffix. Exact-equality or
+// STARTS_WITH would match zero rows and break "log out all my sessions". This mirrors the
+// SQL provider (LIKE '%userId%') and MongoDB provider ($regex: userId). Distinct user IDs
+// are UUIDs, so one cannot be a substring of another — no cross-user collateral in practice.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE CONTAINS(user_id, $1)`,
 		p.scopeName, schemas.Collections.SessionToken)

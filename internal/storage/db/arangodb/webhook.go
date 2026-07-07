@@ -140,7 +140,10 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	}
 	query := fmt.Sprintf("FOR d IN %s FILTER d.webhook_id == @webhook_id REMOVE { _key: d._key } IN %s", schemas.Collections.WebhookLog, schemas.Collections.WebhookLog)
 	bindVars := map[string]interface{}{
-		"webhook_id": webhook.Key,
+		// WebhookLog.WebhookID is stored as the full document handle
+		// (collection/key), which is what webhook.ID holds after Add/Get.
+		// Binding webhook.Key (bare key) would match zero log rows.
+		"webhook_id": webhook.ID,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {

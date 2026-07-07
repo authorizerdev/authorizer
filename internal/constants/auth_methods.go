@@ -30,4 +30,12 @@ const (
 	AuthRecipeMethodTwitch = "twitch"
 	// AuthRecipeMethodRoblox is the roblox auth method
 	AuthRecipeMethodRoblox = "roblox"
+
+	// AuthRecipeMethodServiceAccount is the login_method stamped on machine
+	// access tokens issued via the client_credentials grant (RFC 6749 §4.4).
+	// It is not a human login recipe — it namespaces the memory-store session
+	// key ("service_account:<id>") so ValidateAccessToken derives the same key
+	// the token endpoint registered the token under, keeping machine tokens on
+	// the existing stateful validation path with zero special-casing.
+	AuthRecipeMethodServiceAccount = "service_account"
 )
