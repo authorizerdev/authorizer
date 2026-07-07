@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -30,6 +29,18 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 	now := time.Now().Unix()
 	issuer.CreatedAt = now
 	issuer.UpdatedAt = now
+	// IssuerURL is unique per Authorizer instance (gorm uniqueIndex on the SQL side)
+	// and GetTrustedIssuerByIssuerURL — a client_assertion hot path — expects a single
+	// match. Cassandra has no cross-attribute unique constraint, so guard with a
+	// check-then-insert mirroring AddEmailTemplate's event_name pre-check.
+	// ponytail: inherent TOCTOU race — two concurrent inserts of the same issuer_url
+	// can both pass this check. Cassandra offers no atomic IF NOT EXISTS on a
+	// non-partition-key column, so this closes the common case (sequential admin
+	// misconfiguration) only; a fully race-free guard would need an LWT on a
+	// dedicated issuer_url-keyed table.
+	if existing, _ := p.GetTrustedIssuerByIssuerURL(ctx, issuer.IssuerURL); existing != nil {
+		return nil, fmt.Errorf("trusted issuer with %s issuer_url already exists", issuer.IssuerURL)
+	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.TrustedIssuer, trustedIssuerColumns)
 	err := p.db.Query(insertQuery, issuer.ID, issuer.ServiceAccountID, issuer.Name, issuer.IssuerURL, issuer.KeySourceType, issuer.JWKSUrl, issuer.ExpectedAud, issuer.SubjectClaim, issuer.IssuerType, issuer.AuthMethod, issuer.IsActive, issuer.EnableTokenReview, issuer.KubernetesAPIServerURL, issuer.SpiffeRefreshHintSeconds, issuer.TrustedProxyHeader, issuer.TrustedProxyCIDRs, issuer.CreatedAt, issuer.UpdatedAt).Exec()
 	if err != nil {
@@ -46,23 +57,13 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 		return nil, fmt.Errorf("UpdateTrustedIssuer: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	issuer.UpdatedAt = time.Now().Unix()
-	bytes, err := json.Marshal(issuer)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	issuerMap := map[string]interface{}{}
-	err = decoder.Decode(&issuerMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(issuerMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields — see buildCQLColumnMap).
+	issuerMap := buildCQLColumnMap(issuer)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range issuerMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 		if key == "_key" {
@@ -79,7 +80,7 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 	updateFields = strings.TrimSuffix(updateFields, ",")
 	updateValues = append(updateValues, issuer.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.TrustedIssuer, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}

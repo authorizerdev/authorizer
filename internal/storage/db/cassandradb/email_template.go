@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -37,23 +36,13 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 // UpdateEmailTemplate to update EmailTemplate
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
-	bytes, err := json.Marshal(emailTemplate)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	emailTemplateMap := map[string]interface{}{}
-	err = decoder.Decode(&emailTemplateMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(emailTemplateMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields — see buildCQLColumnMap).
+	emailTemplateMap := buildCQLColumnMap(emailTemplate)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range emailTemplateMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 		if key == "_key" {
@@ -71,7 +60,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 
 	updateValues = append(updateValues, emailTemplate.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.EmailTemplate, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}

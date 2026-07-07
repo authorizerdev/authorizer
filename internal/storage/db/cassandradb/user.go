@@ -55,6 +55,10 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	fields = fields[:len(fields)-1] + ")"
 	placeholders = placeholders[:len(placeholders)-1] + ")"
 
+	// IF NOT EXISTS only guards the partition key (id) — a freshly generated UUID that
+	// never collides — so it does NOT enforce email/phone uniqueness. That is enforced
+	// by the GetUserByEmail/GetUserByPhoneNumber check-then-insert above, which carries
+	// the same inherent TOCTOU race as any non-partition-key guard in Cassandra.
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.User, fields, placeholders)
 	err := p.db.Query(query, insertValues...).Exec()
 
@@ -66,7 +70,12 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 }
 
 // UpdateUser to update user information in database
+// Callers MUST load the existing record and mutate it before calling this
+// method — a partial struct blanks columns it does not carry.
 func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
+	if user.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateUser: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	user.UpdatedAt = time.Now().Unix()
 
 	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
