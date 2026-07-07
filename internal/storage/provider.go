@@ -23,7 +23,11 @@ type Dependencies struct {
 	Log *zerolog.Logger
 }
 
-// Provider is the interface which defines the methods for the database provider
+// Provider is the interface which defines the methods for the database provider.
+//
+// Delete methods are idempotent: deleting a non-existent id returns nil, not an
+// error. Callers that rely on delete-confirms-existence must check existence
+// separately first.
 type Provider interface {
 	// AddUser to save user information in database
 	AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error)
@@ -39,8 +43,10 @@ type Provider interface {
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error)
 	// GetUserByID to get user information from database using user ID
 	GetUserByID(ctx context.Context, id string) (*schemas.User, error)
-	// UpdateUsers to update multiple users, with parameters of user IDs slice
-	// If ids set to nil / empty all the users will be updated
+	// UpdateUsers to update multiple users, identified by the ids slice.
+	// If ids is nil / empty NO update is performed: global updates are disabled,
+	// so implementations return an error (SQL: gorm.ErrMissingWhereClause) rather
+	// than silently updating every user.
 	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
 	// AddVerificationRequest to save verification request in database

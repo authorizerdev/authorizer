@@ -23,6 +23,12 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 	if otpParam.Email == "" && otpParam.PhoneNumber != "" {
 		uniqueField = schemas.FieldNamePhoneNumber
 	}
+	// ponytail: check-then-create race — two concurrent UpsertOTP calls for the
+	// same email/phone can both miss the lookup below and both Create, leaving a
+	// duplicate short-lived OTP row. Left as-is: OTPs expire in minutes and a
+	// duplicate is low-impact (GetOTPBy* returns one; the other lapses). Upgrade
+	// path: add a unique index on email/phone_number and route Create through
+	// clause.OnConflict, the way AddAuthenticator now does for (user_id, method).
 	var otp *schemas.OTP
 	if uniqueField == schemas.FieldNameEmail {
 		otp, _ = p.GetOTPByEmail(ctx, otpParam.Email)
