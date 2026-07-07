@@ -13,11 +13,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const trustedIssuerColumns = "id, service_account_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
+const trustedIssuerColumns = "id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
 
 // scanTrustedIssuer maps the trustedIssuerColumns projection onto a struct.
 func scanTrustedIssuer(scan func(...interface{}) error, issuer *schemas.TrustedIssuer) error {
-	return scan(&issuer.ID, &issuer.ServiceAccountID, &issuer.Name, &issuer.IssuerURL, &issuer.KeySourceType, &issuer.JWKSUrl, &issuer.ExpectedAud, &issuer.SubjectClaim, &issuer.IssuerType, &issuer.AuthMethod, &issuer.IsActive, &issuer.EnableTokenReview, &issuer.KubernetesAPIServerURL, &issuer.SpiffeRefreshHintSeconds, &issuer.TrustedProxyHeader, &issuer.TrustedProxyCIDRs, &issuer.CreatedAt, &issuer.UpdatedAt)
+	return scan(&issuer.ID, &issuer.ClientID, &issuer.Name, &issuer.IssuerURL, &issuer.KeySourceType, &issuer.JWKSUrl, &issuer.ExpectedAud, &issuer.SubjectClaim, &issuer.IssuerType, &issuer.AuthMethod, &issuer.IsActive, &issuer.EnableTokenReview, &issuer.KubernetesAPIServerURL, &issuer.SpiffeRefreshHintSeconds, &issuer.TrustedProxyHeader, &issuer.TrustedProxyCIDRs, &issuer.CreatedAt, &issuer.UpdatedAt)
 }
 
 // AddTrustedIssuer creates a new trusted issuer record.
@@ -42,7 +42,7 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 		return nil, fmt.Errorf("trusted issuer with %s issuer_url already exists", issuer.IssuerURL)
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.TrustedIssuer, trustedIssuerColumns)
-	err := p.db.Query(insertQuery, issuer.ID, issuer.ServiceAccountID, issuer.Name, issuer.IssuerURL, issuer.KeySourceType, issuer.JWKSUrl, issuer.ExpectedAud, issuer.SubjectClaim, issuer.IssuerType, issuer.AuthMethod, issuer.IsActive, issuer.EnableTokenReview, issuer.KubernetesAPIServerURL, issuer.SpiffeRefreshHintSeconds, issuer.TrustedProxyHeader, issuer.TrustedProxyCIDRs, issuer.CreatedAt, issuer.UpdatedAt).Exec()
+	err := p.db.Query(insertQuery, issuer.ID, issuer.ClientID, issuer.Name, issuer.IssuerURL, issuer.KeySourceType, issuer.JWKSUrl, issuer.ExpectedAud, issuer.SubjectClaim, issuer.IssuerType, issuer.AuthMethod, issuer.IsActive, issuer.EnableTokenReview, issuer.KubernetesAPIServerURL, issuer.SpiffeRefreshHintSeconds, issuer.TrustedProxyHeader, issuer.TrustedProxyCIDRs, issuer.CreatedAt, issuer.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	whereClause := ""
 	var filterValues []interface{}
 	if serviceAccountID != "" {
-		whereClause = " WHERE service_account_id = ? ALLOW FILTERING"
+		whereClause = " WHERE client_id = ? ALLOW FILTERING"
 		filterValues = append(filterValues, serviceAccountID)
 	}
 
@@ -140,7 +140,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	// and return the results from offset to limit
 	var query string
 	if serviceAccountID != "" {
-		query = fmt.Sprintf("SELECT %s FROM %s WHERE service_account_id = ? LIMIT %d ALLOW FILTERING", trustedIssuerColumns, table, pagination.Limit+pagination.Offset)
+		query = fmt.Sprintf("SELECT %s FROM %s WHERE client_id = ? LIMIT %d ALLOW FILTERING", trustedIssuerColumns, table, pagination.Limit+pagination.Offset)
 	} else {
 		query = fmt.Sprintf("SELECT %s FROM %s LIMIT %d", trustedIssuerColumns, table, pagination.Limit+pagination.Offset)
 	}

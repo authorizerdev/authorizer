@@ -300,7 +300,7 @@ type Webhooks {
   webhooks: [Webhook!]!
 }
 
-type ServiceAccount {
+type Client {
   id: ID!
   name: String!
   description: String
@@ -309,19 +309,19 @@ type ServiceAccount {
   created_at: Int64
   updated_at: Int64
   # client_secret is NEVER returned here. It is returned exactly once in
-  # CreateServiceAccountResponse (creation and rotation) and never again.
+  # CreateClientResponse (creation and rotation) and never again.
 }
 
-type CreateServiceAccountResponse {
-  service_account: ServiceAccount!
+type CreateClientResponse {
+  client: Client!
   # client_secret is returned ONCE at creation and ONCE at rotation. Store it
   # securely; it can never be retrieved again.
   client_secret: String!
 }
 
-type ServiceAccounts {
+type Clients {
   pagination: Pagination!
-  service_accounts: [ServiceAccount!]!
+  clients: [Client!]!
 }
 
 type TrustedIssuer {
@@ -714,14 +714,14 @@ input WebhookRequest {
   id: ID!
 }
 
-input CreateServiceAccountRequest {
+input CreateClientRequest {
   name: String!
   description: String
   # allowed_scopes MUST contain at least one non-empty scope after trimming.
   allowed_scopes: [String!]!
 }
 
-input UpdateServiceAccountRequest {
+input UpdateClientRequest {
   id: ID!
   name: String
   description: String
@@ -729,11 +729,11 @@ input UpdateServiceAccountRequest {
   is_active: Boolean
 }
 
-input ServiceAccountRequest {
+input ClientRequest {
   id: ID!
 }
 
-input ListServiceAccountsRequest {
+input ListClientsRequest {
   pagination: PaginatedRequest
 }
 
@@ -946,10 +946,10 @@ type Mutation {
   _update_webhook(params: UpdateWebhookRequest!): Response!
   _delete_webhook(params: WebhookRequest!): Response!
   # Service accounts (machine/workload identity)
-  _create_service_account(params: CreateServiceAccountRequest!): CreateServiceAccountResponse!
-  _update_service_account(params: UpdateServiceAccountRequest!): ServiceAccount!
-  _delete_service_account(params: ServiceAccountRequest!): Response!
-  _rotate_service_account_secret(params: ServiceAccountRequest!): CreateServiceAccountResponse!
+  _create_client(params: CreateClientRequest!): CreateClientResponse!
+  _update_client(params: UpdateClientRequest!): Client!
+  _delete_client(params: ClientRequest!): Response!
+  _rotate_client_secret(params: ClientRequest!): CreateClientResponse!
   # Trusted issuers (external JWT issuers bound to a service account)
   _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
   _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
@@ -985,8 +985,8 @@ type Query {
   _webhooks(params: PaginatedRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   # Service accounts (machine/workload identity)
-  _service_account(params: ServiceAccountRequest!): ServiceAccount!
-  _service_accounts(params: ListServiceAccountsRequest): ServiceAccounts!
+  _client(params: ClientRequest!): Client!
+  _clients(params: ListClientsRequest): Clients!
   # Trusted issuers
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!

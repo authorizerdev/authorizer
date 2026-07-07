@@ -288,7 +288,7 @@ func getIndex(scopeName string) map[string][]string {
 
 	// TrustedIssuer indexes
 	trustedIssuerIndex1 := fmt.Sprintf("CREATE INDEX TrustedIssuerIssuerURLIndex ON %s.%s(issuer_url)", scopeName, schemas.Collections.TrustedIssuer)
-	trustedIssuerIndex2 := fmt.Sprintf("CREATE INDEX TrustedIssuerServiceAccountIdIndex ON %s.%s(service_account_id)", scopeName, schemas.Collections.TrustedIssuer)
+	trustedIssuerIndex2 := fmt.Sprintf("CREATE INDEX TrustedIssuerClientIdIndex ON %s.%s(client_id)", scopeName, schemas.Collections.TrustedIssuer)
 	indices[schemas.Collections.TrustedIssuer] = []string{trustedIssuerIndex1, trustedIssuerIndex2}
 
 	return indices

@@ -8,11 +8,11 @@ import (
 )
 
 // TrustedIssuer registers an external JWT issuer whose tokens are accepted as
-// client credentials for a ServiceAccount (RFC 7523 client_assertion flow).
+// client credentials for a Client (RFC 7523 client_assertion flow).
 //
-// One ServiceAccount may have multiple TrustedIssuers (e.g. K8s SA tokens AND
+// One Client may have multiple TrustedIssuers (e.g. K8s SA tokens AND
 // a SPIFFE JWT-SVID from the same workload). Each TrustedIssuer maps to exactly
-// one ServiceAccount.
+// one Client.
 //
 // Supported issuer types (IssuerType field):
 //   - "kubernetes_sa"  — Kubernetes projected ServiceAccount tokens (Phase 4)
@@ -44,8 +44,8 @@ type TrustedIssuer struct {
 
 	ID string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 
-	// ServiceAccountID links this issuer to the ServiceAccount it authenticates.
-	ServiceAccountID string `json:"service_account_id" bson:"service_account_id" cql:"service_account_id" dynamo:"service_account_id" gorm:"index" index:"service_account_id,hash"`
+	// ClientID links this issuer to the Client it authenticates.
+	ClientID string `json:"client_id" bson:"client_id" cql:"client_id" dynamo:"client_id" gorm:"index" index:"client_id,hash"`
 
 	// Name is a human-readable label (e.g. "prod-k8s-cluster").
 	Name string `json:"name" bson:"name" cql:"name" dynamo:"name"`
@@ -129,7 +129,7 @@ func (t *TrustedIssuer) AsAPITrustedIssuer() *model.TrustedIssuer {
 	}
 	return &model.TrustedIssuer{
 		ID:                       id,
-		ServiceAccountID:         t.ServiceAccountID,
+		ServiceAccountID:         t.ClientID,
 		Name:                     t.Name,
 		IssuerURL:                t.IssuerURL,
 		KeySourceType:            t.KeySourceType,

@@ -152,24 +152,24 @@ func (r *mutationResolver) DeleteWebhook(ctx context.Context, params model.Webho
 	return r.GraphQLProvider.DeleteWebhook(ctx, &params)
 }
 
-// CreateServiceAccount is the resolver for the _create_service_account field.
-func (r *mutationResolver) CreateServiceAccount(ctx context.Context, params model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, error) {
-	return r.GraphQLProvider.CreateServiceAccount(ctx, &params)
+// CreateClient is the resolver for the _create_service_account field.
+func (r *mutationResolver) CreateClient(ctx context.Context, params model.CreateClientRequest) (*model.CreateClientResponse, error) {
+	return r.GraphQLProvider.CreateClient(ctx, &params)
 }
 
-// UpdateServiceAccount is the resolver for the _update_service_account field.
-func (r *mutationResolver) UpdateServiceAccount(ctx context.Context, params model.UpdateServiceAccountRequest) (*model.ServiceAccount, error) {
-	return r.GraphQLProvider.UpdateServiceAccount(ctx, &params)
+// UpdateClient is the resolver for the _update_service_account field.
+func (r *mutationResolver) UpdateClient(ctx context.Context, params model.UpdateClientRequest) (*model.Client, error) {
+	return r.GraphQLProvider.UpdateClient(ctx, &params)
 }
 
-// DeleteServiceAccount is the resolver for the _delete_service_account field.
-func (r *mutationResolver) DeleteServiceAccount(ctx context.Context, params model.ServiceAccountRequest) (*model.Response, error) {
-	return r.GraphQLProvider.DeleteServiceAccount(ctx, &params)
+// DeleteClient is the resolver for the _delete_service_account field.
+func (r *mutationResolver) DeleteClient(ctx context.Context, params model.ClientRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteClient(ctx, &params)
 }
 
-// RotateServiceAccountSecret is the resolver for the _rotate_service_account_secret field.
-func (r *mutationResolver) RotateServiceAccountSecret(ctx context.Context, params model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, error) {
-	return r.GraphQLProvider.RotateServiceAccountSecret(ctx, &params)
+// RotateClientSecret is the resolver for the _rotate_service_account_secret field.
+func (r *mutationResolver) RotateClientSecret(ctx context.Context, params model.ClientRequest) (*model.CreateClientResponse, error) {
+	return r.GraphQLProvider.RotateClientSecret(ctx, &params)
 }
 
 // AddTrustedIssuer is the resolver for the _add_trusted_issuer field.
@@ -297,14 +297,14 @@ func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebho
 	return r.GraphQLProvider.WebhookLogs(ctx, params)
 }
 
-// ServiceAccount is the resolver for the _service_account field.
-func (r *queryResolver) ServiceAccount(ctx context.Context, params model.ServiceAccountRequest) (*model.ServiceAccount, error) {
-	return r.GraphQLProvider.ServiceAccount(ctx, &params)
+// Client is the resolver for the _service_account field.
+func (r *queryResolver) Client(ctx context.Context, params model.ClientRequest) (*model.Client, error) {
+	return r.GraphQLProvider.Client(ctx, &params)
 }
 
-// ServiceAccounts is the resolver for the _service_accounts field.
-func (r *queryResolver) ServiceAccounts(ctx context.Context, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, error) {
-	return r.GraphQLProvider.ServiceAccounts(ctx, params)
+// Clients is the resolver for the _service_accounts field.
+func (r *queryResolver) Clients(ctx context.Context, params *model.ListClientsRequest) (*model.Clients, error) {
+	return r.GraphQLProvider.Clients(ctx, params)
 }
 
 // TrustedIssuer is the resolver for the _trusted_issuer field.

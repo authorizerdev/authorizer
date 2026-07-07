@@ -12,7 +12,7 @@ import (
 // ArangoDB's go-driver (de)serializes whole schema structs through
 // encoding/json (the default HTTP JSON connection). encoding/json honors
 // `json:"-"`, which is set on secret fields such as User.Password and
-// ServiceAccount.ClientSecret purely to keep them out of API/GraphQL JSON
+// Client.ClientSecret purely to keep them out of API/GraphQL JSON
 // responses. As a side effect those fields were silently dropped from the
 // persisted document on write AND from the struct on read. The helpers below
 // reproduce the exact JSON document shape for every normally-tagged field, then
@@ -22,7 +22,7 @@ import (
 // ponytail: structToDocument and readDocument are paired. If a schema gains a
 // new `json:"-"` field, its write path MUST go through structToDocument and its
 // read path MUST go through readDocument, or the field will silently load/store
-// empty. Today only User.Password and ServiceAccount.ClientSecret are affected.
+// empty. Today only User.Password and Client.ClientSecret are affected.
 
 // structToDocument converts a schema struct into a map for ArangoDB writes,
 // re-adding any `json:"-"` field under its `bson` tag key (encoding/json drops

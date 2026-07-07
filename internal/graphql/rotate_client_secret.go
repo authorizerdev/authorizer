@@ -9,17 +9,17 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeleteServiceAccount delegates to the transport-agnostic service layer.
+// RotateClientSecret delegates to the transport-agnostic service layer.
 // Resolver is a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeleteServiceAccount(ctx context.Context, params *model.ServiceAccountRequest) (*model.Response, error) {
+func (g *graphqlProvider) RotateClientSecret(ctx context.Context, params *model.ClientRequest) (*model.CreateClientResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, _, err := g.adminService().DeleteServiceAccount(ctx, service.MetaFromGin(gc), params)
+	res, _, err := g.adminService().RotateClientSecret(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

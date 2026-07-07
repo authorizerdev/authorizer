@@ -202,8 +202,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
-	// ServiceAccount collection and indexes
-	_ = mongodb.CreateCollection(ctx, schemas.Collections.ServiceAccount, options.CreateCollection())
+	// Client collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Client, options.CreateCollection())
 
 	// TrustedIssuer collection and indexes
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.TrustedIssuer, options.CreateCollection())
@@ -214,7 +214,7 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 		{
-			Keys:    bson.M{"service_account_id": 1},
+			Keys:    bson.M{"client_id": 1},
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())

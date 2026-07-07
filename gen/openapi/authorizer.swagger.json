@@ -155,15 +155,15 @@
         ]
       }
     },
-    "/v1/admin/create_service_account": {
+    "/v1/admin/client": {
       "post": {
-        "summary": "CreateServiceAccount provisions a new machine/workload identity and returns\nthe generated client secret exactly once (only the bcrypt hash is stored).\nRequires super-admin auth.",
-        "operationId": "AuthorizerAdminService_CreateServiceAccount",
+        "summary": "GetClient returns a single service account by id. The client secret\nis never surfaced. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_GetClient",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1CreateServiceAccountResponse"
+              "$ref": "#/definitions/v1GetClientResponse"
             }
           },
           "default": {
@@ -176,11 +176,112 @@
         "parameters": [
           {
             "name": "body",
-            "description": "CreateServiceAccountRequest mirrors model.CreateServiceAccountRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer).",
+            "description": "GetClientRequest mirrors model.ClientRequest (a single service\naccount id). Kept distinct from DeleteClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule.",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1CreateServiceAccountRequest"
+              "$ref": "#/definitions/v1GetClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/clients": {
+      "post": {
+        "summary": "Clients returns a paginated list of service accounts. Client secrets\nare never surfaced. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Clients",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ClientsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ClientsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/create_client": {
+      "post": {
+        "summary": "CreateClient provisions a new machine/workload identity and returns\nthe generated client secret exactly once (only the bcrypt hash is stored).\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_CreateClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "CreateClientRequest mirrors model.CreateClientRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_client": {
+      "post": {
+        "summary": "DeleteClient deletes a service account by id, cascading to its\ntrusted issuers. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteClientRequest mirrors model.ClientRequest (a single\nservice account id). Kept distinct from GetClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClientRequest"
             }
           }
         ],
@@ -215,40 +316,6 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteEmailTemplateRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthorizerAdminService"
-        ]
-      }
-    },
-    "/v1/admin/delete_service_account": {
-      "post": {
-        "summary": "DeleteServiceAccount deletes a service account by id, cascading to its\ntrusted issuers. Requires super-admin auth.",
-        "operationId": "AuthorizerAdminService_DeleteServiceAccount",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1DeleteServiceAccountResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "description": "DeleteServiceAccountRequest mirrors model.ServiceAccountRequest (a single\nservice account id). Kept distinct from GetServiceAccountRequest and\nRotateServiceAccountSecretRequest per buf's one-message-per-RPC rule.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1DeleteServiceAccountRequest"
             }
           }
         ],
@@ -832,15 +899,15 @@
         ]
       }
     },
-    "/v1/admin/rotate_service_account_secret": {
+    "/v1/admin/rotate_client_secret": {
       "post": {
-        "summary": "RotateServiceAccountSecret replaces the stored client secret with a fresh\none and returns the new plaintext exactly once (the old secret stops\nvalidating immediately). Reuses CreateServiceAccountResponse — the only\nadmin message that carries a secret. Requires super-admin auth.",
-        "operationId": "AuthorizerAdminService_RotateServiceAccountSecret",
+        "summary": "RotateClientSecret replaces the stored client secret with a fresh\none and returns the new plaintext exactly once (the old secret stops\nvalidating immediately). Reuses CreateClientResponse — the only\nadmin message that carries a secret. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_RotateClientSecret",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1CreateServiceAccountResponse"
+              "$ref": "#/definitions/v1CreateClientResponse"
             }
           },
           "default": {
@@ -853,78 +920,11 @@
         "parameters": [
           {
             "name": "body",
-            "description": "RotateServiceAccountSecretRequest mirrors model.ServiceAccountRequest (a\nsingle service account id). Kept distinct from DeleteServiceAccountRequest and\nGetServiceAccountRequest per buf's one-message-per-RPC rule.",
+            "description": "RotateClientSecretRequest mirrors model.ClientRequest (a\nsingle service account id). Kept distinct from DeleteClientRequest and\nGetClientRequest per buf's one-message-per-RPC rule.",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1RotateServiceAccountSecretRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthorizerAdminService"
-        ]
-      }
-    },
-    "/v1/admin/service_account": {
-      "post": {
-        "summary": "GetServiceAccount returns a single service account by id. The client secret\nis never surfaced. Requires super-admin auth.",
-        "operationId": "AuthorizerAdminService_GetServiceAccount",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1GetServiceAccountResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "description": "GetServiceAccountRequest mirrors model.ServiceAccountRequest (a single service\naccount id). Kept distinct from DeleteServiceAccountRequest and\nRotateServiceAccountSecretRequest per buf's one-message-per-RPC rule.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1GetServiceAccountRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthorizerAdminService"
-        ]
-      }
-    },
-    "/v1/admin/service_accounts": {
-      "post": {
-        "summary": "ServiceAccounts returns a paginated list of service accounts. Client secrets\nare never surfaced. Requires super-admin auth.",
-        "operationId": "AuthorizerAdminService_ServiceAccounts",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ServiceAccountsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1ServiceAccountsRequest"
+              "$ref": "#/definitions/v1RotateClientSecretRequest"
             }
           }
         ],
@@ -1058,6 +1058,40 @@
         ]
       }
     },
+    "/v1/admin/update_client": {
+      "post": {
+        "summary": "UpdateClient updates a service account's name, description, allowed\nscopes, or active state. It never touches the client secret. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateClientRequest mirrors model.UpdateClientRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/update_email_template": {
       "post": {
         "summary": "UpdateEmailTemplate updates an existing email template's event, subject,\nbody, or design. Requires super-admin auth.",
@@ -1084,40 +1118,6 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1UpdateEmailTemplateRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthorizerAdminService"
-        ]
-      }
-    },
-    "/v1/admin/update_service_account": {
-      "post": {
-        "summary": "UpdateServiceAccount updates a service account's name, description, allowed\nscopes, or active state. It never touches the client secret. Requires\nsuper-admin auth.",
-        "operationId": "AuthorizerAdminService_UpdateServiceAccount",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1UpdateServiceAccountResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "description": "UpdateServiceAccountRequest mirrors model.UpdateServiceAccountRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1UpdateServiceAccountRequest"
             }
           }
         ],
@@ -2560,7 +2560,62 @@
         }
       }
     },
-    "v1CreateServiceAccountRequest": {
+    "v1Client": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "allowed_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "Client mirrors model.Client field-for-field. The client\nsecret is deliberately ABSENT (matching the GraphQL type): it is surfaced\nexactly once, only via CreateClientResponse.client_secret, and is\nnever returned by any get/list/update path."
+    },
+    "v1ClientsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1ClientsResponse": {
+      "type": "object",
+      "properties": {
+        "clients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Client"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1CreateClientRequest": {
       "type": "object",
       "properties": {
         "name": {
@@ -2576,24 +2631,41 @@
           }
         }
       },
-      "description": "CreateServiceAccountRequest mirrors model.CreateServiceAccountRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer)."
+      "description": "CreateClientRequest mirrors model.CreateClientRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer)."
     },
-    "v1CreateServiceAccountResponse": {
+    "v1CreateClientResponse": {
       "type": "object",
       "properties": {
-        "service_account": {
-          "$ref": "#/definitions/v1ServiceAccount"
+        "client": {
+          "$ref": "#/definitions/v1Client"
         },
         "client_secret": {
           "type": "string"
         }
       },
-      "description": "CreateServiceAccountResponse carries the created service account plus the\nplaintext client_secret, returned exactly once. This is the ONLY admin\nmessage with a secret field; RotateServiceAccountSecret reuses it."
+      "description": "CreateClientResponse carries the created service account plus the\nplaintext client_secret, returned exactly once. This is the ONLY admin\nmessage with a secret field; RotateClientSecret reuses it."
     },
     "v1DeactivateAccountRequest": {
       "type": "object"
     },
     "v1DeactivateAccountResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteClientRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteClientRequest mirrors model.ClientRequest (a single\nservice account id). Kept distinct from GetClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule."
+    },
+    "v1DeleteClientResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -2611,23 +2683,6 @@
       "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id)."
     },
     "v1DeleteEmailTemplateResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "v1DeleteServiceAccountRequest": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "description": "DeleteServiceAccountRequest mirrors model.ServiceAccountRequest (a single\nservice account id). Kept distinct from GetServiceAccountRequest and\nRotateServiceAccountSecretRequest per buf's one-message-per-RPC rule."
-    },
-    "v1DeleteServiceAccountResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -3000,20 +3055,20 @@
         }
       }
     },
-    "v1GetServiceAccountRequest": {
+    "v1GetClientRequest": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
         }
       },
-      "description": "GetServiceAccountRequest mirrors model.ServiceAccountRequest (a single service\naccount id). Kept distinct from DeleteServiceAccountRequest and\nRotateServiceAccountSecretRequest per buf's one-message-per-RPC rule."
+      "description": "GetClientRequest mirrors model.ClientRequest (a single service\naccount id). Kept distinct from DeleteClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule."
     },
-    "v1GetServiceAccountResponse": {
+    "v1GetClientResponse": {
       "type": "object",
       "properties": {
-        "service_account": {
-          "$ref": "#/definitions/v1ServiceAccount"
+        "client": {
+          "$ref": "#/definitions/v1Client"
         }
       }
     },
@@ -3390,69 +3445,14 @@
         }
       }
     },
-    "v1RotateServiceAccountSecretRequest": {
+    "v1RotateClientSecretRequest": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
         }
       },
-      "description": "RotateServiceAccountSecretRequest mirrors model.ServiceAccountRequest (a\nsingle service account id). Kept distinct from DeleteServiceAccountRequest and\nGetServiceAccountRequest per buf's one-message-per-RPC rule."
-    },
-    "v1ServiceAccount": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "allowed_scopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "is_active": {
-          "type": "boolean"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "int64"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "int64"
-        }
-      },
-      "description": "ServiceAccount mirrors model.ServiceAccount field-for-field. The client\nsecret is deliberately ABSENT (matching the GraphQL type): it is surfaced\nexactly once, only via CreateServiceAccountResponse.client_secret, and is\nnever returned by any get/list/update path."
-    },
-    "v1ServiceAccountsRequest": {
-      "type": "object",
-      "properties": {
-        "pagination": {
-          "$ref": "#/definitions/v1PaginationRequest"
-        }
-      }
-    },
-    "v1ServiceAccountsResponse": {
-      "type": "object",
-      "properties": {
-        "service_accounts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1ServiceAccount"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/v1Pagination"
-        }
-      }
+      "description": "RotateClientSecretRequest mirrors model.ClientRequest (a\nsingle service account id). Kept distinct from DeleteClientRequest and\nGetClientRequest per buf's one-message-per-RPC rule."
     },
     "v1SessionRequest": {
       "type": "object",
@@ -3650,6 +3650,38 @@
         }
       }
     },
+    "v1UpdateClientRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "allowed_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      },
+      "description": "UpdateClientRequest mirrors model.UpdateClientRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty."
+    },
+    "v1UpdateClientResponse": {
+      "type": "object",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/v1Client"
+        }
+      }
+    },
     "v1UpdateEmailTemplateRequest": {
       "type": "object",
       "properties": {
@@ -3732,38 +3764,6 @@
       "properties": {
         "message": {
           "type": "string"
-        }
-      }
-    },
-    "v1UpdateServiceAccountRequest": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "allowed_scopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "is_active": {
-          "type": "boolean"
-        }
-      },
-      "description": "UpdateServiceAccountRequest mirrors model.UpdateServiceAccountRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty."
-    },
-    "v1UpdateServiceAccountResponse": {
-      "type": "object",
-      "properties": {
-        "service_account": {
-          "$ref": "#/definitions/v1ServiceAccount"
         }
       }
     },

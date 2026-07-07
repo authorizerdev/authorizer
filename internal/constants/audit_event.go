@@ -134,20 +134,20 @@ const (
 	// AuditSessionTerminatedEvent is logged when a session is terminated.
 	AuditSessionTerminatedEvent = "session.terminated"
 
-	// AuditServiceAccountCreatedEvent is logged when an admin creates a service account.
-	AuditServiceAccountCreatedEvent = "admin.service_account_created"
-	// AuditServiceAccountUpdatedEvent is logged when an admin updates a service account.
-	AuditServiceAccountUpdatedEvent = "admin.service_account_updated"
-	// AuditServiceAccountDeletedEvent is logged when an admin deletes a service account.
-	AuditServiceAccountDeletedEvent = "admin.service_account_deleted"
-	// AuditServiceAccountSecretRotatedEvent is logged when a service account secret is rotated.
-	AuditServiceAccountSecretRotatedEvent = "admin.service_account_secret_rotated"
-	// AuditServiceAccountDeactivatedEvent is logged when an admin disables a service account.
+	// AuditClientCreatedEvent is logged when an admin creates a client.
+	AuditClientCreatedEvent = "admin.client_created"
+	// AuditClientUpdatedEvent is logged when an admin updates a client.
+	AuditClientUpdatedEvent = "admin.client_updated"
+	// AuditClientDeletedEvent is logged when an admin deletes a client.
+	AuditClientDeletedEvent = "admin.client_deleted"
+	// AuditClientSecretRotatedEvent is logged when a client secret is rotated.
+	AuditClientSecretRotatedEvent = "admin.client_secret_rotated"
+	// AuditClientDeactivatedEvent is logged when an admin disables a client.
 	// Distinct from the generic update event so incident responders can query the kill-switch
 	// signal directly without scanning all update payloads.
-	AuditServiceAccountDeactivatedEvent = "admin.service_account_deactivated"
-	// AuditServiceAccountActivatedEvent is logged when an admin re-enables a service account.
-	AuditServiceAccountActivatedEvent = "admin.service_account_activated"
+	AuditClientDeactivatedEvent = "admin.client_deactivated"
+	// AuditClientActivatedEvent is logged when an admin re-enables a client.
+	AuditClientActivatedEvent = "admin.client_activated"
 
 	// AuditTrustedIssuerCreatedEvent is logged when an admin adds a trusted issuer.
 	AuditTrustedIssuerCreatedEvent = "admin.trusted_issuer_created"

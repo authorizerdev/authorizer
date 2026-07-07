@@ -9,17 +9,17 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// ServiceAccount delegates to the transport-agnostic service layer. Resolver is
-// a thin transport adapter.
+// CreateClient delegates to the transport-agnostic service layer.
+// Resolver is a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) ServiceAccount(ctx context.Context, params *model.ServiceAccountRequest) (*model.ServiceAccount, error) {
+func (g *graphqlProvider) CreateClient(ctx context.Context, params *model.CreateClientRequest) (*model.CreateClientResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, _, err := g.adminService().ServiceAccount(ctx, service.MetaFromGin(gc), params)
+	res, _, err := g.adminService().CreateClient(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

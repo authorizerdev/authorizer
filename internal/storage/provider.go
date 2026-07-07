@@ -181,19 +181,19 @@ type Provider interface {
 	// Close releases resources held by the provider (e.g. database connection pools).
 	Close() error
 
-	// ServiceAccount methods.
+	// Client methods.
 
-	// AddServiceAccount creates a new service account record.
-	AddServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error)
-	// UpdateServiceAccount updates name, description, allowed_scopes, or is_active.
-	UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error)
-	// DeleteServiceAccount removes a service account. Callers must delete
+	// AddClient creates a new service account record.
+	AddClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error)
+	// UpdateClient updates name, description, allowed_scopes, or is_active.
+	UpdateClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error)
+	// DeleteClient removes a service account. Callers must delete
 	// associated TrustedIssuers before or within the same logical operation.
-	DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error
-	// GetServiceAccountByID fetches a service account by its primary key (= client_id).
-	GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error)
-	// ListServiceAccounts returns a paginated list of all service accounts.
-	ListServiceAccounts(ctx context.Context, pagination *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error)
+	DeleteClient(ctx context.Context, sa *schemas.Client) error
+	// GetClientByID fetches a service account by its primary key (= client_id).
+	GetClientByID(ctx context.Context, id string) (*schemas.Client, error)
+	// ListClients returns a paginated list of all service accounts.
+	ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error)
 
 	// TrustedIssuer methods.
 

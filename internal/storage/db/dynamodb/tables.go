@@ -174,7 +174,7 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			},
 		},
 		{
-			name: schemas.Collections.ServiceAccount,
+			name: schemas.Collections.Client,
 			hash: "id",
 			attr: []types.AttributeDefinition{
 				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
@@ -186,11 +186,11 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			attr: []types.AttributeDefinition{
 				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
 				{AttributeName: aws.String("issuer_url"), AttributeType: types.ScalarAttributeTypeS},
-				{AttributeName: aws.String("service_account_id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("client_id"), AttributeType: types.ScalarAttributeTypeS},
 			},
 			gsi: []types.GlobalSecondaryIndex{
 				gsi("issuer_url", "issuer_url"),
-				gsi("service_account_id", "service_account_id"),
+				gsi("client_id", "client_id"),
 			},
 		},
 	}

@@ -348,13 +348,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
-	// ServiceAccount collection
-	serviceAccountCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.ServiceAccount)
+	// Client collection
+	clientCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Client)
 	if err != nil {
 		return nil, err
 	}
-	if !serviceAccountCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, schemas.Collections.ServiceAccount, nil)
+	if !clientCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Client, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -379,7 +379,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Unique: true,
 		Sparse: true,
 	})
-	_, _, _ = trustedIssuerCollection.EnsureHashIndex(ctx, []string{"service_account_id"}, &arangoDriver.EnsureHashIndexOptions{
+	_, _, _ = trustedIssuerCollection.EnsureHashIndex(ctx, []string{"client_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 

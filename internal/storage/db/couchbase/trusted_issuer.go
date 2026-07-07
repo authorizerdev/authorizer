@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const trustedIssuerColumns = "_id, service_account_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
+const trustedIssuerColumns = "_id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
 
 // AddTrustedIssuer creates a new trusted issuer record.
 func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {
@@ -135,13 +135,13 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
 	if serviceAccountID != "" {
-		whereClause = " WHERE service_account_id=$service_account_id"
-		params["service_account_id"] = serviceAccountID
+		whereClause = " WHERE client_id=$client_id"
+		params["client_id"] = serviceAccountID
 	}
 
 	countParams := make(map[string]interface{}, 1)
 	if serviceAccountID != "" {
-		countParams["service_account_id"] = serviceAccountID
+		countParams["client_id"] = serviceAccountID
 	}
 	total := TotalDocs{}
 	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM %s%s", table, whereClause)

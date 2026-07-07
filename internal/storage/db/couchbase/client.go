@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const serviceAccountColumns = "_id, name, description, client_secret, allowed_scopes, is_active, created_at, updated_at"
+const clientColumns = "_id, kind, name, description, client_secret, allowed_scopes, is_active, created_at, updated_at"
 
-// AddServiceAccount creates a new service account record.
-func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+// AddClient creates a new service account record.
+func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error) {
 	if sa.ID == "" {
 		sa.ID = uuid.New().String()
 	}
@@ -31,19 +31,19 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.db.Collection(schemas.Collections.ServiceAccount).Insert(sa.ID, doc, &insertOpt)
+	_, err = p.db.Collection(schemas.Collections.Client).Insert(sa.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
 	return sa, nil
 }
 
-// UpdateServiceAccount updates a service account record.
+// UpdateClient updates a service account record.
 // Callers MUST load the existing record and mutate it before calling this
 // method — a partial struct blanks fields it does not carry.
-func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
+func (p *provider) UpdateClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error) {
 	if sa.CreatedAt == 0 {
-		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+		return nil, fmt.Errorf("UpdateClient: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sa.UpdatedAt = time.Now().Unix()
 	saMap, err := structToDocument(sa)
@@ -52,7 +52,7 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 	}
 	updateFields, params := GetSetFields(saMap)
 	params["_id"] = sa.ID
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.ServiceAccount, updateFields)
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Client, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -64,19 +64,19 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 	return sa, nil
 }
 
-// DeleteServiceAccount removes a service account and all its associated
+// DeleteClient removes a service account and all its associated
 // TrustedIssuers. Mirrors the webhook cascade-delete pattern.
-func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) error {
+func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.ServiceAccount).Remove(sa.ID, &removeOpt)
+	_, err := p.db.Collection(schemas.Collections.Client).Remove(sa.ID, &removeOpt)
 	if err != nil {
 		return err
 	}
 	params := make(map[string]interface{}, 1)
-	params["service_account_id"] = sa.ID
-	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE service_account_id=$service_account_id`, p.scopeName, schemas.Collections.TrustedIssuer)
+	params["client_id"] = sa.ID
+	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE client_id=$client_id`, p.scopeName, schemas.Collections.TrustedIssuer)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -88,11 +88,11 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.Service
 	return nil
 }
 
-// GetServiceAccountByID fetches a service account by primary key.
-func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schemas.ServiceAccount, error) {
+// GetClientByID fetches a service account by primary key.
+func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Client, error) {
 	params := make(map[string]interface{}, 1)
 	params["_id"] = id
-	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE _id=$_id LIMIT 1`, serviceAccountColumns, p.scopeName, schemas.Collections.ServiceAccount)
+	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE _id=$_id LIMIT 1`, clientColumns, p.scopeName, schemas.Collections.Client)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -105,26 +105,26 @@ func (p *provider) GetServiceAccountByID(ctx context.Context, id string) (*schem
 	if err := q.One(&raw); err != nil {
 		return nil, err
 	}
-	sa := &schemas.ServiceAccount{}
+	sa := &schemas.Client{}
 	if err := decodeDocument(raw, sa); err != nil {
 		return nil, err
 	}
 	return sa, nil
 }
 
-// ListServiceAccounts returns a paginated list of service accounts.
-func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pagination) ([]*schemas.ServiceAccount, *model.Pagination, error) {
-	serviceAccounts := []*schemas.ServiceAccount{}
+// ListClients returns a paginated list of service accounts.
+func (p *provider) ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error) {
+	clients := []*schemas.Client{}
 	paginationClone := pagination
 	params := make(map[string]interface{}, 2)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-	total, err := p.GetTotalDocs(ctx, schemas.Collections.ServiceAccount)
+	total, err := p.GetTotalDocs(ctx, schemas.Collections.Client)
 	if err != nil {
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT %s FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", serviceAccountColumns, p.scopeName, schemas.Collections.ServiceAccount)
+	query := fmt.Sprintf("SELECT %s FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", clientColumns, p.scopeName, schemas.Collections.Client)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -138,14 +138,14 @@ func (p *provider) ListServiceAccounts(ctx context.Context, pagination *model.Pa
 		if err := queryResult.Row(&raw); err != nil {
 			return nil, nil, err
 		}
-		sa := &schemas.ServiceAccount{}
+		sa := &schemas.Client{}
 		if err := decodeDocument(raw, sa); err != nil {
 			return nil, nil, err
 		}
-		serviceAccounts = append(serviceAccounts, sa)
+		clients = append(clients, sa)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return serviceAccounts, paginationClone, nil
+	return clients, paginationClone, nil
 }

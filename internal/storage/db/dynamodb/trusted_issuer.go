@@ -91,7 +91,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	var items []map[string]types.AttributeValue
 	var err error
 	if serviceAccountID != "" {
-		items, err = p.queryEq(ctx, schemas.Collections.TrustedIssuer, "service_account_id", "service_account_id", serviceAccountID, nil)
+		items, err = p.queryEq(ctx, schemas.Collections.TrustedIssuer, "client_id", "client_id", serviceAccountID, nil)
 	} else {
 		items, err = p.scanAllRaw(ctx, schemas.Collections.TrustedIssuer, nil, nil)
 	}

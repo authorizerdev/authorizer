@@ -831,158 +831,158 @@ func local_request_AuthorizerAdminService_FgaReset_0(ctx context.Context, marsha
 
 }
 
-func request_AuthorizerAdminService_CreateServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq CreateServiceAccountRequest
+func request_AuthorizerAdminService_CreateClient_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq CreateClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.CreateServiceAccount(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.CreateClient(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_CreateServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq CreateServiceAccountRequest
+func local_request_AuthorizerAdminService_CreateClient_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq CreateClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.CreateServiceAccount(ctx, &protoReq)
+	msg, err := server.CreateClient(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-func request_AuthorizerAdminService_UpdateServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq UpdateServiceAccountRequest
+func request_AuthorizerAdminService_UpdateClient_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq UpdateClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.UpdateServiceAccount(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.UpdateClient(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_UpdateServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq UpdateServiceAccountRequest
+func local_request_AuthorizerAdminService_UpdateClient_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq UpdateClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.UpdateServiceAccount(ctx, &protoReq)
+	msg, err := server.UpdateClient(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-func request_AuthorizerAdminService_DeleteServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq DeleteServiceAccountRequest
+func request_AuthorizerAdminService_DeleteClient_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq DeleteClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.DeleteServiceAccount(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.DeleteClient(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_DeleteServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq DeleteServiceAccountRequest
+func local_request_AuthorizerAdminService_DeleteClient_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq DeleteClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.DeleteServiceAccount(ctx, &protoReq)
+	msg, err := server.DeleteClient(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-func request_AuthorizerAdminService_RotateServiceAccountSecret_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq RotateServiceAccountSecretRequest
+func request_AuthorizerAdminService_RotateClientSecret_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq RotateClientSecretRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.RotateServiceAccountSecret(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.RotateClientSecret(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_RotateServiceAccountSecret_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq RotateServiceAccountSecretRequest
+func local_request_AuthorizerAdminService_RotateClientSecret_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq RotateClientSecretRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.RotateServiceAccountSecret(ctx, &protoReq)
+	msg, err := server.RotateClientSecret(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-func request_AuthorizerAdminService_GetServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GetServiceAccountRequest
+func request_AuthorizerAdminService_GetClient_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq GetClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.GetServiceAccount(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.GetClient(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_GetServiceAccount_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GetServiceAccountRequest
+func local_request_AuthorizerAdminService_GetClient_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq GetClientRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.GetServiceAccount(ctx, &protoReq)
+	msg, err := server.GetClient(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-func request_AuthorizerAdminService_ServiceAccounts_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq ServiceAccountsRequest
+func request_AuthorizerAdminService_Clients_0(ctx context.Context, marshaler runtime.Marshaler, client AuthorizerAdminServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ClientsRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.ServiceAccounts(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.Clients(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_AuthorizerAdminService_ServiceAccounts_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq ServiceAccountsRequest
+func local_request_AuthorizerAdminService_Clients_0(ctx context.Context, marshaler runtime.Marshaler, server AuthorizerAdminServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ClientsRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.ServiceAccounts(ctx, &protoReq)
+	msg, err := server.Clients(ctx, &protoReq)
 	return msg, metadata, err
 
 }
@@ -1924,7 +1924,7 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_CreateServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_CreateClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -1932,12 +1932,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/CreateServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/create_service_account"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/CreateClient", runtime.WithHTTPPathPattern("/v1/admin/create_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_CreateServiceAccount_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_CreateClient_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -1945,11 +1945,11 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_CreateServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_CreateClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_UpdateServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_UpdateClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -1957,12 +1957,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/UpdateServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/update_service_account"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/UpdateClient", runtime.WithHTTPPathPattern("/v1/admin/update_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_UpdateServiceAccount_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_UpdateClient_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -1970,11 +1970,11 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_UpdateServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_UpdateClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_DeleteServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_DeleteClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -1982,12 +1982,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/DeleteServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/delete_service_account"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/DeleteClient", runtime.WithHTTPPathPattern("/v1/admin/delete_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_DeleteServiceAccount_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_DeleteClient_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -1995,11 +1995,11 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_DeleteServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_DeleteClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_RotateServiceAccountSecret_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_RotateClientSecret_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -2007,12 +2007,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/RotateServiceAccountSecret", runtime.WithHTTPPathPattern("/v1/admin/rotate_service_account_secret"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/RotateClientSecret", runtime.WithHTTPPathPattern("/v1/admin/rotate_client_secret"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_RotateServiceAccountSecret_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_RotateClientSecret_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -2020,11 +2020,11 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_RotateServiceAccountSecret_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_RotateClientSecret_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_GetServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_GetClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -2032,12 +2032,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/GetServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/service_account"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/GetClient", runtime.WithHTTPPathPattern("/v1/admin/client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_GetServiceAccount_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_GetClient_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -2045,11 +2045,11 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_GetServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_GetClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_ServiceAccounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_Clients_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -2057,12 +2057,12 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/ServiceAccounts", runtime.WithHTTPPathPattern("/v1/admin/service_accounts"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/Clients", runtime.WithHTTPPathPattern("/v1/admin/clients"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthorizerAdminService_ServiceAccounts_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthorizerAdminService_Clients_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -2070,7 +2070,7 @@ func RegisterAuthorizerAdminServiceHandlerServer(ctx context.Context, mux *runti
 			return
 		}
 
-		forward_AuthorizerAdminService_ServiceAccounts_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_Clients_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -2944,135 +2944,135 @@ func RegisterAuthorizerAdminServiceHandlerClient(ctx context.Context, mux *runti
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_CreateServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_CreateClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/CreateServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/create_service_account"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/CreateClient", runtime.WithHTTPPathPattern("/v1/admin/create_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_CreateServiceAccount_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_CreateClient_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_CreateServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_CreateClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_UpdateServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_UpdateClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/UpdateServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/update_service_account"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/UpdateClient", runtime.WithHTTPPathPattern("/v1/admin/update_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_UpdateServiceAccount_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_UpdateClient_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_UpdateServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_UpdateClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_DeleteServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_DeleteClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/DeleteServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/delete_service_account"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/DeleteClient", runtime.WithHTTPPathPattern("/v1/admin/delete_client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_DeleteServiceAccount_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_DeleteClient_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_DeleteServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_DeleteClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_RotateServiceAccountSecret_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_RotateClientSecret_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/RotateServiceAccountSecret", runtime.WithHTTPPathPattern("/v1/admin/rotate_service_account_secret"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/RotateClientSecret", runtime.WithHTTPPathPattern("/v1/admin/rotate_client_secret"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_RotateServiceAccountSecret_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_RotateClientSecret_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_RotateServiceAccountSecret_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_RotateClientSecret_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_GetServiceAccount_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_GetClient_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/GetServiceAccount", runtime.WithHTTPPathPattern("/v1/admin/service_account"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/GetClient", runtime.WithHTTPPathPattern("/v1/admin/client"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_GetServiceAccount_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_GetClient_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_GetServiceAccount_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_GetClient_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_AuthorizerAdminService_ServiceAccounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_AuthorizerAdminService_Clients_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/ServiceAccounts", runtime.WithHTTPPathPattern("/v1/admin/service_accounts"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/authorizer.v1.AuthorizerAdminService/Clients", runtime.WithHTTPPathPattern("/v1/admin/clients"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthorizerAdminService_ServiceAccounts_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthorizerAdminService_Clients_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_AuthorizerAdminService_ServiceAccounts_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_AuthorizerAdminService_Clients_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -3254,17 +3254,17 @@ var (
 
 	pattern_AuthorizerAdminService_FgaReset_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "admin", "fga", "reset"}, ""))
 
-	pattern_AuthorizerAdminService_CreateServiceAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "create_service_account"}, ""))
+	pattern_AuthorizerAdminService_CreateClient_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "create_client"}, ""))
 
-	pattern_AuthorizerAdminService_UpdateServiceAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "update_service_account"}, ""))
+	pattern_AuthorizerAdminService_UpdateClient_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "update_client"}, ""))
 
-	pattern_AuthorizerAdminService_DeleteServiceAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "delete_service_account"}, ""))
+	pattern_AuthorizerAdminService_DeleteClient_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "delete_client"}, ""))
 
-	pattern_AuthorizerAdminService_RotateServiceAccountSecret_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "rotate_service_account_secret"}, ""))
+	pattern_AuthorizerAdminService_RotateClientSecret_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "rotate_client_secret"}, ""))
 
-	pattern_AuthorizerAdminService_GetServiceAccount_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "service_account"}, ""))
+	pattern_AuthorizerAdminService_GetClient_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "client"}, ""))
 
-	pattern_AuthorizerAdminService_ServiceAccounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "service_accounts"}, ""))
+	pattern_AuthorizerAdminService_Clients_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "clients"}, ""))
 
 	pattern_AuthorizerAdminService_AddTrustedIssuer_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "admin", "add_trusted_issuer"}, ""))
 
@@ -3342,17 +3342,17 @@ var (
 
 	forward_AuthorizerAdminService_FgaReset_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_CreateServiceAccount_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_CreateClient_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_UpdateServiceAccount_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_UpdateClient_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_DeleteServiceAccount_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_DeleteClient_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_RotateServiceAccountSecret_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_RotateClientSecret_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_GetServiceAccount_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_GetClient_0 = runtime.ForwardResponseMessage
 
-	forward_AuthorizerAdminService_ServiceAccounts_0 = runtime.ForwardResponseMessage
+	forward_AuthorizerAdminService_Clients_0 = runtime.ForwardResponseMessage
 
 	forward_AuthorizerAdminService_AddTrustedIssuer_0 = runtime.ForwardResponseMessage
 

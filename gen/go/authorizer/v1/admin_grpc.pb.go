@@ -28,49 +28,49 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizerAdminService_AdminLogin_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
-	AuthorizerAdminService_AdminLogout_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
-	AuthorizerAdminService_AdminSession_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/AdminSession"
-	AuthorizerAdminService_AdminMeta_FullMethodName                  = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
-	AuthorizerAdminService_Users_FullMethodName                      = "/authorizer.v1.AuthorizerAdminService/Users"
-	AuthorizerAdminService_User_FullMethodName                       = "/authorizer.v1.AuthorizerAdminService/User"
-	AuthorizerAdminService_UpdateUser_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
-	AuthorizerAdminService_DeleteUser_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
-	AuthorizerAdminService_VerificationRequests_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
-	AuthorizerAdminService_RevokeAccess_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
-	AuthorizerAdminService_EnableAccess_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
-	AuthorizerAdminService_InviteMembers_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
-	AuthorizerAdminService_AddWebhook_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/AddWebhook"
-	AuthorizerAdminService_UpdateWebhook_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/UpdateWebhook"
-	AuthorizerAdminService_DeleteWebhook_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/DeleteWebhook"
-	AuthorizerAdminService_GetWebhook_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/GetWebhook"
-	AuthorizerAdminService_Webhooks_FullMethodName                   = "/authorizer.v1.AuthorizerAdminService/Webhooks"
-	AuthorizerAdminService_WebhookLogs_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
-	AuthorizerAdminService_TestEndpoint_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
-	AuthorizerAdminService_AddEmailTemplate_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AddEmailTemplate"
-	AuthorizerAdminService_UpdateEmailTemplate_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateEmailTemplate"
-	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
-	AuthorizerAdminService_EmailTemplates_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
-	AuthorizerAdminService_AuditLogs_FullMethodName                  = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
-	AuthorizerAdminService_FgaGetModel_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/FgaGetModel"
-	AuthorizerAdminService_FgaWriteModel_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/FgaWriteModel"
-	AuthorizerAdminService_FgaWriteTuples_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaWriteTuples"
-	AuthorizerAdminService_FgaDeleteTuples_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/FgaDeleteTuples"
-	AuthorizerAdminService_FgaReadTuples_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/FgaReadTuples"
-	AuthorizerAdminService_FgaListUsers_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/FgaListUsers"
-	AuthorizerAdminService_FgaExpand_FullMethodName                  = "/authorizer.v1.AuthorizerAdminService/FgaExpand"
-	AuthorizerAdminService_FgaReset_FullMethodName                   = "/authorizer.v1.AuthorizerAdminService/FgaReset"
-	AuthorizerAdminService_CreateServiceAccount_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/CreateServiceAccount"
-	AuthorizerAdminService_UpdateServiceAccount_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/UpdateServiceAccount"
-	AuthorizerAdminService_DeleteServiceAccount_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/DeleteServiceAccount"
-	AuthorizerAdminService_RotateServiceAccountSecret_FullMethodName = "/authorizer.v1.AuthorizerAdminService/RotateServiceAccountSecret"
-	AuthorizerAdminService_GetServiceAccount_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/GetServiceAccount"
-	AuthorizerAdminService_ServiceAccounts_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/ServiceAccounts"
-	AuthorizerAdminService_AddTrustedIssuer_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer"
-	AuthorizerAdminService_UpdateTrustedIssuer_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer"
-	AuthorizerAdminService_DeleteTrustedIssuer_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer"
-	AuthorizerAdminService_GetTrustedIssuer_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer"
-	AuthorizerAdminService_TrustedIssuers_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/TrustedIssuers"
+	AuthorizerAdminService_AdminLogin_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
+	AuthorizerAdminService_AdminLogout_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
+	AuthorizerAdminService_AdminSession_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/AdminSession"
+	AuthorizerAdminService_AdminMeta_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
+	AuthorizerAdminService_Users_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/Users"
+	AuthorizerAdminService_User_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/User"
+	AuthorizerAdminService_UpdateUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
+	AuthorizerAdminService_DeleteUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
+	AuthorizerAdminService_VerificationRequests_FullMethodName = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
+	AuthorizerAdminService_RevokeAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
+	AuthorizerAdminService_EnableAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
+	AuthorizerAdminService_InviteMembers_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
+	AuthorizerAdminService_AddWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AddWebhook"
+	AuthorizerAdminService_UpdateWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateWebhook"
+	AuthorizerAdminService_DeleteWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteWebhook"
+	AuthorizerAdminService_GetWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetWebhook"
+	AuthorizerAdminService_Webhooks_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/Webhooks"
+	AuthorizerAdminService_WebhookLogs_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
+	AuthorizerAdminService_TestEndpoint_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
+	AuthorizerAdminService_AddEmailTemplate_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/AddEmailTemplate"
+	AuthorizerAdminService_UpdateEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/UpdateEmailTemplate"
+	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
+	AuthorizerAdminService_EmailTemplates_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
+	AuthorizerAdminService_AuditLogs_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
+	AuthorizerAdminService_FgaGetModel_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/FgaGetModel"
+	AuthorizerAdminService_FgaWriteModel_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaWriteModel"
+	AuthorizerAdminService_FgaWriteTuples_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/FgaWriteTuples"
+	AuthorizerAdminService_FgaDeleteTuples_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/FgaDeleteTuples"
+	AuthorizerAdminService_FgaReadTuples_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaReadTuples"
+	AuthorizerAdminService_FgaListUsers_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/FgaListUsers"
+	AuthorizerAdminService_FgaExpand_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/FgaExpand"
+	AuthorizerAdminService_FgaReset_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaReset"
+	AuthorizerAdminService_CreateClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/CreateClient"
+	AuthorizerAdminService_UpdateClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/UpdateClient"
+	AuthorizerAdminService_DeleteClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/DeleteClient"
+	AuthorizerAdminService_RotateClientSecret_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/RotateClientSecret"
+	AuthorizerAdminService_GetClient_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/GetClient"
+	AuthorizerAdminService_Clients_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/Clients"
+	AuthorizerAdminService_AddTrustedIssuer_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer"
+	AuthorizerAdminService_UpdateTrustedIssuer_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer"
+	AuthorizerAdminService_DeleteTrustedIssuer_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer"
+	AuthorizerAdminService_GetTrustedIssuer_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer"
+	AuthorizerAdminService_TrustedIssuers_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/TrustedIssuers"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -176,28 +176,28 @@ type AuthorizerAdminServiceClient interface {
 	// while any tuples still exist. Requires super-admin auth. Destructive and
 	// audited.
 	FgaReset(ctx context.Context, in *FgaResetRequest, opts ...grpc.CallOption) (*FgaResetResponse, error)
-	// CreateServiceAccount provisions a new machine/workload identity and returns
+	// CreateClient provisions a new machine/workload identity and returns
 	// the generated client secret exactly once (only the bcrypt hash is stored).
 	// Requires super-admin auth.
-	CreateServiceAccount(ctx context.Context, in *CreateServiceAccountRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error)
-	// UpdateServiceAccount updates a service account's name, description, allowed
+	CreateClient(ctx context.Context, in *CreateClientRequest, opts ...grpc.CallOption) (*CreateClientResponse, error)
+	// UpdateClient updates a service account's name, description, allowed
 	// scopes, or active state. It never touches the client secret. Requires
 	// super-admin auth.
-	UpdateServiceAccount(ctx context.Context, in *UpdateServiceAccountRequest, opts ...grpc.CallOption) (*UpdateServiceAccountResponse, error)
-	// DeleteServiceAccount deletes a service account by id, cascading to its
+	UpdateClient(ctx context.Context, in *UpdateClientRequest, opts ...grpc.CallOption) (*UpdateClientResponse, error)
+	// DeleteClient deletes a service account by id, cascading to its
 	// trusted issuers. Requires super-admin auth.
-	DeleteServiceAccount(ctx context.Context, in *DeleteServiceAccountRequest, opts ...grpc.CallOption) (*DeleteServiceAccountResponse, error)
-	// RotateServiceAccountSecret replaces the stored client secret with a fresh
+	DeleteClient(ctx context.Context, in *DeleteClientRequest, opts ...grpc.CallOption) (*DeleteClientResponse, error)
+	// RotateClientSecret replaces the stored client secret with a fresh
 	// one and returns the new plaintext exactly once (the old secret stops
-	// validating immediately). Reuses CreateServiceAccountResponse — the only
+	// validating immediately). Reuses CreateClientResponse — the only
 	// admin message that carries a secret. Requires super-admin auth.
-	RotateServiceAccountSecret(ctx context.Context, in *RotateServiceAccountSecretRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error)
-	// GetServiceAccount returns a single service account by id. The client secret
+	RotateClientSecret(ctx context.Context, in *RotateClientSecretRequest, opts ...grpc.CallOption) (*CreateClientResponse, error)
+	// GetClient returns a single service account by id. The client secret
 	// is never surfaced. Requires super-admin auth.
-	GetServiceAccount(ctx context.Context, in *GetServiceAccountRequest, opts ...grpc.CallOption) (*GetServiceAccountResponse, error)
-	// ServiceAccounts returns a paginated list of service accounts. Client secrets
+	GetClient(ctx context.Context, in *GetClientRequest, opts ...grpc.CallOption) (*GetClientResponse, error)
+	// Clients returns a paginated list of service accounts. Client secrets
 	// are never surfaced. Requires super-admin auth.
-	ServiceAccounts(ctx context.Context, in *ServiceAccountsRequest, opts ...grpc.CallOption) (*ServiceAccountsResponse, error)
+	Clients(ctx context.Context, in *ClientsRequest, opts ...grpc.CallOption) (*ClientsResponse, error)
 	// AddTrustedIssuer registers an external JWT issuer for a service account.
 	// subject_claim defaults to "sub" when omitted. Requires super-admin auth.
 	AddTrustedIssuer(ctx context.Context, in *AddTrustedIssuerRequest, opts ...grpc.CallOption) (*AddTrustedIssuerResponse, error)
@@ -543,60 +543,60 @@ func (c *authorizerAdminServiceClient) FgaReset(ctx context.Context, in *FgaRese
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) CreateServiceAccount(ctx context.Context, in *CreateServiceAccountRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error) {
+func (c *authorizerAdminServiceClient) CreateClient(ctx context.Context, in *CreateClientRequest, opts ...grpc.CallOption) (*CreateClientResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateServiceAccountResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateServiceAccount_FullMethodName, in, out, cOpts...)
+	out := new(CreateClientResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateClient_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) UpdateServiceAccount(ctx context.Context, in *UpdateServiceAccountRequest, opts ...grpc.CallOption) (*UpdateServiceAccountResponse, error) {
+func (c *authorizerAdminServiceClient) UpdateClient(ctx context.Context, in *UpdateClientRequest, opts ...grpc.CallOption) (*UpdateClientResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateServiceAccountResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateServiceAccount_FullMethodName, in, out, cOpts...)
+	out := new(UpdateClientResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateClient_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) DeleteServiceAccount(ctx context.Context, in *DeleteServiceAccountRequest, opts ...grpc.CallOption) (*DeleteServiceAccountResponse, error) {
+func (c *authorizerAdminServiceClient) DeleteClient(ctx context.Context, in *DeleteClientRequest, opts ...grpc.CallOption) (*DeleteClientResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteServiceAccountResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteServiceAccount_FullMethodName, in, out, cOpts...)
+	out := new(DeleteClientResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteClient_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) RotateServiceAccountSecret(ctx context.Context, in *RotateServiceAccountSecretRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error) {
+func (c *authorizerAdminServiceClient) RotateClientSecret(ctx context.Context, in *RotateClientSecretRequest, opts ...grpc.CallOption) (*CreateClientResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateServiceAccountResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_RotateServiceAccountSecret_FullMethodName, in, out, cOpts...)
+	out := new(CreateClientResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RotateClientSecret_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) GetServiceAccount(ctx context.Context, in *GetServiceAccountRequest, opts ...grpc.CallOption) (*GetServiceAccountResponse, error) {
+func (c *authorizerAdminServiceClient) GetClient(ctx context.Context, in *GetClientRequest, opts ...grpc.CallOption) (*GetClientResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetServiceAccountResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetServiceAccount_FullMethodName, in, out, cOpts...)
+	out := new(GetClientResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetClient_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerAdminServiceClient) ServiceAccounts(ctx context.Context, in *ServiceAccountsRequest, opts ...grpc.CallOption) (*ServiceAccountsResponse, error) {
+func (c *authorizerAdminServiceClient) Clients(ctx context.Context, in *ClientsRequest, opts ...grpc.CallOption) (*ClientsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ServiceAccountsResponse)
-	err := c.cc.Invoke(ctx, AuthorizerAdminService_ServiceAccounts_FullMethodName, in, out, cOpts...)
+	out := new(ClientsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_Clients_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -756,28 +756,28 @@ type AuthorizerAdminServiceServer interface {
 	// while any tuples still exist. Requires super-admin auth. Destructive and
 	// audited.
 	FgaReset(context.Context, *FgaResetRequest) (*FgaResetResponse, error)
-	// CreateServiceAccount provisions a new machine/workload identity and returns
+	// CreateClient provisions a new machine/workload identity and returns
 	// the generated client secret exactly once (only the bcrypt hash is stored).
 	// Requires super-admin auth.
-	CreateServiceAccount(context.Context, *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error)
-	// UpdateServiceAccount updates a service account's name, description, allowed
+	CreateClient(context.Context, *CreateClientRequest) (*CreateClientResponse, error)
+	// UpdateClient updates a service account's name, description, allowed
 	// scopes, or active state. It never touches the client secret. Requires
 	// super-admin auth.
-	UpdateServiceAccount(context.Context, *UpdateServiceAccountRequest) (*UpdateServiceAccountResponse, error)
-	// DeleteServiceAccount deletes a service account by id, cascading to its
+	UpdateClient(context.Context, *UpdateClientRequest) (*UpdateClientResponse, error)
+	// DeleteClient deletes a service account by id, cascading to its
 	// trusted issuers. Requires super-admin auth.
-	DeleteServiceAccount(context.Context, *DeleteServiceAccountRequest) (*DeleteServiceAccountResponse, error)
-	// RotateServiceAccountSecret replaces the stored client secret with a fresh
+	DeleteClient(context.Context, *DeleteClientRequest) (*DeleteClientResponse, error)
+	// RotateClientSecret replaces the stored client secret with a fresh
 	// one and returns the new plaintext exactly once (the old secret stops
-	// validating immediately). Reuses CreateServiceAccountResponse — the only
+	// validating immediately). Reuses CreateClientResponse — the only
 	// admin message that carries a secret. Requires super-admin auth.
-	RotateServiceAccountSecret(context.Context, *RotateServiceAccountSecretRequest) (*CreateServiceAccountResponse, error)
-	// GetServiceAccount returns a single service account by id. The client secret
+	RotateClientSecret(context.Context, *RotateClientSecretRequest) (*CreateClientResponse, error)
+	// GetClient returns a single service account by id. The client secret
 	// is never surfaced. Requires super-admin auth.
-	GetServiceAccount(context.Context, *GetServiceAccountRequest) (*GetServiceAccountResponse, error)
-	// ServiceAccounts returns a paginated list of service accounts. Client secrets
+	GetClient(context.Context, *GetClientRequest) (*GetClientResponse, error)
+	// Clients returns a paginated list of service accounts. Client secrets
 	// are never surfaced. Requires super-admin auth.
-	ServiceAccounts(context.Context, *ServiceAccountsRequest) (*ServiceAccountsResponse, error)
+	Clients(context.Context, *ClientsRequest) (*ClientsResponse, error)
 	// AddTrustedIssuer registers an external JWT issuer for a service account.
 	// subject_claim defaults to "sub" when omitted. Requires super-admin auth.
 	AddTrustedIssuer(context.Context, *AddTrustedIssuerRequest) (*AddTrustedIssuerResponse, error)
@@ -898,23 +898,23 @@ func (UnimplementedAuthorizerAdminServiceServer) FgaExpand(context.Context, *Fga
 func (UnimplementedAuthorizerAdminServiceServer) FgaReset(context.Context, *FgaResetRequest) (*FgaResetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FgaReset not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) CreateServiceAccount(context.Context, *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateServiceAccount not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) CreateClient(context.Context, *CreateClientRequest) (*CreateClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateClient not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) UpdateServiceAccount(context.Context, *UpdateServiceAccountRequest) (*UpdateServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServiceAccount not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) UpdateClient(context.Context, *UpdateClientRequest) (*UpdateClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateClient not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) DeleteServiceAccount(context.Context, *DeleteServiceAccountRequest) (*DeleteServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteServiceAccount not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) DeleteClient(context.Context, *DeleteClientRequest) (*DeleteClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteClient not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) RotateServiceAccountSecret(context.Context, *RotateServiceAccountSecretRequest) (*CreateServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RotateServiceAccountSecret not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) RotateClientSecret(context.Context, *RotateClientSecretRequest) (*CreateClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateClientSecret not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) GetServiceAccount(context.Context, *GetServiceAccountRequest) (*GetServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetServiceAccount not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) GetClient(context.Context, *GetClientRequest) (*GetClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetClient not implemented")
 }
-func (UnimplementedAuthorizerAdminServiceServer) ServiceAccounts(context.Context, *ServiceAccountsRequest) (*ServiceAccountsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ServiceAccounts not implemented")
+func (UnimplementedAuthorizerAdminServiceServer) Clients(context.Context, *ClientsRequest) (*ClientsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Clients not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) AddTrustedIssuer(context.Context, *AddTrustedIssuerRequest) (*AddTrustedIssuerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddTrustedIssuer not implemented")
@@ -1527,110 +1527,110 @@ func _AuthorizerAdminService_FgaReset_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_CreateServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateServiceAccountRequest)
+func _AuthorizerAdminService_CreateClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateClientRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).CreateServiceAccount(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).CreateClient(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_CreateServiceAccount_FullMethodName,
+		FullMethod: AuthorizerAdminService_CreateClient_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).CreateServiceAccount(ctx, req.(*CreateServiceAccountRequest))
+		return srv.(AuthorizerAdminServiceServer).CreateClient(ctx, req.(*CreateClientRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_UpdateServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServiceAccountRequest)
+func _AuthorizerAdminService_UpdateClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateClientRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).UpdateServiceAccount(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).UpdateClient(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_UpdateServiceAccount_FullMethodName,
+		FullMethod: AuthorizerAdminService_UpdateClient_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).UpdateServiceAccount(ctx, req.(*UpdateServiceAccountRequest))
+		return srv.(AuthorizerAdminServiceServer).UpdateClient(ctx, req.(*UpdateClientRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_DeleteServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteServiceAccountRequest)
+func _AuthorizerAdminService_DeleteClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteClientRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).DeleteServiceAccount(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).DeleteClient(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_DeleteServiceAccount_FullMethodName,
+		FullMethod: AuthorizerAdminService_DeleteClient_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).DeleteServiceAccount(ctx, req.(*DeleteServiceAccountRequest))
+		return srv.(AuthorizerAdminServiceServer).DeleteClient(ctx, req.(*DeleteClientRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_RotateServiceAccountSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RotateServiceAccountSecretRequest)
+func _AuthorizerAdminService_RotateClientSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateClientSecretRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).RotateServiceAccountSecret(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).RotateClientSecret(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_RotateServiceAccountSecret_FullMethodName,
+		FullMethod: AuthorizerAdminService_RotateClientSecret_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).RotateServiceAccountSecret(ctx, req.(*RotateServiceAccountSecretRequest))
+		return srv.(AuthorizerAdminServiceServer).RotateClientSecret(ctx, req.(*RotateClientSecretRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_GetServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetServiceAccountRequest)
+func _AuthorizerAdminService_GetClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetClientRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).GetServiceAccount(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).GetClient(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_GetServiceAccount_FullMethodName,
+		FullMethod: AuthorizerAdminService_GetClient_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).GetServiceAccount(ctx, req.(*GetServiceAccountRequest))
+		return srv.(AuthorizerAdminServiceServer).GetClient(ctx, req.(*GetClientRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthorizerAdminService_ServiceAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ServiceAccountsRequest)
+func _AuthorizerAdminService_Clients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerAdminServiceServer).ServiceAccounts(ctx, in)
+		return srv.(AuthorizerAdminServiceServer).Clients(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthorizerAdminService_ServiceAccounts_FullMethodName,
+		FullMethod: AuthorizerAdminService_Clients_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerAdminServiceServer).ServiceAccounts(ctx, req.(*ServiceAccountsRequest))
+		return srv.(AuthorizerAdminServiceServer).Clients(ctx, req.(*ClientsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1861,28 +1861,28 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthorizerAdminService_FgaReset_Handler,
 		},
 		{
-			MethodName: "CreateServiceAccount",
-			Handler:    _AuthorizerAdminService_CreateServiceAccount_Handler,
+			MethodName: "CreateClient",
+			Handler:    _AuthorizerAdminService_CreateClient_Handler,
 		},
 		{
-			MethodName: "UpdateServiceAccount",
-			Handler:    _AuthorizerAdminService_UpdateServiceAccount_Handler,
+			MethodName: "UpdateClient",
+			Handler:    _AuthorizerAdminService_UpdateClient_Handler,
 		},
 		{
-			MethodName: "DeleteServiceAccount",
-			Handler:    _AuthorizerAdminService_DeleteServiceAccount_Handler,
+			MethodName: "DeleteClient",
+			Handler:    _AuthorizerAdminService_DeleteClient_Handler,
 		},
 		{
-			MethodName: "RotateServiceAccountSecret",
-			Handler:    _AuthorizerAdminService_RotateServiceAccountSecret_Handler,
+			MethodName: "RotateClientSecret",
+			Handler:    _AuthorizerAdminService_RotateClientSecret_Handler,
 		},
 		{
-			MethodName: "GetServiceAccount",
-			Handler:    _AuthorizerAdminService_GetServiceAccount_Handler,
+			MethodName: "GetClient",
+			Handler:    _AuthorizerAdminService_GetClient_Handler,
 		},
 		{
-			MethodName: "ServiceAccounts",
-			Handler:    _AuthorizerAdminService_ServiceAccounts_Handler,
+			MethodName: "Clients",
+			Handler:    _AuthorizerAdminService_Clients_Handler,
 		},
 		{
 			MethodName: "AddTrustedIssuer",

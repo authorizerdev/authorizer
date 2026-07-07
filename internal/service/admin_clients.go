@@ -16,20 +16,20 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// serviceAccountSecretBytes is the entropy of a generated client secret.
+// clientSecretBytes is the entropy of a generated client secret.
 // 32 bytes (256 bits) base64url-encoded — well above bcrypt's 72-byte input cap.
-const serviceAccountSecretBytes = 32
+const clientSecretBytes = 32
 
-// serviceAccountSecretCost is the bcrypt cost used for hashing service account
+// clientSecretCost is the bcrypt cost used for hashing service account
 // client secrets. The schema doc comment on ClientSecret commits to cost 12 —
 // this MUST stay 12, not bcrypt.DefaultCost (10).
-const serviceAccountSecretCost = 12
+const clientSecretCost = 12
 
-// generateServiceAccountSecret returns a cryptographically random, URL-safe
+// generateClientSecret returns a cryptographically random, URL-safe
 // plaintext client secret. Mirrors the PKCE verifier generation in
 // internal/utils/pkce.go.
-func generateServiceAccountSecret() (string, error) {
-	b := make([]byte, serviceAccountSecretBytes)
+func generateClientSecret() (string, error) {
+	b := make([]byte, clientSecretBytes)
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("failed to generate client secret: %w", err)
 	}
@@ -58,11 +58,11 @@ func normalizeScopes(scopes []string) string {
 	return strings.Join(out, ",")
 }
 
-// CreateServiceAccount provisions a new machine/workload identity. It generates
+// CreateClient provisions a new machine/workload identity. It generates
 // a random client secret, stores only its bcrypt hash (cost 12), and returns
 // the plaintext exactly once. Requires super-admin auth.
-func (p *provider) CreateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "CreateServiceAccount").Logger()
+func (p *provider) CreateClient(ctx context.Context, meta RequestMetadata, params *model.CreateClientRequest) (*model.CreateClientResponse, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "CreateClient").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
@@ -78,20 +78,23 @@ func (p *provider) CreateServiceAccount(ctx context.Context, meta RequestMetadat
 		return nil, nil, fmt.Errorf("at least one allowed scope is required")
 	}
 
-	secret, err := generateServiceAccountSecret()
+	secret, err := generateClientSecret()
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to generate client secret")
 		return nil, nil, err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret), serviceAccountSecretCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), clientSecretCost)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to hash client secret")
 		return nil, nil, err
 	}
 
-	sa, err := p.StorageProvider.AddServiceAccount(ctx, &schemas.ServiceAccount{
-		Name:          strings.TrimSpace(params.Name),
-		Description:   params.Description,
+	sa, err := p.StorageProvider.AddClient(ctx, &schemas.Client{
+		Name:        strings.TrimSpace(params.Name),
+		Description: params.Description,
+		// Kind is immutable and defaults to service_account in this rename step;
+		// the interactive kind lands in a later Phase A step.
+		Kind:          "service_account",
 		ClientSecret:  string(hash),
 		AllowedScopes: scopes,
 		// Set IsActive explicitly — never rely on the GORM `default:true` column
@@ -105,7 +108,7 @@ func (p *provider) CreateServiceAccount(ctx context.Context, meta RequestMetadat
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:   constants.AuditServiceAccountCreatedEvent,
+		Action:   constants.AuditClientCreatedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeServiceAccount,
 		ResourceID:   sa.ID,
@@ -113,24 +116,24 @@ func (p *provider) CreateServiceAccount(ctx context.Context, meta RequestMetadat
 		UserAgent:    meta.UserAgent,
 	})
 
-	return &model.CreateServiceAccountResponse{
-		ServiceAccount: sa.AsAPIServiceAccount(),
-		ClientSecret:   secret,
+	return &model.CreateClientResponse{
+		Client:       sa.AsAPIClient(),
+		ClientSecret: secret,
 	}, nil, nil
 }
 
-// UpdateServiceAccount mutates only the fields present in params (load-then-
+// UpdateClient mutates only the fields present in params (load-then-
 // mutate, so the storage Save does not blank untouched columns). It never
 // touches the client secret. Requires super-admin auth.
-func (p *provider) UpdateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.UpdateServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "UpdateServiceAccount").Logger()
+func (p *provider) UpdateClient(ctx context.Context, meta RequestMetadata, params *model.UpdateClientRequest) (*model.Client, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "UpdateClient").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
-	sa, err := p.StorageProvider.GetServiceAccountByID(ctx, params.ID)
+	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed GetServiceAccountByID")
+		log.Debug().Err(err).Msg("failed GetClientByID")
 		return nil, nil, err
 	}
 
@@ -154,14 +157,14 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, meta RequestMetadat
 		sa.IsActive = *params.IsActive
 	}
 
-	updated, err := p.StorageProvider.UpdateServiceAccount(ctx, sa)
+	updated, err := p.StorageProvider.UpdateClient(ctx, sa)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed UpdateServiceAccount")
+		log.Debug().Err(err).Msg("failed UpdateClient")
 		return nil, nil, err
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:   constants.AuditServiceAccountUpdatedEvent,
+		Action:   constants.AuditClientUpdatedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeServiceAccount,
 		ResourceID:   updated.ID,
@@ -169,13 +172,13 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, meta RequestMetadat
 		UserAgent:    meta.UserAgent,
 	})
 
-	return updated.AsAPIServiceAccount(), nil, nil
+	return updated.AsAPIClient(), nil, nil
 }
 
-// DeleteServiceAccount removes a service account. The storage layer cascades to
+// DeleteClient removes a service account. The storage layer cascades to
 // the account's TrustedIssuers. Requires super-admin auth.
-func (p *provider) DeleteServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.Response, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "DeleteServiceAccount").Logger()
+func (p *provider) DeleteClient(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.Response, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "DeleteClient").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
@@ -185,19 +188,19 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, meta RequestMetadat
 		return nil, nil, fmt.Errorf("service account ID required")
 	}
 
-	sa, err := p.StorageProvider.GetServiceAccountByID(ctx, params.ID)
+	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed GetServiceAccountByID")
+		log.Debug().Err(err).Msg("failed GetClientByID")
 		return nil, nil, err
 	}
 
-	if err := p.StorageProvider.DeleteServiceAccount(ctx, sa); err != nil {
-		log.Debug().Err(err).Msg("failed DeleteServiceAccount")
+	if err := p.StorageProvider.DeleteClient(ctx, sa); err != nil {
+		log.Debug().Err(err).Msg("failed DeleteClient")
 		return nil, nil, err
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:   constants.AuditServiceAccountDeletedEvent,
+		Action:   constants.AuditClientDeletedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeServiceAccount,
 		ResourceID:   params.ID,
@@ -210,11 +213,11 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, meta RequestMetadat
 	}, nil, nil
 }
 
-// RotateServiceAccountSecret generates a fresh client secret, replaces the
+// RotateClientSecret generates a fresh client secret, replaces the
 // stored bcrypt hash (cost 12), and returns the new plaintext exactly once.
 // The old secret stops validating immediately. Requires super-admin auth.
-func (p *provider) RotateServiceAccountSecret(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "RotateServiceAccountSecret").Logger()
+func (p *provider) RotateClientSecret(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.CreateClientResponse, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "RotateClientSecret").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
@@ -224,32 +227,32 @@ func (p *provider) RotateServiceAccountSecret(ctx context.Context, meta RequestM
 		return nil, nil, fmt.Errorf("service account ID required")
 	}
 
-	sa, err := p.StorageProvider.GetServiceAccountByID(ctx, params.ID)
+	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed GetServiceAccountByID")
+		log.Debug().Err(err).Msg("failed GetClientByID")
 		return nil, nil, err
 	}
 
-	secret, err := generateServiceAccountSecret()
+	secret, err := generateClientSecret()
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to generate client secret")
 		return nil, nil, err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret), serviceAccountSecretCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), clientSecretCost)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to hash client secret")
 		return nil, nil, err
 	}
 	sa.ClientSecret = string(hash)
 
-	updated, err := p.StorageProvider.UpdateServiceAccount(ctx, sa)
+	updated, err := p.StorageProvider.UpdateClient(ctx, sa)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed UpdateServiceAccount")
+		log.Debug().Err(err).Msg("failed UpdateClient")
 		return nil, nil, err
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
-		Action:   constants.AuditServiceAccountSecretRotatedEvent,
+		Action:   constants.AuditClientSecretRotatedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeServiceAccount,
 		ResourceID:   updated.ID,
@@ -257,32 +260,32 @@ func (p *provider) RotateServiceAccountSecret(ctx context.Context, meta RequestM
 		UserAgent:    meta.UserAgent,
 	})
 
-	return &model.CreateServiceAccountResponse{
-		ServiceAccount: updated.AsAPIServiceAccount(),
-		ClientSecret:   secret,
+	return &model.CreateClientResponse{
+		Client:       updated.AsAPIClient(),
+		ClientSecret: secret,
 	}, nil, nil
 }
 
-// ServiceAccount returns a single service account by id. The client secret is
+// Client returns a single service account by id. The client secret is
 // never surfaced. Requires super-admin auth.
-func (p *provider) ServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "ServiceAccount").Logger()
+func (p *provider) Client(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.Client, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "Client").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
-	sa, err := p.StorageProvider.GetServiceAccountByID(ctx, params.ID)
+	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed GetServiceAccountByID")
+		log.Debug().Err(err).Msg("failed GetClientByID")
 		return nil, nil, err
 	}
-	return sa.AsAPIServiceAccount(), nil, nil
+	return sa.AsAPIClient(), nil, nil
 }
 
-// ServiceAccounts returns a paginated list of service accounts. Client secrets
+// Clients returns a paginated list of service accounts. Client secrets
 // are never surfaced. Requires super-admin auth.
-func (p *provider) ServiceAccounts(ctx context.Context, meta RequestMetadata, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, *ResponseSideEffects, error) {
-	log := p.Log.With().Str("func", "ServiceAccounts").Logger()
+func (p *provider) Clients(ctx context.Context, meta RequestMetadata, params *model.ListClientsRequest) (*model.Clients, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "Clients").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
@@ -293,17 +296,17 @@ func (p *provider) ServiceAccounts(ctx context.Context, meta RequestMetadata, pa
 	}
 	pagination := utils.GetPagination(paginatedReq)
 
-	sas, pagination, err := p.StorageProvider.ListServiceAccounts(ctx, pagination)
+	sas, pagination, err := p.StorageProvider.ListClients(ctx, pagination)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed ListServiceAccounts")
+		log.Debug().Err(err).Msg("failed ListClients")
 		return nil, nil, err
 	}
-	res := make([]*model.ServiceAccount, len(sas))
+	res := make([]*model.Client, len(sas))
 	for i, sa := range sas {
-		res[i] = sa.AsAPIServiceAccount()
+		res[i] = sa.AsAPIClient()
 	}
-	return &model.ServiceAccounts{
-		Pagination:      pagination,
-		ServiceAccounts: res,
+	return &model.Clients{
+		Pagination: pagination,
+		Clients:    res,
 	}, nil, nil
 }

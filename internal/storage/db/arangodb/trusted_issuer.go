@@ -124,8 +124,8 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	filter := ""
 	bindVars := map[string]interface{}{}
 	if serviceAccountID != "" {
-		filter = "FILTER d.service_account_id == @service_account_id "
-		bindVars["service_account_id"] = serviceAccountID
+		filter = "FILTER d.client_id == @client_id "
+		bindVars["client_id"] = serviceAccountID
 	}
 	query := fmt.Sprintf("FOR d in %s %sSORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.TrustedIssuer, filter, pagination.Offset, pagination.Limit)
 	sctx := arangoDriver.WithQueryFullCount(ctx)

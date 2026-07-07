@@ -12,14 +12,14 @@ import (
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
-func TestServiceAccountAdmin(t *testing.T) {
+func TestClientAdmin(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 
 	t.Run("should reject non-super-admin caller", func(t *testing.T) {
 		// No admin cookie set yet on the fresh request.
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "unauthorized",
 			AllowedScopes: []string{"read"},
 		})
@@ -31,7 +31,7 @@ func TestServiceAccountAdmin(t *testing.T) {
 	setAdminCookie(t, ts)
 
 	t.Run("should reject empty/whitespace-only allowed_scopes", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "empty-scopes-" + uuid.NewString(),
 			AllowedScopes: []string{"  ", "", "\t"},
 		})
@@ -41,7 +41,7 @@ func TestServiceAccountAdmin(t *testing.T) {
 
 	t.Run("should create and return the plaintext secret exactly once", func(t *testing.T) {
 		name := "payments-worker-" + uuid.NewString()
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:        name,
 			Description: refs.NewStringRef("payments background worker"),
 			// Duplicates and whitespace are normalized away.
@@ -49,17 +49,17 @@ func TestServiceAccountAdmin(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		require.NotNil(t, res.ServiceAccount)
+		require.NotNil(t, res.Client)
 
 		// Plaintext secret is returned once and is NOT the stored hash.
 		require.NotEmpty(t, res.ClientSecret)
-		assert.Equal(t, name, res.ServiceAccount.Name)
-		assert.True(t, res.ServiceAccount.IsActive)
-		assert.ElementsMatch(t, []string{"read", "write"}, res.ServiceAccount.AllowedScopes)
+		assert.Equal(t, name, res.Client.Name)
+		assert.True(t, res.Client.IsActive)
+		assert.ElementsMatch(t, []string{"read", "write"}, res.Client.AllowedScopes)
 
 		// Storage holds only a bcrypt hash (cost 12) of the plaintext — never the
 		// plaintext itself.
-		stored, err := ts.StorageProvider.GetServiceAccountByID(ctx, res.ServiceAccount.ID)
+		stored, err := ts.StorageProvider.GetClientByID(ctx, res.Client.ID)
 		require.NoError(t, err)
 		assert.NotEqual(t, res.ClientSecret, stored.ClientSecret)
 		cost, err := bcrypt.Cost([]byte(stored.ClientSecret))
@@ -70,33 +70,33 @@ func TestServiceAccountAdmin(t *testing.T) {
 
 		// A subsequent fetch returns the account but has no way to surface the
 		// secret — the model type has no client_secret field by design.
-		fetched, err := ts.GraphQLProvider.ServiceAccount(ctx, &model.ServiceAccountRequest{ID: res.ServiceAccount.ID})
+		fetched, err := ts.GraphQLProvider.Client(ctx, &model.ClientRequest{ID: res.Client.ID})
 		require.NoError(t, err)
 		require.NotNil(t, fetched)
 		assert.Equal(t, name, fetched.Name)
 	})
 
 	t.Run("rotate changes the stored hash and invalidates the old secret", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "rotate-me-" + uuid.NewString(),
 			AllowedScopes: []string{"read"},
 		})
 		require.NoError(t, err)
 		oldPlaintext := res.ClientSecret
-		id := res.ServiceAccount.ID
+		id := res.Client.ID
 
-		before, err := ts.StorageProvider.GetServiceAccountByID(ctx, id)
+		before, err := ts.StorageProvider.GetClientByID(ctx, id)
 		require.NoError(t, err)
 		oldHash := before.ClientSecret
 
-		rotated, err := ts.GraphQLProvider.RotateServiceAccountSecret(ctx, &model.ServiceAccountRequest{ID: id})
+		rotated, err := ts.GraphQLProvider.RotateClientSecret(ctx, &model.ClientRequest{ID: id})
 		require.NoError(t, err)
 		require.NotNil(t, rotated)
 		newPlaintext := rotated.ClientSecret
 		require.NotEmpty(t, newPlaintext)
 		assert.NotEqual(t, oldPlaintext, newPlaintext)
 
-		after, err := ts.StorageProvider.GetServiceAccountByID(ctx, id)
+		after, err := ts.StorageProvider.GetClientByID(ctx, id)
 		require.NoError(t, err)
 		assert.NotEqual(t, oldHash, after.ClientSecret, "stored hash must change on rotation")
 
@@ -106,16 +106,16 @@ func TestServiceAccountAdmin(t *testing.T) {
 	})
 
 	t.Run("update mutates only supplied fields and preserves the rest", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "partial-update-" + uuid.NewString(),
 			Description:   refs.NewStringRef("original description"),
 			AllowedScopes: []string{"read", "write"},
 		})
 		require.NoError(t, err)
-		id := res.ServiceAccount.ID
+		id := res.Client.ID
 
 		// Update only the name.
-		updated, err := ts.GraphQLProvider.UpdateServiceAccount(ctx, &model.UpdateServiceAccountRequest{
+		updated, err := ts.GraphQLProvider.UpdateClient(ctx, &model.UpdateClientRequest{
 			ID:   id,
 			Name: refs.NewStringRef("renamed"),
 		})
@@ -129,7 +129,7 @@ func TestServiceAccountAdmin(t *testing.T) {
 		assert.True(t, updated.IsActive)
 
 		// Toggle is_active off without touching anything else.
-		deactivated, err := ts.GraphQLProvider.UpdateServiceAccount(ctx, &model.UpdateServiceAccountRequest{
+		deactivated, err := ts.GraphQLProvider.UpdateClient(ctx, &model.UpdateClientRequest{
 			ID:       id,
 			IsActive: refs.NewBoolRef(false),
 		})
@@ -139,14 +139,14 @@ func TestServiceAccountAdmin(t *testing.T) {
 	})
 
 	t.Run("update rejects collapsing allowed_scopes to empty", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "no-empty-update-" + uuid.NewString(),
 			AllowedScopes: []string{"read"},
 		})
 		require.NoError(t, err)
 
-		updated, err := ts.GraphQLProvider.UpdateServiceAccount(ctx, &model.UpdateServiceAccountRequest{
-			ID:            res.ServiceAccount.ID,
+		updated, err := ts.GraphQLProvider.UpdateClient(ctx, &model.UpdateClientRequest{
+			ID:            res.Client.ID,
 			AllowedScopes: []string{" ", ""},
 		})
 		require.Error(t, err)
@@ -154,26 +154,26 @@ func TestServiceAccountAdmin(t *testing.T) {
 	})
 
 	t.Run("list returns created accounts without exposing secrets", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.ServiceAccounts(ctx, &model.ListServiceAccountsRequest{})
+		res, err := ts.GraphQLProvider.Clients(ctx, &model.ListClientsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.NotNil(t, res.Pagination)
-		assert.Greater(t, len(res.ServiceAccounts), 0)
+		assert.Greater(t, len(res.Clients), 0)
 	})
 
 	t.Run("delete removes the account", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "delete-me-" + uuid.NewString(),
 			AllowedScopes: []string{"read"},
 		})
 		require.NoError(t, err)
-		id := res.ServiceAccount.ID
+		id := res.Client.ID
 
-		delRes, err := ts.GraphQLProvider.DeleteServiceAccount(ctx, &model.ServiceAccountRequest{ID: id})
+		delRes, err := ts.GraphQLProvider.DeleteClient(ctx, &model.ClientRequest{ID: id})
 		require.NoError(t, err)
 		require.NotNil(t, delRes)
 
-		_, err = ts.StorageProvider.GetServiceAccountByID(ctx, id)
+		_, err = ts.StorageProvider.GetClientByID(ctx, id)
 		require.Error(t, err)
 	})
 }

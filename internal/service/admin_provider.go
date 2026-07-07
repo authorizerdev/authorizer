@@ -49,12 +49,12 @@ type AdminProvider interface {
 	TestEndpoint(ctx context.Context, meta RequestMetadata, params *model.TestEndpointRequest) (*model.TestEndpointResponse, *ResponseSideEffects, error)
 
 	// Service accounts.
-	CreateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.CreateServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error)
-	UpdateServiceAccount(ctx context.Context, meta RequestMetadata, params *model.UpdateServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error)
-	DeleteServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.Response, *ResponseSideEffects, error)
-	RotateServiceAccountSecret(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, *ResponseSideEffects, error)
-	ServiceAccount(ctx context.Context, meta RequestMetadata, params *model.ServiceAccountRequest) (*model.ServiceAccount, *ResponseSideEffects, error)
-	ServiceAccounts(ctx context.Context, meta RequestMetadata, params *model.ListServiceAccountsRequest) (*model.ServiceAccounts, *ResponseSideEffects, error)
+	CreateClient(ctx context.Context, meta RequestMetadata, params *model.CreateClientRequest) (*model.CreateClientResponse, *ResponseSideEffects, error)
+	UpdateClient(ctx context.Context, meta RequestMetadata, params *model.UpdateClientRequest) (*model.Client, *ResponseSideEffects, error)
+	DeleteClient(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.Response, *ResponseSideEffects, error)
+	RotateClientSecret(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.CreateClientResponse, *ResponseSideEffects, error)
+	Client(ctx context.Context, meta RequestMetadata, params *model.ClientRequest) (*model.Client, *ResponseSideEffects, error)
+	Clients(ctx context.Context, meta RequestMetadata, params *model.ListClientsRequest) (*model.Clients, *ResponseSideEffects, error)
 
 	// Trusted issuers.
 	AddTrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.AddTrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)

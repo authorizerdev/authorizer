@@ -25,21 +25,21 @@ import (
 // honours X-Authorizer-URL). Real service-account secrets are hashed at bcrypt
 // cost 12 (see admin_service_accounts.go serviceAccountSecretCost).
 const (
-	ccTestAuthorizerURL   = "http://localhost:8080"
-	ccServiceAccountCost  = 12
-	ccServiceAccountScope = "read,write"
+	ccTestAuthorizerURL = "http://localhost:8080"
+	ccClientCost        = 12
+	ccClientScope       = "read,write"
 )
 
-// createTestServiceAccount inserts a service account with a known plaintext
+// createTestClient inserts a service account with a known plaintext
 // secret and returns (id, plaintextSecret). Accounts default to active; pass
 // active=false to persist an inactive one (via Save, since GORM's default:true
 // column default would otherwise flip a Create-time false back to true).
-func createTestServiceAccount(t *testing.T, ts *testSetup, allowedScopes string, active bool) (string, string) {
+func createTestClient(t *testing.T, ts *testSetup, allowedScopes string, active bool) (string, string) {
 	t.Helper()
 	secret := "cc-secret-" + uuid.New().String()
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret), ccServiceAccountCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), ccClientCost)
 	require.NoError(t, err)
-	sa, err := ts.StorageProvider.AddServiceAccount(context.Background(), &schemas.ServiceAccount{
+	sa, err := ts.StorageProvider.AddClient(context.Background(), &schemas.Client{
 		Name:          "cc-sa-" + uuid.New().String(),
 		ClientSecret:  string(hash),
 		AllowedScopes: allowedScopes,
@@ -48,7 +48,7 @@ func createTestServiceAccount(t *testing.T, ts *testSetup, allowedScopes string,
 	require.NoError(t, err)
 	if !active {
 		sa.IsActive = false
-		_, err = ts.StorageProvider.UpdateServiceAccount(context.Background(), sa)
+		_, err = ts.StorageProvider.UpdateClient(context.Background(), sa)
 		require.NoError(t, err)
 	}
 	return sa.ID, secret
@@ -84,7 +84,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
 
 	t.Run("happy_path_basic_auth", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, ccServiceAccountScope, true)
+		id, secret := createTestClient(t, ts, ccClientScope, true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 
@@ -103,7 +103,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("happy_path_form_body_credentials", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, ccServiceAccountScope, true)
+		id, secret := createTestClient(t, ts, ccClientScope, true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("client_id", id)
@@ -118,7 +118,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("requested_scope_subset_is_granted", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, "read,write,admin", true)
+		id, secret := createTestClient(t, ts, "read,write,admin", true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("scope", "read write")
@@ -130,7 +130,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("scope_exceeding_allowed_is_rejected", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, "read", true)
+		id, secret := createTestClient(t, ts, "read", true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("scope", "read write")
@@ -143,7 +143,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("wrong_secret_returns_invalid_client", func(t *testing.T) {
-		id, _ := createTestServiceAccount(t, ts, ccServiceAccountScope, true)
+		id, _ := createTestClient(t, ts, ccClientScope, true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("client_id", id)
@@ -157,7 +157,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 
 	t.Run("unknown_client_indistinguishable_from_wrong_secret", func(t *testing.T) {
 		// Wrong secret against a real account.
-		id, _ := createTestServiceAccount(t, ts, ccServiceAccountScope, true)
+		id, _ := createTestClient(t, ts, ccClientScope, true)
 		wrongSecretForm := url.Values{}
 		wrongSecretForm.Set("grant_type", constants.GrantTypeClientCredentials)
 		wrongSecretForm.Set("client_id", id)
@@ -178,7 +178,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("inactive_service_account_returns_invalid_client", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, ccServiceAccountScope, false)
+		id, secret := createTestClient(t, ts, ccClientScope, false)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("client_id", id)
@@ -192,7 +192,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("invalid_client_via_basic_auth_returns_401", func(t *testing.T) {
-		id, _ := createTestServiceAccount(t, ts, ccServiceAccountScope, true)
+		id, _ := createTestClient(t, ts, ccClientScope, true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 
@@ -203,7 +203,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("issued_token_validates_and_round_trips", func(t *testing.T) {
-		id, secret := createTestServiceAccount(t, ts, "read,write", true)
+		id, secret := createTestClient(t, ts, "read,write", true)
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("scope", "read")
@@ -241,7 +241,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 	})
 
 	// True end-to-end: unlike every subtest above (which fabricates a
-	// ServiceAccount + bcrypt hash directly via storage), this goes through
+	// Client + bcrypt hash directly via storage), this goes through
 	// the real admin API — the same path an operator actually uses — and
 	// proves the client_id/client_secret it hands back are genuinely usable
 	// at /oauth/token, not just internally-consistent test fixtures.
@@ -249,7 +249,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 		_, adminCtx := createContext(ts)
 		setAdminCookie(t, ts)
 
-		created, err := ts.GraphQLProvider.CreateServiceAccount(adminCtx, &model.CreateServiceAccountRequest{
+		created, err := ts.GraphQLProvider.CreateClient(adminCtx, &model.CreateClientRequest{
 			Name:          "e2e-worker-" + uuid.New().String(),
 			AllowedScopes: []string{"read", "write"},
 		})
@@ -257,7 +257,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.ClientSecret, "create must return the plaintext secret exactly once")
 
-		clientID := created.ServiceAccount.ID
+		clientID := created.Client.ID
 		clientSecret := created.ClientSecret
 
 		form := url.Values{}
@@ -273,7 +273,7 @@ func TestClientCredentialsGrant(t *testing.T) {
 		assert.Equal(t, "read", body["scope"])
 
 		// The issued token must actually validate downstream, and the fetched
-		// ServiceAccount (via the same admin API) must never expose the secret.
+		// Client (via the same admin API) must never expose the secret.
 		validateReq, _ := http.NewRequest(http.MethodGet, "/", nil)
 		validateReq.Header.Set("X-Authorizer-URL", ccTestAuthorizerURL)
 		gctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -282,8 +282,8 @@ func TestClientCredentialsGrant(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, clientID, claims["sub"])
 
-		fetched, err := ts.GraphQLProvider.ServiceAccount(adminCtx, &model.ServiceAccountRequest{ID: clientID})
+		fetched, err := ts.GraphQLProvider.Client(adminCtx, &model.ClientRequest{ID: clientID})
 		require.NoError(t, err)
-		assert.Equal(t, created.ServiceAccount.Name, fetched.Name)
+		assert.Equal(t, created.Client.Name, fetched.Name)
 	})
 }

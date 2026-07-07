@@ -38,13 +38,13 @@ type RequestBody struct {
 	Scope string `form:"scope" json:"scope"`
 }
 
-// serviceAccountBcryptCost is the bcrypt cost the client_credentials timing
+// clientCredentialsBcryptCost is the bcrypt cost the client_credentials timing
 // mitigation must match. It has to equal the cost real service-account secrets
 // are hashed with (internal/service/admin_service_accounts.go
-// serviceAccountSecretCost == 12; also committed in the ServiceAccount schema
+// serviceAccountSecretCost == 12; also committed in the Client schema
 // doc comment) so a dummy compare for an unknown client_id takes the same time
 // as a real compare — otherwise timing reveals whether the account exists.
-const serviceAccountBcryptCost = 12
+const clientCredentialsBcryptCost = 12
 
 // clientCredentialsDummyHash is a precomputed bcrypt hash compared against when
 // a client_credentials client_id does not resolve to a service account, so the
@@ -56,12 +56,12 @@ var (
 	clientCredentialsDummyOnce sync.Once
 )
 
-// performDummyServiceAccountCheck runs a constant-cost bcrypt comparison whose
+// performDummyClientCheck runs a constant-cost bcrypt comparison whose
 // result is discarded, equalising the timing of the unknown-client path with a
 // real client_secret verification.
-func performDummyServiceAccountCheck(clientSecret string) {
+func performDummyClientCheck(clientSecret string) {
 	clientCredentialsDummyOnce.Do(func() {
-		clientCredentialsDummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), serviceAccountBcryptCost)
+		clientCredentialsDummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), clientCredentialsBcryptCost)
 	})
 	_ = bcrypt.CompareHashAndPassword(clientCredentialsDummyHash, []byte(clientSecret))
 }
@@ -126,8 +126,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 
 		// RFC 6749 §4.4 client_credentials: machine identity. Fully self-
-		// contained — the client is a ServiceAccount (client_id ==
-		// ServiceAccount.ID), NOT the global confidential app client checked
+		// contained — the client is a Client (client_id ==
+		// Client.ID), NOT the global confidential app client checked
 		// below. Handled and returned here.
 		if isClientCredentialsGrant {
 			h.handleClientCredentialsGrant(gc, clientID, clientSecret, scopeParam)
@@ -550,8 +550,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 }
 
 // handleClientCredentialsGrant implements the RFC 6749 §4.4 client_credentials
-// grant. The client authenticates as a ServiceAccount (client_id ==
-// ServiceAccount.ID, client_secret verified against the stored bcrypt hash) and
+// grant. The client authenticates as a Client (client_id ==
+// Client.ID, client_secret verified against the stored bcrypt hash) and
 // receives a stateful access token scoped to a subset of the account's allowed
 // scopes. No id_token and no refresh_token are issued — machines re-authenticate
 // on expiry (RFC 6749 §4.4.3).
@@ -583,12 +583,12 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, c
 		})
 	}
 
-	sa, err := h.StorageProvider.GetServiceAccountByID(gc, clientID)
+	sa, err := h.StorageProvider.GetClientByID(gc, clientID)
 	if err != nil || sa == nil {
 		// Unknown client_id — burn an equivalent bcrypt cost so timing does not
 		// distinguish this from a wrong-secret response, then reject.
 		log.Debug().Err(err).Msg("service account not found for client_credentials")
-		performDummyServiceAccountCheck(clientSecret)
+		performDummyClientCheck(clientSecret)
 		respondInvalidClient()
 		return
 	}
@@ -601,7 +601,7 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, c
 	if !sa.IsActive || secretErr != nil {
 		log.Debug().Bool("is_active", sa.IsActive).Msg("client_credentials authentication failed")
 		// Audited here (not on the unknown-client_id path above) because we
-		// have a resolved ServiceAccount to attribute the attempt to — mirrors
+		// have a resolved Client to attribute the attempt to — mirrors
 		// login.go's bad_password/account_revoked branches, which likewise
 		// don't audit the user-not-found case.
 		h.AuditProvider.LogEvent(audit.Event{

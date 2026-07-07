@@ -35,11 +35,11 @@ func addTrustedIssuer(t *testing.T, client authorizerv1.AuthorizerAdminServiceCl
 func TestAdminAddTrustedIssuerGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	sa := createServiceAccount(t, client, adminCtx(cfg.AdminSecret))
+	sa := createClient(t, client, adminCtx(cfg.AdminSecret))
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
 		_, err := client.AddTrustedIssuer(context.Background(), &authorizerv1.AddTrustedIssuerRequest{
-			ServiceAccountId: sa.ServiceAccount.Id,
+			ServiceAccountId: sa.Client.Id,
 			Name:             "issuer",
 			IssuerUrl:        "https://issuer.example/x",
 			KeySourceType:    "oidc_discovery",
@@ -52,7 +52,7 @@ func TestAdminAddTrustedIssuerGRPC(t *testing.T) {
 
 	t.Run("missing required fields are rejected", func(t *testing.T) {
 		_, err := client.AddTrustedIssuer(adminCtx(cfg.AdminSecret), &authorizerv1.AddTrustedIssuerRequest{
-			ServiceAccountId: sa.ServiceAccount.Id,
+			ServiceAccountId: sa.Client.Id,
 		})
 		require.Error(t, err)
 		require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -71,9 +71,9 @@ func TestAdminAddTrustedIssuerGRPC(t *testing.T) {
 	})
 
 	t.Run("adds issuer and defaults subject_claim to sub", func(t *testing.T) {
-		issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.ServiceAccount.Id)
+		issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.Client.Id)
 		require.NotEmpty(t, issuer.Id)
-		require.Equal(t, sa.ServiceAccount.Id, issuer.ServiceAccountId)
+		require.Equal(t, sa.Client.Id, issuer.ServiceAccountId)
 		require.Equal(t, "sub", issuer.SubjectClaim)
 		require.True(t, issuer.IsActive)
 	})
@@ -85,8 +85,8 @@ func TestAdminAddTrustedIssuerGRPC(t *testing.T) {
 func TestAdminUpdateTrustedIssuerGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	sa := createServiceAccount(t, client, adminCtx(cfg.AdminSecret))
-	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.ServiceAccount.Id)
+	sa := createClient(t, client, adminCtx(cfg.AdminSecret))
+	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.Client.Id)
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
 		name := "renamed"
@@ -127,8 +127,8 @@ func TestAdminUpdateTrustedIssuerGRPC(t *testing.T) {
 func TestAdminDeleteTrustedIssuerGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	sa := createServiceAccount(t, client, adminCtx(cfg.AdminSecret))
-	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.ServiceAccount.Id)
+	sa := createClient(t, client, adminCtx(cfg.AdminSecret))
+	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.Client.Id)
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
 		_, err := client.DeleteTrustedIssuer(context.Background(), &authorizerv1.DeleteTrustedIssuerRequest{Id: issuer.Id})
@@ -156,8 +156,8 @@ func TestAdminDeleteTrustedIssuerGRPC(t *testing.T) {
 func TestAdminGetTrustedIssuerGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	sa := createServiceAccount(t, client, adminCtx(cfg.AdminSecret))
-	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.ServiceAccount.Id)
+	sa := createClient(t, client, adminCtx(cfg.AdminSecret))
+	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.Client.Id)
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
 		_, err := client.GetTrustedIssuer(context.Background(), &authorizerv1.GetTrustedIssuerRequest{Id: issuer.Id})
@@ -169,7 +169,7 @@ func TestAdminGetTrustedIssuerGRPC(t *testing.T) {
 		resp, err := client.GetTrustedIssuer(adminCtx(cfg.AdminSecret), &authorizerv1.GetTrustedIssuerRequest{Id: issuer.Id})
 		require.NoError(t, err)
 		require.Equal(t, issuer.Id, resp.TrustedIssuer.Id)
-		require.Equal(t, sa.ServiceAccount.Id, resp.TrustedIssuer.ServiceAccountId)
+		require.Equal(t, sa.Client.Id, resp.TrustedIssuer.ServiceAccountId)
 	})
 
 	t.Run("unknown issuer is an error", func(t *testing.T) {
@@ -184,8 +184,8 @@ func TestAdminGetTrustedIssuerGRPC(t *testing.T) {
 func TestAdminTrustedIssuersGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	sa := createServiceAccount(t, client, adminCtx(cfg.AdminSecret))
-	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.ServiceAccount.Id)
+	sa := createClient(t, client, adminCtx(cfg.AdminSecret))
+	issuer := addTrustedIssuer(t, client, adminCtx(cfg.AdminSecret), sa.Client.Id)
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
 		_, err := client.TrustedIssuers(context.Background(), &authorizerv1.TrustedIssuersRequest{})
@@ -194,7 +194,7 @@ func TestAdminTrustedIssuersGRPC(t *testing.T) {
 	})
 
 	t.Run("returns paginated issuers filtered by service account", func(t *testing.T) {
-		saID := sa.ServiceAccount.Id
+		saID := sa.Client.Id
 		resp, err := client.TrustedIssuers(adminCtx(cfg.AdminSecret), &authorizerv1.TrustedIssuersRequest{
 			ServiceAccountId: &saID,
 			Pagination:       &authorizerv1.PaginationRequest{Page: 1, Limit: 10},

@@ -7,8 +7,13 @@ import (
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
-// ServiceAccount is the machine/workload identity primitive used for the
-// OAuth2 client_credentials grant and workload identity federation.
+// Client is a registered OAuth client in the unified client registry.
+//
+// The Kind discriminator distinguishes interactive, human-facing clients
+// (browser/app login flows) from machine service accounts (the OAuth2
+// client_credentials grant and workload identity federation). Both kinds
+// share this single registry so client authentication has one authoritative
+// source of truth.
 //
 // Authentication:
 //   - client_id     = ID (UUID)
@@ -22,10 +27,17 @@ import (
 //
 // Note: any field addition must also be reflected in the cassandradb provider;
 // it does not use GORM AutoMigrate for collection creation.
-type ServiceAccount struct {
+type Client struct {
 	Key string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // ArangoDB document key
 
 	ID string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
+
+	// Kind distinguishes the client type. Values: "interactive" (human-facing
+	// login clients) | "service_account" (machine/workload clients). It is
+	// immutable after creation. This rename step defaults existing and newly
+	// created rows to "service_account"; the interactive kind and its
+	// additional fields (redirect_uris, grant_types, etc.) land in a later step.
+	Kind string `json:"kind" bson:"kind" cql:"kind" dynamo:"kind"`
 
 	// Name is a human-readable label for this service account (e.g. "payments-worker").
 	Name string `json:"name" bson:"name" cql:"name" dynamo:"name"`
@@ -69,7 +81,7 @@ type ServiceAccount struct {
 // to enforce that a client_credentials request stays within the authorized set.
 // An empty or whitespace-only AllowedScopes yields an empty slice, which the
 // token endpoint MUST treat as DENY-ALL (schema § AllowedScopes comment).
-func (s *ServiceAccount) ParsedAllowedScopes() []string {
+func (s *Client) ParsedAllowedScopes() []string {
 	scopes := []string{}
 	for _, sc := range strings.Split(s.AllowedScopes, ",") {
 		if sc = strings.TrimSpace(sc); sc != "" {
@@ -79,16 +91,16 @@ func (s *ServiceAccount) ParsedAllowedScopes() []string {
 	return scopes
 }
 
-// AsAPIServiceAccount converts the storage record into the GraphQL model.
+// AsAPIClient converts the storage record into the GraphQL model.
 // It never exposes ClientSecret — there is no client_secret field on
-// model.ServiceAccount by design; the plaintext is surfaced only once via
-// CreateServiceAccountResponse at creation/rotation.
-func (s *ServiceAccount) AsAPIServiceAccount() *model.ServiceAccount {
+// model.Client by design; the plaintext is surfaced only once via
+// CreateClientResponse at creation/rotation.
+func (s *Client) AsAPIClient() *model.Client {
 	id := s.ID
-	if strings.Contains(id, Collections.ServiceAccount+"/") {
-		id = strings.TrimPrefix(id, Collections.ServiceAccount+"/")
+	if strings.Contains(id, Collections.Client+"/") {
+		id = strings.TrimPrefix(id, Collections.Client+"/")
 	}
-	return &model.ServiceAccount{
+	return &model.Client{
 		ID:            id,
 		Name:          s.Name,
 		Description:   s.Description,

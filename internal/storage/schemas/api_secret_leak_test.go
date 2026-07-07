@@ -13,9 +13,9 @@ import (
 // These tests are storage-backend agnostic: they exercise the struct→API model
 // conversion that every provider (SQL and NoSQL, including Cassandra/ScyllaDB)
 // routes through before returning a record. They guarantee that the secret
-// fields tagged json:"-" (User.Password, ServiceAccount.ClientSecret) — which
+// fields tagged json:"-" (User.Password, Client.ClientSecret) — which
 // the fix now correctly PERSISTS — can never LEAK back out through any Get/List/
-// session-derived API path. model.User / model.ServiceAccount structurally have
+// session-derived API path. model.User / model.Client structurally have
 // no field able to carry the secret; these tests fail loudly if that regresses.
 
 const (
@@ -50,10 +50,10 @@ func TestAsAPIUserNeverLeaksPassword(t *testing.T) {
 		"schemas.User JSON must not even carry a password key")
 }
 
-// TestAsAPIServiceAccountNeverLeaksClientSecret proves ServiceAccount.ClientSecret
+// TestAsAPIClientNeverLeaksClientSecret proves Client.ClientSecret
 // never appears in the JSON of the API model.
-func TestAsAPIServiceAccountNeverLeaksClientSecret(t *testing.T) {
-	sa := &ServiceAccount{
+func TestAsAPIClientNeverLeaksClientSecret(t *testing.T) {
+	sa := &Client{
 		ID:            "sa-1",
 		Name:          "payments-worker",
 		ClientSecret:  sentinelSecret,
@@ -61,17 +61,17 @@ func TestAsAPIServiceAccountNeverLeaksClientSecret(t *testing.T) {
 		IsActive:      true,
 	}
 
-	apiSA := sa.AsAPIServiceAccount()
+	apiSA := sa.AsAPIClient()
 
 	out, err := json.Marshal(apiSA)
 	require.NoError(t, err)
 	assert.NotContains(t, string(out), sentinelSecret,
-		"AsAPIServiceAccount output must never contain the client secret")
+		"AsAPIClient output must never contain the client secret")
 
 	rawOut, err := json.Marshal(sa)
 	require.NoError(t, err)
 	assert.NotContains(t, string(rawOut), sentinelSecret,
-		"json.Marshal of schemas.ServiceAccount must never contain the client secret")
+		"json.Marshal of schemas.Client must never contain the client secret")
 	assert.False(t, strings.Contains(strings.ToLower(string(rawOut)), "client_secret"),
-		"schemas.ServiceAccount JSON must not even carry a client_secret key")
+		"schemas.Client JSON must not even carry a client_secret key")
 }

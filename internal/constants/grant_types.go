@@ -10,7 +10,7 @@ const (
 
 	// GrantTypeClientCredentials issues tokens for machine/service identities
 	// without a human resource owner (RFC 6749 §4.4).
-	// Authenticate using client_id (= ServiceAccount.ID) and client_secret,
+	// Authenticate using client_id (= Client.ID) and client_secret,
 	// or via client_assertion for workload identity federation (Phases 3–5).
 	GrantTypeClientCredentials = "client_credentials"
 

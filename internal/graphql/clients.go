@@ -9,17 +9,17 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// RotateServiceAccountSecret delegates to the transport-agnostic service layer.
-// Resolver is a thin transport adapter.
+// Clients delegates to the transport-agnostic service layer. Resolver is
+// a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) RotateServiceAccountSecret(ctx context.Context, params *model.ServiceAccountRequest) (*model.CreateServiceAccountResponse, error) {
+func (g *graphqlProvider) Clients(ctx context.Context, params *model.ListClientsRequest) (*model.Clients, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, _, err := g.adminService().RotateServiceAccountSecret(ctx, service.MetaFromGin(gc), params)
+	res, _, err := g.adminService().Clients(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

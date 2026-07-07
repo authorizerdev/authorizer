@@ -46,7 +46,7 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 
 	// Reject issuers bound to a non-existent service account — otherwise a typo
 	// creates an orphan that can never be reached via the parent.
-	if _, err := p.StorageProvider.GetServiceAccountByID(ctx, params.ServiceAccountID); err != nil {
+	if _, err := p.StorageProvider.GetClientByID(ctx, params.ServiceAccountID); err != nil {
 		log.Debug().Err(err).Str("service_account_id", params.ServiceAccountID).Msg("service account not found")
 		return nil, nil, fmt.Errorf("service account not found: %s", params.ServiceAccountID)
 	}
@@ -67,14 +67,14 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 	}
 
 	issuer, err := p.StorageProvider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
-		ServiceAccountID: params.ServiceAccountID,
-		Name:             strings.TrimSpace(params.Name),
-		IssuerURL:        params.IssuerURL,
-		KeySourceType:    params.KeySourceType,
-		JWKSUrl:          params.JwksURL,
-		ExpectedAud:      params.ExpectedAud,
-		SubjectClaim:     subjectClaim,
-		IssuerType:       params.IssuerType,
+		ClientID:      params.ServiceAccountID,
+		Name:          strings.TrimSpace(params.Name),
+		IssuerURL:     params.IssuerURL,
+		KeySourceType: params.KeySourceType,
+		JWKSUrl:       params.JwksURL,
+		ExpectedAud:   params.ExpectedAud,
+		SubjectClaim:  subjectClaim,
+		IssuerType:    params.IssuerType,
 		// Set explicitly rather than relying on the GORM column default so NoSQL
 		// providers (no default support) persist the same values.
 		AuthMethod:               "jwt_assertion",

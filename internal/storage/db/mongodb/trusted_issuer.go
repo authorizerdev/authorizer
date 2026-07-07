@@ -85,7 +85,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	issuers := []*schemas.TrustedIssuer{}
 	filter := bson.M{}
 	if serviceAccountID != "" {
-		filter["service_account_id"] = serviceAccountID
+		filter["client_id"] = serviceAccountID
 	}
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)

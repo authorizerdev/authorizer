@@ -179,8 +179,8 @@ func TestStorageProvider(t *testing.T) {
 				testAuditLogOperations(t, ctx, provider)
 			})
 
-			t.Run("Service Account Operations", func(t *testing.T) {
-				testServiceAccountOperations(t, ctx, provider)
+			t.Run("Client Operations", func(t *testing.T) {
+				testClientOperations(t, ctx, provider)
 			})
 
 			t.Run("Trusted Issuer Operations", func(t *testing.T) {
@@ -1202,37 +1202,39 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 	assert.True(t, found, "Should find test_state_key_2 in all states")
 }
 
-// testServiceAccountOperations exercises ServiceAccount CRUD using the
-// *externally exposed* id (AsAPIServiceAccount().ID) for every lookup — not
+// testClientOperations exercises Client CRUD using the
+// *externally exposed* id (AsAPIClient().ID) for every lookup — not
 // the raw internal ID a provider returns from Add. This distinction matters:
 // on ArangoDB the raw internal ID is a "collection/key" handle, while the
 // API-facing id (what a real caller receives as client_id, and the only form
 // the admin API / token endpoint ever has) is the bare key. A provider whose
-// GetServiceAccountByID only matches the raw handle will pass a test that
+// GetClientByID only matches the raw handle will pass a test that
 // round-trips through created.ID directly, while silently failing every real
 // caller — client_credentials authentication would be completely broken.
-func testServiceAccountOperations(t *testing.T, ctx context.Context, provider Provider) {
+func testClientOperations(t *testing.T, ctx context.Context, provider Provider) {
 	const initialSecretHash = "bcrypt-hash-placeholder-initial"
-	sa := &schemas.ServiceAccount{
+	sa := &schemas.Client{
 		Name:          "test_service_account_" + uuid.New().String(),
+		Kind:          "service_account",
 		ClientSecret:  initialSecretHash,
 		AllowedScopes: "read,write",
 		IsActive:      true,
 	}
 
-	created, err := provider.AddServiceAccount(ctx, sa)
+	created, err := provider.AddClient(ctx, sa)
 	require.NoError(t, err)
 	require.NotNil(t, created)
 
-	clientID := created.AsAPIServiceAccount().ID
+	clientID := created.AsAPIClient().ID
 	require.NotEmpty(t, clientID)
 
-	// GetServiceAccountByID MUST succeed when passed the id a real caller
+	// GetClientByID MUST succeed when passed the id a real caller
 	// actually has (the client_id from the create response / admin API),
 	// not just the provider's raw internal representation.
-	fetched, err := provider.GetServiceAccountByID(ctx, clientID)
-	require.NoError(t, err, "GetServiceAccountByID must resolve the API-facing client_id")
+	fetched, err := provider.GetClientByID(ctx, clientID)
+	require.NoError(t, err, "GetClientByID must resolve the API-facing client_id")
 	assert.Equal(t, sa.Name, fetched.Name)
+	assert.Equal(t, "service_account", fetched.Kind, "Kind must round-trip through storage")
 	assert.True(t, fetched.IsActive)
 	assert.Equal(t, []string{"read", "write"}, fetched.ParsedAllowedScopes())
 	// ClientSecret has json:"-" (kept out of API responses/logs) — a storage
@@ -1242,21 +1244,21 @@ func testServiceAccountOperations(t *testing.T, ctx context.Context, provider Pr
 	// authentication depends on the stored hash actually being there.
 	assert.Equal(t, initialSecretHash, fetched.ClientSecret, "ClientSecret must round-trip through storage")
 
-	// Rotation (UpdateServiceAccount with a new hash) must persist too —
+	// Rotation (UpdateClient with a new hash) must persist too —
 	// not just the initial Add.
 	const rotatedSecretHash = "bcrypt-hash-placeholder-rotated"
 	fetched.ClientSecret = rotatedSecretHash
-	rotated, err := provider.UpdateServiceAccount(ctx, fetched)
+	rotated, err := provider.UpdateClient(ctx, fetched)
 	require.NoError(t, err)
 	assert.Equal(t, rotatedSecretHash, rotated.ClientSecret)
-	refetched, err := provider.GetServiceAccountByID(ctx, clientID)
+	refetched, err := provider.GetClientByID(ctx, clientID)
 	require.NoError(t, err)
 	assert.Equal(t, rotatedSecretHash, refetched.ClientSecret, "rotated ClientSecret must persist, not silently no-op")
 	fetched = refetched
 
-	// UpdateServiceAccount: load-then-mutate, matching the service layer.
+	// UpdateClient: load-then-mutate, matching the service layer.
 	fetched.IsActive = false
-	updated, err := provider.UpdateServiceAccount(ctx, fetched)
+	updated, err := provider.UpdateClient(ctx, fetched)
 	require.NoError(t, err)
 	assert.False(t, updated.IsActive)
 
@@ -1264,38 +1266,38 @@ func testServiceAccountOperations(t *testing.T, ctx context.Context, provider Pr
 	// exactly as the admin API stores it) must cascade-delete along with the
 	// service account — not survive as an orphan.
 	issuer, err := provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
-		ServiceAccountID: clientID,
-		Name:             "test_issuer_" + uuid.New().String(),
-		IssuerURL:        "https://issuer.example.com/" + uuid.New().String(),
-		KeySourceType:    "static_jwks_url",
-		ExpectedAud:      "https://authorizer.example.com",
-		SubjectClaim:     "sub",
-		IssuerType:       "oidc",
-		AuthMethod:       "jwt_assertion",
-		IsActive:         true,
+		ClientID:      clientID,
+		Name:          "test_issuer_" + uuid.New().String(),
+		IssuerURL:     "https://issuer.example.com/" + uuid.New().String(),
+		KeySourceType: "static_jwks_url",
+		ExpectedAud:   "https://authorizer.example.com",
+		SubjectClaim:  "sub",
+		IssuerType:    "oidc",
+		AuthMethod:    "jwt_assertion",
+		IsActive:      true,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, issuer)
 
-	// ListServiceAccounts should include the created account, with its
+	// ListClients should include the created account, with its
 	// (rotated) ClientSecret intact — this is the third read path that could
 	// silently drop a json:"-" field.
-	list, _, err := provider.ListServiceAccounts(ctx, &model.Pagination{Limit: 50, Offset: 0})
+	list, _, err := provider.ListClients(ctx, &model.Pagination{Limit: 50, Offset: 0})
 	require.NoError(t, err)
-	var foundInList *schemas.ServiceAccount
+	var foundInList *schemas.Client
 	for _, s := range list {
-		if s.AsAPIServiceAccount().ID == clientID {
+		if s.AsAPIClient().ID == clientID {
 			foundInList = s
 			break
 		}
 	}
-	require.NotNil(t, foundInList, "created service account should appear in ListServiceAccounts")
-	assert.Equal(t, rotatedSecretHash, foundInList.ClientSecret, "ListServiceAccounts must not drop ClientSecret")
+	require.NotNil(t, foundInList, "created service account should appear in ListClients")
+	assert.Equal(t, rotatedSecretHash, foundInList.ClientSecret, "ListClients must not drop ClientSecret")
 
-	// DeleteServiceAccount must cascade: the bound TrustedIssuer must be gone too.
-	require.NoError(t, provider.DeleteServiceAccount(ctx, updated))
+	// DeleteClient must cascade: the bound TrustedIssuer must be gone too.
+	require.NoError(t, provider.DeleteClient(ctx, updated))
 
-	_, err = provider.GetServiceAccountByID(ctx, clientID)
+	_, err = provider.GetClientByID(ctx, clientID)
 	assert.Error(t, err, "service account should be gone after delete")
 
 	issuerAPIID := issuer.AsAPITrustedIssuer().ID
@@ -1311,27 +1313,27 @@ func testServiceAccountOperations(t *testing.T, ctx context.Context, provider Pr
 }
 
 // testTrustedIssuerOperations exercises TrustedIssuer CRUD, again using the
-// API-facing id for every lookup — see testServiceAccountOperations for why.
+// API-facing id for every lookup — see testClientOperations for why.
 func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
-	sa, err := provider.AddServiceAccount(ctx, &schemas.ServiceAccount{
+	sa, err := provider.AddClient(ctx, &schemas.Client{
 		Name:          "test_ti_service_account_" + uuid.New().String(),
 		AllowedScopes: "read",
 		IsActive:      true,
 	})
 	require.NoError(t, err)
-	saClientID := sa.AsAPIServiceAccount().ID
+	saClientID := sa.AsAPIClient().ID
 
 	issuerURL := "https://issuer.example.com/" + uuid.New().String()
 	issuer := &schemas.TrustedIssuer{
-		ServiceAccountID: saClientID,
-		Name:             "test_trusted_issuer_" + uuid.New().String(),
-		IssuerURL:        issuerURL,
-		KeySourceType:    "static_jwks_url",
-		ExpectedAud:      "https://authorizer.example.com",
-		SubjectClaim:     "sub",
-		IssuerType:       "oidc",
-		AuthMethod:       "jwt_assertion",
-		IsActive:         true,
+		ClientID:      saClientID,
+		Name:          "test_trusted_issuer_" + uuid.New().String(),
+		IssuerURL:     issuerURL,
+		KeySourceType: "static_jwks_url",
+		ExpectedAud:   "https://authorizer.example.com",
+		SubjectClaim:  "sub",
+		IssuerType:    "oidc",
+		AuthMethod:    "jwt_assertion",
+		IsActive:      true,
 	}
 
 	created, err := provider.AddTrustedIssuer(ctx, issuer)
@@ -1375,30 +1377,30 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 	// Cassandra/ScyllaDB (check-then-insert guard) enforce this today; other NoSQL
 	// providers have no equivalent guard yet, so scope the assertion to enforcing DBs.
 	if dbType == constants.DbTypeSqlite || dbType == constants.DbTypePostgres || dbType == constants.DbTypeScyllaDB {
-		sa2, err := provider.AddServiceAccount(ctx, &schemas.ServiceAccount{
+		sa2, err := provider.AddClient(ctx, &schemas.Client{
 			Name:          "test_ti_service_account_dup_" + uuid.New().String(),
 			AllowedScopes: "read",
 			IsActive:      true,
 		})
 		require.NoError(t, err)
 		_, err = provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
-			ServiceAccountID: sa2.AsAPIServiceAccount().ID,
-			Name:             "test_trusted_issuer_dup_" + uuid.New().String(),
-			IssuerURL:        issuerURL,
-			KeySourceType:    "static_jwks_url",
-			ExpectedAud:      "https://authorizer.example.com",
-			SubjectClaim:     "sub",
-			IssuerType:       "oidc",
-			AuthMethod:       "jwt_assertion",
-			IsActive:         true,
+			ClientID:      sa2.AsAPIClient().ID,
+			Name:          "test_trusted_issuer_dup_" + uuid.New().String(),
+			IssuerURL:     issuerURL,
+			KeySourceType: "static_jwks_url",
+			ExpectedAud:   "https://authorizer.example.com",
+			SubjectClaim:  "sub",
+			IssuerType:    "oidc",
+			AuthMethod:    "jwt_assertion",
+			IsActive:      true,
 		})
 		assert.Error(t, err, "second trusted issuer with a duplicate issuer_url must be rejected")
-		require.NoError(t, provider.DeleteServiceAccount(ctx, sa2))
+		require.NoError(t, provider.DeleteClient(ctx, sa2))
 	}
 
 	require.NoError(t, provider.DeleteTrustedIssuer(ctx, updated))
 	_, err = provider.GetTrustedIssuerByID(ctx, issuerID)
 	assert.Error(t, err, "trusted issuer should be gone after delete")
 
-	require.NoError(t, provider.DeleteServiceAccount(ctx, sa))
+	require.NoError(t, provider.DeleteClient(ctx, sa))
 }

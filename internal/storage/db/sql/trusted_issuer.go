@@ -74,7 +74,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	var issuers []*schemas.TrustedIssuer
 	q := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC")
 	if serviceAccountID != "" {
-		q = q.Where("service_account_id = ?", serviceAccountID)
+		q = q.Where("client_id = ?", serviceAccountID)
 	}
 	res := q.Find(&issuers)
 	if res.Error != nil {
@@ -83,7 +83,7 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	var total int64
 	countQ := p.db.Model(&schemas.TrustedIssuer{})
 	if serviceAccountID != "" {
-		countQ = countQ.Where("service_account_id = ?", serviceAccountID)
+		countQ = countQ.Where("client_id = ?", serviceAccountID)
 	}
 	countRes := countQ.Count(&total)
 	if countRes.Error != nil {

@@ -86,15 +86,34 @@ type CheckPermissionsResponse struct {
 	Results []*PermissionCheckResult `json:"results"`
 }
 
-type CreateServiceAccountRequest struct {
+type Client struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   *string  `json:"description,omitempty"`
+	AllowedScopes []string `json:"allowed_scopes"`
+	IsActive      bool     `json:"is_active"`
+	CreatedAt     *int64   `json:"created_at,omitempty"`
+	UpdatedAt     *int64   `json:"updated_at,omitempty"`
+}
+
+type ClientRequest struct {
+	ID string `json:"id"`
+}
+
+type Clients struct {
+	Pagination *Pagination `json:"pagination"`
+	Clients    []*Client   `json:"clients"`
+}
+
+type CreateClientRequest struct {
 	Name          string   `json:"name"`
 	Description   *string  `json:"description,omitempty"`
 	AllowedScopes []string `json:"allowed_scopes"`
 }
 
-type CreateServiceAccountResponse struct {
-	ServiceAccount *ServiceAccount `json:"service_account"`
-	ClientSecret   string          `json:"client_secret"`
+type CreateClientResponse struct {
+	Client       *Client `json:"client"`
+	ClientSecret string  `json:"client_secret"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -308,6 +327,10 @@ type ListAuditLogRequest struct {
 	ToTimestamp   *int64             `json:"to_timestamp,omitempty"`
 }
 
+type ListClientsRequest struct {
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+}
+
 type ListPermissionsInput struct {
 	Relation   *string `json:"relation,omitempty"`
 	ObjectType *string `json:"object_type,omitempty"`
@@ -318,10 +341,6 @@ type ListPermissionsResponse struct {
 	Objects     []string      `json:"objects"`
 	Permissions []*Permission `json:"permissions"`
 	Truncated   bool          `json:"truncated"`
-}
-
-type ListServiceAccountsRequest struct {
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
 }
 
 type ListTrustedIssuersRequest struct {
@@ -469,25 +488,6 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-type ServiceAccount struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Description   *string  `json:"description,omitempty"`
-	AllowedScopes []string `json:"allowed_scopes"`
-	IsActive      bool     `json:"is_active"`
-	CreatedAt     *int64   `json:"created_at,omitempty"`
-	UpdatedAt     *int64   `json:"updated_at,omitempty"`
-}
-
-type ServiceAccountRequest struct {
-	ID string `json:"id"`
-}
-
-type ServiceAccounts struct {
-	Pagination      *Pagination       `json:"pagination"`
-	ServiceAccounts []*ServiceAccount `json:"service_accounts"`
-}
-
 type SessionQueryRequest struct {
 	Roles             []string            `json:"roles,omitempty"`
 	Scope             []string            `json:"scope,omitempty"`
@@ -554,6 +554,14 @@ type TrustedIssuers struct {
 
 type UpdateAccessRequest struct {
 	UserID string `json:"user_id"`
+}
+
+type UpdateClientRequest struct {
+	ID            string   `json:"id"`
+	Name          *string  `json:"name,omitempty"`
+	Description   *string  `json:"description,omitempty"`
+	AllowedScopes []string `json:"allowed_scopes,omitempty"`
+	IsActive      *bool    `json:"is_active,omitempty"`
 }
 
 type UpdateEmailTemplateRequest struct {
@@ -644,14 +652,6 @@ type UpdateProfileRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
-}
-
-type UpdateServiceAccountRequest struct {
-	ID            string   `json:"id"`
-	Name          *string  `json:"name,omitempty"`
-	Description   *string  `json:"description,omitempty"`
-	AllowedScopes []string `json:"allowed_scopes,omitempty"`
-	IsActive      *bool    `json:"is_active,omitempty"`
 }
 
 type UpdateTrustedIssuerRequest struct {

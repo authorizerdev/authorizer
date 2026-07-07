@@ -19,12 +19,12 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 	// Helper: create a service account as admin and return its id.
 	createSA := func(t *testing.T) string {
 		t.Helper()
-		res, err := ts.GraphQLProvider.CreateServiceAccount(ctx, &model.CreateServiceAccountRequest{
+		res, err := ts.GraphQLProvider.CreateClient(ctx, &model.CreateClientRequest{
 			Name:          "issuer-parent-" + uuid.NewString(),
 			AllowedScopes: []string{"read"},
 		})
 		require.NoError(t, err)
-		return res.ServiceAccount.ID
+		return res.Client.ID
 	}
 
 	newIssuerReq := func(saID string) *model.AddTrustedIssuerRequest {
@@ -146,7 +146,7 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 		_, err = ts.StorageProvider.GetTrustedIssuerByID(ctx, issuer.ID)
 		require.NoError(t, err)
 
-		delRes, err := ts.GraphQLProvider.DeleteServiceAccount(ctx, &model.ServiceAccountRequest{ID: saID})
+		delRes, err := ts.GraphQLProvider.DeleteClient(ctx, &model.ClientRequest{ID: saID})
 		require.NoError(t, err)
 		require.NotNil(t, delRes)
 

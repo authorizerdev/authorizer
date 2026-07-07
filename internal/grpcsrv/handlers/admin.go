@@ -440,11 +440,11 @@ func (h *AdminHandler) FgaReset(ctx context.Context, _ *authorizerv1.FgaResetReq
 	return &authorizerv1.FgaResetResponse{Message: res.Message}, nil
 }
 
-// CreateServiceAccount delegates to service.CreateServiceAccount and returns the
-// generated client secret exactly once (CreateServiceAccountResponse is the only
+// CreateClient delegates to service.CreateClient and returns the
+// generated client secret exactly once (CreateClientResponse is the only
 // admin message that carries a secret). Requires super-admin auth.
-func (h *AdminHandler) CreateServiceAccount(ctx context.Context, req *authorizerv1.CreateServiceAccountRequest) (*authorizerv1.CreateServiceAccountResponse, error) {
-	res, _, err := h.Service.CreateServiceAccount(ctx, transport.MetaFromGRPC(ctx), &model.CreateServiceAccountRequest{
+func (h *AdminHandler) CreateClient(ctx context.Context, req *authorizerv1.CreateClientRequest) (*authorizerv1.CreateClientResponse, error) {
+	res, _, err := h.Service.CreateClient(ctx, transport.MetaFromGRPC(ctx), &model.CreateClientRequest{
 		Name:          req.GetName(),
 		Description:   req.Description,
 		AllowedScopes: req.GetAllowedScopes(),
@@ -452,17 +452,17 @@ func (h *AdminHandler) CreateServiceAccount(ctx context.Context, req *authorizer
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.CreateServiceAccountResponse{
-		ServiceAccount: projectServiceAccount(res.ServiceAccount),
-		ClientSecret:   res.ClientSecret,
+	return &authorizerv1.CreateClientResponse{
+		Client:       projectClient(res.Client),
+		ClientSecret: res.ClientSecret,
 	}, nil
 }
 
-// UpdateServiceAccount delegates to service.UpdateServiceAccount. Optional proto
+// UpdateClient delegates to service.UpdateClient. Optional proto
 // fields map 1:1 onto the model's nullable pointers; the client secret is never
 // touched. Requires super-admin auth.
-func (h *AdminHandler) UpdateServiceAccount(ctx context.Context, req *authorizerv1.UpdateServiceAccountRequest) (*authorizerv1.UpdateServiceAccountResponse, error) {
-	res, _, err := h.Service.UpdateServiceAccount(ctx, transport.MetaFromGRPC(ctx), &model.UpdateServiceAccountRequest{
+func (h *AdminHandler) UpdateClient(ctx context.Context, req *authorizerv1.UpdateClientRequest) (*authorizerv1.UpdateClientResponse, error) {
+	res, _, err := h.Service.UpdateClient(ctx, transport.MetaFromGRPC(ctx), &model.UpdateClientRequest{
 		ID:            req.GetId(),
 		Name:          req.Name,
 		Description:   req.Description,
@@ -472,59 +472,59 @@ func (h *AdminHandler) UpdateServiceAccount(ctx context.Context, req *authorizer
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.UpdateServiceAccountResponse{ServiceAccount: projectServiceAccount(res)}, nil
+	return &authorizerv1.UpdateClientResponse{Client: projectClient(res)}, nil
 }
 
-// DeleteServiceAccount delegates to service.DeleteServiceAccount, which cascades
+// DeleteClient delegates to service.DeleteClient, which cascades
 // to the account's trusted issuers. Requires super-admin auth.
-func (h *AdminHandler) DeleteServiceAccount(ctx context.Context, req *authorizerv1.DeleteServiceAccountRequest) (*authorizerv1.DeleteServiceAccountResponse, error) {
-	res, _, err := h.Service.DeleteServiceAccount(ctx, transport.MetaFromGRPC(ctx), &model.ServiceAccountRequest{
+func (h *AdminHandler) DeleteClient(ctx context.Context, req *authorizerv1.DeleteClientRequest) (*authorizerv1.DeleteClientResponse, error) {
+	res, _, err := h.Service.DeleteClient(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
 		ID: req.GetId(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.DeleteServiceAccountResponse{Message: res.Message}, nil
+	return &authorizerv1.DeleteClientResponse{Message: res.Message}, nil
 }
 
-// RotateServiceAccountSecret delegates to service.RotateServiceAccountSecret and
-// returns the new client secret exactly once (reusing CreateServiceAccountResponse).
+// RotateClientSecret delegates to service.RotateClientSecret and
+// returns the new client secret exactly once (reusing CreateClientResponse).
 // Requires super-admin auth.
-func (h *AdminHandler) RotateServiceAccountSecret(ctx context.Context, req *authorizerv1.RotateServiceAccountSecretRequest) (*authorizerv1.CreateServiceAccountResponse, error) {
-	res, _, err := h.Service.RotateServiceAccountSecret(ctx, transport.MetaFromGRPC(ctx), &model.ServiceAccountRequest{
+func (h *AdminHandler) RotateClientSecret(ctx context.Context, req *authorizerv1.RotateClientSecretRequest) (*authorizerv1.CreateClientResponse, error) {
+	res, _, err := h.Service.RotateClientSecret(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
 		ID: req.GetId(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.CreateServiceAccountResponse{
-		ServiceAccount: projectServiceAccount(res.ServiceAccount),
-		ClientSecret:   res.ClientSecret,
+	return &authorizerv1.CreateClientResponse{
+		Client:       projectClient(res.Client),
+		ClientSecret: res.ClientSecret,
 	}, nil
 }
 
-// GetServiceAccount delegates to service.ServiceAccount and projects the result.
+// GetClient delegates to service.Client and projects the result.
 // The client secret is never surfaced. Requires super-admin auth.
-func (h *AdminHandler) GetServiceAccount(ctx context.Context, req *authorizerv1.GetServiceAccountRequest) (*authorizerv1.GetServiceAccountResponse, error) {
-	res, _, err := h.Service.ServiceAccount(ctx, transport.MetaFromGRPC(ctx), &model.ServiceAccountRequest{
+func (h *AdminHandler) GetClient(ctx context.Context, req *authorizerv1.GetClientRequest) (*authorizerv1.GetClientResponse, error) {
+	res, _, err := h.Service.Client(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
 		ID: req.GetId(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &authorizerv1.GetServiceAccountResponse{ServiceAccount: projectServiceAccount(res)}, nil
+	return &authorizerv1.GetClientResponse{Client: projectClient(res)}, nil
 }
 
-// ServiceAccounts delegates to service.ServiceAccounts and projects the
+// Clients delegates to service.Clients and projects the
 // paginated result. Client secrets are never surfaced. Requires super-admin auth.
-func (h *AdminHandler) ServiceAccounts(ctx context.Context, req *authorizerv1.ServiceAccountsRequest) (*authorizerv1.ServiceAccountsResponse, error) {
-	res, _, err := h.Service.ServiceAccounts(ctx, transport.MetaFromGRPC(ctx), &model.ListServiceAccountsRequest{
+func (h *AdminHandler) Clients(ctx context.Context, req *authorizerv1.ClientsRequest) (*authorizerv1.ClientsResponse, error) {
+	res, _, err := h.Service.Clients(ctx, transport.MetaFromGRPC(ctx), &model.ListClientsRequest{
 		Pagination: modelPaginatedRequest(req.GetPagination()),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return projectServiceAccounts(res), nil
+	return projectClients(res), nil
 }
 
 // AddTrustedIssuer delegates to service.AddTrustedIssuer. subject_claim defaults

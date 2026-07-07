@@ -392,15 +392,15 @@ func projectFgaExpandResponse(r *model.FgaExpandResponse) *authorizerv1.FgaExpan
 	return &authorizerv1.FgaExpandResponse{Tree: r.Tree}
 }
 
-// projectServiceAccount converts a single GraphQL ServiceAccount model into the
+// projectClient converts a single GraphQL Client model into the
 // proto message. There is deliberately NO client-secret field on the proto
-// ServiceAccount: the plaintext secret is surfaced only by
-// CreateServiceAccountResponse, so no get/list/update path can leak it.
-func projectServiceAccount(s *model.ServiceAccount) *authorizerv1.ServiceAccount {
+// Client: the plaintext secret is surfaced only by
+// CreateClientResponse, so no get/list/update path can leak it.
+func projectClient(s *model.Client) *authorizerv1.Client {
 	if s == nil {
 		return nil
 	}
-	return &authorizerv1.ServiceAccount{
+	return &authorizerv1.Client{
 		Id:            s.ID,
 		Name:          s.Name,
 		Description:   refs.StringValue(s.Description),
@@ -411,19 +411,19 @@ func projectServiceAccount(s *model.ServiceAccount) *authorizerv1.ServiceAccount
 	}
 }
 
-// projectServiceAccounts converts the GraphQL ServiceAccounts model (a page plus
+// projectClients converts the GraphQL Clients model (a page plus
 // its pagination cursor) into the proto response.
-func projectServiceAccounts(s *model.ServiceAccounts) *authorizerv1.ServiceAccountsResponse {
+func projectClients(s *model.Clients) *authorizerv1.ClientsResponse {
 	if s == nil {
-		return &authorizerv1.ServiceAccountsResponse{}
+		return &authorizerv1.ClientsResponse{}
 	}
-	accounts := make([]*authorizerv1.ServiceAccount, 0, len(s.ServiceAccounts))
-	for _, item := range s.ServiceAccounts {
-		accounts = append(accounts, projectServiceAccount(item))
+	accounts := make([]*authorizerv1.Client, 0, len(s.Clients))
+	for _, item := range s.Clients {
+		accounts = append(accounts, projectClient(item))
 	}
-	return &authorizerv1.ServiceAccountsResponse{
-		ServiceAccounts: accounts,
-		Pagination:      projectPagination(s.Pagination),
+	return &authorizerv1.ClientsResponse{
+		Clients:    accounts,
+		Pagination: projectPagination(s.Pagination),
 	}
 }
 
