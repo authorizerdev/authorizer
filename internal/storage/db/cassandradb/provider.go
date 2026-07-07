@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -468,4 +469,60 @@ func convertMapValues(m map[string]interface{}) {
 			}
 		}
 	}
+}
+
+// buildCQLColumnMap reflects over a schema struct and returns a map keyed by each
+// field's `cql` tag name to its native Go value, ready for a gocql INSERT/UPDATE.
+//
+// It replaces the json.Marshal→decode→map construction on secret-bearing write
+// paths (User, ServiceAccount). encoding/json honors `json:"-"`, which is set on
+// User.Password and ServiceAccount.ClientSecret purely to keep those secrets out of
+// API/GraphQL/log JSON. As a side effect the JSON-based builder silently dropped
+// them from the CQL statement — password was never written at signup, and secret
+// rotation silently no-op'd. The `cql` tag is never set to "-" for API-safety, so
+// sourcing column names from it persists every field the table actually has.
+//
+// Value semantics mirror the json.Marshal→decode→convertMapValues path it replaces:
+//   - nil pointer fields map to a nil value; callers skip nil on INSERT and emit
+//     "col = null" on UPDATE, preserving null handling.
+//   - non-nil pointers are dereferenced to their element value (native
+//     int64/string/bool), so no json.Number coercion is needed.
+//   - `omitempty` fields with a nil pointer or zero non-pointer value are omitted
+//     entirely, matching json omitempty on User.Key / ServiceAccount.Key (`_key`).
+//   - `cql:"-"` and untagged fields are skipped.
+func buildCQLColumnMap(v interface{}) map[string]interface{} {
+	rv := reflect.Indirect(reflect.ValueOf(v))
+	rt := rv.Type()
+	out := make(map[string]interface{}, rt.NumField())
+	for i := 0; i < rt.NumField(); i++ {
+		f := rt.Field(i)
+		parts := strings.Split(f.Tag.Get("cql"), ",")
+		name := parts[0]
+		if name == "" || name == "-" {
+			continue
+		}
+		omitempty := false
+		for _, opt := range parts[1:] {
+			if opt == "omitempty" {
+				omitempty = true
+			}
+		}
+		fv := rv.Field(i)
+		if fv.Kind() == reflect.Ptr {
+			if fv.IsNil() {
+				if omitempty {
+					continue
+				}
+				out[name] = nil
+				continue
+			}
+			out[name] = fv.Elem().Interface()
+			continue
+		}
+		if omitempty && fv.IsZero() {
+			continue
+		}
+		out[name] = fv.Interface()
+	}
+	return out
 }

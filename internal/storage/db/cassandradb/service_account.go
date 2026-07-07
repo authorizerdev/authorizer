@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -41,23 +40,15 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sa.UpdatedAt = time.Now().Unix()
-	bytes, err := json.Marshal(sa)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	saMap := map[string]interface{}{}
-	err = decoder.Decode(&saMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(saMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields such as client_secret — see buildCQLColumnMap). Without
+	// this, secret rotation silently no-op'd: client_secret was never in the SET
+	// clause, so the old hash stayed active forever.
+	saMap := buildCQLColumnMap(sa)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range saMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 		if key == "_key" {
@@ -74,7 +65,7 @@ func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.Service
 	updateFields = strings.TrimSuffix(updateFields, ",")
 	updateValues = append(updateValues, sa.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.ServiceAccount, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -38,31 +37,16 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 
-	bytes, err := json.Marshal(user)
-	if err != nil {
-		return nil, err
-	}
-
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	userMap := map[string]interface{}{}
-	err = decoder.Decode(&userMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(userMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields such as password — see buildCQLColumnMap).
+	userMap := buildCQLColumnMap(user)
 
 	fields := "("
 	placeholders := "("
 	var insertValues []interface{}
 	for key, value := range userMap {
 		if value != nil {
-			if key == "_id" {
-				fields += "id,"
-			} else {
-				fields += key + ","
-			}
+			fields += key + ","
 			placeholders += "?,"
 			insertValues = append(insertValues, value)
 		}
@@ -72,7 +56,7 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	placeholders = placeholders[:len(placeholders)-1] + ")"
 
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.User, fields, placeholders)
-	err = p.db.Query(query, insertValues...).Exec()
+	err := p.db.Query(query, insertValues...).Exec()
 
 	if err != nil {
 		return nil, err
@@ -85,24 +69,14 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
-	bytes, err := json.Marshal(user)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	userMap := map[string]interface{}{}
-	err = decoder.Decode(&userMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(userMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields such as password — see buildCQLColumnMap).
+	userMap := buildCQLColumnMap(user)
 
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range userMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 
@@ -123,7 +97,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 	updateValues = append(updateValues, user.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.User, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
