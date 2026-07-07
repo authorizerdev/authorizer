@@ -77,6 +77,23 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 		assert.Equal(t, "email", res.SubjectClaim)
 	})
 
+	t.Run("should reject a duplicate issuer_url", func(t *testing.T) {
+		saID := createSA(t)
+		req := newIssuerReq(saID)
+		_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.NoError(t, err)
+
+		// Second issuer with the same issuer_url must be rejected — otherwise
+		// GetTrustedIssuerByIssuerURL (used on every client_assertion validation)
+		// resolves nondeterministically.
+		dup := newIssuerReq(createSA(t))
+		dup.IssuerURL = req.IssuerURL
+		res, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, dup)
+		require.Error(t, err)
+		require.Nil(t, res)
+		assert.Contains(t, err.Error(), "already registered")
+	})
+
 	t.Run("update mutates only supplied fields", func(t *testing.T) {
 		saID := createSA(t)
 		created, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, newIssuerReq(saID))

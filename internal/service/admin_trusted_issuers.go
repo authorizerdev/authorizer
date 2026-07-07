@@ -51,6 +51,16 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		return nil, nil, fmt.Errorf("service account not found: %s", params.ServiceAccountID)
 	}
 
+	// Enforce issuer_url uniqueness at the service layer. Storage providers use a
+	// plain insert with no unique constraint, so duplicates would otherwise
+	// coexist and GetTrustedIssuerByIssuerURL (called on every client_assertion
+	// validation) would resolve nondeterministically. This guard protects all
+	// backends uniformly.
+	if existing, err := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, params.IssuerURL); err == nil && existing != nil {
+		log.Debug().Str("issuer_url", params.IssuerURL).Msg("issuer_url already registered")
+		return nil, nil, fmt.Errorf("issuer_url already registered: %s", params.IssuerURL)
+	}
+
 	subjectClaim := defaultSubjectClaim
 	if params.SubjectClaim != nil && strings.TrimSpace(*params.SubjectClaim) != "" {
 		subjectClaim = strings.TrimSpace(*params.SubjectClaim)

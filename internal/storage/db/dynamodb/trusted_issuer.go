@@ -31,7 +31,9 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 
 // UpdateTrustedIssuer updates a trusted issuer record.
 // Callers MUST load the existing record and mutate it before calling this
-// method — the item is replaced with the supplied struct.
+// method — UpdateItem applies a partial SET/REMOVE merge that overwrites every
+// supplied field, so a partial struct blanks untouched columns to their zero
+// values.
 func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {
 	if issuer.CreatedAt == 0 {
 		return nil, fmt.Errorf("UpdateTrustedIssuer: caller must load record before updating (CreatedAt is zero — partial struct detected)")

@@ -30,7 +30,9 @@ func (p *provider) AddServiceAccount(ctx context.Context, sa *schemas.ServiceAcc
 
 // UpdateServiceAccount updates a service account record.
 // Callers MUST load the existing record and mutate it before calling this
-// method — the item is replaced with the supplied struct.
+// method — UpdateItem applies a partial SET/REMOVE merge that overwrites every
+// supplied field, so a partial struct blanks untouched columns to their zero
+// values.
 func (p *provider) UpdateServiceAccount(ctx context.Context, sa *schemas.ServiceAccount) (*schemas.ServiceAccount, error) {
 	if sa.CreatedAt == 0 {
 		return nil, fmt.Errorf("UpdateServiceAccount: caller must load record before updating (CreatedAt is zero — partial struct detected)")
@@ -48,25 +50,25 @@ func (p *provider) DeleteServiceAccount(ctx context.Context, sa *schemas.Service
 	if sa == nil {
 		return nil
 	}
-	if err := p.deleteItemByHash(ctx, schemas.Collections.ServiceAccount, "id", sa.ID); err != nil {
-		return err
-	}
+	// Delete child TrustedIssuers BEFORE the parent (mirrors the SQL cascade
+	// ordering). A failure here leaves parent+children both present — a safe,
+	// retryable state — rather than deleting the parent and orphaning issuers
+	// that can still authenticate client_assertion JWTs. Any query/delete error
+	// is returned so the caller knows the cascade did not complete.
 	items, err := p.queryEq(ctx, schemas.Collections.TrustedIssuer, "service_account_id", "service_account_id", sa.ID, nil)
 	if err != nil {
-		p.dependencies.Log.Debug().Err(err).Msg("failed to list trusted issuers for cascade delete")
-		return nil
+		return err
 	}
 	for _, it := range items {
 		var issuer schemas.TrustedIssuer
 		if err := unmarshalItem(it, &issuer); err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("failed to unmarshal trusted issuer")
-			continue
+			return err
 		}
 		if err := p.deleteItemByHash(ctx, schemas.Collections.TrustedIssuer, "id", issuer.ID); err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("failed to delete trusted issuer")
+			return err
 		}
 	}
-	return nil
+	return p.deleteItemByHash(ctx, schemas.Collections.ServiceAccount, "id", sa.ID)
 }
 
 // GetServiceAccountByID fetches a service account by primary key.
