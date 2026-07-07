@@ -43,11 +43,15 @@ func structToDocument(v interface{}) (map[string]interface{}, error) {
 		if f.Tag.Get("json") != "-" {
 			continue
 		}
+		fv := rv.Field(i)
+		if !fv.CanInterface() {
+			continue
+		}
 		key := persistKey(f)
 		if key == "" {
 			continue
 		}
-		doc[key] = rv.Field(i).Interface()
+		doc[key] = fv.Interface()
 	}
 	return doc, nil
 }
