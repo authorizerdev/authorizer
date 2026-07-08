@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -58,6 +59,13 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	g := &httpProvider{
 		Config:       cfg,
 		Dependencies: *deps,
+		// Shared client-authentication resolver (RFC 6749 §2.3). Built from the
+		// same storage + config the handlers already hold, so no extra wiring is
+		// needed at construction sites.
+		clientAuthProvider: clientauth.New(cfg, &clientauth.Dependencies{
+			Log:             deps.Log,
+			StorageProvider: deps.StorageProvider,
+		}),
 	}
 	return g, nil
 }
@@ -66,6 +74,9 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 type httpProvider struct {
 	*config.Config
 	Dependencies
+	// clientAuthProvider resolves and authenticates the OAuth client presented at
+	// the token endpoint.
+	clientAuthProvider clientauth.Provider
 }
 
 // Ensure interface is implemented

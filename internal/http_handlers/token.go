@@ -4,15 +4,14 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -20,6 +19,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service/clientauth"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -36,34 +37,6 @@ type RequestBody struct {
 	// used by the client_credentials grant to request a subset of the service
 	// account's allowed scopes.
 	Scope string `form:"scope" json:"scope"`
-}
-
-// clientCredentialsBcryptCost is the bcrypt cost the client_credentials timing
-// mitigation must match. It has to equal the cost real service-account secrets
-// are hashed with (internal/service/admin_service_accounts.go
-// serviceAccountSecretCost == 12; also committed in the Client schema
-// doc comment) so a dummy compare for an unknown client_id takes the same time
-// as a real compare — otherwise timing reveals whether the account exists.
-const clientCredentialsBcryptCost = 12
-
-// clientCredentialsDummyHash is a precomputed bcrypt hash compared against when
-// a client_credentials client_id does not resolve to a service account, so the
-// unknown-client path does the same bcrypt work as a real credential check.
-// Mirrors loginDummyBcryptHash in internal/service/login.go, but at the
-// service-account cost (12) rather than bcrypt.DefaultCost.
-var (
-	clientCredentialsDummyHash []byte
-	clientCredentialsDummyOnce sync.Once
-)
-
-// performDummyClientCheck runs a constant-cost bcrypt comparison whose
-// result is discarded, equalising the timing of the unknown-client path with a
-// real client_secret verification.
-func performDummyClientCheck(clientSecret string) {
-	clientCredentialsDummyOnce.Do(func() {
-		clientCredentialsDummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), clientCredentialsBcryptCost)
-	})
-	_ = bcrypt.CompareHashAndPassword(clientCredentialsDummyHash, []byte(clientSecret))
 }
 
 // TokenHandler to handle /oauth/token requests
@@ -87,10 +60,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		codeVerifier := strings.TrimSpace(reqBody.CodeVerifier)
 		code := strings.TrimSpace(reqBody.Code)
-		clientID := strings.TrimSpace(reqBody.ClientID)
 		grantType := strings.TrimSpace(reqBody.GrantType)
 		refreshToken := strings.TrimSpace(reqBody.RefreshToken)
-		clientSecret := strings.TrimSpace(reqBody.ClientSecret)
+		bodyClientSecret := strings.TrimSpace(reqBody.ClientSecret)
 		scopeParam := strings.TrimSpace(reqBody.Scope)
 
 		if grantType == "" {
@@ -110,46 +82,38 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		// check if clientID & clientSecret are present as part of
-		// authorization header with basic auth
-		if clientID == "" && clientSecret == "" {
-			clientID, clientSecret, _ = gc.Request.BasicAuth()
-		}
-
-		if clientID == "" {
-			log.Debug().Msg("Client ID is missing")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "The client_id parameter is required",
-			})
+		// Authenticate the client through the shared resolver (RFC 6749 §2.3):
+		// it extracts the credential from client_secret_basic (Authorization
+		// header) or client_secret_post (body), rejects presenting more than one
+		// method, looks the client up by its public client_id, and verifies the
+		// secret. client_credentials always requires a secret; authorization_code
+		// / refresh_token treat a missing secret as "no secret presented" and let
+		// the PKCE checks below gate the request. secretPresented drives the
+		// no-PKCE "secret required" rule further down.
+		basicClientID, basicClientSecret, hasBasicAuth := gc.Request.BasicAuth()
+		secretPresented := bodyClientSecret != "" || (hasBasicAuth && basicClientSecret != "")
+		resolvedClient, authErr := h.clientAuthProvider.ResolveClient(gc, clientauth.ResolveParams{
+			BodyClientID:  strings.TrimSpace(reqBody.ClientID),
+			BodySecret:    bodyClientSecret,
+			BasicClientID: basicClientID,
+			BasicSecret:   basicClientSecret,
+			HasBasicAuth:  hasBasicAuth,
+			// client_credentials always requires a secret; authorization_code
+			// verifies a presented secret (PKCE gates a secret-less request);
+			// refresh_token ignores the secret and authenticates the client_id
+			// only — preserving the pre-registry behavior of each grant.
+			RequireSecret:         isClientCredentialsGrant,
+			VerifyPresentedSecret: isAuthorizationCodeGrant,
+		})
+		if authErr != nil {
+			h.respondClientAuthError(gc, authErr, resolvedClient, isClientCredentialsGrant)
 			return
 		}
 
-		// RFC 6749 §4.4 client_credentials: machine identity. Fully self-
-		// contained — the client is a Client (client_id ==
-		// Client.ID), NOT the global confidential app client checked
-		// below. Handled and returned here.
+		// RFC 6749 §4.4 client_credentials: machine identity. The resolver has
+		// already authenticated the service_account; issue its scoped token here.
 		if isClientCredentialsGrant {
-			h.handleClientCredentialsGrant(gc, clientID, clientSecret, scopeParam)
-			return
-		}
-
-		if h.Config.ClientID != clientID {
-			log.Debug().Msg("Client ID is invalid")
-			metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
-			// RFC 6749 §5.2: If client auth fails via HTTP Basic, return 401
-			if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
-				gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
-				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "invalid_client",
-					"error_description": "Client authentication failed",
-				})
-			} else {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_client",
-					"error_description": "The client_id is invalid",
-				})
-			}
+			h.handleClientCredentialsGrant(gc, resolvedClient, scopeParam)
 			return
 		}
 
@@ -279,23 +243,14 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// of whether PKCE was used. PKCE protects against authorization code
 			// interception; client authentication is a separate concern.
 			// When no PKCE was used, client_secret is the sole proof of identity.
+			// The secret itself was already verified by the client-auth resolver
+			// above; here we only enforce that one was presented.
 			if storedChallenge == "" && codeVerifier == "" {
-				// No PKCE — client_secret is required
-				if clientSecret == "" {
+				// No PKCE — a client secret is required.
+				if !secretPresented {
 					gc.JSON(http.StatusBadRequest, gin.H{
 						"error":             "invalid_request",
 						"error_description": "Either code_verifier or client_secret is required",
-					})
-					return
-				}
-			}
-			// Always validate client_secret when provided (confidential client).
-			if clientSecret != "" {
-				if subtle.ConstantTimeCompare([]byte(clientSecret), []byte(h.Config.ClientSecret)) != 1 {
-					log.Debug().Msg("Client secret is invalid")
-					gc.JSON(http.StatusUnauthorized, gin.H{
-						"error":             "invalid_client",
-						"error_description": "Client authentication failed",
 					})
 					return
 				}
@@ -549,74 +504,80 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 	}
 }
 
-// handleClientCredentialsGrant implements the RFC 6749 §4.4 client_credentials
-// grant. The client authenticates as a Client (client_id ==
-// Client.ID, client_secret verified against the stored bcrypt hash) and
-// receives a stateful access token scoped to a subset of the account's allowed
-// scopes. No id_token and no refresh_token are issued — machines re-authenticate
-// on expiry (RFC 6749 §4.4.3).
-//
-// Timing: every authentication-failure path runs exactly one cost-12 bcrypt
-// compare (a dummy hash for an unknown client_id, the real stored hash for an
-// existing-but-inactive or wrong-secret account) and returns an identical
-// invalid_client response, so an attacker cannot learn from response timing or
-// body whether an account exists or is active.
-func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, clientSecret, scope string) {
-	log := h.Log.With().Str("func", "handleClientCredentialsGrant").Logger()
+// respondClientAuthError maps a clientauth resolver error to the RFC 6749 §5.2
+// token-endpoint error response. Dual-method and missing-client_id map to
+// invalid_request (400); everything else is invalid_client (401 when the client
+// authenticated via HTTP Basic per §5.2, else 400). For a failed
+// client_credentials attempt against a *resolved* client it also writes the
+// token.client_credentials_failed audit event — mirroring the historical
+// behavior, which audited only known-client failures (not unknown client_ids).
+func (h *httpProvider) respondClientAuthError(gc *gin.Context, err error, resolved *schemas.Client, isClientCredentials bool) {
+	log := h.Log.With().Str("func", "respondClientAuthError").Logger()
 
-	// respondInvalidClient emits the RFC 6749 §5.2 invalid_client error using
-	// the same convention as the confidential-client path above: 401 +
-	// WWW-Authenticate when the client authenticated via HTTP Basic, else 400.
-	respondInvalidClient := func() {
-		metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
-		if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
-			gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
-			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error":             "invalid_client",
-				"error_description": "Client authentication failed",
-			})
-			return
-		}
+	switch {
+	case errors.Is(err, clientauth.ErrMultipleAuthMethods):
 		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_client",
-			"error_description": "Client authentication failed",
+			"error":             "invalid_request",
+			"error_description": "Only one client authentication method may be used per request",
 		})
-	}
-
-	sa, err := h.StorageProvider.GetClientByID(gc, clientID)
-	if err != nil || sa == nil {
-		// Unknown client_id — burn an equivalent bcrypt cost so timing does not
-		// distinguish this from a wrong-secret response, then reject.
-		log.Debug().Err(err).Msg("service account not found for client_credentials")
-		performDummyClientCheck(clientSecret)
-		respondInvalidClient()
+		return
+	case errors.Is(err, clientauth.ErrMissingClientID):
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_request",
+			"error_description": "The client_id parameter is required",
+		})
 		return
 	}
 
-	// Always run the real compare (even for inactive accounts) BEFORE the
-	// active-state check, so inactive vs active-wrong-secret are timing-
-	// indistinguishable. bcrypt.CompareHashAndPassword is itself constant-time
-	// with respect to the secret.
-	secretErr := bcrypt.CompareHashAndPassword([]byte(sa.ClientSecret), []byte(clientSecret))
-	if !sa.IsActive || secretErr != nil {
-		log.Debug().Bool("is_active", sa.IsActive).Msg("client_credentials authentication failed")
-		// Audited here (not on the unknown-client_id path above) because we
-		// have a resolved Client to attribute the attempt to — mirrors
-		// login.go's bad_password/account_revoked branches, which likewise
-		// don't audit the user-not-found case.
+	// invalid_client (clientauth.ErrInvalidClient, or any unexpected error).
+	metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
+
+	// Audit only a known-client failure on the client_credentials path — mirrors
+	// the historical behavior (login.go audits bad_password but not user-not-
+	// found). resolved.ID == "" is the synthesized reserved-client fallback,
+	// which is not a service_account and must not be audited as one.
+	if isClientCredentials && resolved != nil && resolved.ID != "" {
 		h.AuditProvider.LogEvent(audit.Event{
 			Action:       constants.AuditTokenClientCredentialsFailedEvent,
-			ActorID:      sa.ID,
+			ActorID:      resolved.ID,
 			ActorType:    constants.AuditActorTypeServiceAccount,
 			ResourceType: constants.AuditResourceTypeToken,
-			ResourceID:   sa.ID,
+			ResourceID:   resolved.ID,
 			Metadata:     constants.GrantTypeClientCredentials,
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
-		respondInvalidClient()
-		return
 	}
+
+	log.Debug().Err(err).Msg("client authentication failed")
+	// Status selection reproduces the pre-registry behavior exactly:
+	//   - HTTP Basic auth failure → 401 + WWW-Authenticate (RFC 6749 §5.2).
+	//   - authorization_code with a wrong secret on a resolved (known) client →
+	//     401 without WWW-Authenticate (the old confidential-client path).
+	//   - everything else (unknown client_id via body, client_credentials
+	//     non-Basic) → 400.
+	_, _, hasBasicAuth := gc.Request.BasicAuth()
+	status := http.StatusBadRequest
+	if hasBasicAuth {
+		gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
+		status = http.StatusUnauthorized
+	} else if !isClientCredentials && resolved != nil {
+		status = http.StatusUnauthorized
+	}
+	gc.JSON(status, gin.H{
+		"error":             "invalid_client",
+		"error_description": "Client authentication failed",
+	})
+}
+
+// handleClientCredentialsGrant implements the RFC 6749 §4.4 client_credentials
+// grant. The client (a service_account) is already authenticated by the
+// clientauth resolver; sa is that resolved, active client. This issues a
+// stateful access token scoped to a subset of the account's allowed scopes. No
+// id_token and no refresh_token are issued — machines re-authenticate on expiry
+// (RFC 6749 §4.4.3).
+func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, sa *schemas.Client, scope string) {
+	log := h.Log.With().Str("func", "handleClientCredentialsGrant").Logger()
 
 	// Scope handling (RFC 6749 §3.3 / §5.2). An empty AllowedScopes is DENY-ALL
 	// (schema § AllowedScopes comment) — reject rather than issue a scopeless
