@@ -418,6 +418,13 @@ func runRoot(c *cobra.Command, args []string) {
 		strings.TrimSpace(rootArgs.config.TwilioAccountSID) != "" &&
 		strings.TrimSpace(rootArgs.config.TwilioSender) != ""
 
+	// Canonicalize Config.ClientID once at load so the seeded registry client_id
+	// (which is trimmed) is byte-identical to every remaining raw Config.ClientID
+	// comparison — introspection audience, revocation ownership, client_check, and
+	// the /app bootstrap all key on the exact same string. Closes the whitespace
+	// edge where a padded --client-id would seed a trimmed row but compare raw.
+	rootArgs.config.ClientID = strings.TrimSpace(rootArgs.config.ClientID)
+
 	// Storage provider
 	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{
 		Log: &log,

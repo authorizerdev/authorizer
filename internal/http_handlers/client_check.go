@@ -34,12 +34,21 @@ func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if clientID != h.Config.ClientID {
+		// Resolve the client_id against the authoritative registry rather than a
+		// single static Config.ClientID, so any registered, active client's id is
+		// accepted here. The reserved client remains valid via the Config fallback
+		// when its registry row is absent (e.g. a read-only replica where the boot
+		// seed was skipped) — login is never locked out.
+		client, err := h.StorageProvider.GetClientByClientID(c.Request.Context(), clientID)
+		valid := (err == nil && client != nil && client.IsActive) || clientID == h.Config.ClientID
+		if !valid {
 			// Record metric for client-id mismatch, but skip dashboard and app UI routes
 			// as those are internal requests that should not trigger security alerts.
 			metrics.RecordSecurityEvent("client_id_mismatch", "invalid_client_id")
 			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
-			c.JSON(http.StatusBadRequest, gin.H{
+			// Abort so the GraphQL handler does not still execute after the 400 is
+			// written (gin continues the chain on a bare return).
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
 				"error_description": "The client id is invalid",
 			})
