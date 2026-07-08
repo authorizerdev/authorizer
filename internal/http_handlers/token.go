@@ -104,6 +104,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// only — preserving the pre-registry behavior of each grant.
 			RequireSecret:         isClientCredentialsGrant,
 			VerifyPresentedSecret: isAuthorizationCodeGrant,
+			// client_credentials is machine-only (design §4.1): the resolver rejects a
+			// non-service_account client before verifying the secret, so an interactive
+			// client_id cannot confirm a guessed secret on this grant.
+			RequireServiceAccountKind: isClientCredentialsGrant,
 		})
 		if authErr != nil {
 			h.respondClientAuthError(gc, authErr, resolvedClient, isClientCredentialsGrant)
@@ -525,6 +529,15 @@ func (h *httpProvider) respondClientAuthError(gc *gin.Context, err error, resolv
 		gc.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_request",
 			"error_description": "The client_id parameter is required",
+		})
+		return
+	case errors.Is(err, clientauth.ErrUnauthorizedClient):
+		// Client is authenticated-or-not but simply not allowed to use this grant
+		// (an interactive client on client_credentials). Returned before secret
+		// verification, so this response is identical for any secret — no oracle.
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "unauthorized_client",
+			"error_description": "This client is not authorized to use this grant type",
 		})
 		return
 	}

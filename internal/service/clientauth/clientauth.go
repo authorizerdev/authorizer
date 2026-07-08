@@ -37,6 +37,14 @@ var (
 	// returned *schemas.Client is non-nil so the caller can attribute an audit
 	// event to it; on an unknown client it is nil.
 	ErrInvalidClient = errors.New("clientauth: client authentication failed")
+
+	// ErrUnauthorizedClient is returned when a resolved client is not permitted to
+	// use the requested grant — e.g. an interactive client attempting
+	// client_credentials (design §4.1: client_credentials is machine-only). It is
+	// returned BEFORE the secret is verified, so a correct and an incorrect secret
+	// produce the identical response — no secret-confirmation oracle. Map to
+	// unauthorized_client (RFC 6749 §5.2).
+	ErrUnauthorizedClient = errors.New("clientauth: client not authorized for this grant")
 )
 
 // dummySecretCost mirrors the bcrypt cost real client secrets are hashed with
@@ -86,6 +94,14 @@ type ResolveParams struct {
 	// (refresh_token) the secret is ignored entirely, only the client_id is
 	// authenticated — reproducing the pre-registry refresh_token behavior.
 	VerifyPresentedSecret bool
+
+	// RequireServiceAccountKind rejects a resolved client whose Kind is not
+	// service_account with ErrUnauthorizedClient, BEFORE the secret is verified.
+	// Set for client_credentials (a machine-only grant, design §4.1). Rejecting
+	// pre-verification is what keeps the response identical for a correct and an
+	// incorrect secret, so the interactive reserved client_id cannot be used as a
+	// secret-confirmation oracle on this grant.
+	RequireServiceAccountKind bool
 }
 
 // Dependencies for the clientauth provider.
@@ -152,6 +168,13 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 		// bootstrap Config credential so login is never locked out. This path
 		// reproduces the pre-registry constant-time comparison verbatim.
 		if p.Config != nil && clientID == strings.TrimSpace(p.Config.ClientID) {
+			// The reserved client is interactive; client_credentials is machine-only.
+			// Reject before touching the secret so the response is identical for any
+			// secret (no confirmation oracle) — matches the found-client branch below.
+			if params.RequireServiceAccountKind {
+				log.Debug().Msg("reserved interactive client not authorized for client_credentials grant")
+				return nil, ErrUnauthorizedClient
+			}
 			return p.resolveViaConfig(clientID, secret, doVerify)
 		}
 		// Unknown client: burn an equivalent bcrypt cost so timing does not
@@ -159,6 +182,15 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 		log.Debug().Err(err).Msg("client not found")
 		performDummyCompare(secret)
 		return nil, ErrInvalidClient
+	}
+
+	// Grant matrix (design §4.1): only a service_account client may use
+	// client_credentials. Reject any other kind BEFORE verifying the secret, so a
+	// correct and an incorrect secret return the identical unauthorized_client — the
+	// interactive reserved client_id cannot confirm a guessed secret on this grant.
+	if params.RequireServiceAccountKind && client.Kind != constants.ClientKindServiceAccount {
+		log.Debug().Str("kind", client.Kind).Msg("client not authorized for client_credentials grant")
+		return client, ErrUnauthorizedClient
 	}
 
 	// bcrypt.CompareHashAndPassword is itself constant-time with respect to the

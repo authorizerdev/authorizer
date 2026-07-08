@@ -41,6 +41,7 @@ func createTestClient(t *testing.T, ts *testSetup, allowedScopes string, active 
 	require.NoError(t, err)
 	sa, err := ts.StorageProvider.AddClient(context.Background(), &schemas.Client{
 		Name:          "cc-sa-" + uuid.New().String(),
+		Kind:          constants.ClientKindServiceAccount,
 		ClientSecret:  string(hash),
 		AllowedScopes: allowedScopes,
 		IsActive:      true,

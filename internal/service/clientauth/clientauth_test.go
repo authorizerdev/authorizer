@@ -240,3 +240,52 @@ func TestResolveClient_ClientCredentialsEmptySecretRejected(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidClient)
 	require.NotNil(t, got)
 }
+
+func TestResolveClient_InteractiveRejectedForClientCredentials_NoOracle(t *testing.T) {
+	// An interactive client on client_credentials (RequireServiceAccountKind) must
+	// be rejected as ErrUnauthorizedClient BEFORE the secret is verified — so a
+	// correct and a wrong secret return the identical error and cannot be used to
+	// confirm a guessed secret (design §4.1 grant matrix / no confirmation oracle).
+	interactive := &schemas.Client{
+		ID:           "id-web-app",
+		ClientID:     "web-app",
+		Kind:         constants.ClientKindInteractive,
+		ClientSecret: hashSecret(t, "the-right-secret"),
+		IsActive:     true,
+	}
+	r := newResolver(t, map[string]*schemas.Client{"web-app": interactive})
+	_, errRight := r.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID: "web-app", BodySecret: "the-right-secret",
+		RequireSecret: true, RequireServiceAccountKind: true,
+	})
+	_, errWrong := r.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID: "web-app", BodySecret: "WRONG-secret",
+		RequireSecret: true, RequireServiceAccountKind: true,
+	})
+	require.ErrorIs(t, errRight, ErrUnauthorizedClient, "correct secret must be unauthorized_client")
+	require.ErrorIs(t, errWrong, ErrUnauthorizedClient, "wrong secret must be unauthorized_client")
+	assert.Equal(t, errRight, errWrong, "correct vs wrong secret must be indistinguishable (no oracle)")
+
+	// Config-fallback reserved client (interactive, registry row absent): same property.
+	rf := newResolver(t, map[string]*schemas.Client{})
+	_, fbRight := rf.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID: testConfigID, BodySecret: testConfigSecret,
+		RequireSecret: true, RequireServiceAccountKind: true,
+	})
+	_, fbWrong := rf.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID: testConfigID, BodySecret: "WRONG-secret",
+		RequireSecret: true, RequireServiceAccountKind: true,
+	})
+	require.ErrorIs(t, fbRight, ErrUnauthorizedClient)
+	require.ErrorIs(t, fbWrong, ErrUnauthorizedClient)
+	assert.Equal(t, fbRight, fbWrong, "fallback path must not distinguish secrets either")
+
+	// The kind gate must NOT affect a real service_account: correct secret authenticates.
+	rsa := newResolver(t, map[string]*schemas.Client{testClientID: confidentialClient(t)})
+	got2, err2 := rsa.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID: testClientID, BodySecret: testClientSecret,
+		RequireSecret: true, RequireServiceAccountKind: true,
+	})
+	require.NoError(t, err2)
+	assert.Equal(t, testClientID, got2.ClientID)
+}
