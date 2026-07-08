@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -68,12 +69,22 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		if h.Config.ClientID != clientID {
-			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
-			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error":             "invalid_client",
-				"error_description": "Client authentication failed",
-			})
+		// RFC 7009 §2.1: authenticate the calling client through the shared registry
+		// resolver (RFC 6749 §2.3) with refresh_token-grant semantics — the client_id
+		// is authenticated against the authoritative registry (the reserved client via
+		// the Config fallback), but the secret is not required. This preserves the
+		// pre-registry behavior where revocation clients present only a client_id and
+		// prove possession of the token; token-ownership (checked after parsing) is the
+		// real protection.
+		_, _, hasBasicAuth := gc.Request.BasicAuth()
+		resolvedClient, authErr := h.clientAuthProvider.ResolveClient(gc, clientauth.ResolveParams{
+			BodyClientID: clientID,
+		})
+		if authErr != nil {
+			log.Debug().Err(authErr).Str("client_id", clientID).Msg("client authentication failed")
+			// Non-basic invalid_client maps to 401 on the revocation endpoint,
+			// preserving the pre-registry response shape.
+			respondResourceClientAuthError(gc, authErr, hasBasicAuth, http.StatusUnauthorized)
 			return
 		}
 
@@ -98,6 +109,16 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 		if err != nil {
 			// RFC 7009 §2.2: Invalid token - return 200
 			log.Debug().Err(err).Msg("Failed to parse token, returning 200 per RFC 7009")
+			gc.JSON(http.StatusOK, gin.H{})
+			return
+		}
+
+		// RFC 7009 token-ownership: only revoke a token issued to the authenticated
+		// client. A token's aud is its client's client_id; when it does not match the
+		// resolved caller, respond 200 {} (RFC 7009 §2.2, no oracle) without touching
+		// the session — one client must not be able to revoke another client's token.
+		if !audienceMatchesIntrospect(claims["aud"], resolvedClient.ClientID) {
+			log.Debug().Msg("Token not issued to authenticated client, returning 200 per RFC 7009")
 			gc.JSON(http.StatusOK, gin.H{})
 			return
 		}
