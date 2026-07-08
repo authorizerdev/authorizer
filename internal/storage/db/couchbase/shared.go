@@ -23,10 +23,9 @@ import (
 //
 // ponytail: paired with decodeDocument. Any struct carrying a `json:"-"` field MUST use
 // structToDocument on its write path and decodeDocument on its read path, or the field is
-// silently dropped. The `json:"-"` secret fields in the schemas are User.Password and
-// Client.ClientSecret. TrustedIssuer is deliberately NOT converted — it has no
-// `json:"-"` field, so its Insert passes the raw struct; if a secret field is ever added
-// there, convert its write path to structToDocument and its read path to decodeDocument too.
+// silently dropped. The `json:"-"` secret fields in the schemas are User.Password,
+// Client.ClientSecret and TrustedIssuer.SSOClientSecretEnc — every one of their
+// Insert/Upsert and read paths goes through this helper pair.
 func structToDocument(v interface{}) (map[string]interface{}, error) {
 	data, err := json.Marshal(v)
 	if err != nil {

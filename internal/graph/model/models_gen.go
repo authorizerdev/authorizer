@@ -123,6 +123,16 @@ type CreateClientResponse struct {
 	ClientSecret string  `json:"client_secret"`
 }
 
+type CreateOrgOIDCConnectionRequest struct {
+	OrgID        string  `json:"org_id"`
+	Name         string  `json:"name"`
+	IssuerURL    string  `json:"issuer_url"`
+	ClientID     string  `json:"client_id"`
+	ClientSecret string  `json:"client_secret"`
+	Scopes       *string `json:"scopes,omitempty"`
+	RedirectURI  *string `json:"redirect_uri,omitempty"`
+}
+
 type CreateOrganizationRequest struct {
 	Name        string  `json:"name"`
 	DisplayName *string `json:"display_name,omitempty"`
@@ -463,6 +473,24 @@ type OrgMembers struct {
 	OrgMembers []*OrgMember `json:"org_members"`
 }
 
+type OrgOIDCConnection struct {
+	ID          string  `json:"id"`
+	OrgID       string  `json:"org_id"`
+	Name        string  `json:"name"`
+	IssuerURL   string  `json:"issuer_url"`
+	SsoClientID string  `json:"sso_client_id"`
+	Scopes      *string `json:"scopes,omitempty"`
+	RedirectURI *string `json:"redirect_uri,omitempty"`
+	IsActive    bool    `json:"is_active"`
+	CreatedAt   *int64  `json:"created_at,omitempty"`
+	UpdatedAt   *int64  `json:"updated_at,omitempty"`
+}
+
+type OrgOIDCConnectionRequest struct {
+	ID    *string `json:"id,omitempty"`
+	OrgID *string `json:"org_id,omitempty"`
+}
+
 type Organization struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
@@ -694,6 +722,17 @@ type UpdateEnvRequest struct {
 	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND,omitempty"`
 	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN,omitempty"`
 	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
+}
+
+type UpdateOrgOIDCConnectionRequest struct {
+	ID           string  `json:"id"`
+	Name         *string `json:"name,omitempty"`
+	IssuerURL    *string `json:"issuer_url,omitempty"`
+	ClientID     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Scopes       *string `json:"scopes,omitempty"`
+	RedirectURI  *string `json:"redirect_uri,omitempty"`
+	IsActive     *bool   `json:"is_active,omitempty"`
 }
 
 type UpdateOrganizationRequest struct {

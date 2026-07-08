@@ -107,6 +107,10 @@ type Provider interface {
 	OAuthCallbackHandler() gin.HandlerFunc
 	// OAuthLoginHandler is the main handler that handels all the oauth login requests
 	OAuthLoginHandler() gin.HandlerFunc
+	// SSOLoginHandler starts a per-org enterprise OIDC SSO broker login.
+	SSOLoginHandler() gin.HandlerFunc
+	// SSOCallbackHandler completes a per-org enterprise OIDC SSO broker login.
+	SSOCallbackHandler() gin.HandlerFunc
 	// OpenIDConfigurationHandler is the main handler that handels all the openid configuration requests
 	OpenIDConfigurationHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests

@@ -436,6 +436,25 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// FederatedIdentity collection and indexes
+	federatedIdentityCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.FederatedIdentity)
+	if err != nil {
+		return nil, err
+	}
+	if !federatedIdentityCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.FederatedIdentity, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	federatedIdentityCollection, err := arangodb.Collection(ctx, schemas.Collections.FederatedIdentity)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = federatedIdentityCollection.EnsureHashIndex(ctx, []string{"org_id", "issuer", "subject"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

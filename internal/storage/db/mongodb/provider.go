@@ -254,6 +254,20 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// FederatedIdentity collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.FederatedIdentity, options.CreateCollection())
+	federatedIdentityCollection := mongodb.Collection(schemas.Collections.FederatedIdentity, options.Collection())
+	_, _ = federatedIdentityCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "issuer", Value: 1}, {Key: "subject", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys:    bson.M{"user_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

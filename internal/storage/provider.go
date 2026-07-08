@@ -213,7 +213,16 @@ type Provider interface {
 	GetTrustedIssuerByID(ctx context.Context, id string) (*schemas.TrustedIssuer, error)
 	// GetTrustedIssuerByIssuerURL fetches by issuer URL (unique index).
 	// This is called on every client_assertion validation — keep it fast.
+	//
+	// SECURITY (CR1): issuer_url is globally unique, so at most one row exists per
+	// URL. The client_assertion resolver additionally rejects any row whose
+	// EffectiveKind is not client_assertion_trust (or whose OrgID is non-empty), so
+	// an sso_oidc row registered at the same URL can never authenticate a client.
 	GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL string) (*schemas.TrustedIssuer, error)
+	// GetTrustedIssuerByOrgIDAndKind fetches the single trusted issuer for an
+	// organization of a given kind — used to resolve an org's sso_oidc connection.
+	// Returns an error when no matching row exists.
+	GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error)
 	// ListTrustedIssuers returns trusted issuers filtered by serviceAccountID.
 	// Pass an empty serviceAccountID to list all issuers.
 	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
@@ -249,6 +258,16 @@ type Provider interface {
 	ListOrgMembershipsByOrg(ctx context.Context, orgID string, pagination *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error)
 	// ListOrgMembershipsByUser returns paginated memberships held by a user.
 	ListOrgMembershipsByUser(ctx context.Context, userID string, pagination *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error)
+
+	// FederatedIdentity methods (SSO JIT provisioning, account-takeover defense).
+
+	// AddFederatedIdentity records a JIT-provisioned upstream identity. The
+	// (org_id, issuer, subject) triple is unique — adding a duplicate returns an
+	// error.
+	AddFederatedIdentity(ctx context.Context, identity *schemas.FederatedIdentity) (*schemas.FederatedIdentity, error)
+	// GetFederatedIdentity fetches the identity for a (orgID, issuer, subject)
+	// triple. Returns an error when no matching row exists.
+	GetFederatedIdentity(ctx context.Context, orgID, issuer, subject string) (*schemas.FederatedIdentity, error)
 }
 
 // New creates a new database provider based on the configuration

@@ -22,7 +22,8 @@ import (
 // ponytail: structToDocument and readDocument are paired. If a schema gains a
 // new `json:"-"` field, its write path MUST go through structToDocument and its
 // read path MUST go through readDocument, or the field will silently load/store
-// empty. Today only User.Password and Client.ClientSecret are affected.
+// empty. Today User.Password, Client.ClientSecret and
+// TrustedIssuer.SSOClientSecretEnc are affected.
 
 // structToDocument converts a schema struct into a map for ArangoDB writes,
 // re-adding any `json:"-"` field under its `bson` tag key (encoding/json drops

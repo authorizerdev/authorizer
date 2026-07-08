@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"os"
 	"strings"
@@ -193,6 +194,10 @@ func TestStorageProvider(t *testing.T) {
 
 			t.Run("Org Membership Operations", func(t *testing.T) {
 				testOrgMembershipOperations(t, ctx, provider)
+			})
+
+			t.Run("Org OIDC Connection & Federated Identity Operations", func(t *testing.T) {
+				testOrgOIDCAndFederatedOperations(t, ctx, provider, dbType)
 			})
 
 			if isSQLTestDB(dbType) {
@@ -1638,4 +1643,68 @@ func testOrgMembershipOperations(t *testing.T, ctx context.Context, provider Pro
 
 	require.NoError(t, provider.DeleteOrganization(ctx, orgA))
 	require.NoError(t, provider.DeleteOrganization(ctx, orgB))
+}
+
+// testOrgOIDCAndFederatedOperations exercises the sso_oidc TrustedIssuer fields
+// (esp. the encrypted upstream secret round-trip + its json:"-" tag), the
+// GetTrustedIssuerByOrgIDAndKind lookup, and FederatedIdentity Add/Get across
+// every backend.
+func testOrgOIDCAndFederatedOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
+	orgID := "org-" + uuid.New().String()
+	issuerURL := "https://idp-" + uuid.New().String() + ".example.com"
+
+	conn, err := provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
+		Kind:               constants.TrustKindSSOOIDC,
+		OrgID:              orgID,
+		Name:               "conn_" + uuid.New().String(),
+		IssuerURL:          issuerURL,
+		KeySourceType:      "oidc_discovery",
+		IssuerType:         "oidc",
+		AuthMethod:         "jwt_assertion",
+		SSOClientID:        "rp-client-id",
+		SSOClientSecretEnc: "ENCRYPTED-SECRET-VALUE",
+		SSOScopes:          "openid profile email",
+		SSORedirectURI:     "https://authorizer.example.com/oauth/sso/x/callback",
+		IsActive:           true,
+	})
+	require.NoError(t, err)
+	connID := conn.AsAPITrustedIssuer().ID
+	require.NotEmpty(t, connID)
+
+	// Round-trip: every SSO field, especially the encrypted secret, must persist.
+	fetched, err := provider.GetTrustedIssuerByID(ctx, connID)
+	require.NoError(t, err)
+	assert.Equal(t, constants.TrustKindSSOOIDC, fetched.Kind)
+	assert.Equal(t, orgID, fetched.OrgID)
+	assert.Equal(t, "rp-client-id", fetched.SSOClientID)
+	assert.Equal(t, "ENCRYPTED-SECRET-VALUE", fetched.SSOClientSecretEnc, "upstream secret must persist across write->read on "+dbType)
+	assert.Equal(t, "openid profile email", fetched.SSOScopes)
+	assert.Equal(t, "https://authorizer.example.com/oauth/sso/x/callback", fetched.SSORedirectURI)
+
+	// json:"-" — the secret must NEVER serialize into a JSON projection.
+	raw, err := json.Marshal(fetched)
+	require.NoError(t, err)
+	assert.NotContains(t, string(raw), "ENCRYPTED-SECRET-VALUE", "sso_client_secret_enc must not serialize (json:\"-\")")
+	assert.Contains(t, string(raw), issuerURL, "non-secret fields still serialize")
+
+	// GetTrustedIssuerByOrgIDAndKind resolves the org's connection.
+	byOrg, err := provider.GetTrustedIssuerByOrgIDAndKind(ctx, orgID, constants.TrustKindSSOOIDC)
+	require.NoError(t, err)
+	assert.Equal(t, connID, byOrg.AsAPITrustedIssuer().ID)
+
+	// FederatedIdentity round-trip.
+	sub := "sub-" + uuid.New().String()
+	userID := "user-" + uuid.New().String()
+	_, err = provider.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
+		OrgID: orgID, Issuer: issuerURL, Subject: sub, UserID: userID,
+	})
+	require.NoError(t, err)
+
+	fi, err := provider.GetFederatedIdentity(ctx, orgID, issuerURL, sub)
+	require.NoError(t, err)
+	assert.Equal(t, userID, fi.UserID)
+
+	// A different subject at the same (org, issuer) is a distinct identity.
+	_, err = provider.GetFederatedIdentity(ctx, orgID, issuerURL, "unknown-sub")
+	assert.Error(t, err, "unknown federated identity must not resolve")
 }

@@ -187,6 +187,21 @@ func (r *mutationResolver) DeleteTrustedIssuer(ctx context.Context, params model
 	return r.GraphQLProvider.DeleteTrustedIssuer(ctx, &params)
 }
 
+// CreateOrgOidcConnection is the resolver for the _create_org_oidc_connection field.
+func (r *mutationResolver) CreateOrgOidcConnection(ctx context.Context, params model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error) {
+	return r.GraphQLProvider.CreateOrgOidcConnection(ctx, &params)
+}
+
+// UpdateOrgOidcConnection is the resolver for the _update_org_oidc_connection field.
+func (r *mutationResolver) UpdateOrgOidcConnection(ctx context.Context, params model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error) {
+	return r.GraphQLProvider.UpdateOrgOidcConnection(ctx, &params)
+}
+
+// DeleteOrgOidcConnection is the resolver for the _delete_org_oidc_connection field.
+func (r *mutationResolver) DeleteOrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteOrgOidcConnection(ctx, &params)
+}
+
 // CreateOrganization is the resolver for the _create_organization field.
 func (r *mutationResolver) CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error) {
 	return r.GraphQLProvider.CreateOrganization(ctx, &params)
@@ -340,6 +355,11 @@ func (r *queryResolver) TrustedIssuer(ctx context.Context, params model.TrustedI
 // TrustedIssuers is the resolver for the _trusted_issuers field.
 func (r *queryResolver) TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error) {
 	return r.GraphQLProvider.TrustedIssuers(ctx, params)
+}
+
+// OrgOidcConnection is the resolver for the _org_oidc_connection field.
+func (r *queryResolver) OrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error) {
+	return r.GraphQLProvider.OrgOidcConnection(ctx, &params)
 }
 
 // Organization is the resolver for the _organization field.

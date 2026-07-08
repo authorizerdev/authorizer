@@ -30,6 +30,10 @@ const (
 	AuthRecipeMethodTwitch = "twitch"
 	// AuthRecipeMethodRoblox is the roblox auth method
 	AuthRecipeMethodRoblox = "roblox"
+	// AuthRecipeMethodSSO is the login_method stamped on sessions established via
+	// a per-org OIDC SSO broker flow. It namespaces the memory-store session key
+	// ("sso:<user_id>") the same way the social recipes do.
+	AuthRecipeMethodSSO = "sso"
 
 	// AuthRecipeMethodServiceAccount is the login_method stamped on machine
 	// access tokens issued via the client_credentials grant (RFC 6749 §4.4).

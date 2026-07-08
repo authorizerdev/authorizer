@@ -3,6 +3,7 @@ package schemas
 import (
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
@@ -43,6 +44,23 @@ type TrustedIssuer struct {
 	Key string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // ArangoDB document key
 
 	ID string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
+
+	// Kind discriminates the trust relationship this row represents (design §4.3 /
+	// §5 K1): constants.TrustKindClientAssertion (default), TrustKindSSOOIDC, or
+	// TrustKindSSOSAML (reserved). Immutable after creation.
+	//
+	// SECURITY (design §5.2 CR1): the client_assertion resolver accepts ONLY
+	// client_assertion_trust rows (with an empty OrgID). An sso_oidc row — which
+	// has NO subject pin — must never be reachable on the client-authentication
+	// path. A pre-existing row written before this column existed reads back as ""
+	// and is interpreted as client_assertion_trust by EffectiveKind, so upgrades
+	// don't break existing trust rows.
+	Kind string `json:"kind" bson:"kind" cql:"kind" dynamo:"kind" gorm:"default:'client_assertion_trust'"`
+
+	// OrgID scopes an SSO connection (sso_oidc/sso_saml) to one Organization.
+	// EMPTY for client_assertion_trust rows (which are instance-global). Immutable.
+	// Part of the (kind, org_id) lookup that finds an org's SSO connection.
+	OrgID string `json:"org_id" bson:"org_id" cql:"org_id" dynamo:"org_id" gorm:"index" index:"org_id,hash"`
 
 	// ClientID links this issuer to the Client it authenticates.
 	ClientID string `json:"client_id" bson:"client_id" cql:"client_id" dynamo:"client_id" gorm:"index" index:"client_id,hash"`
@@ -126,8 +144,43 @@ type TrustedIssuer struct {
 	// that carry the header MUST be rejected to prevent certificate spoofing.
 	TrustedProxyCIDRs *string `json:"trusted_proxy_cidrs" bson:"trusted_proxy_cidrs" cql:"trusted_proxy_cidrs" dynamo:"trusted_proxy_cidrs"`
 
+	// --- SSO OIDC broker (kind = sso_oidc) ---
+	// These fields hold the upstream IdP configuration Authorizer uses as the
+	// Relying Party. They are empty on client_assertion_trust rows.
+
+	// SSOClientID is the client_id Authorizer was issued AT the upstream IdP.
+	SSOClientID string `json:"sso_client_id" bson:"sso_client_id" cql:"sso_client_id" dynamo:"sso_client_id"`
+
+	// SSOClientSecretEnc is the upstream client_secret, AES-encrypted at rest
+	// (crypto.EncryptAES keyed on Config.ClientSecret — reversible because the
+	// value is replayed to the upstream token endpoint; a bcrypt hash could not be
+	// used). json:"-" so it NEVER serializes into an API/webhook/log projection.
+	SSOClientSecretEnc string `json:"-" bson:"sso_client_secret_enc" cql:"sso_client_secret_enc" dynamo:"sso_client_secret_enc"`
+
+	// SSOScopes is the space-separated scope set requested at the upstream IdP.
+	// Defaults to "openid profile email" when empty.
+	SSOScopes string `json:"sso_scopes" bson:"sso_scopes" cql:"sso_scopes" dynamo:"sso_scopes"`
+
+	// SSORedirectURI is the redirect_uri registered at the upstream IdP that points
+	// back at Authorizer's broker callback. When empty the broker derives
+	// {scheme}://{host}/oauth/sso/{org}/callback from the request host.
+	SSORedirectURI string `json:"sso_redirect_uri" bson:"sso_redirect_uri" cql:"sso_redirect_uri" dynamo:"sso_redirect_uri"`
+
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// EffectiveKind returns the row's Kind, treating an empty value as
+// TrustKindClientAssertion. A row written before the kind column existed reads
+// back with an empty Kind; interpreting that as client_assertion_trust keeps
+// existing trust rows working across an upgrade AND keeps the CR1 guard correct
+// (an sso_oidc row always carries an explicit non-empty Kind, so it can never be
+// mistaken for a client_assertion row).
+func (t *TrustedIssuer) EffectiveKind() string {
+	if strings.TrimSpace(t.Kind) == "" {
+		return constants.TrustKindClientAssertion
+	}
+	return t.Kind
 }
 
 // ParsedAllowedSubjects returns AllowedSubjects as a slice: comma-separated,

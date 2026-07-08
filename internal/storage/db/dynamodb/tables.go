@@ -217,6 +217,19 @@ func (p *provider) ensureTables(ctx context.Context) error {
 				gsi("user_id", "user_id"),
 			},
 		},
+		{
+			name: schemas.Collections.FederatedIdentity,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("org_id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("user_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("org_id", "org_id"),
+				gsi("user_id", "user_id"),
+			},
+		},
 	}
 
 	for _, t := range tables {

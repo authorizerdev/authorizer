@@ -33,6 +33,8 @@ const (
 	AuditResourceTypeServiceAccount = "service_account"
 	// AuditResourceTypeTrustedIssuer represents a trusted external JWT issuer.
 	AuditResourceTypeTrustedIssuer = "trusted_issuer"
+	// AuditResourceTypeOrgOIDCConnection represents a per-org upstream OIDC IdP.
+	AuditResourceTypeOrgOIDCConnection = "org_oidc_connection"
 	// AuditResourceTypeOrganization represents an organization entity.
 	AuditResourceTypeOrganization = "organization"
 	// AuditResourceTypeOrgMembership represents an org membership entity.
@@ -125,6 +127,12 @@ const (
 	AuditOAuthCallbackSuccessEvent = "oauth.callback_success"
 	// AuditOAuthCallbackFailedEvent is logged when an OAuth callback fails.
 	AuditOAuthCallbackFailedEvent = "oauth.callback_failed"
+	// AuditSSOLoginInitiatedEvent is logged when an org OIDC SSO login is started.
+	AuditSSOLoginInitiatedEvent = "sso.login_initiated"
+	// AuditSSOCallbackSuccessEvent is logged when an org OIDC SSO callback succeeds.
+	AuditSSOCallbackSuccessEvent = "sso.callback_success"
+	// AuditSSOCallbackFailedEvent is logged when an org OIDC SSO callback fails.
+	AuditSSOCallbackFailedEvent = "sso.callback_failed"
 
 	// AuditTokenIssuedEvent is logged when a new token is issued.
 	AuditTokenIssuedEvent = "token.issued"
@@ -153,6 +161,12 @@ const (
 	// AuditClientActivatedEvent is logged when an admin re-enables a client.
 	AuditClientActivatedEvent = "admin.client_activated"
 
+	// AuditOrgOIDCConnectionCreatedEvent is logged when an admin creates an org OIDC connection.
+	AuditOrgOIDCConnectionCreatedEvent = "admin.org_oidc_connection_created"
+	// AuditOrgOIDCConnectionUpdatedEvent is logged when an admin updates an org OIDC connection.
+	AuditOrgOIDCConnectionUpdatedEvent = "admin.org_oidc_connection_updated"
+	// AuditOrgOIDCConnectionDeletedEvent is logged when an admin deletes an org OIDC connection.
+	AuditOrgOIDCConnectionDeletedEvent = "admin.org_oidc_connection_deleted"
 	// AuditTrustedIssuerCreatedEvent is logged when an admin adds a trusted issuer.
 	AuditTrustedIssuerCreatedEvent = "admin.trusted_issuer_created"
 	// AuditTrustedIssuerUpdatedEvent is logged when an admin updates a trusted issuer.
