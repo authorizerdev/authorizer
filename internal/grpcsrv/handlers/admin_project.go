@@ -443,6 +443,7 @@ func projectTrustedIssuer(t *model.TrustedIssuer) *authorizerv1.TrustedIssuer {
 		JwksUrl:                  refs.StringValue(t.JwksURL),
 		ExpectedAud:              t.ExpectedAud,
 		SubjectClaim:             t.SubjectClaim,
+		AllowedSubjects:          refs.StringValue(t.AllowedSubjects),
 		IssuerType:               t.IssuerType,
 		IsActive:                 t.IsActive,
 		SpiffeRefreshHintSeconds: refs.Int64Value(t.SpiffeRefreshHintSeconds),

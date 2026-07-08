@@ -952,6 +952,8 @@ message TrustedIssuer {
   int64 spiffe_refresh_hint_seconds = 11;
   int64 created_at = 12;
   int64 updated_at = 13;
+  // allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  string allowed_subjects = 14;
 }
 
 // AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,
@@ -967,6 +969,8 @@ message AddTrustedIssuerRequest {
   optional string subject_claim = 7;
   string issuer_type = 8 [(buf.validate.field).string.min_len = 1];
   optional int64 spiffe_refresh_hint_seconds = 9;
+  // allowed_subjects: comma-separated exact subject allow-list. Omitted = deny-all.
+  optional string allowed_subjects = 10;
 }
 message AddTrustedIssuerResponse {
   TrustedIssuer trusted_issuer = 1;
@@ -982,6 +986,8 @@ message UpdateTrustedIssuerRequest {
   optional string expected_aud = 4;
   optional bool is_active = 5;
   optional int64 spiffe_refresh_hint_seconds = 6;
+  // allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  optional string allowed_subjects = 7;
 }
 message UpdateTrustedIssuerResponse {
   TrustedIssuer trusted_issuer = 1;

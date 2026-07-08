@@ -412,6 +412,7 @@ type ComplexityRoot struct {
 	}
 
 	TrustedIssuer struct {
+		AllowedSubjects          func(childComplexity int) int
 		CreatedAt                func(childComplexity int) int
 		ExpectedAud              func(childComplexity int) int
 		ID                       func(childComplexity int) int
@@ -2817,6 +2818,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.TestEndpointResponse.Response(childComplexity), true
 
+	case "TrustedIssuer.allowed_subjects":
+		if e.complexity.TrustedIssuer.AllowedSubjects == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.AllowedSubjects(childComplexity), true
+
 	case "TrustedIssuer.created_at":
 		if e.complexity.TrustedIssuer.CreatedAt == nil {
 			break
@@ -3815,6 +3823,8 @@ type TrustedIssuer {
   jwks_url: String
   expected_aud: String!
   subject_claim: String!
+  # allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  allowed_subjects: String
   issuer_type: String!
   is_active: Boolean!
   spiffe_refresh_hint_seconds: Int64
@@ -4259,6 +4269,9 @@ input AddTrustedIssuerRequest {
   expected_aud: String!
   # subject_claim defaults to "sub" if omitted
   subject_claim: String
+  # allowed_subjects: comma-separated exact subject allow-list. Empty/omitted =
+  # deny-all — a row with no configured subjects authenticates nobody.
+  allowed_subjects: String
   # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
   issuer_type: String!
   spiffe_refresh_hint_seconds: Int64
@@ -4269,6 +4282,8 @@ input UpdateTrustedIssuerRequest {
   name: String
   jwks_url: String
   expected_aud: String
+  # allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  allowed_subjects: String
   is_active: Boolean
   spiffe_refresh_hint_seconds: Int64
 }
@@ -15734,6 +15749,8 @@ func (ec *executionContext) fieldContext_Mutation__add_trusted_issuer(ctx contex
 				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
 			case "subject_claim":
 				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "allowed_subjects":
+				return ec.fieldContext_TrustedIssuer_allowed_subjects(ctx, field)
 			case "issuer_type":
 				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
 			case "is_active":
@@ -15817,6 +15834,8 @@ func (ec *executionContext) fieldContext_Mutation__update_trusted_issuer(ctx con
 				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
 			case "subject_claim":
 				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "allowed_subjects":
+				return ec.fieldContext_TrustedIssuer_allowed_subjects(ctx, field)
 			case "issuer_type":
 				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
 			case "is_active":
@@ -19091,6 +19110,8 @@ func (ec *executionContext) fieldContext_Query__trusted_issuer(ctx context.Conte
 				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
 			case "subject_claim":
 				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "allowed_subjects":
+				return ec.fieldContext_TrustedIssuer_allowed_subjects(ctx, field)
 			case "issuer_type":
 				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
 			case "is_active":
@@ -20450,6 +20471,47 @@ func (ec *executionContext) fieldContext_TrustedIssuer_subject_claim(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _TrustedIssuer_allowed_subjects(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_allowed_subjects(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AllowedSubjects, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_allowed_subjects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TrustedIssuer_issuer_type(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
 	if err != nil {
@@ -20770,6 +20832,8 @@ func (ec *executionContext) fieldContext_TrustedIssuers_trusted_issuers(_ contex
 				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
 			case "subject_claim":
 				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "allowed_subjects":
+				return ec.fieldContext_TrustedIssuer_allowed_subjects(ctx, field)
 			case "issuer_type":
 				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
 			case "is_active":
@@ -25365,7 +25429,7 @@ func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"service_account_id", "name", "issuer_url", "key_source_type", "jwks_url", "expected_aud", "subject_claim", "issuer_type", "spiffe_refresh_hint_seconds"}
+	fieldsInOrder := [...]string{"service_account_id", "name", "issuer_url", "key_source_type", "jwks_url", "expected_aud", "subject_claim", "allowed_subjects", "issuer_type", "spiffe_refresh_hint_seconds"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25421,6 +25485,13 @@ func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Co
 				return it, err
 			}
 			it.SubjectClaim = data
+		case "allowed_subjects":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowed_subjects"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowedSubjects = data
 		case "issuer_type":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issuer_type"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -28072,7 +28143,7 @@ func (ec *executionContext) unmarshalInputUpdateTrustedIssuerRequest(ctx context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "name", "jwks_url", "expected_aud", "is_active", "spiffe_refresh_hint_seconds"}
+	fieldsInOrder := [...]string{"id", "name", "jwks_url", "expected_aud", "allowed_subjects", "is_active", "spiffe_refresh_hint_seconds"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -28107,6 +28178,13 @@ func (ec *executionContext) unmarshalInputUpdateTrustedIssuerRequest(ctx context
 				return it, err
 			}
 			it.ExpectedAud = data
+		case "allowed_subjects":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowed_subjects"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowedSubjects = data
 		case "is_active":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -31364,6 +31442,8 @@ func (ec *executionContext) _TrustedIssuer(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "allowed_subjects":
+			out.Values[i] = ec._TrustedIssuer_allowed_subjects(ctx, field, obj)
 		case "issuer_type":
 			out.Values[i] = ec._TrustedIssuer_issuer_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

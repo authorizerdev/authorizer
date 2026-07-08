@@ -53,8 +53,9 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			// "none" is supported for public clients that use PKCE (RFC 7636)
 			// instead of client_secret. The token endpoint requires either
 			// code_verifier (PKCE) or client_secret — "none" without PKCE is
-			// rejected with invalid_request.
-			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post", "none"},
+			// rejected with invalid_request. "private_key_jwt" advertises the
+			// RFC 7523 client_assertion (JWT-bearer) workload-identity path.
+			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post", "none", "private_key_jwt"},
 			"code_challenge_methods_supported":              []string{"S256", "plain"},
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},

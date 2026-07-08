@@ -2309,6 +2309,10 @@
         "spiffe_refresh_hint_seconds": {
           "type": "string",
           "format": "int64"
+        },
+        "allowed_subjects": {
+          "type": "string",
+          "description": "allowed_subjects: comma-separated exact subject allow-list. Omitted = deny-all."
         }
       },
       "description": "AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,\nsubject_claim, and spiffe_refresh_hint_seconds are optional; subject_claim\ndefaults to \"sub\" when unset."
@@ -3619,6 +3623,10 @@
         "updated_at": {
           "type": "string",
           "format": "int64"
+        },
+        "allowed_subjects": {
+          "type": "string",
+          "description": "allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all."
         }
       },
       "description": "TrustedIssuer mirrors model.TrustedIssuer field-for-field. It references its\nparent via service_account_id (not app_id). Optional pointer fields collapse\nto zero values on the wire."
@@ -3788,6 +3796,10 @@
         "spiffe_refresh_hint_seconds": {
           "type": "string",
           "format": "int64"
+        },
+        "allowed_subjects": {
+          "type": "string",
+          "description": "allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all."
         }
       },
       "description": "UpdateTrustedIssuerRequest mirrors model.UpdateTrustedIssuerRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value."

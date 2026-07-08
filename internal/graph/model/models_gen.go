@@ -23,6 +23,7 @@ type AddTrustedIssuerRequest struct {
 	JwksURL                  *string `json:"jwks_url,omitempty"`
 	ExpectedAud              string  `json:"expected_aud"`
 	SubjectClaim             *string `json:"subject_claim,omitempty"`
+	AllowedSubjects          *string `json:"allowed_subjects,omitempty"`
 	IssuerType               string  `json:"issuer_type"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
 }
@@ -593,6 +594,7 @@ type TrustedIssuer struct {
 	JwksURL                  *string `json:"jwks_url,omitempty"`
 	ExpectedAud              string  `json:"expected_aud"`
 	SubjectClaim             string  `json:"subject_claim"`
+	AllowedSubjects          *string `json:"allowed_subjects,omitempty"`
 	IssuerType               string  `json:"issuer_type"`
 	IsActive                 bool    `json:"is_active"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
@@ -723,6 +725,7 @@ type UpdateTrustedIssuerRequest struct {
 	Name                     *string `json:"name,omitempty"`
 	JwksURL                  *string `json:"jwks_url,omitempty"`
 	ExpectedAud              *string `json:"expected_aud,omitempty"`
+	AllowedSubjects          *string `json:"allowed_subjects,omitempty"`
 	IsActive                 *bool   `json:"is_active,omitempty"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
 }

@@ -10,12 +10,14 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -45,6 +47,12 @@ var (
 	// produce the identical response — no secret-confirmation oracle. Map to
 	// unauthorized_client (RFC 6749 §5.2).
 	ErrUnauthorizedClient = errors.New("clientauth: client not authorized for this grant")
+
+	// ErrUnsupportedAssertionType is returned when a client_assertion is presented
+	// with a missing or unsupported client_assertion_type. Only
+	// urn:ietf:params:oauth:client-assertion-type:jwt-bearer is supported here
+	// (the jwt-spiffe type is a follow-up PR). Map to invalid_request.
+	ErrUnsupportedAssertionType = errors.New("clientauth: unsupported client_assertion_type")
 )
 
 // dummySecretCost mirrors the bcrypt cost real client secrets are hashed with
@@ -102,12 +110,24 @@ type ResolveParams struct {
 	// incorrect secret, so the interactive reserved client_id cannot be used as a
 	// secret-confirmation oracle on this grant.
 	RequireServiceAccountKind bool
+
+	// ClientAssertion / ClientAssertionType carry the RFC 7523 JWT-bearer client
+	// credential. When ClientAssertion is non-empty the resolver authenticates the
+	// client by verifying the assertion against a registered TrustedIssuer instead
+	// of a secret. ClientAssertionType MUST be
+	// urn:ietf:params:oauth:client-assertion-type:jwt-bearer.
+	ClientAssertion     string
+	ClientAssertionType string
 }
 
 // Dependencies for the clientauth provider.
 type Dependencies struct {
 	Log             *zerolog.Logger
 	StorageProvider storage.Provider
+	// MemoryStoreProvider backs the shared, cross-instance caches used by the
+	// client_assertion path: the single-use jti/replay markers and the per-trust-
+	// row JWKS cache. Optional for the secret-only paths.
+	MemoryStoreProvider memory_store.Provider
 }
 
 // Provider resolves and authenticates the OAuth client for a token request.
@@ -122,6 +142,16 @@ type Provider interface {
 type provider struct {
 	*config.Config
 	Dependencies
+
+	// maxAssertionLifetime bounds a client_assertion's exp−iat span (§5.2 H4).
+	// Defaults to defaultMaxClientAssertionLifetime; in-package tests may override.
+	maxAssertionLifetime time.Duration
+
+	// fetchURL is the SSRF-hardened HTTP fetch seam used by the JWKS/OIDC-discovery
+	// resolution. Production uses safeFetchURL; in-package tests inject a stub so
+	// the resolver is exercised without a real network round-trip (loopback is
+	// deliberately blocked by the SSRF guard, so httptest cannot be reached).
+	fetchURL func(ctx context.Context, rawURL string) ([]byte, error)
 }
 
 var _ Provider = &provider{}
@@ -130,17 +160,41 @@ var _ Provider = &provider{}
 // ClientID/ClientSecret fallback that keeps a deployment from being locked out
 // when the reserved-client row is absent (read-only replica).
 func New(cfg *config.Config, deps *Dependencies) Provider {
-	return &provider{Config: cfg, Dependencies: *deps}
+	p := &provider{
+		Config:               cfg,
+		Dependencies:         *deps,
+		maxAssertionLifetime: defaultMaxClientAssertionLifetime,
+	}
+	p.fetchURL = p.safeFetchURL
+	return p
 }
 
 func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*schemas.Client, error) {
 	log := p.Log.With().Str("func", "ResolveClient").Logger()
 
-	// RFC 6749 §2.3: reject a request that carries both an HTTP Basic credential
-	// and a body client_secret (more than one authentication method).
-	if params.HasBasicAuth && params.BodySecret != "" {
+	// RFC 6749 §2.3: "The client MUST NOT use more than one authentication method
+	// in each request." Count the presented methods — HTTP Basic, body
+	// client_secret, and the RFC 7523 client_assertion are mutually exclusive.
+	methods := 0
+	if params.HasBasicAuth {
+		methods++
+	}
+	if params.BodySecret != "" {
+		methods++
+	}
+	if params.ClientAssertion != "" {
+		methods++
+	}
+	if methods > 1 {
 		log.Debug().Msg("multiple client authentication methods presented")
 		return nil, ErrMultipleAuthMethods
+	}
+
+	// RFC 7523 client_assertion path: the client authenticates with a signed JWT
+	// issued by a registered TrustedIssuer instead of a shared secret. No
+	// client_id parameter is required — the client is derived from the trust row.
+	if params.ClientAssertion != "" {
+		return p.resolveViaClientAssertion(ctx, params)
 	}
 
 	// Select the effective credential. Basic wins when present; otherwise the

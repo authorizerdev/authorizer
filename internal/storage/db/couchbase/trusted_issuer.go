@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const trustedIssuerColumns = "_id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
+const trustedIssuerColumns = "_id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, allowed_subjects, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
 
 // AddTrustedIssuer creates a new trusted issuer record.
 func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {

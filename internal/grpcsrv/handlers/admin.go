@@ -538,6 +538,7 @@ func (h *AdminHandler) AddTrustedIssuer(ctx context.Context, req *authorizerv1.A
 		JwksURL:                  req.JwksUrl,
 		ExpectedAud:              req.GetExpectedAud(),
 		SubjectClaim:             req.SubjectClaim,
+		AllowedSubjects:          req.AllowedSubjects,
 		IssuerType:               req.GetIssuerType(),
 		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
 	})
@@ -555,6 +556,7 @@ func (h *AdminHandler) UpdateTrustedIssuer(ctx context.Context, req *authorizerv
 		Name:                     req.Name,
 		JwksURL:                  req.JwksUrl,
 		ExpectedAud:              req.ExpectedAud,
+		AllowedSubjects:          req.AllowedSubjects,
 		IsActive:                 req.IsActive,
 		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
 	})

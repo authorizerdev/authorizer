@@ -66,15 +66,25 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		subjectClaim = strings.TrimSpace(*params.SubjectClaim)
 	}
 
+	// AllowedSubjects is stored verbatim (trimmed); ParsedAllowedSubjects() is the
+	// single interpreter. An empty/omitted value persists as "" — DENY-ALL by
+	// design, so a freshly created issuer authenticates nobody until subjects are
+	// explicitly configured (§5.2 C1, fail-closed).
+	allowedSubjects := ""
+	if params.AllowedSubjects != nil {
+		allowedSubjects = strings.TrimSpace(*params.AllowedSubjects)
+	}
+
 	issuer, err := p.StorageProvider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
-		ClientID:      params.ServiceAccountID,
-		Name:          strings.TrimSpace(params.Name),
-		IssuerURL:     params.IssuerURL,
-		KeySourceType: params.KeySourceType,
-		JWKSUrl:       params.JwksURL,
-		ExpectedAud:   params.ExpectedAud,
-		SubjectClaim:  subjectClaim,
-		IssuerType:    params.IssuerType,
+		ClientID:        params.ServiceAccountID,
+		Name:            strings.TrimSpace(params.Name),
+		IssuerURL:       params.IssuerURL,
+		KeySourceType:   params.KeySourceType,
+		JWKSUrl:         params.JwksURL,
+		ExpectedAud:     params.ExpectedAud,
+		SubjectClaim:    subjectClaim,
+		AllowedSubjects: allowedSubjects,
+		IssuerType:      params.IssuerType,
 		// Set explicitly rather than relying on the GORM column default so NoSQL
 		// providers (no default support) persist the same values.
 		AuthMethod:               "jwt_assertion",
@@ -125,6 +135,10 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata
 			return nil, nil, fmt.Errorf("expected_aud cannot be empty")
 		}
 		issuer.ExpectedAud = *params.ExpectedAud
+	}
+	if params.AllowedSubjects != nil {
+		// Empty is permitted and meaningful: it reverts the row to DENY-ALL.
+		issuer.AllowedSubjects = strings.TrimSpace(*params.AllowedSubjects)
 	}
 	if params.IsActive != nil {
 		issuer.IsActive = *params.IsActive

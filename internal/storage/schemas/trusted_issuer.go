@@ -70,6 +70,17 @@ type TrustedIssuer struct {
 	// SubjectClaim is the JWT claim used to identify the workload. Defaults to "sub".
 	SubjectClaim string `json:"subject_claim" bson:"subject_claim" cql:"subject_claim" dynamo:"subject_claim"`
 
+	// AllowedSubjects is a comma-separated allow-list of the exact subject values
+	// (the value of the SubjectClaim claim) permitted to authenticate as this
+	// issuer's Client — e.g. "system:serviceaccount:prod:payments".
+	//
+	// SECURITY (design §5.2 C1): an empty AllowedSubjects is DENY-ALL, mirroring
+	// Client.AllowedScopes. A row with no configured subjects authenticates
+	// nobody; the client_assertion resolver MUST reject when the parsed list is
+	// empty. Matching is EXACT (never prefix/substring) to defeat subject
+	// confusion (H3): "prod-evil" must not satisfy a pin of "prod".
+	AllowedSubjects string `json:"allowed_subjects" bson:"allowed_subjects" cql:"allowed_subjects" dynamo:"allowed_subjects"`
+
 	// IssuerType categorises the issuer. See type-level docs for valid values.
 	IssuerType string `json:"issuer_type" bson:"issuer_type" cql:"issuer_type" dynamo:"issuer_type"`
 
@@ -119,6 +130,22 @@ type TrustedIssuer struct {
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 }
 
+// ParsedAllowedSubjects returns AllowedSubjects as a slice: comma-separated,
+// whitespace trimmed, empty segments dropped. This is the single source of
+// truth for interpreting the stored subject allow-list — the client_assertion
+// resolver uses it to exact-match the presented token's subject claim.
+// An empty or whitespace-only AllowedSubjects yields an empty slice, which the
+// resolver MUST treat as DENY-ALL (schema § AllowedSubjects comment).
+func (t *TrustedIssuer) ParsedAllowedSubjects() []string {
+	subjects := []string{}
+	for _, s := range strings.Split(t.AllowedSubjects, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			subjects = append(subjects, s)
+		}
+	}
+	return subjects
+}
+
 // AsAPITrustedIssuer converts the storage record into the GraphQL model. The
 // Phase 4/5/6 fields (EnableTokenReview, KubernetesAPIServerURL, SPIFFE/mTLS
 // proxy) are intentionally not surfaced in the Phase 1 admin API.
@@ -136,6 +163,7 @@ func (t *TrustedIssuer) AsAPITrustedIssuer() *model.TrustedIssuer {
 		JwksURL:                  t.JWKSUrl,
 		ExpectedAud:              t.ExpectedAud,
 		SubjectClaim:             t.SubjectClaim,
+		AllowedSubjects:          refs.NewStringRef(t.AllowedSubjects),
 		IssuerType:               t.IssuerType,
 		IsActive:                 t.IsActive,
 		SpiffeRefreshHintSeconds: refs.NewInt64Ref(t.SpiffeRefreshHintSeconds),

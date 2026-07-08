@@ -1365,15 +1365,16 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 
 	issuerURL := "https://issuer.example.com/" + uuid.New().String()
 	issuer := &schemas.TrustedIssuer{
-		ClientID:      saClientID,
-		Name:          "test_trusted_issuer_" + uuid.New().String(),
-		IssuerURL:     issuerURL,
-		KeySourceType: "static_jwks_url",
-		ExpectedAud:   "https://authorizer.example.com",
-		SubjectClaim:  "sub",
-		IssuerType:    "oidc",
-		AuthMethod:    "jwt_assertion",
-		IsActive:      true,
+		ClientID:        saClientID,
+		Name:            "test_trusted_issuer_" + uuid.New().String(),
+		IssuerURL:       issuerURL,
+		KeySourceType:   "static_jwks_url",
+		ExpectedAud:     "https://authorizer.example.com",
+		SubjectClaim:    "sub",
+		AllowedSubjects: "system:serviceaccount:prod:payments,system:serviceaccount:prod:billing",
+		IssuerType:      "oidc",
+		AuthMethod:      "jwt_assertion",
+		IsActive:        true,
 	}
 
 	created, err := provider.AddTrustedIssuer(ctx, issuer)
@@ -1387,15 +1388,24 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 	require.NoError(t, err, "GetTrustedIssuerByID must resolve the API-facing id")
 	assert.Equal(t, issuer.Name, fetched.Name)
 	assert.Equal(t, issuerURL, fetched.IssuerURL)
+	// AllowedSubjects (§5.2 C1 subject pin) must round-trip verbatim on every DB.
+	assert.Equal(t, issuer.AllowedSubjects, fetched.AllowedSubjects)
+	assert.Equal(t, []string{"system:serviceaccount:prod:payments", "system:serviceaccount:prod:billing"}, fetched.ParsedAllowedSubjects())
 
 	fetchedByURL, err := provider.GetTrustedIssuerByIssuerURL(ctx, issuerURL)
 	require.NoError(t, err)
 	assert.Equal(t, fetched.Name, fetchedByURL.Name)
+	assert.Equal(t, issuer.AllowedSubjects, fetchedByURL.AllowedSubjects)
 
 	fetched.ExpectedAud = "https://updated-audience.example.com"
+	fetched.AllowedSubjects = "system:serviceaccount:prod:payments"
 	updated, err := provider.UpdateTrustedIssuer(ctx, fetched)
 	require.NoError(t, err)
 	assert.Equal(t, "https://updated-audience.example.com", updated.ExpectedAud)
+
+	reFetched, err := provider.GetTrustedIssuerByID(ctx, issuerID)
+	require.NoError(t, err)
+	assert.Equal(t, "system:serviceaccount:prod:payments", reFetched.AllowedSubjects, "AllowedSubjects update must persist")
 
 	// ListTrustedIssuers filtered by the API-facing service_account_id must
 	// find this issuer.
