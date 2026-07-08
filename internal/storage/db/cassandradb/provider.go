@@ -412,6 +412,35 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// index (hot path for client_assertion validation) to become queryable.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.TrustedIssuer, "issuer_url", 30*time.Second)
 
+	// Organization table and index
+	organizationCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, display_name text, enabled boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Organization)
+	if err = session.Query(organizationCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	organizationNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_organization_name ON %s.%s (name)", KeySpace, schemas.Collections.Organization)
+	if err = session.Query(organizationNameIndex).Exec(); err != nil {
+		return nil, err
+	}
+
+	// OrgMembership table and indexes
+	orgMembershipCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, user_id text, roles text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgMembership)
+	if err = session.Query(orgMembershipCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	orgMembershipOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_org_membership_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.OrgMembership)
+	if err = session.Query(orgMembershipOrgIndex).Exec(); err != nil {
+		return nil, err
+	}
+	orgMembershipUserIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_org_membership_user_id ON %s.%s (user_id)", KeySpace, schemas.Collections.OrgMembership)
+	if err = session.Query(orgMembershipUserIndex).Exec(); err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the lookup
+	// columns used by the uniqueness guard and membership listings.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Organization, "name", 30*time.Second)
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "org_id", 30*time.Second)
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "user_id", 30*time.Second)
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
@@ -419,11 +448,12 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}, err
 }
 
-// waitForCassandraIndexes polls a probe query that requires the actor_id secondary
-// index until it succeeds or the timeout is reached. ScyllaDB builds secondary
-// indexes asynchronously; queries on indexed columns fail until the index is ready.
-func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
+// waitForCassandraSecondaryIndex polls a probe query that requires the given
+// column's secondary index until it succeeds or the timeout is reached.
+// ScyllaDB builds secondary indexes asynchronously; queries on indexed columns
+// fail until the index is ready.
+func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, table, column string, timeout time.Duration) {
+	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1 ALLOW FILTERING", keyspace, table, column)
 	deadline := time.Now().Add(timeout)
 	delay := 500 * time.Millisecond
 	for {
@@ -440,13 +470,11 @@ func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table s
 	}
 }
 
-// waitForCassandraSecondaryIndex polls a probe query that requires the given
-// column's secondary index until it succeeds or the timeout is reached.
-// ScyllaDB builds secondary indexes asynchronously; hot-path lookups (e.g.
-// issuer_url for client_assertion validation, client_id for client resolution)
-// must wait for the index to become queryable.
-func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, table, column string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1 ALLOW FILTERING", keyspace, table, column)
+// waitForCassandraIndexes polls a probe query that requires the actor_id secondary
+// index until it succeeds or the timeout is reached. ScyllaDB builds secondary
+// indexes asynchronously; queries on indexed columns fail until the index is ready.
+func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
+	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
 	deadline := time.Now().Add(timeout)
 	delay := 500 * time.Millisecond
 	for {

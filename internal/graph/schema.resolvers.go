@@ -187,6 +187,31 @@ func (r *mutationResolver) DeleteTrustedIssuer(ctx context.Context, params model
 	return r.GraphQLProvider.DeleteTrustedIssuer(ctx, &params)
 }
 
+// CreateOrganization is the resolver for the _create_organization field.
+func (r *mutationResolver) CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error) {
+	return r.GraphQLProvider.CreateOrganization(ctx, &params)
+}
+
+// UpdateOrganization is the resolver for the _update_organization field.
+func (r *mutationResolver) UpdateOrganization(ctx context.Context, params model.UpdateOrganizationRequest) (*model.Organization, error) {
+	return r.GraphQLProvider.UpdateOrganization(ctx, &params)
+}
+
+// DeleteOrganization is the resolver for the _delete_organization field.
+func (r *mutationResolver) DeleteOrganization(ctx context.Context, params model.OrganizationRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteOrganization(ctx, &params)
+}
+
+// AddOrgMember is the resolver for the _add_org_member field.
+func (r *mutationResolver) AddOrgMember(ctx context.Context, params model.AddOrgMemberRequest) (*model.OrgMember, error) {
+	return r.GraphQLProvider.AddOrgMember(ctx, &params)
+}
+
+// RemoveOrgMember is the resolver for the _remove_org_member field.
+func (r *mutationResolver) RemoveOrgMember(ctx context.Context, params model.RemoveOrgMemberRequest) (*model.Response, error) {
+	return r.GraphQLProvider.RemoveOrgMember(ctx, &params)
+}
+
 // TestEndpoint is the resolver for the _test_endpoint field.
 func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
 	return r.GraphQLProvider.TestEndpoint(ctx, &params)
@@ -315,6 +340,21 @@ func (r *queryResolver) TrustedIssuer(ctx context.Context, params model.TrustedI
 // TrustedIssuers is the resolver for the _trusted_issuers field.
 func (r *queryResolver) TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error) {
 	return r.GraphQLProvider.TrustedIssuers(ctx, params)
+}
+
+// Organization is the resolver for the _organization field.
+func (r *queryResolver) Organization(ctx context.Context, params model.OrganizationRequest) (*model.Organization, error) {
+	return r.GraphQLProvider.Organization(ctx, &params)
+}
+
+// Organizations is the resolver for the _organizations field.
+func (r *queryResolver) Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error) {
+	return r.GraphQLProvider.Organizations(ctx, params)
+}
+
+// OrgMembers is the resolver for the _org_members field.
+func (r *queryResolver) OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error) {
+	return r.GraphQLProvider.OrgMembers(ctx, &params)
 }
 
 // EmailTemplates is the resolver for the _email_templates field.

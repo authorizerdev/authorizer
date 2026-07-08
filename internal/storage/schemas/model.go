@@ -18,6 +18,8 @@ type CollectionList struct {
 	AuditLog               string
 	Client                 string
 	TrustedIssuer          string
+	Organization           string
+	OrgMembership          string
 }
 
 var (
@@ -41,5 +43,7 @@ var (
 		AuditLog:               Prefix + "audit_logs",
 		Client:                 Prefix + "clients",
 		TrustedIssuer:          Prefix + "trusted_issuers",
+		Organization:           Prefix + "organizations",
+		OrgMembership:          Prefix + "org_memberships",
 	}
 )

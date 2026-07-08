@@ -239,6 +239,30 @@ type Provider interface {
 	// TrustedIssuers lists trusted issuers, optionally filtered by service account.
 	// Permissions: authorizer:admin
 	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
+	// CreateOrganization creates a new organization.
+	// Permissions: authorizer:admin
+	CreateOrganization(ctx context.Context, params *model.CreateOrganizationRequest) (*model.Organization, error)
+	// UpdateOrganization updates an organization.
+	// Permissions: authorizer:admin
+	UpdateOrganization(ctx context.Context, params *model.UpdateOrganizationRequest) (*model.Organization, error)
+	// DeleteOrganization deletes an organization (cascades to memberships).
+	// Permissions: authorizer:admin
+	DeleteOrganization(ctx context.Context, params *model.OrganizationRequest) (*model.Response, error)
+	// Organization returns a single organization by id.
+	// Permissions: authorizer:admin
+	Organization(ctx context.Context, params *model.OrganizationRequest) (*model.Organization, error)
+	// Organizations lists organizations.
+	// Permissions: authorizer:admin
+	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
+	// AddOrgMember adds a user to an organization.
+	// Permissions: authorizer:admin
+	AddOrgMember(ctx context.Context, params *model.AddOrgMemberRequest) (*model.OrgMember, error)
+	// RemoveOrgMember removes a user from an organization.
+	// Permissions: authorizer:admin
+	RemoveOrgMember(ctx context.Context, params *model.RemoveOrgMemberRequest) (*model.Response, error)
+	// OrgMembers lists an organization's members.
+	// Permissions: authorizer:admin
+	OrgMembers(ctx context.Context, params *model.ListOrgMembersRequest) (*model.OrgMembers, error)
 	// FgaWriteModel installs a new fine-grained authorization model.
 	// Permissions: authorizer:admin
 	FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error)

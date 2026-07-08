@@ -9,6 +9,12 @@ type AddEmailTemplateRequest struct {
 	Design    *string `json:"design,omitempty"`
 }
 
+type AddOrgMemberRequest struct {
+	OrgID  string   `json:"org_id"`
+	UserID string   `json:"user_id"`
+	Roles  []string `json:"roles,omitempty"`
+}
+
 type AddTrustedIssuerRequest struct {
 	ServiceAccountID         string  `json:"service_account_id"`
 	Name                     string  `json:"name"`
@@ -114,6 +120,11 @@ type CreateClientRequest struct {
 type CreateClientResponse struct {
 	Client       *Client `json:"client"`
 	ClientSecret string  `json:"client_secret"`
+}
+
+type CreateOrganizationRequest struct {
+	Name        string  `json:"name"`
+	DisplayName *string `json:"display_name,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -331,6 +342,15 @@ type ListClientsRequest struct {
 	Pagination *PaginatedRequest `json:"pagination,omitempty"`
 }
 
+type ListOrgMembersRequest struct {
+	OrgID      string            `json:"org_id"`
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+}
+
+type ListOrganizationsRequest struct {
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+}
+
 type ListPermissionsInput struct {
 	Relation   *string `json:"relation,omitempty"`
 	ObjectType *string `json:"object_type,omitempty"`
@@ -428,6 +448,38 @@ type OAuthRevokeRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type OrgMember struct {
+	ID        string   `json:"id"`
+	OrgID     string   `json:"org_id"`
+	UserID    string   `json:"user_id"`
+	Roles     []string `json:"roles"`
+	CreatedAt *int64   `json:"created_at,omitempty"`
+	UpdatedAt *int64   `json:"updated_at,omitempty"`
+}
+
+type OrgMembers struct {
+	Pagination *Pagination  `json:"pagination"`
+	OrgMembers []*OrgMember `json:"org_members"`
+}
+
+type Organization struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	DisplayName *string `json:"display_name,omitempty"`
+	Enabled     bool    `json:"enabled"`
+	CreatedAt   *int64  `json:"created_at,omitempty"`
+	UpdatedAt   *int64  `json:"updated_at,omitempty"`
+}
+
+type OrganizationRequest struct {
+	ID string `json:"id"`
+}
+
+type Organizations struct {
+	Pagination    *Pagination     `json:"pagination"`
+	Organizations []*Organization `json:"organizations"`
+}
+
 type PaginatedRequest struct {
 	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
@@ -462,6 +514,11 @@ type PermissionCheckResult struct {
 }
 
 type Query struct {
+}
+
+type RemoveOrgMemberRequest struct {
+	OrgID  string `json:"org_id"`
+	UserID string `json:"user_id"`
 }
 
 type ResendOTPRequest struct {
@@ -635,6 +692,13 @@ type UpdateEnvRequest struct {
 	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND,omitempty"`
 	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN,omitempty"`
 	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
+}
+
+type UpdateOrganizationRequest struct {
+	ID          string  `json:"id"`
+	Name        *string `json:"name,omitempty"`
+	DisplayName *string `json:"display_name,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
 }
 
 type UpdateProfileRequest struct {

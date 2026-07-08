@@ -296,5 +296,14 @@ func getIndex(scopeName string) map[string][]string {
 	clientIndex2 := fmt.Sprintf("CREATE INDEX ClientOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.Client)
 	indices[schemas.Collections.Client] = []string{clientIndex1, clientIndex2}
 
+	// Organization index
+	organizationIndex1 := fmt.Sprintf("CREATE INDEX OrganizationNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Organization)
+	indices[schemas.Collections.Organization] = []string{organizationIndex1}
+
+	// OrgMembership indexes
+	orgMembershipIndex1 := fmt.Sprintf("CREATE INDEX OrgMembershipOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.OrgMembership)
+	orgMembershipIndex2 := fmt.Sprintf("CREATE INDEX OrgMembershipUserIdIndex ON %s.%s(user_id)", scopeName, schemas.Collections.OrgMembership)
+	indices[schemas.Collections.OrgMembership] = []string{orgMembershipIndex1, orgMembershipIndex2}
+
 	return indices
 }
