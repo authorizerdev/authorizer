@@ -41,6 +41,15 @@ type RequestBody struct {
 	// credential — the secretless workload-identity path (K8s SA tokens etc.).
 	ClientAssertion     string `form:"client_assertion" json:"client_assertion"`
 	ClientAssertionType string `form:"client_assertion_type" json:"client_assertion_type"`
+	// RFC 8693 token-exchange parameters. SubjectToken carries the authority
+	// being exercised (the user's token); ActorToken carries the actor (the
+	// agent's token) — its presence selects the delegation profile. The `resource`
+	// parameter (RFC 8707) is read separately via PostFormArray so a repeated
+	// value can be rejected.
+	SubjectToken     string `form:"subject_token" json:"subject_token"`
+	SubjectTokenType string `form:"subject_token_type" json:"subject_token_type"`
+	ActorToken       string `form:"actor_token" json:"actor_token"`
+	ActorTokenType   string `form:"actor_token_type" json:"actor_token_type"`
 }
 
 // TokenHandler to handle /oauth/token requests
@@ -76,8 +85,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		isRefreshTokenGrant := grantType == "refresh_token"
 		isAuthorizationCodeGrant := grantType == "authorization_code"
 		isClientCredentialsGrant := grantType == constants.GrantTypeClientCredentials
+		isTokenExchangeGrant := grantType == constants.GrantTypeTokenExchange
 
-		if !isRefreshTokenGrant && !isAuthorizationCodeGrant && !isClientCredentialsGrant {
+		if !isRefreshTokenGrant && !isAuthorizationCodeGrant && !isClientCredentialsGrant && !isTokenExchangeGrant {
 			log.Debug().Str("grant_type", grantType).Msg("Invalid grant type")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "unsupported_grant_type",
@@ -114,12 +124,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// verifies a presented secret (PKCE gates a secret-less request);
 			// refresh_token ignores the secret and authenticates the client_id
 			// only — preserving the pre-registry behavior of each grant.
-			RequireSecret:         isClientCredentialsGrant,
+			RequireSecret:         isClientCredentialsGrant || isTokenExchangeGrant,
 			VerifyPresentedSecret: isAuthorizationCodeGrant,
-			// client_credentials is machine-only (design §4.1): the resolver rejects a
-			// non-service_account client before verifying the secret, so an interactive
-			// client_id cannot confirm a guessed secret on this grant.
-			RequireServiceAccountKind: isClientCredentialsGrant,
+			// client_credentials and token-exchange are machine-only: the calling
+			// client is the agent's service account (design §4.1 / §3). The resolver
+			// rejects a non-service_account client before verifying the secret, so an
+			// interactive client_id cannot confirm a guessed secret on these grants.
+			RequireServiceAccountKind: isClientCredentialsGrant || isTokenExchangeGrant,
 		})
 		if authErr != nil {
 			h.respondClientAuthError(gc, authErr, resolvedClient, isClientCredentialsGrant)
@@ -130,6 +141,14 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// already authenticated the service_account; issue its scoped token here.
 		if isClientCredentialsGrant {
 			h.handleClientCredentialsGrant(gc, resolvedClient, scopeParam)
+			return
+		}
+
+		// RFC 8693 token-exchange (delegation): the resolver has already
+		// authenticated the calling agent's service_account. Mint the delegated,
+		// attenuated, resource-bound token carrying the nested `act` chain.
+		if isTokenExchangeGrant {
+			h.handleTokenExchangeGrant(gc, resolvedClient, &reqBody, scopeParam)
 			return
 		}
 

@@ -39,6 +39,12 @@ var reservedClaims = map[string]bool{
 	"auth_time":     true,
 	"amr":           true,
 	"acr":           true,
+	// act (RFC 8693 §4.1) carries the delegation actor chain and MUST NOT be
+	// forgeable by CustomAccessTokenScript — a script that could inject `act`
+	// into a first-party user token would fabricate a delegation. client_id
+	// (RFC 9068) identifies the actor and is likewise reserved.
+	"act":       true,
+	"client_id": true,
 }
 
 // AuthTokenConfig is the configuration for auth token

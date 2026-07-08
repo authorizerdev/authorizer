@@ -33,6 +33,9 @@ type Provider interface {
 	CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*AuthToken, error)
 	// CreateMachineAuthToken creates a client_credentials access token (RFC 6749 §4.4)
 	CreateMachineAuthToken(cfg *AuthTokenConfig) (*JWTToken, error)
+	// CreateDelegatedAccessToken creates an RFC 8693 delegation access token
+	// (nested `act` chain, resource-bound `aud`, short TTL).
+	CreateDelegatedAccessToken(cfg *DelegationTokenConfig) (*JWTToken, error)
 	// CreateIDToken creates an id token
 	CreateIDToken(cfg *AuthTokenConfig) (string, int64, error)
 	// CreateRefreshToken creates a refresh token
