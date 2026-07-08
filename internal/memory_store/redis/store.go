@@ -54,25 +54,39 @@ func (p *provider) DeleteUserSession(userId, key string) error {
 	return nil
 }
 
-// DeleteAllUserSessions deletes all the user session from redis
+// DeleteAllUserSessions deletes all of a user's sessions from redis.
+//
+// Session keys are stored as "<sessionStoreKey>:<type>_<nonce>" where
+// sessionStoreKey is "<loginMethod>:<userID>" (see token/auth_token.go and
+// login.go). The userID is therefore the MIDDLE segment, not the prefix — a
+// bare "<userID>:*" glob (the previous pattern) never matched, so revocation
+// was a silent no-op on Redis. Match on the colon-bounded ":<userID>:" segment
+// so held access tokens and renewable refresh tokens are actually dropped. The
+// legacy "<userID>:*" form is also scanned in case any caller stores a session
+// keyed directly by user id.
 func (p *provider) DeleteAllUserSessions(userID string) error {
-	var cursor uint64
-	pattern := fmt.Sprintf("%s:*", userID)
-	for {
-		keys, nextCursor, err := p.store.Scan(p.ctx, cursor, pattern, 100).Result()
-		if err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("Error scanning user sessions from redis")
-			return err
-		}
-		for _, key := range keys {
-			if err := p.store.Del(p.ctx, key).Err(); err != nil {
-				p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
-				continue
+	patterns := []string{
+		fmt.Sprintf("*:%s:*", userID), // "<loginMethod>:<userID>:<type>_<nonce>"
+		fmt.Sprintf("%s:*", userID),   // legacy: keyed directly by user id
+	}
+	for _, pattern := range patterns {
+		var cursor uint64
+		for {
+			keys, nextCursor, err := p.store.Scan(p.ctx, cursor, pattern, 100).Result()
+			if err != nil {
+				p.dependencies.Log.Debug().Err(err).Msg("Error scanning user sessions from redis")
+				return err
 			}
-		}
-		cursor = nextCursor
-		if cursor == 0 {
-			break
+			for _, key := range keys {
+				if err := p.store.Del(p.ctx, key).Err(); err != nil {
+					p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
+					continue
+				}
+			}
+			cursor = nextCursor
+			if cursor == 0 {
+				break
+			}
 		}
 	}
 	return nil

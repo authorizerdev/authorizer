@@ -254,6 +254,16 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// ScimEndpoint collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.ScimEndpoint, options.CreateCollection())
+	scimEndpointCollection := mongodb.Collection(schemas.Collections.ScimEndpoint, options.Collection())
+	_, _ = scimEndpointCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"org_id": 1},
+			Options: options.Index().SetUnique(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

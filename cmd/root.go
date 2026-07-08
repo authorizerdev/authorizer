@@ -23,12 +23,14 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
+	scimhttp "github.com/authorizerdev/authorizer/internal/http_handlers/scim"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/service/scim"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -598,11 +600,24 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	rootArgs.server.GRPCPort = rootArgs.config.GRPCPort
 
+	// Inbound SCIM 2.0 server (per-org user provisioning). Transport-thin
+	// handler over the scim service; org resolved only from the bearer token.
+	scimService := scim.New(&scim.Dependencies{
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	scimHandler := scimhttp.New(&scimhttp.Dependencies{
+		Log:     &log,
+		Service: scimService,
+	})
+
 	// Prepare server
 	deps := &server.Dependencies{
 		Log:          &log,
 		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
+		ScimHandler:  scimHandler,
 		GRPCServer:   grpcSrv,
 	}
 	// Create the server

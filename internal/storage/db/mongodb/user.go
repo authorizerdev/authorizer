@@ -128,6 +128,19 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return user, nil
 }
 
+// GetUserByExternalID to get user information from database using the
+// org-namespaced external ID. external_id is stored as "<orgID>:<externalID>"
+// so a SCIM externalId is only ever matched within its own organization.
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	var user *schemas.User
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
+	err := userCollection.FindOne(ctx, bson.M{"external_id": orgID + ":" + externalID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // UpdateUsers to update multiple users, with parameters of user IDs slice
 // If ids set to nil / empty all the users will be updated
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {

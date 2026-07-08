@@ -436,6 +436,26 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// ScimEndpoint collection and indexes
+	scimEndpointCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.ScimEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	if !scimEndpointCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.ScimEndpoint, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	scimEndpointCollection, err := arangodb.Collection(ctx, schemas.Collections.ScimEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	// OrgID is unique: one SCIM endpoint per org.
+	_, _, _ = scimEndpointCollection.EnsurePersistentIndex(ctx, []string{"org_id"}, &arangoDriver.EnsurePersistentIndexOptions{
+		Unique: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

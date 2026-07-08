@@ -37,6 +37,20 @@ type User struct {
 	UpdatedAt                int64   `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 	CreatedAt                int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	AppData                  *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
+
+	// ExternalID is the stable key an external IdP (SCIM/SSO) assigns to this
+	// user. It is nullable — only IdP-provisioned users carry one. For SCIM it
+	// is namespaced per org as "<orgID>:<idpExternalId>" (see
+	// Provider.GetUserByExternalID) so one org's IdP can never resolve another
+	// org's user by external id (design §4.4 H6).
+	ExternalID *string `gorm:"index" json:"external_id" bson:"external_id" cql:"external_id" dynamo:"external_id" index:"external_id,hash"`
+
+	// IsActive controls whether the user is provisioned/active. SCIM
+	// deprovisioning (active:false / DELETE) sets this false and revokes the
+	// user's sessions. Existing rows default to true (gorm column default);
+	// the service layer always sets it explicitly so the GORM zero-value
+	// default:true quirk never silently re-activates a deprovisioned user.
+	IsActive bool `gorm:"default:true" json:"is_active" bson:"is_active" cql:"is_active" dynamo:"is_active"`
 }
 
 func (user *User) AsAPIUser() *model.User {

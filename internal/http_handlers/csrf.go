@@ -50,6 +50,14 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt the inbound SCIM 2.0 surface. SCIM requests are machine-to-
+		// machine, authenticated by a per-org bearer token (never cookies), so
+		// CSRF does not apply — same rationale as /oauth/token above.
+		if strings.HasPrefix(c.Request.URL.Path, "/scim/v2/") {
+			c.Next()
+			return
+		}
+
 		// === Origin / Referer enforcement ===
 		// Browsers always send Origin on cross-origin POST. A missing
 		// Origin header on a state-changing request is suspicious and

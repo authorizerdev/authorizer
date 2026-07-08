@@ -76,6 +76,14 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 	router.POST("/oauth/introspect", s.Dependencies.HTTPProvider.IntrospectHandler())
 
+	// Inbound SCIM 2.0 (per-org user provisioning). Its own route group with a
+	// bearer-token auth middleware; the org is derived only from the token, so
+	// there is no org segment in the path (design §4.4 H6). CSRF is exempted for
+	// /scim/v2/ in the CSRF middleware (bearer-authenticated, cookieless).
+	if s.Dependencies.ScimHandler != nil {
+		s.Dependencies.ScimHandler.Register(router.Group("/scim/v2"))
+	}
+
 	// gRPC-gateway REST surface at /v1/*. Mounted only when the gRPC
 	// server is configured. Shares all gin middleware (CORS, security
 	// headers, rate limit, logging) automatically since the route group

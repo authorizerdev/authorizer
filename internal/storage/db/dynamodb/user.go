@@ -208,6 +208,26 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	return &u, nil
 }
 
+// GetUserByExternalID fetches an IdP-provisioned user by its org-namespaced
+// external id via the external_id GSI. The lookup key is composed as
+// "<orgID>:<externalID>" so one org's SCIM/SSO connection can never resolve
+// another org's user by external id (design §4.4 H6).
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	items, err := p.queryEq(ctx, schemas.Collections.User, "external_id", "external_id", orgID+":"+externalID, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == 0 {
+		return nil, errors.New("no record found")
+	}
+	var u schemas.User
+	if err := unmarshalItem(items[0], &u); err != nil {
+		return nil, err
+	}
+	normalizeUserOptionalPtrs(&u)
+	return &u, nil
+}
+
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	var user schemas.User
