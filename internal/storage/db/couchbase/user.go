@@ -89,7 +89,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
 	users := []*schemas.User{}
 	paginationClone := pagination
-	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.User)
+	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.User)
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -122,7 +122,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -146,7 +146,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 // org-namespaced external ID. external_id is stored as "<orgID>:<externalID>"
 // so IdP identifiers never collide across organizations.
 func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE external_id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s WHERE external_id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -168,7 +168,7 @@ func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID st
 
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -224,7 +224,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE phone_number = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s WHERE phone_number = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,

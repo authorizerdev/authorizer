@@ -134,6 +134,13 @@ func TestMemoryStoreProvider(t *testing.T) {
 			key, err = p.GetUserSession("auth_provider1:123", "access_token_key")
 			assert.Empty(t, key)
 			assert.Error(t, err)
+			// Boundary: DeleteAllUserSessions("123") must NOT over-match a
+			// different user whose sessions are keyed "<method>:124:...". User
+			// 124's still-live session (auth_provider1:124, 60s TTL) must survive —
+			// the userID is matched as a colon-bounded segment, not a substring.
+			key, err = p.GetUserSession("auth_provider1:124", "session_token_key")
+			assert.NoError(t, err, "DeleteAllUserSessions(123) must not delete user 124's session")
+			assert.Equal(t, "test_hash124", key)
 			// Delete namespace
 			err = p.DeleteSessionForNamespace("auth_provider")
 			assert.NoError(t, err)

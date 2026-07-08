@@ -423,6 +423,21 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// Defense-in-depth for deprovisioning: a revoked user (SCIM active:false,
+		// account deactivation) must never renew a token, even if a session-store
+		// delete was missed on some instance. RevokedTimestamp is the reliable
+		// signal — it is explicitly stamped on revocation and nil otherwise, so it
+		// is correct across every provider. IsActive is NOT used here: on the NoSQL
+		// providers a normally-signed-up user is stored with is_active=false (no
+		// GORM column default), so gating on it would reject legitimate refreshes.
+		if user.RevokedTimestamp != nil {
+			log.Debug().Str("user_id", userID).Msg("refresh rejected: user revoked")
+			gc.JSON(http.StatusUnauthorized, gin.H{
+				"error":             "unauthorized",
+				"error_description": "User is not active",
+			})
+			return
+		}
 		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String()
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{

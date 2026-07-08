@@ -204,6 +204,13 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 			log.Debug().Msg("dedup by userName within org")
 			return existing, true, nil
 		}
+		// ponytail: accepted risk. Authorizer enforces global email uniqueness, so
+		// a userName already owned by another org cannot be re-provisioned here —
+		// return 409. This leaks only that *some* account with that email exists
+		// (an existence oracle on an email the caller's IdP already knows), never
+		// the other org's user data or membership. H6 (by-id read/mutate isolation)
+		// is unaffected. Upgrade path if even existence must be hidden: per-org
+		// user rows keyed by (org, email) instead of global email uniqueness.
 		log.Debug().Msg("userName exists outside this org")
 		return nil, false, ErrConflict
 	}
@@ -246,9 +253,12 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 	// (RevokedTimestamp above already blocks token issuance regardless.)
 	if !in.Active {
 		created.IsActive = false
-		if updated, uErr := p.StorageProvider.UpdateUser(ctx, created); uErr == nil {
-			created = updated
+		updated, uErr := p.StorageProvider.UpdateUser(ctx, created)
+		if uErr != nil {
+			log.Debug().Err(uErr).Msg("failed to persist inactive state on provisioned user")
+			return nil, false, uErr
 		}
+		created = updated
 	}
 	// Bind the user to the org. Without this membership the user would not be an
 	// org member and every subsequent by-id op would (correctly) 404.

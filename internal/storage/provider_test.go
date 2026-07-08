@@ -1668,7 +1668,10 @@ func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Prov
 	})
 	require.NoError(t, err)
 	require.NotNil(t, created)
-	endpointID := created.ID
+	// Use the API-facing id (bare key). ArangoDB returns created.ID as the full
+	// "collection/key" handle; the runtime by-id lookup (GetScimEndpointByID) is
+	// keyed on the bare id the token carries, exactly as AsAPIScimEndpoint exposes.
+	endpointID := created.AsAPIScimEndpoint().ID
 	require.NotEmpty(t, endpointID)
 
 	// Lookup by id (the token-embedded key) must resolve the row and its hash.
@@ -1681,7 +1684,7 @@ func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Prov
 	// Lookup by org (admin surface) must resolve the same endpoint.
 	byOrg, err := provider.GetScimEndpointByOrgID(ctx, orgID)
 	require.NoError(t, err)
-	assert.Equal(t, endpointID, byOrg.ID)
+	assert.Equal(t, endpointID, byOrg.AsAPIScimEndpoint().ID)
 
 	// The secret must never serialize out (json:"-").
 	blob, err := json.Marshal(byID)

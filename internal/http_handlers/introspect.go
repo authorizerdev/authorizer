@@ -143,6 +143,19 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			return
 		}
 
+		// Revocation awareness: for a first-party user token (sub == user id), a
+		// revoked/deprovisioned user's token must introspect as inactive even
+		// before the short access-token TTL elapses (SCIM active:false, account
+		// deactivation). RevokedTimestamp is the reliable, provider-agnostic
+		// signal. A sub that resolves to no user (e.g. a machine/service-account
+		// token) is left untouched — this check only demotes, never promotes.
+		if sub, _ := claims["sub"].(string); sub != "" {
+			if user, uErr := h.StorageProvider.GetUserByID(gc, sub); uErr == nil && user != nil && user.RevokedTimestamp != nil {
+				gc.JSON(http.StatusOK, gin.H{"active": false})
+				return
+			}
+		}
+
 		// Build active response. Omit keys whose source value is missing.
 		resp := gin.H{"active": true}
 		copyIfPresent := func(srcKey, dstKey string) {

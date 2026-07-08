@@ -15,6 +15,17 @@ import (
 
 const orgMembershipColumns = "id, org_id, user_id, roles, created_at, updated_at"
 
+// orgMembershipPK derives the membership's primary key deterministically from
+// (org_id, user_id). ScyllaDB secondary indexes are materialized-view backed
+// and update ASYNCHRONOUSLY, so a lookup by the org_id/user_id index right after
+// an insert can miss the just-written row (the multi-member add-then-get race).
+// Keying the base table on a deterministic id lets GetOrgMembership read by
+// primary key — synchronous, index-free, and race-free — while (org_id,user_id)
+// uniqueness falls out for free (the same pair always maps to the same key).
+func orgMembershipPK(orgID, userID string) string {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(orgID+":"+userID)).String()
+}
+
 // scanOrgMembership maps the orgMembershipColumns projection onto a struct.
 func scanOrgMembership(scan func(...interface{}) error, membership *schemas.OrgMembership) error {
 	return scan(&membership.ID, &membership.OrgID, &membership.UserID, &membership.Roles, &membership.CreatedAt, &membership.UpdatedAt)
@@ -25,9 +36,10 @@ func scanOrgMembership(scan func(...interface{}) error, membership *schemas.OrgM
 // check-then-insert mirroring AddTrustedIssuer's pre-check.
 // ponytail: inherent TOCTOU race — closes the sequential case only.
 func (p *provider) AddOrgMembership(ctx context.Context, membership *schemas.OrgMembership) (*schemas.OrgMembership, error) {
-	if membership.ID == "" {
-		membership.ID = uuid.New().String()
-	}
+	// Deterministic PK from (org_id, user_id) so the row is readable by primary
+	// key immediately after insert — see orgMembershipPK. Overrides any incoming
+	// id; the id is opaque and no caller depends on a specific value.
+	membership.ID = orgMembershipPK(membership.OrgID, membership.UserID)
 	membership.Key = membership.ID
 	now := time.Now().Unix()
 	membership.CreatedAt = now
@@ -84,8 +96,11 @@ func (p *provider) DeleteOrgMembership(ctx context.Context, membership *schemas.
 // GetOrgMembership fetches the membership for a (orgID, userID) pair.
 func (p *provider) GetOrgMembership(ctx context.Context, orgID, userID string) (*schemas.OrgMembership, error) {
 	var membership schemas.OrgMembership
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? AND user_id = ? LIMIT 1 ALLOW FILTERING", orgMembershipColumns, KeySpace+"."+schemas.Collections.OrgMembership)
-	if err := scanOrgMembership(p.db.Query(query, orgID, userID).Consistency(gocql.One).Scan, &membership); err != nil {
+	// Read by the deterministic primary key (base table) — NOT the async org_id/
+	// user_id secondary index — so a membership is visible immediately after it
+	// is written (fixes the ScyllaDB add-then-get race).
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE id = ?", orgMembershipColumns, KeySpace+"."+schemas.Collections.OrgMembership)
+	if err := scanOrgMembership(p.db.Query(query, orgMembershipPK(orgID, userID)).Consistency(gocql.One).Scan, &membership); err != nil {
 		return nil, err
 	}
 	return &membership, nil
