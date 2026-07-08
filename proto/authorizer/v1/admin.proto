@@ -314,6 +314,113 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === Service Accounts ===
+
+  // CreateClient provisions a new machine/workload identity and returns
+  // the generated client secret exactly once (only the bcrypt hash is stored).
+  // Requires super-admin auth.
+  rpc CreateClient(CreateClientRequest) returns (CreateClientResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_client"
+      body: "*"
+    };
+  }
+
+  // UpdateClient updates a service account's name, description, allowed
+  // scopes, or active state. It never touches the client secret. Requires
+  // super-admin auth.
+  rpc UpdateClient(UpdateClientRequest) returns (UpdateClientResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_client"
+      body: "*"
+    };
+  }
+
+  // DeleteClient deletes a service account by id, cascading to its
+  // trusted issuers. Requires super-admin auth.
+  rpc DeleteClient(DeleteClientRequest) returns (DeleteClientResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_client"
+      body: "*"
+    };
+  }
+
+  // RotateClientSecret replaces the stored client secret with a fresh
+  // one and returns the new plaintext exactly once (the old secret stops
+  // validating immediately). Reuses CreateClientResponse — the only
+  // admin message that carries a secret. Requires super-admin auth.
+  rpc RotateClientSecret(RotateClientSecretRequest) returns (CreateClientResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/rotate_client_secret"
+      body: "*"
+    };
+  }
+
+  // GetClient returns a single service account by id. The client secret
+  // is never surfaced. Requires super-admin auth.
+  rpc GetClient(GetClientRequest) returns (GetClientResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/client"
+      body: "*"
+    };
+  }
+
+  // Clients returns a paginated list of service accounts. Client secrets
+  // are never surfaced. Requires super-admin auth.
+  rpc Clients(ClientsRequest) returns (ClientsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/clients"
+      body: "*"
+    };
+  }
+
+  // === Trusted Issuers ===
+
+  // AddTrustedIssuer registers an external JWT issuer for a service account.
+  // subject_claim defaults to "sub" when omitted. Requires super-admin auth.
+  rpc AddTrustedIssuer(AddTrustedIssuerRequest) returns (AddTrustedIssuerResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/add_trusted_issuer"
+      body: "*"
+    };
+  }
+
+  // UpdateTrustedIssuer updates a trusted issuer's name, JWKS URL, expected
+  // audience, active state, or SPIFFE refresh hint. Requires super-admin auth.
+  rpc UpdateTrustedIssuer(UpdateTrustedIssuerRequest) returns (UpdateTrustedIssuerResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_trusted_issuer"
+      body: "*"
+    };
+  }
+
+  // DeleteTrustedIssuer deletes a trusted issuer by id. Requires super-admin
+  // auth.
+  rpc DeleteTrustedIssuer(DeleteTrustedIssuerRequest) returns (DeleteTrustedIssuerResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_trusted_issuer"
+      body: "*"
+    };
+  }
+
+  // GetTrustedIssuer returns a single trusted issuer by id. Requires super-admin
+  // auth.
+  rpc GetTrustedIssuer(GetTrustedIssuerRequest) returns (GetTrustedIssuerResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/trusted_issuer"
+      body: "*"
+    };
+  }
+
+  // TrustedIssuers returns a paginated list of trusted issuers, optionally
+  // filtered by service_account_id. Requires super-admin auth.
+  rpc TrustedIssuers(TrustedIssuersRequest) returns (TrustedIssuersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/trusted_issuers"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -742,4 +849,172 @@ message FgaExpandResponse {
 message FgaResetRequest {}
 message FgaResetResponse {
   string message = 1;
+}
+
+// === Service Accounts ===
+
+// Client mirrors model.Client field-for-field. The client
+// secret is deliberately ABSENT (matching the GraphQL type): it is surfaced
+// exactly once, only via CreateClientResponse.client_secret, and is
+// never returned by any get/list/update path.
+message Client {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string allowed_scopes = 4;
+  bool is_active = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// CreateClientRequest mirrors model.CreateClientRequest.
+// description is optional; allowed_scopes must be non-empty (an empty scope set
+// is DENY-ALL and is rejected by the service layer).
+message CreateClientRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  optional string description = 2;
+  repeated string allowed_scopes = 3 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// CreateClientResponse carries the created service account plus the
+// plaintext client_secret, returned exactly once. This is the ONLY admin
+// message with a secret field; RotateClientSecret reuses it.
+message CreateClientResponse {
+  Client client = 1;
+  string client_secret = 2;
+}
+
+// UpdateClientRequest mirrors model.UpdateClientRequest.
+// Nullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,
+// replaces the scope set; the service rejects a set that normalizes to empty.
+message UpdateClientRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string description = 3;
+  repeated string allowed_scopes = 4;
+  optional bool is_active = 5;
+}
+message UpdateClientResponse {
+  Client client = 1;
+}
+
+// DeleteClientRequest mirrors model.ClientRequest (a single
+// service account id). Kept distinct from GetClientRequest and
+// RotateClientSecretRequest per buf's one-message-per-RPC rule.
+message DeleteClientRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteClientResponse {
+  string message = 1;
+}
+
+// RotateClientSecretRequest mirrors model.ClientRequest (a
+// single service account id). Kept distinct from DeleteClientRequest and
+// GetClientRequest per buf's one-message-per-RPC rule.
+message RotateClientSecretRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetClientRequest mirrors model.ClientRequest (a single service
+// account id). Kept distinct from DeleteClientRequest and
+// RotateClientSecretRequest per buf's one-message-per-RPC rule.
+message GetClientRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetClientResponse {
+  Client client = 1;
+}
+
+message ClientsRequest {
+  PaginationRequest pagination = 1;
+}
+message ClientsResponse {
+  repeated Client clients = 1;
+  Pagination pagination = 2;
+}
+
+// === Trusted Issuers ===
+
+// TrustedIssuer mirrors model.TrustedIssuer field-for-field. It references its
+// parent via service_account_id (not app_id). Optional pointer fields collapse
+// to zero values on the wire.
+message TrustedIssuer {
+  string id = 1;
+  string service_account_id = 2;
+  string name = 3;
+  string issuer_url = 4;
+  string key_source_type = 5;
+  string jwks_url = 6;
+  string expected_aud = 7;
+  string subject_claim = 8;
+  string issuer_type = 9;
+  bool is_active = 10;
+  int64 spiffe_refresh_hint_seconds = 11;
+  int64 created_at = 12;
+  int64 updated_at = 13;
+}
+
+// AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,
+// subject_claim, and spiffe_refresh_hint_seconds are optional; subject_claim
+// defaults to "sub" when unset.
+message AddTrustedIssuerRequest {
+  string service_account_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  string issuer_url = 3 [(buf.validate.field).string.min_len = 1];
+  string key_source_type = 4 [(buf.validate.field).string.min_len = 1];
+  optional string jwks_url = 5;
+  string expected_aud = 6 [(buf.validate.field).string.min_len = 1];
+  optional string subject_claim = 7;
+  string issuer_type = 8 [(buf.validate.field).string.min_len = 1];
+  optional int64 spiffe_refresh_hint_seconds = 9;
+}
+message AddTrustedIssuerResponse {
+  TrustedIssuer trusted_issuer = 1;
+}
+
+// UpdateTrustedIssuerRequest mirrors model.UpdateTrustedIssuerRequest. Nullable
+// GraphQL inputs use proto3 `optional` so an unset field is distinguishable from
+// an empty value.
+message UpdateTrustedIssuerRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string jwks_url = 3;
+  optional string expected_aud = 4;
+  optional bool is_active = 5;
+  optional int64 spiffe_refresh_hint_seconds = 6;
+}
+message UpdateTrustedIssuerResponse {
+  TrustedIssuer trusted_issuer = 1;
+}
+
+// DeleteTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single
+// trusted issuer id). Kept distinct from GetTrustedIssuerRequest per buf's
+// one-message-per-RPC rule.
+message DeleteTrustedIssuerRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteTrustedIssuerResponse {
+  string message = 1;
+}
+
+// GetTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single trusted
+// issuer id). Kept distinct from DeleteTrustedIssuerRequest per buf's
+// one-message-per-RPC rule.
+message GetTrustedIssuerRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetTrustedIssuerResponse {
+  TrustedIssuer trusted_issuer = 1;
+}
+
+// TrustedIssuersRequest mirrors model.ListTrustedIssuersRequest.
+// service_account_id is optional; when unset issuers for all accounts are
+// returned.
+message TrustedIssuersRequest {
+  PaginationRequest pagination = 1;
+  optional string service_account_id = 2;
+}
+message TrustedIssuersResponse {
+  repeated TrustedIssuer trusted_issuers = 1;
+  Pagination pagination = 2;
 }

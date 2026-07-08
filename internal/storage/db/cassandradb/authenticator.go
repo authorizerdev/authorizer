@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,31 +25,18 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	authenticators.CreatedAt = time.Now().Unix()
 	authenticators.UpdatedAt = time.Now().Unix()
 
-	bytes, err := json.Marshal(authenticators)
-	if err != nil {
-		return nil, err
-	}
-
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	authenticatorsMap := map[string]interface{}{}
-	err = decoder.Decode(&authenticatorsMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(authenticatorsMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields — see buildCQLColumnMap). Secret (raw TOTP seed) and
+	// RecoveryCodes are exactly the sensitive fields a maintainer might later tag
+	// json:"-" for API safety; the cql tag keeps them persisted regardless.
+	authenticatorsMap := buildCQLColumnMap(authenticators)
 
 	fields := "("
 	placeholders := "("
 	var insertValues []interface{}
 	for key, value := range authenticatorsMap {
 		if value != nil {
-			if key == "_id" {
-				fields += "id,"
-			} else {
-				fields += key + ","
-			}
+			fields += key + ","
 			placeholders += "?,"
 			insertValues = append(insertValues, value)
 		}
@@ -59,8 +45,12 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	fields = fields[:len(fields)-1] + ")"
 	placeholders = placeholders[:len(placeholders)-1] + ")"
 
+	// IF NOT EXISTS only guards the partition key (id) — a freshly generated UUID that
+	// never collides — so it is NOT a uniqueness guard on user_id+method. That is
+	// enforced by the GetAuthenticatorDetailsByUserId check-then-insert above, which
+	// carries the same inherent TOCTOU race as any non-partition-key guard in Cassandra.
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.Authenticators, fields, placeholders)
-	err = p.db.Query(query, insertValues...).Exec()
+	err := p.db.Query(query, insertValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -71,24 +61,14 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *schemas.Authenticator) (*schemas.Authenticator, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 
-	bytes, err := json.Marshal(authenticators)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	authenticatorsMap := map[string]interface{}{}
-	err = decoder.Decode(&authenticatorsMap)
-	if err != nil {
-		return nil, err
-	}
-	convertMapValues(authenticatorsMap)
+	// Column names are sourced from the `cql` struct tag (not json.Marshal, which
+	// drops json:"-" fields such as a future secret — see buildCQLColumnMap).
+	authenticatorsMap := buildCQLColumnMap(authenticators)
 
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range authenticatorsMap {
-		if key == "_id" {
+		if key == "id" {
 			continue
 		}
 
@@ -109,7 +89,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 
 	updateValues = append(updateValues, authenticators.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.Authenticators, updateFields)
-	err = p.db.Query(query, updateValues...).Exec()
+	err := p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}

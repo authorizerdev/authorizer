@@ -38,7 +38,11 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 	userCollection, _ := p.db.Collection(ctx, schemas.Collections.User)
-	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
+	doc, err := structToDocument(user)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), doc)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +57,11 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	user.UpdatedAt = time.Now().Unix()
 
 	collection, _ := p.db.Collection(ctx, schemas.Collections.User)
-	meta, err := collection.UpdateDocument(ctx, user.Key, user)
+	doc, err := structToDocument(user)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := collection.UpdateDocument(ctx, user.Key, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +80,11 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	}
 	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, schemas.Collections.Session, schemas.Collections.Session)
 	bindVars := map[string]interface{}{
-		"user_id": user.Key,
+		// Session.UserID is stored as the full document handle (collection/key),
+		// which is what user.ID holds after Add/Get. Binding user.Key (bare key)
+		// would match zero session rows. This cascade is the only session-cleanup
+		// path on user deletion.
+		"user_id": user.ID,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
@@ -99,8 +111,8 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var user *schemas.User
-		meta, err := cursor.ReadDocument(ctx, &user)
+		user := &schemas.User{}
+		meta, err := readDocument(ctx, cursor, user)
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
@@ -132,10 +144,11 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &user)
-		if err != nil {
+		u := &schemas.User{}
+		if _, err := readDocument(ctx, cursor, u); err != nil {
 			return nil, err
 		}
+		user = u
 	}
 	return user, nil
 }
@@ -159,10 +172,11 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &user)
-		if err != nil {
+		u := &schemas.User{}
+		if _, err := readDocument(ctx, cursor, u); err != nil {
 			return nil, err
 		}
+		user = u
 	}
 	return user, nil
 }
@@ -208,10 +222,11 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &user)
-		if err != nil {
+		u := &schemas.User{}
+		if _, err := readDocument(ctx, cursor, u); err != nil {
 			return nil, err
 		}
+		user = u
 	}
 	return user, nil
 }

@@ -6,6 +6,9 @@ const (
 	AuditActorTypeUser = "user"
 	// AuditActorTypeAdmin identifies an admin as the audit actor.
 	AuditActorTypeAdmin = "admin"
+	// AuditActorTypeServiceAccount identifies a machine/workload service account
+	// as the audit actor (client_credentials grant, RFC 6749 §4.4).
+	AuditActorTypeServiceAccount = "service_account"
 )
 
 // Audit resource type constants identify the type of resource affected by an auditable action.
@@ -26,6 +29,10 @@ const (
 	AuditResourceTypeFgaModel = "fga_model"
 	// AuditResourceTypeFgaTuple represents a fine-grained authorization tuple.
 	AuditResourceTypeFgaTuple = "fga_tuple"
+	// AuditResourceTypeServiceAccount represents a machine/workload service account.
+	AuditResourceTypeServiceAccount = "service_account"
+	// AuditResourceTypeTrustedIssuer represents a trusted external JWT issuer.
+	AuditResourceTypeTrustedIssuer = "trusted_issuer"
 )
 
 // Audit event type constants used for structured audit logging.
@@ -126,4 +133,43 @@ const (
 	AuditSessionCreatedEvent = "session.created"
 	// AuditSessionTerminatedEvent is logged when a session is terminated.
 	AuditSessionTerminatedEvent = "session.terminated"
+
+	// AuditClientCreatedEvent is logged when an admin creates a client.
+	AuditClientCreatedEvent = "admin.client_created"
+	// AuditClientUpdatedEvent is logged when an admin updates a client.
+	AuditClientUpdatedEvent = "admin.client_updated"
+	// AuditClientDeletedEvent is logged when an admin deletes a client.
+	AuditClientDeletedEvent = "admin.client_deleted"
+	// AuditClientSecretRotatedEvent is logged when a client secret is rotated.
+	AuditClientSecretRotatedEvent = "admin.client_secret_rotated"
+	// AuditClientDeactivatedEvent is logged when an admin disables a client.
+	// Distinct from the generic update event so incident responders can query the kill-switch
+	// signal directly without scanning all update payloads.
+	AuditClientDeactivatedEvent = "admin.client_deactivated"
+	// AuditClientActivatedEvent is logged when an admin re-enables a client.
+	AuditClientActivatedEvent = "admin.client_activated"
+
+	// AuditTrustedIssuerCreatedEvent is logged when an admin adds a trusted issuer.
+	AuditTrustedIssuerCreatedEvent = "admin.trusted_issuer_created"
+	// AuditTrustedIssuerUpdatedEvent is logged when an admin updates a trusted issuer.
+	AuditTrustedIssuerUpdatedEvent = "admin.trusted_issuer_updated"
+	// AuditTrustedIssuerDeletedEvent is logged when an admin deletes a trusted issuer.
+	AuditTrustedIssuerDeletedEvent = "admin.trusted_issuer_deleted"
+	// AuditTrustedIssuerTokenReviewChangedEvent is logged when EnableTokenReview is toggled.
+	// Downgrading from online (true) to offline (false) is a security-posture change and
+	// must be queryable independently of generic trusted_issuer_updated events.
+	AuditTrustedIssuerTokenReviewChangedEvent = "admin.trusted_issuer_token_review_changed"
+
+	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
+	// via the client_credentials grant (RFC 6749 §4.4).
+	AuditTokenClientCredentialsEvent = "token.client_credentials"
+	// AuditTokenClientCredentialsFailedEvent is logged when a client_credentials
+	// authentication attempt fails (unknown client_id, inactive account, or
+	// wrong secret) — mirrors AuditLoginFailedEvent for the human login path.
+	AuditTokenClientCredentialsFailedEvent = "token.client_credentials_failed"
+	// AuditTokenExchangeEvent is logged when a token exchange occurs (RFC 8693).
+	AuditTokenExchangeEvent = "token.exchange"
+	// AuditWorkloadAuthEvent is logged when a workload authenticates via client_assertion
+	// (K8s SA token, SPIFFE JWT-SVID, or generic OIDC workload token).
+	AuditWorkloadAuthEvent = "token.workload_auth"
 )

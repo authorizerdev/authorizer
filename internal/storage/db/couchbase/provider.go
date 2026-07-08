@@ -286,5 +286,10 @@ func getIndex(scopeName string) map[string][]string {
 	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogCreatedAtIndex ON %s.%s(created_at)", scopeName, schemas.Collections.AuditLog)
 	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3}
 
+	// TrustedIssuer indexes
+	trustedIssuerIndex1 := fmt.Sprintf("CREATE INDEX TrustedIssuerIssuerURLIndex ON %s.%s(issuer_url)", scopeName, schemas.Collections.TrustedIssuer)
+	trustedIssuerIndex2 := fmt.Sprintf("CREATE INDEX TrustedIssuerClientIdIndex ON %s.%s(client_id)", scopeName, schemas.Collections.TrustedIssuer)
+	indices[schemas.Collections.TrustedIssuer] = []string{trustedIssuerIndex1, trustedIssuerIndex2}
+
 	return indices
 }

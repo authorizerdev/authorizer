@@ -23,7 +23,11 @@ type Dependencies struct {
 	Log *zerolog.Logger
 }
 
-// Provider is the interface which defines the methods for the database provider
+// Provider is the interface which defines the methods for the database provider.
+//
+// Delete methods are idempotent: deleting a non-existent id returns nil, not an
+// error. Callers that rely on delete-confirms-existence must check existence
+// separately first.
 type Provider interface {
 	// AddUser to save user information in database
 	AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error)
@@ -39,8 +43,10 @@ type Provider interface {
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error)
 	// GetUserByID to get user information from database using user ID
 	GetUserByID(ctx context.Context, id string) (*schemas.User, error)
-	// UpdateUsers to update multiple users, with parameters of user IDs slice
-	// If ids set to nil / empty all the users will be updated
+	// UpdateUsers to update multiple users, identified by the ids slice.
+	// If ids is nil / empty NO update is performed: global updates are disabled,
+	// so implementations return an error (SQL: gorm.ErrMissingWhereClause) rather
+	// than silently updating every user.
 	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
 	// AddVerificationRequest to save verification request in database
@@ -174,6 +180,39 @@ type Provider interface {
 
 	// Close releases resources held by the provider (e.g. database connection pools).
 	Close() error
+
+	// Client methods.
+
+	// AddClient creates a new service account record.
+	AddClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error)
+	// UpdateClient updates name, description, allowed_scopes, or is_active.
+	UpdateClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error)
+	// DeleteClient removes a service account. Callers must delete
+	// associated TrustedIssuers before or within the same logical operation.
+	DeleteClient(ctx context.Context, sa *schemas.Client) error
+	// GetClientByID fetches a service account by its primary key (= client_id).
+	GetClientByID(ctx context.Context, id string) (*schemas.Client, error)
+	// ListClients returns a paginated list of all service accounts.
+	ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error)
+
+	// TrustedIssuer methods.
+
+	// AddTrustedIssuer creates a new trusted issuer record.
+	AddTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error)
+	// UpdateTrustedIssuer updates mutable fields: jwks_url, expected_aud,
+	// is_active, spiffe_refresh_hint_seconds, enable_token_review,
+	// kubernetes_api_server_url, trusted_proxy_header, trusted_proxy_cidrs.
+	UpdateTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error)
+	// DeleteTrustedIssuer removes a trusted issuer.
+	DeleteTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) error
+	// GetTrustedIssuerByID fetches a trusted issuer by primary key.
+	GetTrustedIssuerByID(ctx context.Context, id string) (*schemas.TrustedIssuer, error)
+	// GetTrustedIssuerByIssuerURL fetches by issuer URL (unique index).
+	// This is called on every client_assertion validation — keep it fast.
+	GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL string) (*schemas.TrustedIssuer, error)
+	// ListTrustedIssuers returns trusted issuers filtered by serviceAccountID.
+	// Pass an empty serviceAccountID to list all issuers.
+	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
 }
 
 // New creates a new database provider based on the configuration

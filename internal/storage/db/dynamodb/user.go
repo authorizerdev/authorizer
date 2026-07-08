@@ -64,15 +64,56 @@ func userDynamoRemoveAttrsIfNil(u *schemas.User) []string {
 	if u == nil {
 		return nil
 	}
+	// Every nullable pointer field on schemas.User must clear its stored
+	// attribute when nil (see schemas/user.go: "do not add omitempty to fields
+	// that must clear stored values when nil"). A nil pointer is omitted from the
+	// SET clause, so without an explicit REMOVE the old value survives — matching
+	// SQL NULL / Mongo null semantics requires listing every such field here.
 	var remove []string
+	if u.Email == nil {
+		remove = append(remove, "email")
+	}
 	if u.EmailVerifiedAt == nil {
 		remove = append(remove, "email_verified_at")
+	}
+	if u.Password == nil {
+		remove = append(remove, "password")
+	}
+	if u.GivenName == nil {
+		remove = append(remove, "given_name")
+	}
+	if u.FamilyName == nil {
+		remove = append(remove, "family_name")
+	}
+	if u.MiddleName == nil {
+		remove = append(remove, "middle_name")
+	}
+	if u.Nickname == nil {
+		remove = append(remove, "nickname")
+	}
+	if u.Gender == nil {
+		remove = append(remove, "gender")
+	}
+	if u.Birthdate == nil {
+		remove = append(remove, "birthdate")
+	}
+	if u.PhoneNumber == nil {
+		remove = append(remove, "phone_number")
 	}
 	if u.PhoneNumberVerifiedAt == nil {
 		remove = append(remove, "phone_number_verified_at")
 	}
+	if u.Picture == nil {
+		remove = append(remove, "picture")
+	}
 	if u.RevokedTimestamp == nil {
 		remove = append(remove, "revoked_timestamp")
+	}
+	if u.IsMultiFactorAuthEnabled == nil {
+		remove = append(remove, "is_multi_factor_auth_enabled")
+	}
+	if u.AppData == nil {
+		remove = append(remove, "app_data")
 	}
 	return remove
 }

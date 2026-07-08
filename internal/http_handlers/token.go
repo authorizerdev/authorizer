@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -30,6 +32,38 @@ type RequestBody struct {
 	GrantType    string `form:"grant_type" json:"grant_type"`
 	RefreshToken string `form:"refresh_token" json:"refresh_token"`
 	RedirectURI  string `form:"redirect_uri" json:"redirect_uri"`
+	// Scope is the space-delimited OAuth2 scope parameter (RFC 6749 §3.3),
+	// used by the client_credentials grant to request a subset of the service
+	// account's allowed scopes.
+	Scope string `form:"scope" json:"scope"`
+}
+
+// clientCredentialsBcryptCost is the bcrypt cost the client_credentials timing
+// mitigation must match. It has to equal the cost real service-account secrets
+// are hashed with (internal/service/admin_service_accounts.go
+// serviceAccountSecretCost == 12; also committed in the Client schema
+// doc comment) so a dummy compare for an unknown client_id takes the same time
+// as a real compare — otherwise timing reveals whether the account exists.
+const clientCredentialsBcryptCost = 12
+
+// clientCredentialsDummyHash is a precomputed bcrypt hash compared against when
+// a client_credentials client_id does not resolve to a service account, so the
+// unknown-client path does the same bcrypt work as a real credential check.
+// Mirrors loginDummyBcryptHash in internal/service/login.go, but at the
+// service-account cost (12) rather than bcrypt.DefaultCost.
+var (
+	clientCredentialsDummyHash []byte
+	clientCredentialsDummyOnce sync.Once
+)
+
+// performDummyClientCheck runs a constant-cost bcrypt comparison whose
+// result is discarded, equalising the timing of the unknown-client path with a
+// real client_secret verification.
+func performDummyClientCheck(clientSecret string) {
+	clientCredentialsDummyOnce.Do(func() {
+		clientCredentialsDummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), clientCredentialsBcryptCost)
+	})
+	_ = bcrypt.CompareHashAndPassword(clientCredentialsDummyHash, []byte(clientSecret))
 }
 
 // TokenHandler to handle /oauth/token requests
@@ -57,6 +91,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		grantType := strings.TrimSpace(reqBody.GrantType)
 		refreshToken := strings.TrimSpace(reqBody.RefreshToken)
 		clientSecret := strings.TrimSpace(reqBody.ClientSecret)
+		scopeParam := strings.TrimSpace(reqBody.Scope)
 
 		if grantType == "" {
 			grantType = "authorization_code"
@@ -64,8 +99,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		isRefreshTokenGrant := grantType == "refresh_token"
 		isAuthorizationCodeGrant := grantType == "authorization_code"
+		isClientCredentialsGrant := grantType == constants.GrantTypeClientCredentials
 
-		if !isRefreshTokenGrant && !isAuthorizationCodeGrant {
+		if !isRefreshTokenGrant && !isAuthorizationCodeGrant && !isClientCredentialsGrant {
 			log.Debug().Str("grant_type", grantType).Msg("Invalid grant type")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "unsupported_grant_type",
@@ -86,6 +122,15 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				"error":             "invalid_request",
 				"error_description": "The client_id parameter is required",
 			})
+			return
+		}
+
+		// RFC 6749 §4.4 client_credentials: machine identity. Fully self-
+		// contained — the client is a Client (client_id ==
+		// Client.ID), NOT the global confidential app client checked
+		// below. Handled and returned here.
+		if isClientCredentialsGrant {
+			h.handleClientCredentialsGrant(gc, clientID, clientSecret, scopeParam)
 			return
 		}
 
@@ -502,4 +547,179 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		})
 		gc.JSON(http.StatusOK, res)
 	}
+}
+
+// handleClientCredentialsGrant implements the RFC 6749 §4.4 client_credentials
+// grant. The client authenticates as a Client (client_id ==
+// Client.ID, client_secret verified against the stored bcrypt hash) and
+// receives a stateful access token scoped to a subset of the account's allowed
+// scopes. No id_token and no refresh_token are issued — machines re-authenticate
+// on expiry (RFC 6749 §4.4.3).
+//
+// Timing: every authentication-failure path runs exactly one cost-12 bcrypt
+// compare (a dummy hash for an unknown client_id, the real stored hash for an
+// existing-but-inactive or wrong-secret account) and returns an identical
+// invalid_client response, so an attacker cannot learn from response timing or
+// body whether an account exists or is active.
+func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, clientID, clientSecret, scope string) {
+	log := h.Log.With().Str("func", "handleClientCredentialsGrant").Logger()
+
+	// respondInvalidClient emits the RFC 6749 §5.2 invalid_client error using
+	// the same convention as the confidential-client path above: 401 +
+	// WWW-Authenticate when the client authenticated via HTTP Basic, else 400.
+	respondInvalidClient := func() {
+		metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
+		if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
+			gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
+			gc.JSON(http.StatusUnauthorized, gin.H{
+				"error":             "invalid_client",
+				"error_description": "Client authentication failed",
+			})
+			return
+		}
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_client",
+			"error_description": "Client authentication failed",
+		})
+	}
+
+	sa, err := h.StorageProvider.GetClientByID(gc, clientID)
+	if err != nil || sa == nil {
+		// Unknown client_id — burn an equivalent bcrypt cost so timing does not
+		// distinguish this from a wrong-secret response, then reject.
+		log.Debug().Err(err).Msg("service account not found for client_credentials")
+		performDummyClientCheck(clientSecret)
+		respondInvalidClient()
+		return
+	}
+
+	// Always run the real compare (even for inactive accounts) BEFORE the
+	// active-state check, so inactive vs active-wrong-secret are timing-
+	// indistinguishable. bcrypt.CompareHashAndPassword is itself constant-time
+	// with respect to the secret.
+	secretErr := bcrypt.CompareHashAndPassword([]byte(sa.ClientSecret), []byte(clientSecret))
+	if !sa.IsActive || secretErr != nil {
+		log.Debug().Bool("is_active", sa.IsActive).Msg("client_credentials authentication failed")
+		// Audited here (not on the unknown-client_id path above) because we
+		// have a resolved Client to attribute the attempt to — mirrors
+		// login.go's bad_password/account_revoked branches, which likewise
+		// don't audit the user-not-found case.
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditTokenClientCredentialsFailedEvent,
+			ActorID:      sa.ID,
+			ActorType:    constants.AuditActorTypeServiceAccount,
+			ResourceType: constants.AuditResourceTypeToken,
+			ResourceID:   sa.ID,
+			Metadata:     constants.GrantTypeClientCredentials,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
+		})
+		respondInvalidClient()
+		return
+	}
+
+	// Scope handling (RFC 6749 §3.3 / §5.2). An empty AllowedScopes is DENY-ALL
+	// (schema § AllowedScopes comment) — reject rather than issue a scopeless
+	// token. The service layer already forbids creating such accounts; this is
+	// defense-in-depth.
+	allowedScopes := sa.ParsedAllowedScopes()
+	if len(allowedScopes) == 0 {
+		log.Debug().Msg("service account has no authorized scopes")
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_scope",
+			"error_description": "The service account has no authorized scopes",
+		})
+		return
+	}
+	allowedSet := make(map[string]struct{}, len(allowedScopes))
+	for _, s := range allowedScopes {
+		allowedSet[s] = struct{}{}
+	}
+
+	var grantedScopes []string
+	requestedScopes := strings.Fields(scope)
+	if len(requestedScopes) == 0 {
+		// No scope requested — grant the full authorized set. This repo's spec
+		// does not mandate a default; granting the full authorized set on an
+		// omitted scope param is the common client_credentials convention.
+		grantedScopes = allowedScopes
+	} else {
+		// Every requested scope MUST be authorized; reject the whole request
+		// otherwise (RFC 6749 §5.2 invalid_scope) rather than silently
+		// downgrading, which would hide a client misconfiguration.
+		for _, rs := range requestedScopes {
+			if _, ok := allowedSet[rs]; !ok {
+				log.Debug().Str("scope", rs).Msg("requested scope exceeds allowed scopes")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_scope",
+					"error_description": "The requested scope exceeds the scopes authorized for this service account",
+				})
+				return
+			}
+		}
+		grantedScopes = requestedScopes
+	}
+
+	hostname := parsers.GetHost(gc)
+	nonce := uuid.New().String()
+	// Namespace the session key so it can never collide with a human user's
+	// session key (a bare or login-method-prefixed UUID). ValidateAccessToken
+	// reconstructs this exact key from the token's login_method + sub claims.
+	sessionKey := constants.AuthRecipeMethodServiceAccount + ":" + sa.ID
+
+	// ponytail: aud is the global ClientID, same as human tokens. RFC 8707
+	// resource-bound audience binding (spec S8) is deliberately deferred to
+	// the Phase 2 token-exchange work, not silently forgotten.
+	authToken, err := h.TokenProvider.CreateMachineAuthToken(&token.AuthTokenConfig{
+		ServiceAccountID: sa.ID,
+		Scope:            grantedScopes,
+		Nonce:            nonce,
+		LoginMethod:      constants.AuthRecipeMethodServiceAccount,
+		HostName:         hostname,
+	})
+	if err != nil {
+		log.Debug().Err(err).Msg("failed to create machine access token")
+		gc.JSON(http.StatusInternalServerError, gin.H{
+			"error":             "server_error",
+			"error_description": "Could not complete token issuance",
+		})
+		return
+	}
+
+	// Access tokens in this codebase are stateful: register in the memory store
+	// or ValidateAccessToken (GraphQL context, gRPC interceptor, profile
+	// endpoints) rejects a cryptographically-valid-but-unregistered token.
+	if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.Token, authToken.ExpiresAt); err != nil {
+		log.Debug().Err(err).Msg("failed to persist machine access token")
+		gc.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":             "temporarily_unavailable",
+			"error_description": "Could not complete token issuance",
+		})
+		return
+	}
+
+	expiresIn := authToken.ExpiresAt - time.Now().Unix()
+	if expiresIn <= 0 {
+		expiresIn = 1
+	}
+
+	metrics.RecordAuthEvent(metrics.EventTokenIssued, metrics.StatusSuccess)
+	h.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditTokenClientCredentialsEvent,
+		ActorID:      sa.ID,
+		ActorType:    constants.AuditActorTypeServiceAccount,
+		ResourceType: constants.AuditResourceTypeToken,
+		ResourceID:   sa.ID,
+		Metadata:     constants.GrantTypeClientCredentials,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
+
+	// RFC 6749 §5.1: no refresh_token and no id_token for client_credentials.
+	gc.JSON(http.StatusOK, gin.H{
+		"access_token": authToken.Token,
+		"token_type":   "Bearer",
+		"expires_in":   expiresIn,
+		"scope":        strings.Join(grantedScopes, " "),
+	})
 }

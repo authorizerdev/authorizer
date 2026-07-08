@@ -439,3 +439,164 @@ func (h *AdminHandler) FgaReset(ctx context.Context, _ *authorizerv1.FgaResetReq
 	}
 	return &authorizerv1.FgaResetResponse{Message: res.Message}, nil
 }
+
+// CreateClient delegates to service.CreateClient and returns the
+// generated client secret exactly once (CreateClientResponse is the only
+// admin message that carries a secret). Requires super-admin auth.
+func (h *AdminHandler) CreateClient(ctx context.Context, req *authorizerv1.CreateClientRequest) (*authorizerv1.CreateClientResponse, error) {
+	res, _, err := h.Service.CreateClient(ctx, transport.MetaFromGRPC(ctx), &model.CreateClientRequest{
+		Name:          req.GetName(),
+		Description:   req.Description,
+		AllowedScopes: req.GetAllowedScopes(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.CreateClientResponse{
+		Client:       projectClient(res.Client),
+		ClientSecret: res.ClientSecret,
+	}, nil
+}
+
+// UpdateClient delegates to service.UpdateClient. Optional proto
+// fields map 1:1 onto the model's nullable pointers; the client secret is never
+// touched. Requires super-admin auth.
+func (h *AdminHandler) UpdateClient(ctx context.Context, req *authorizerv1.UpdateClientRequest) (*authorizerv1.UpdateClientResponse, error) {
+	res, _, err := h.Service.UpdateClient(ctx, transport.MetaFromGRPC(ctx), &model.UpdateClientRequest{
+		ID:            req.GetId(),
+		Name:          req.Name,
+		Description:   req.Description,
+		AllowedScopes: req.GetAllowedScopes(),
+		IsActive:      req.IsActive,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateClientResponse{Client: projectClient(res)}, nil
+}
+
+// DeleteClient delegates to service.DeleteClient, which cascades
+// to the account's trusted issuers. Requires super-admin auth.
+func (h *AdminHandler) DeleteClient(ctx context.Context, req *authorizerv1.DeleteClientRequest) (*authorizerv1.DeleteClientResponse, error) {
+	res, _, err := h.Service.DeleteClient(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteClientResponse{Message: res.Message}, nil
+}
+
+// RotateClientSecret delegates to service.RotateClientSecret and
+// returns the new client secret exactly once (reusing CreateClientResponse).
+// Requires super-admin auth.
+func (h *AdminHandler) RotateClientSecret(ctx context.Context, req *authorizerv1.RotateClientSecretRequest) (*authorizerv1.CreateClientResponse, error) {
+	res, _, err := h.Service.RotateClientSecret(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.CreateClientResponse{
+		Client:       projectClient(res.Client),
+		ClientSecret: res.ClientSecret,
+	}, nil
+}
+
+// GetClient delegates to service.Client and projects the result.
+// The client secret is never surfaced. Requires super-admin auth.
+func (h *AdminHandler) GetClient(ctx context.Context, req *authorizerv1.GetClientRequest) (*authorizerv1.GetClientResponse, error) {
+	res, _, err := h.Service.Client(ctx, transport.MetaFromGRPC(ctx), &model.ClientRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.GetClientResponse{Client: projectClient(res)}, nil
+}
+
+// Clients delegates to service.Clients and projects the
+// paginated result. Client secrets are never surfaced. Requires super-admin auth.
+func (h *AdminHandler) Clients(ctx context.Context, req *authorizerv1.ClientsRequest) (*authorizerv1.ClientsResponse, error) {
+	res, _, err := h.Service.Clients(ctx, transport.MetaFromGRPC(ctx), &model.ListClientsRequest{
+		Pagination: modelPaginatedRequest(req.GetPagination()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectClients(res), nil
+}
+
+// AddTrustedIssuer delegates to service.AddTrustedIssuer. subject_claim defaults
+// to "sub" in the service layer when unset. Requires super-admin auth.
+func (h *AdminHandler) AddTrustedIssuer(ctx context.Context, req *authorizerv1.AddTrustedIssuerRequest) (*authorizerv1.AddTrustedIssuerResponse, error) {
+	res, _, err := h.Service.AddTrustedIssuer(ctx, transport.MetaFromGRPC(ctx), &model.AddTrustedIssuerRequest{
+		ServiceAccountID:         req.GetServiceAccountId(),
+		Name:                     req.GetName(),
+		IssuerURL:                req.GetIssuerUrl(),
+		KeySourceType:            req.GetKeySourceType(),
+		JwksURL:                  req.JwksUrl,
+		ExpectedAud:              req.GetExpectedAud(),
+		SubjectClaim:             req.SubjectClaim,
+		IssuerType:               req.GetIssuerType(),
+		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.AddTrustedIssuerResponse{TrustedIssuer: projectTrustedIssuer(res)}, nil
+}
+
+// UpdateTrustedIssuer delegates to service.UpdateTrustedIssuer. Optional proto
+// fields map 1:1 onto the model's nullable pointers. Requires super-admin auth.
+func (h *AdminHandler) UpdateTrustedIssuer(ctx context.Context, req *authorizerv1.UpdateTrustedIssuerRequest) (*authorizerv1.UpdateTrustedIssuerResponse, error) {
+	res, _, err := h.Service.UpdateTrustedIssuer(ctx, transport.MetaFromGRPC(ctx), &model.UpdateTrustedIssuerRequest{
+		ID:                       req.GetId(),
+		Name:                     req.Name,
+		JwksURL:                  req.JwksUrl,
+		ExpectedAud:              req.ExpectedAud,
+		IsActive:                 req.IsActive,
+		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateTrustedIssuerResponse{TrustedIssuer: projectTrustedIssuer(res)}, nil
+}
+
+// DeleteTrustedIssuer delegates to service.DeleteTrustedIssuer. Requires
+// super-admin auth.
+func (h *AdminHandler) DeleteTrustedIssuer(ctx context.Context, req *authorizerv1.DeleteTrustedIssuerRequest) (*authorizerv1.DeleteTrustedIssuerResponse, error) {
+	res, _, err := h.Service.DeleteTrustedIssuer(ctx, transport.MetaFromGRPC(ctx), &model.TrustedIssuerRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteTrustedIssuerResponse{Message: res.Message}, nil
+}
+
+// GetTrustedIssuer delegates to service.TrustedIssuer and projects the result.
+// Requires super-admin auth.
+func (h *AdminHandler) GetTrustedIssuer(ctx context.Context, req *authorizerv1.GetTrustedIssuerRequest) (*authorizerv1.GetTrustedIssuerResponse, error) {
+	res, _, err := h.Service.TrustedIssuer(ctx, transport.MetaFromGRPC(ctx), &model.TrustedIssuerRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.GetTrustedIssuerResponse{TrustedIssuer: projectTrustedIssuer(res)}, nil
+}
+
+// TrustedIssuers delegates to service.TrustedIssuers and projects the paginated
+// result. service_account_id is optional. Requires super-admin auth.
+func (h *AdminHandler) TrustedIssuers(ctx context.Context, req *authorizerv1.TrustedIssuersRequest) (*authorizerv1.TrustedIssuersResponse, error) {
+	res, _, err := h.Service.TrustedIssuers(ctx, transport.MetaFromGRPC(ctx), &model.ListTrustedIssuersRequest{
+		ServiceAccountID: req.ServiceAccountId,
+		Pagination:       modelPaginatedRequest(req.GetPagination()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectTrustedIssuers(res), nil
+}

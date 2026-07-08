@@ -9,6 +9,18 @@ type AddEmailTemplateRequest struct {
 	Design    *string `json:"design,omitempty"`
 }
 
+type AddTrustedIssuerRequest struct {
+	ServiceAccountID         string  `json:"service_account_id"`
+	Name                     string  `json:"name"`
+	IssuerURL                string  `json:"issuer_url"`
+	KeySourceType            string  `json:"key_source_type"`
+	JwksURL                  *string `json:"jwks_url,omitempty"`
+	ExpectedAud              string  `json:"expected_aud"`
+	SubjectClaim             *string `json:"subject_claim,omitempty"`
+	IssuerType               string  `json:"issuer_type"`
+	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
+}
+
 type AddWebhookRequest struct {
 	EventName        string         `json:"event_name"`
 	EventDescription *string        `json:"event_description,omitempty"`
@@ -72,6 +84,36 @@ type CheckPermissionsInput struct {
 
 type CheckPermissionsResponse struct {
 	Results []*PermissionCheckResult `json:"results"`
+}
+
+type Client struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   *string  `json:"description,omitempty"`
+	AllowedScopes []string `json:"allowed_scopes"`
+	IsActive      bool     `json:"is_active"`
+	CreatedAt     *int64   `json:"created_at,omitempty"`
+	UpdatedAt     *int64   `json:"updated_at,omitempty"`
+}
+
+type ClientRequest struct {
+	ID string `json:"id"`
+}
+
+type Clients struct {
+	Pagination *Pagination `json:"pagination"`
+	Clients    []*Client   `json:"clients"`
+}
+
+type CreateClientRequest struct {
+	Name          string   `json:"name"`
+	Description   *string  `json:"description,omitempty"`
+	AllowedScopes []string `json:"allowed_scopes"`
+}
+
+type CreateClientResponse struct {
+	Client       *Client `json:"client"`
+	ClientSecret string  `json:"client_secret"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -285,6 +327,10 @@ type ListAuditLogRequest struct {
 	ToTimestamp   *int64             `json:"to_timestamp,omitempty"`
 }
 
+type ListClientsRequest struct {
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+}
+
 type ListPermissionsInput struct {
 	Relation   *string `json:"relation,omitempty"`
 	ObjectType *string `json:"object_type,omitempty"`
@@ -295,6 +341,11 @@ type ListPermissionsResponse struct {
 	Objects     []string      `json:"objects"`
 	Permissions []*Permission `json:"permissions"`
 	Truncated   bool          `json:"truncated"`
+}
+
+type ListTrustedIssuersRequest struct {
+	ServiceAccountID *string           `json:"service_account_id,omitempty"`
+	Pagination       *PaginatedRequest `json:"pagination,omitempty"`
 }
 
 type ListWebhookLogRequest struct {
@@ -476,8 +527,41 @@ type TestEndpointResponse struct {
 	Response   *string `json:"response,omitempty"`
 }
 
+type TrustedIssuer struct {
+	ID                       string  `json:"id"`
+	ServiceAccountID         string  `json:"service_account_id"`
+	Name                     string  `json:"name"`
+	IssuerURL                string  `json:"issuer_url"`
+	KeySourceType            string  `json:"key_source_type"`
+	JwksURL                  *string `json:"jwks_url,omitempty"`
+	ExpectedAud              string  `json:"expected_aud"`
+	SubjectClaim             string  `json:"subject_claim"`
+	IssuerType               string  `json:"issuer_type"`
+	IsActive                 bool    `json:"is_active"`
+	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
+	CreatedAt                *int64  `json:"created_at,omitempty"`
+	UpdatedAt                *int64  `json:"updated_at,omitempty"`
+}
+
+type TrustedIssuerRequest struct {
+	ID string `json:"id"`
+}
+
+type TrustedIssuers struct {
+	Pagination     *Pagination      `json:"pagination"`
+	TrustedIssuers []*TrustedIssuer `json:"trusted_issuers"`
+}
+
 type UpdateAccessRequest struct {
 	UserID string `json:"user_id"`
+}
+
+type UpdateClientRequest struct {
+	ID            string   `json:"id"`
+	Name          *string  `json:"name,omitempty"`
+	Description   *string  `json:"description,omitempty"`
+	AllowedScopes []string `json:"allowed_scopes,omitempty"`
+	IsActive      *bool    `json:"is_active,omitempty"`
 }
 
 type UpdateEmailTemplateRequest struct {
@@ -568,6 +652,15 @@ type UpdateProfileRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
+}
+
+type UpdateTrustedIssuerRequest struct {
+	ID                       string  `json:"id"`
+	Name                     *string `json:"name,omitempty"`
+	JwksURL                  *string `json:"jwks_url,omitempty"`
+	ExpectedAud              *string `json:"expected_aud,omitempty"`
+	IsActive                 *bool   `json:"is_active,omitempty"`
+	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
 }
 
 type UpdateUserRequest struct {

@@ -188,7 +188,10 @@ func TestTokenEndpointCompliance(t *testing.T) {
 
 	t.Run("RFC6749_unsupported_grant_type", func(t *testing.T) {
 		form := url.Values{}
-		form.Set("grant_type", "client_credentials")
+		// "password" (RFC 6749 §4.3) is not implemented by this server; it is a
+		// stable example of a grant that must be rejected as unsupported.
+		// (client_credentials is now supported — see TestClientCredentialsGrant.)
+		form.Set("grant_type", "password")
 		form.Set("client_id", cfg.ClientID)
 
 		w := httptest.NewRecorder()

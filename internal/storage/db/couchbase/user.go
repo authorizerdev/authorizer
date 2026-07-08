@@ -25,6 +25,11 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 		user.Roles = strings.Join(p.config.DefaultRoles, ",")
 	}
 
+	// ponytail: check-then-insert has no atomic uniqueness guard on email/phone_number.
+	// Collection.Insert only enforces uniqueness on the document key (user.ID), so two
+	// concurrent AddUser calls can both pass this pre-check and insert duplicate emails.
+	// Accepted for now (shared by the other NoSQL providers); a real fix needs a Couchbase
+	// unique secondary index plus a conditional/index-backed insert.
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")

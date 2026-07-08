@@ -16,6 +16,8 @@ type CollectionList struct {
 	MFASession             string
 	OAuthState             string
 	AuditLog               string
+	Client                 string
+	TrustedIssuer          string
 }
 
 var (
@@ -37,5 +39,7 @@ var (
 		MFASession:             Prefix + "mfa_sessions",
 		OAuthState:             Prefix + "oauth_states",
 		AuditLog:               Prefix + "audit_logs",
+		Client:                 Prefix + "clients",
+		TrustedIssuer:          Prefix + "trusted_issuers",
 	}
 )

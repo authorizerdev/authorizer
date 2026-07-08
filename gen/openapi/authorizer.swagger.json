@@ -53,6 +53,40 @@
         ]
       }
     },
+    "/v1/admin/add_trusted_issuer": {
+      "post": {
+        "summary": "AddTrustedIssuer registers an external JWT issuer for a service account.\nsubject_claim defaults to \"sub\" when omitted. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AddTrustedIssuer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddTrustedIssuerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,\nsubject_claim, and spiffe_refresh_hint_seconds are optional; subject_claim\ndefaults to \"sub\" when unset.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddTrustedIssuerRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/add_webhook": {
       "post": {
         "summary": "AddWebhook registers a new webhook for an event. Requires super-admin auth.",
@@ -121,6 +155,141 @@
         ]
       }
     },
+    "/v1/admin/client": {
+      "post": {
+        "summary": "GetClient returns a single service account by id. The client secret\nis never surfaced. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_GetClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "GetClientRequest mirrors model.ClientRequest (a single service\naccount id). Kept distinct from DeleteClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/clients": {
+      "post": {
+        "summary": "Clients returns a paginated list of service accounts. Client secrets\nare never surfaced. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Clients",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ClientsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ClientsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/create_client": {
+      "post": {
+        "summary": "CreateClient provisions a new machine/workload identity and returns\nthe generated client secret exactly once (only the bcrypt hash is stored).\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_CreateClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "CreateClientRequest mirrors model.CreateClientRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_client": {
+      "post": {
+        "summary": "DeleteClient deletes a service account by id, cascading to its\ntrusted issuers. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteClientRequest mirrors model.ClientRequest (a single\nservice account id). Kept distinct from GetClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/delete_email_template": {
       "post": {
         "summary": "DeleteEmailTemplate deletes an email template by id. Requires super-admin\nauth.",
@@ -147,6 +316,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_trusted_issuer": {
+      "post": {
+        "summary": "DeleteTrustedIssuer deletes a trusted issuer by id. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_DeleteTrustedIssuer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteTrustedIssuerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single\ntrusted issuer id). Kept distinct from GetTrustedIssuerRequest per buf's\none-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteTrustedIssuerRequest"
             }
           }
         ],
@@ -696,6 +899,40 @@
         ]
       }
     },
+    "/v1/admin/rotate_client_secret": {
+      "post": {
+        "summary": "RotateClientSecret replaces the stored client secret with a fresh\none and returns the new plaintext exactly once (the old secret stops\nvalidating immediately). Reuses CreateClientResponse — the only\nadmin message that carries a secret. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_RotateClientSecret",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RotateClientSecretRequest mirrors model.ClientRequest (a\nsingle service account id). Kept distinct from DeleteClientRequest and\nGetClientRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RotateClientSecretRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/session": {
       "get": {
         "summary": "AdminSession refreshes the admin session cookie. Requires super-admin auth.",
@@ -753,6 +990,108 @@
         ]
       }
     },
+    "/v1/admin/trusted_issuer": {
+      "post": {
+        "summary": "GetTrustedIssuer returns a single trusted issuer by id. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_GetTrustedIssuer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetTrustedIssuerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "GetTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single trusted\nissuer id). Kept distinct from DeleteTrustedIssuerRequest per buf's\none-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetTrustedIssuerRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/trusted_issuers": {
+      "post": {
+        "summary": "TrustedIssuers returns a paginated list of trusted issuers, optionally\nfiltered by service_account_id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_TrustedIssuers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TrustedIssuersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "TrustedIssuersRequest mirrors model.ListTrustedIssuersRequest.\nservice_account_id is optional; when unset issuers for all accounts are\nreturned.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TrustedIssuersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_client": {
+      "post": {
+        "summary": "UpdateClient updates a service account's name, description, allowed\nscopes, or active state. It never touches the client secret. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateClient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateClientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateClientRequest mirrors model.UpdateClientRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateClientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/update_email_template": {
       "post": {
         "summary": "UpdateEmailTemplate updates an existing email template's event, subject,\nbody, or design. Requires super-admin auth.",
@@ -779,6 +1118,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1UpdateEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_trusted_issuer": {
+      "post": {
+        "summary": "UpdateTrustedIssuer updates a trusted issuer's name, JWKS URL, expected\naudience, active state, or SPIFFE refresh hint. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateTrustedIssuer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateTrustedIssuerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateTrustedIssuerRequest mirrors model.UpdateTrustedIssuerRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateTrustedIssuerRequest"
             }
           }
         ],
@@ -1906,6 +2279,48 @@
         }
       }
     },
+    "v1AddTrustedIssuerRequest": {
+      "type": "object",
+      "properties": {
+        "service_account_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "issuer_url": {
+          "type": "string"
+        },
+        "key_source_type": {
+          "type": "string"
+        },
+        "jwks_url": {
+          "type": "string"
+        },
+        "expected_aud": {
+          "type": "string"
+        },
+        "subject_claim": {
+          "type": "string"
+        },
+        "issuer_type": {
+          "type": "string"
+        },
+        "spiffe_refresh_hint_seconds": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,\nsubject_claim, and spiffe_refresh_hint_seconds are optional; subject_claim\ndefaults to \"sub\" when unset."
+    },
+    "v1AddTrustedIssuerResponse": {
+      "type": "object",
+      "properties": {
+        "trusted_issuer": {
+          "$ref": "#/definitions/v1TrustedIssuer"
+        }
+      }
+    },
     "v1AddWebhookRequest": {
       "type": "object",
       "properties": {
@@ -2145,10 +2560,112 @@
         }
       }
     },
+    "v1Client": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "allowed_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "Client mirrors model.Client field-for-field. The client\nsecret is deliberately ABSENT (matching the GraphQL type): it is surfaced\nexactly once, only via CreateClientResponse.client_secret, and is\nnever returned by any get/list/update path."
+    },
+    "v1ClientsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1ClientsResponse": {
+      "type": "object",
+      "properties": {
+        "clients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Client"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1CreateClientRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "allowed_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "CreateClientRequest mirrors model.CreateClientRequest.\ndescription is optional; allowed_scopes must be non-empty (an empty scope set\nis DENY-ALL and is rejected by the service layer)."
+    },
+    "v1CreateClientResponse": {
+      "type": "object",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/v1Client"
+        },
+        "client_secret": {
+          "type": "string"
+        }
+      },
+      "description": "CreateClientResponse carries the created service account plus the\nplaintext client_secret, returned exactly once. This is the ONLY admin\nmessage with a secret field; RotateClientSecret reuses it."
+    },
     "v1DeactivateAccountRequest": {
       "type": "object"
     },
     "v1DeactivateAccountResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteClientRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteClientRequest mirrors model.ClientRequest (a single\nservice account id). Kept distinct from GetClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule."
+    },
+    "v1DeleteClientResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -2166,6 +2683,23 @@
       "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id)."
     },
     "v1DeleteEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteTrustedIssuerRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single\ntrusted issuer id). Kept distinct from GetTrustedIssuerRequest per buf's\none-message-per-RPC rule."
+    },
+    "v1DeleteTrustedIssuerResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -2518,6 +3052,40 @@
         "should_show_mobile_otp_screen": {
           "type": "boolean",
           "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
+        }
+      }
+    },
+    "v1GetClientRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "GetClientRequest mirrors model.ClientRequest (a single service\naccount id). Kept distinct from DeleteClientRequest and\nRotateClientSecretRequest per buf's one-message-per-RPC rule."
+    },
+    "v1GetClientResponse": {
+      "type": "object",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/v1Client"
+        }
+      }
+    },
+    "v1GetTrustedIssuerRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "GetTrustedIssuerRequest mirrors model.TrustedIssuerRequest (a single trusted\nissuer id). Kept distinct from DeleteTrustedIssuerRequest per buf's\none-message-per-RPC rule."
+    },
+    "v1GetTrustedIssuerResponse": {
+      "type": "object",
+      "properties": {
+        "trusted_issuer": {
+          "$ref": "#/definitions/v1TrustedIssuer"
         }
       }
     },
@@ -2877,6 +3445,15 @@
         }
       }
     },
+    "v1RotateClientSecretRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "RotateClientSecretRequest mirrors model.ClientRequest (a\nsingle service account id). Kept distinct from DeleteClientRequest and\nGetClientRequest per buf's one-message-per-RPC rule."
+    },
     "v1SessionRequest": {
       "type": "object",
       "properties": {
@@ -2998,6 +3575,113 @@
       },
       "description": "TestEndpointResponse mirrors model.TestEndpointResponse."
     },
+    "v1TrustedIssuer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "service_account_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "issuer_url": {
+          "type": "string"
+        },
+        "key_source_type": {
+          "type": "string"
+        },
+        "jwks_url": {
+          "type": "string"
+        },
+        "expected_aud": {
+          "type": "string"
+        },
+        "subject_claim": {
+          "type": "string"
+        },
+        "issuer_type": {
+          "type": "string"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "spiffe_refresh_hint_seconds": {
+          "type": "string",
+          "format": "int64"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "TrustedIssuer mirrors model.TrustedIssuer field-for-field. It references its\nparent via service_account_id (not app_id). Optional pointer fields collapse\nto zero values on the wire."
+    },
+    "v1TrustedIssuersRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "service_account_id": {
+          "type": "string"
+        }
+      },
+      "description": "TrustedIssuersRequest mirrors model.ListTrustedIssuersRequest.\nservice_account_id is optional; when unset issuers for all accounts are\nreturned."
+    },
+    "v1TrustedIssuersResponse": {
+      "type": "object",
+      "properties": {
+        "trusted_issuers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TrustedIssuer"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1UpdateClientRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "allowed_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      },
+      "description": "UpdateClientRequest mirrors model.UpdateClientRequest.\nNullable GraphQL inputs use proto3 `optional`. allowed_scopes, when non-empty,\nreplaces the scope set; the service rejects a set that normalizes to empty."
+    },
+    "v1UpdateClientResponse": {
+      "type": "object",
+      "properties": {
+        "client": {
+          "$ref": "#/definitions/v1Client"
+        }
+      }
+    },
     "v1UpdateEmailTemplateRequest": {
       "type": "object",
       "properties": {
@@ -3080,6 +3764,39 @@
       "properties": {
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "v1UpdateTrustedIssuerRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "jwks_url": {
+          "type": "string"
+        },
+        "expected_aud": {
+          "type": "string"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "spiffe_refresh_hint_seconds": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "UpdateTrustedIssuerRequest mirrors model.UpdateTrustedIssuerRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value."
+    },
+    "v1UpdateTrustedIssuerResponse": {
+      "type": "object",
+      "properties": {
+        "trusted_issuer": {
+          "$ref": "#/definitions/v1TrustedIssuer"
         }
       }
     },

@@ -348,6 +348,41 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// Client collection
+	clientCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Client)
+	if err != nil {
+		return nil, err
+	}
+	if !clientCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Client, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// TrustedIssuer collection and indexes
+	trustedIssuerCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.TrustedIssuer)
+	if err != nil {
+		return nil, err
+	}
+	if !trustedIssuerCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.TrustedIssuer, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	trustedIssuerCollection, err := arangodb.Collection(ctx, schemas.Collections.TrustedIssuer)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = trustedIssuerCollection.EnsureHashIndex(ctx, []string{"issuer_url"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	_, _, _ = trustedIssuerCollection.EnsureHashIndex(ctx, []string{"client_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

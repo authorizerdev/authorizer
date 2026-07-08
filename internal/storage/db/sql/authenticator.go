@@ -22,10 +22,14 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	authenticators.Key = authenticators.ID
 	authenticators.CreatedAt = time.Now().Unix()
 	authenticators.UpdatedAt = time.Now().Unix()
+	// Target the (user_id, method) unique index so a concurrent enrollment that
+	// slips past the check-then-insert race above upserts the existing row
+	// instead of creating a duplicate. Without this, GetAuthenticatorDetailsByUserId's
+	// First() would return an arbitrary row and cause intermittent MFA failures.
 	res := p.db.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
-			Columns:   []clause.Column{{Name: "id"}},
+			Columns:   []clause.Column{{Name: "user_id"}, {Name: "method"}},
 		}).Create(&authenticators)
 	if res.Error != nil {
 		return nil, res.Error

@@ -45,7 +45,13 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 }
 
 // UpdateUser to update user information in database
+// Callers MUST load the existing record and mutate it before calling this
+// method — the $set write replaces every column and will blank zero-value
+// fields on a partial struct.
 func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
+	if user.CreatedAt == 0 {
+		return nil, fmt.Errorf("UpdateUser: caller must load record before updating (CreatedAt is zero — partial struct detected)")
+	}
 	user.UpdatedAt = time.Now().Unix()
 	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())

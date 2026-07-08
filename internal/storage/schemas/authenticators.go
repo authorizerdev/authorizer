@@ -6,8 +6,8 @@ package schemas
 type Authenticator struct {
 	Key           string  `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID            string  `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
-	UserID        string  `gorm:"type:char(36)" json:"user_id" bson:"user_id" cql:"user_id" dynamo:"user_id" index:"user_id,hash"`
-	Method        string  `json:"method" bson:"method" cql:"method" dynamo:"method"`
+	UserID        string  `gorm:"type:char(36);uniqueIndex:idx_authenticator_user_id_method" json:"user_id" bson:"user_id" cql:"user_id" dynamo:"user_id" index:"user_id,hash"`
+	Method        string  `gorm:"type:varchar(64);uniqueIndex:idx_authenticator_user_id_method" json:"method" bson:"method" cql:"method" dynamo:"method"`
 	Secret        string  `json:"secret" bson:"secret" cql:"secret" dynamo:"secret"`
 	RecoveryCodes *string `json:"recovery_codes" bson:"recovery_codes" cql:"recovery_codes" dynamo:"recovery_codes"`
 	VerifiedAt    *int64  `json:"verified_at" bson:"verified_at" cql:"verified_at" dynamo:"verified_at"`

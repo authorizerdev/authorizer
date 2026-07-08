@@ -90,6 +90,26 @@ type ComplexityRoot struct {
 		Results func(childComplexity int) int
 	}
 
+	Client struct {
+		AllowedScopes func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		Description   func(childComplexity int) int
+		ID            func(childComplexity int) int
+		IsActive      func(childComplexity int) int
+		Name          func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+	}
+
+	Clients struct {
+		Clients    func(childComplexity int) int
+		Pagination func(childComplexity int) int
+	}
+
+	CreateClientResponse struct {
+		Client       func(childComplexity int) int
+		ClientSecret func(childComplexity int) int
+	}
+
 	EmailTemplate struct {
 		CreatedAt func(childComplexity int) int
 		Design    func(childComplexity int) int
@@ -255,12 +275,16 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddTrustedIssuer    func(childComplexity int, params model.AddTrustedIssuerRequest) int
 		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
 		AdminLogin          func(childComplexity int, params model.AdminLoginRequest) int
 		AdminLogout         func(childComplexity int) int
 		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
+		CreateClient        func(childComplexity int, params model.CreateClientRequest) int
 		DeactivateAccount   func(childComplexity int) int
+		DeleteClient        func(childComplexity int, params model.ClientRequest) int
 		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteTrustedIssuer func(childComplexity int, params model.TrustedIssuerRequest) int
 		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
 		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
 		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
@@ -281,11 +305,14 @@ type ComplexityRoot struct {
 		ResetPassword       func(childComplexity int, params model.ResetPasswordRequest) int
 		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
 		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
+		RotateClientSecret  func(childComplexity int, params model.ClientRequest) int
 		Signup              func(childComplexity int, params model.SignUpRequest) int
 		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateClient        func(childComplexity int, params model.UpdateClientRequest) int
 		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
 		UpdateEnv           func(childComplexity int, params model.UpdateEnvRequest) int
 		UpdateProfile       func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateTrustedIssuer func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
 		UpdateUser          func(childComplexity int, params model.UpdateUserRequest) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailRequest) int
@@ -315,6 +342,8 @@ type ComplexityRoot struct {
 		AdminSession         func(childComplexity int) int
 		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
 		CheckPermissions     func(childComplexity int, params model.CheckPermissionsInput) int
+		Client               func(childComplexity int, params model.ClientRequest) int
+		Clients              func(childComplexity int, params *model.ListClientsRequest) int
 		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
 		Env                  func(childComplexity int) int
 		FgaExpand            func(childComplexity int, params model.FgaExpandInput) int
@@ -325,6 +354,8 @@ type ComplexityRoot struct {
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryRequest) int
+		TrustedIssuer        func(childComplexity int, params model.TrustedIssuerRequest) int
+		TrustedIssuers       func(childComplexity int, params *model.ListTrustedIssuersRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
 		Users                func(childComplexity int, params *model.PaginatedRequest) int
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
@@ -342,6 +373,27 @@ type ComplexityRoot struct {
 	TestEndpointResponse struct {
 		HTTPStatus func(childComplexity int) int
 		Response   func(childComplexity int) int
+	}
+
+	TrustedIssuer struct {
+		CreatedAt                func(childComplexity int) int
+		ExpectedAud              func(childComplexity int) int
+		ID                       func(childComplexity int) int
+		IsActive                 func(childComplexity int) int
+		IssuerType               func(childComplexity int) int
+		IssuerURL                func(childComplexity int) int
+		JwksURL                  func(childComplexity int) int
+		KeySourceType            func(childComplexity int) int
+		Name                     func(childComplexity int) int
+		ServiceAccountID         func(childComplexity int) int
+		SpiffeRefreshHintSeconds func(childComplexity int) int
+		SubjectClaim             func(childComplexity int) int
+		UpdatedAt                func(childComplexity int) int
+	}
+
+	TrustedIssuers struct {
+		Pagination     func(childComplexity int) int
+		TrustedIssuers func(childComplexity int) int
 	}
 
 	User struct {
@@ -460,6 +512,13 @@ type MutationResolver interface {
 	AddWebhook(ctx context.Context, params model.AddWebhookRequest) (*model.Response, error)
 	UpdateWebhook(ctx context.Context, params model.UpdateWebhookRequest) (*model.Response, error)
 	DeleteWebhook(ctx context.Context, params model.WebhookRequest) (*model.Response, error)
+	CreateClient(ctx context.Context, params model.CreateClientRequest) (*model.CreateClientResponse, error)
+	UpdateClient(ctx context.Context, params model.UpdateClientRequest) (*model.Client, error)
+	DeleteClient(ctx context.Context, params model.ClientRequest) (*model.Response, error)
+	RotateClientSecret(ctx context.Context, params model.ClientRequest) (*model.CreateClientResponse, error)
+	AddTrustedIssuer(ctx context.Context, params model.AddTrustedIssuerRequest) (*model.TrustedIssuer, error)
+	UpdateTrustedIssuer(ctx context.Context, params model.UpdateTrustedIssuerRequest) (*model.TrustedIssuer, error)
+	DeleteTrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.Response, error)
 	TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error)
 	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
 	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
@@ -484,6 +543,10 @@ type QueryResolver interface {
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
 	Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error)
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
+	Client(ctx context.Context, params model.ClientRequest) (*model.Client, error)
+	Clients(ctx context.Context, params *model.ListClientsRequest) (*model.Clients, error)
+	TrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.TrustedIssuer, error)
+	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
 	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
@@ -715,6 +778,83 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CheckPermissionsResponse.Results(childComplexity), true
+
+	case "Client.allowed_scopes":
+		if e.complexity.Client.AllowedScopes == nil {
+			break
+		}
+
+		return e.complexity.Client.AllowedScopes(childComplexity), true
+
+	case "Client.created_at":
+		if e.complexity.Client.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Client.CreatedAt(childComplexity), true
+
+	case "Client.description":
+		if e.complexity.Client.Description == nil {
+			break
+		}
+
+		return e.complexity.Client.Description(childComplexity), true
+
+	case "Client.id":
+		if e.complexity.Client.ID == nil {
+			break
+		}
+
+		return e.complexity.Client.ID(childComplexity), true
+
+	case "Client.is_active":
+		if e.complexity.Client.IsActive == nil {
+			break
+		}
+
+		return e.complexity.Client.IsActive(childComplexity), true
+
+	case "Client.name":
+		if e.complexity.Client.Name == nil {
+			break
+		}
+
+		return e.complexity.Client.Name(childComplexity), true
+
+	case "Client.updated_at":
+		if e.complexity.Client.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Client.UpdatedAt(childComplexity), true
+
+	case "Clients.clients":
+		if e.complexity.Clients.Clients == nil {
+			break
+		}
+
+		return e.complexity.Clients.Clients(childComplexity), true
+
+	case "Clients.pagination":
+		if e.complexity.Clients.Pagination == nil {
+			break
+		}
+
+		return e.complexity.Clients.Pagination(childComplexity), true
+
+	case "CreateClientResponse.client":
+		if e.complexity.CreateClientResponse.Client == nil {
+			break
+		}
+
+		return e.complexity.CreateClientResponse.Client(childComplexity), true
+
+	case "CreateClientResponse.client_secret":
+		if e.complexity.CreateClientResponse.ClientSecret == nil {
+			break
+		}
+
+		return e.complexity.CreateClientResponse.ClientSecret(childComplexity), true
 
 	case "EmailTemplate.created_at":
 		if e.complexity.EmailTemplate.CreatedAt == nil {
@@ -1575,6 +1715,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AddEmailTemplate(childComplexity, args["params"].(model.AddEmailTemplateRequest)), true
 
+	case "Mutation._add_trusted_issuer":
+		if e.complexity.Mutation.AddTrustedIssuer == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__add_trusted_issuer_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddTrustedIssuer(childComplexity, args["params"].(model.AddTrustedIssuerRequest)), true
+
 	case "Mutation._add_webhook":
 		if e.complexity.Mutation.AddWebhook == nil {
 			break
@@ -1618,12 +1770,36 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupRequest)), true
 
+	case "Mutation._create_client":
+		if e.complexity.Mutation.CreateClient == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__create_client_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateClient(childComplexity, args["params"].(model.CreateClientRequest)), true
+
 	case "Mutation.deactivate_account":
 		if e.complexity.Mutation.DeactivateAccount == nil {
 			break
 		}
 
 		return e.complexity.Mutation.DeactivateAccount(childComplexity), true
+
+	case "Mutation._delete_client":
+		if e.complexity.Mutation.DeleteClient == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_client_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteClient(childComplexity, args["params"].(model.ClientRequest)), true
 
 	case "Mutation._delete_email_template":
 		if e.complexity.Mutation.DeleteEmailTemplate == nil {
@@ -1636,6 +1812,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEmailTemplate(childComplexity, args["params"].(model.DeleteEmailTemplateRequest)), true
+
+	case "Mutation._delete_trusted_issuer":
+		if e.complexity.Mutation.DeleteTrustedIssuer == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_trusted_issuer_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteTrustedIssuer(childComplexity, args["params"].(model.TrustedIssuerRequest)), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -1867,6 +2055,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.RevokeAccess(childComplexity, args["param"].(model.UpdateAccessRequest)), true
 
+	case "Mutation._rotate_client_secret":
+		if e.complexity.Mutation.RotateClientSecret == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__rotate_client_secret_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RotateClientSecret(childComplexity, args["params"].(model.ClientRequest)), true
+
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
 			break
@@ -1890,6 +2090,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.TestEndpoint(childComplexity, args["params"].(model.TestEndpointRequest)), true
+
+	case "Mutation._update_client":
+		if e.complexity.Mutation.UpdateClient == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_client_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateClient(childComplexity, args["params"].(model.UpdateClientRequest)), true
 
 	case "Mutation._update_email_template":
 		if e.complexity.Mutation.UpdateEmailTemplate == nil {
@@ -1926,6 +2138,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateProfile(childComplexity, args["params"].(model.UpdateProfileRequest)), true
+
+	case "Mutation._update_trusted_issuer":
+		if e.complexity.Mutation.UpdateTrustedIssuer == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_trusted_issuer_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTrustedIssuer(childComplexity, args["params"].(model.UpdateTrustedIssuerRequest)), true
 
 	case "Mutation._update_user":
 		if e.complexity.Mutation.UpdateUser == nil {
@@ -2076,6 +2300,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.CheckPermissions(childComplexity, args["params"].(model.CheckPermissionsInput)), true
 
+	case "Query._client":
+		if e.complexity.Query.Client == nil {
+			break
+		}
+
+		args, err := ec.field_Query__client_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Client(childComplexity, args["params"].(model.ClientRequest)), true
+
+	case "Query._clients":
+		if e.complexity.Query.Clients == nil {
+			break
+		}
+
+		args, err := ec.field_Query__clients_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Clients(childComplexity, args["params"].(*model.ListClientsRequest)), true
+
 	case "Query._email_templates":
 		if e.complexity.Query.EmailTemplates == nil {
 			break
@@ -2175,6 +2423,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Session(childComplexity, args["params"].(*model.SessionQueryRequest)), true
+
+	case "Query._trusted_issuer":
+		if e.complexity.Query.TrustedIssuer == nil {
+			break
+		}
+
+		args, err := ec.field_Query__trusted_issuer_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TrustedIssuer(childComplexity, args["params"].(model.TrustedIssuerRequest)), true
+
+	case "Query._trusted_issuers":
+		if e.complexity.Query.TrustedIssuers == nil {
+			break
+		}
+
+		args, err := ec.field_Query__trusted_issuers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TrustedIssuers(childComplexity, args["params"].(*model.ListTrustedIssuersRequest)), true
 
 	case "Query._user":
 		if e.complexity.Query.User == nil {
@@ -2292,6 +2564,111 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TestEndpointResponse.Response(childComplexity), true
+
+	case "TrustedIssuer.created_at":
+		if e.complexity.TrustedIssuer.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.CreatedAt(childComplexity), true
+
+	case "TrustedIssuer.expected_aud":
+		if e.complexity.TrustedIssuer.ExpectedAud == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.ExpectedAud(childComplexity), true
+
+	case "TrustedIssuer.id":
+		if e.complexity.TrustedIssuer.ID == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.ID(childComplexity), true
+
+	case "TrustedIssuer.is_active":
+		if e.complexity.TrustedIssuer.IsActive == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.IsActive(childComplexity), true
+
+	case "TrustedIssuer.issuer_type":
+		if e.complexity.TrustedIssuer.IssuerType == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.IssuerType(childComplexity), true
+
+	case "TrustedIssuer.issuer_url":
+		if e.complexity.TrustedIssuer.IssuerURL == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.IssuerURL(childComplexity), true
+
+	case "TrustedIssuer.jwks_url":
+		if e.complexity.TrustedIssuer.JwksURL == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.JwksURL(childComplexity), true
+
+	case "TrustedIssuer.key_source_type":
+		if e.complexity.TrustedIssuer.KeySourceType == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.KeySourceType(childComplexity), true
+
+	case "TrustedIssuer.name":
+		if e.complexity.TrustedIssuer.Name == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.Name(childComplexity), true
+
+	case "TrustedIssuer.service_account_id":
+		if e.complexity.TrustedIssuer.ServiceAccountID == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.ServiceAccountID(childComplexity), true
+
+	case "TrustedIssuer.spiffe_refresh_hint_seconds":
+		if e.complexity.TrustedIssuer.SpiffeRefreshHintSeconds == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.SpiffeRefreshHintSeconds(childComplexity), true
+
+	case "TrustedIssuer.subject_claim":
+		if e.complexity.TrustedIssuer.SubjectClaim == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.SubjectClaim(childComplexity), true
+
+	case "TrustedIssuer.updated_at":
+		if e.complexity.TrustedIssuer.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.UpdatedAt(childComplexity), true
+
+	case "TrustedIssuers.pagination":
+		if e.complexity.TrustedIssuers.Pagination == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuers.Pagination(childComplexity), true
+
+	case "TrustedIssuers.trusted_issuers":
+		if e.complexity.TrustedIssuers.TrustedIssuers == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuers.TrustedIssuers(childComplexity), true
 
 	case "User.app_data":
 		if e.complexity.User.AppData == nil {
@@ -2694,10 +3071,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddEmailTemplateRequest,
+		ec.unmarshalInputAddTrustedIssuerRequest,
 		ec.unmarshalInputAddWebhookRequest,
 		ec.unmarshalInputAdminLoginRequest,
 		ec.unmarshalInputAdminSignupRequest,
 		ec.unmarshalInputCheckPermissionsInput,
+		ec.unmarshalInputClientRequest,
+		ec.unmarshalInputCreateClientRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
 		ec.unmarshalInputDeleteUserRequest,
 		ec.unmarshalInputFgaExpandInput,
@@ -2712,7 +3092,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputGetUserRequest,
 		ec.unmarshalInputInviteMemberRequest,
 		ec.unmarshalInputListAuditLogRequest,
+		ec.unmarshalInputListClientsRequest,
 		ec.unmarshalInputListPermissionsInput,
+		ec.unmarshalInputListTrustedIssuersRequest,
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginRequest,
 		ec.unmarshalInputMagicLinkLoginRequest,
@@ -2728,10 +3110,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputSessionQueryRequest,
 		ec.unmarshalInputSignUpRequest,
 		ec.unmarshalInputTestEndpointRequest,
+		ec.unmarshalInputTrustedIssuerRequest,
 		ec.unmarshalInputUpdateAccessRequest,
+		ec.unmarshalInputUpdateClientRequest,
 		ec.unmarshalInputUpdateEmailTemplateRequest,
 		ec.unmarshalInputUpdateEnvRequest,
 		ec.unmarshalInputUpdateProfileRequest,
+		ec.unmarshalInputUpdateTrustedIssuerRequest,
 		ec.unmarshalInputUpdateUserRequest,
 		ec.unmarshalInputUpdateWebhookRequest,
 		ec.unmarshalInputValidateJWTTokenRequest,
@@ -3138,6 +3523,51 @@ type Webhooks {
   webhooks: [Webhook!]!
 }
 
+type Client {
+  id: ID!
+  name: String!
+  description: String
+  allowed_scopes: [String!]!
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+  # client_secret is NEVER returned here. It is returned exactly once in
+  # CreateClientResponse (creation and rotation) and never again.
+}
+
+type CreateClientResponse {
+  client: Client!
+  # client_secret is returned ONCE at creation and ONCE at rotation. Store it
+  # securely; it can never be retrieved again.
+  client_secret: String!
+}
+
+type Clients {
+  pagination: Pagination!
+  clients: [Client!]!
+}
+
+type TrustedIssuer {
+  id: ID!
+  service_account_id: String!
+  name: String!
+  issuer_url: String!
+  key_source_type: String!
+  jwks_url: String
+  expected_aud: String!
+  subject_claim: String!
+  issuer_type: String!
+  is_active: Boolean!
+  spiffe_refresh_hint_seconds: Int64
+  created_at: Int64
+  updated_at: Int64
+}
+
+type TrustedIssuers {
+  pagination: Pagination!
+  trusted_issuers: [TrustedIssuer!]!
+}
+
 type WebhookLog {
   id: ID!
   http_status: Int64
@@ -3507,6 +3937,62 @@ input WebhookRequest {
   id: ID!
 }
 
+input CreateClientRequest {
+  name: String!
+  description: String
+  # allowed_scopes MUST contain at least one non-empty scope after trimming.
+  allowed_scopes: [String!]!
+}
+
+input UpdateClientRequest {
+  id: ID!
+  name: String
+  description: String
+  allowed_scopes: [String!]
+  is_active: Boolean
+}
+
+input ClientRequest {
+  id: ID!
+}
+
+input ListClientsRequest {
+  pagination: PaginatedRequest
+}
+
+input AddTrustedIssuerRequest {
+  service_account_id: String!
+  name: String!
+  issuer_url: String!
+  # key_source_type: "oidc_discovery" | "static_jwks_url" | "spiffe_bundle_endpoint"
+  key_source_type: String!
+  jwks_url: String
+  expected_aud: String!
+  # subject_claim defaults to "sub" if omitted
+  subject_claim: String
+  # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
+  issuer_type: String!
+  spiffe_refresh_hint_seconds: Int64
+}
+
+input UpdateTrustedIssuerRequest {
+  id: ID!
+  name: String
+  jwks_url: String
+  expected_aud: String
+  is_active: Boolean
+  spiffe_refresh_hint_seconds: Int64
+}
+
+input TrustedIssuerRequest {
+  id: ID!
+}
+
+input ListTrustedIssuersRequest {
+  service_account_id: String
+  pagination: PaginatedRequest
+}
+
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
@@ -3682,6 +4168,15 @@ type Mutation {
   _add_webhook(params: AddWebhookRequest!): Response!
   _update_webhook(params: UpdateWebhookRequest!): Response!
   _delete_webhook(params: WebhookRequest!): Response!
+  # Service accounts (machine/workload identity)
+  _create_client(params: CreateClientRequest!): CreateClientResponse!
+  _update_client(params: UpdateClientRequest!): Client!
+  _delete_client(params: ClientRequest!): Response!
+  _rotate_client_secret(params: ClientRequest!): CreateClientResponse!
+  # Trusted issuers (external JWT issuers bound to a service account)
+  _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
+  _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
+  _delete_trusted_issuer(params: TrustedIssuerRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -3712,6 +4207,12 @@ type Query {
   _webhook(params: WebhookRequest!): Webhook!
   _webhooks(params: PaginatedRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+  # Service accounts (machine/workload identity)
+  _client(params: ClientRequest!): Client!
+  _clients(params: ListClientsRequest): Clients!
+  # Trusted issuers
+  _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
+  _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
@@ -3756,6 +4257,34 @@ func (ec *executionContext) field_Mutation__add_email_template_argsParams(
 	}
 
 	var zeroVal model.AddEmailTemplateRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__add_trusted_issuer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__add_trusted_issuer_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__add_trusted_issuer_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddTrustedIssuerRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddTrustedIssuerRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddTrustedIssuerRequest(ctx, tmp)
+	}
+
+	var zeroVal model.AddTrustedIssuerRequest
 	return zeroVal, nil
 }
 
@@ -3843,6 +4372,62 @@ func (ec *executionContext) field_Mutation__admin_signup_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__create_client_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__create_client_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__create_client_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CreateClientRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CreateClientRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCreateClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientRequest(ctx, tmp)
+	}
+
+	var zeroVal model.CreateClientRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_client_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_client_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_client_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ClientRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ClientRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ClientRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__delete_email_template_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3868,6 +4453,34 @@ func (ec *executionContext) field_Mutation__delete_email_template_argsParams(
 	}
 
 	var zeroVal model.DeleteEmailTemplateRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_trusted_issuer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_trusted_issuer_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_trusted_issuer_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.TrustedIssuerRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.TrustedIssuerRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuerRequest(ctx, tmp)
+	}
+
+	var zeroVal model.TrustedIssuerRequest
 	return zeroVal, nil
 }
 
@@ -4123,6 +4736,34 @@ func (ec *executionContext) field_Mutation__revoke_access_argsParam(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__rotate_client_secret_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__rotate_client_secret_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__rotate_client_secret_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ClientRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ClientRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ClientRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__test_endpoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4148,6 +4789,34 @@ func (ec *executionContext) field_Mutation__test_endpoint_argsParams(
 	}
 
 	var zeroVal model.TestEndpointRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__update_client_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__update_client_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__update_client_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateClientRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateClientRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateClientRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateClientRequest
 	return zeroVal, nil
 }
 
@@ -4204,6 +4873,34 @@ func (ec *executionContext) field_Mutation__update_env_argsParams(
 	}
 
 	var zeroVal model.UpdateEnvRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__update_trusted_issuer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__update_trusted_issuer_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__update_trusted_issuer_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateTrustedIssuerRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateTrustedIssuerRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateTrustedIssuerRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateTrustedIssuerRequest
 	return zeroVal, nil
 }
 
@@ -4683,6 +5380,62 @@ func (ec *executionContext) field_Query__audit_logs_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query__client_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__client_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__client_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ClientRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ClientRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ClientRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__clients_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__clients_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__clients_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.ListClientsRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.ListClientsRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOListClientsRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListClientsRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.ListClientsRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query__email_templates_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4792,6 +5545,62 @@ func (ec *executionContext) field_Query__fga_read_tuples_argsParams(
 	}
 
 	var zeroVal model.FgaReadTuplesInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__trusted_issuer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__trusted_issuer_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__trusted_issuer_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.TrustedIssuerRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.TrustedIssuerRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuerRequest(ctx, tmp)
+	}
+
+	var zeroVal model.TrustedIssuerRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__trusted_issuers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__trusted_issuers_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__trusted_issuers_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.ListTrustedIssuersRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.ListTrustedIssuersRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOListTrustedIssuersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListTrustedIssuersRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.ListTrustedIssuersRequest
 	return zeroVal, nil
 }
 
@@ -6515,6 +7324,523 @@ func (ec *executionContext) fieldContext_CheckPermissionsResponse_results(_ cont
 				return ec.fieldContext_PermissionCheckResult_allowed(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PermissionCheckResult", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_id(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_name(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_description(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_allowed_scopes(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_allowed_scopes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AllowedScopes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_allowed_scopes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_is_active(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_is_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_created_at(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Client_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.Client) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Client_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Client_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Client",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Clients_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Clients) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Clients_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Clients_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Clients",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			case "page":
+				return ec.fieldContext_Pagination_page(ctx, field)
+			case "offset":
+				return ec.fieldContext_Pagination_offset(ctx, field)
+			case "total":
+				return ec.fieldContext_Pagination_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Clients_clients(ctx context.Context, field graphql.CollectedField, obj *model.Clients) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Clients_clients(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Clients, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Client)
+	fc.Result = res
+	return ec.marshalNClient2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Clients_clients(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Clients",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Client_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Client_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Client_description(ctx, field)
+			case "allowed_scopes":
+				return ec.fieldContext_Client_allowed_scopes(ctx, field)
+			case "is_active":
+				return ec.fieldContext_Client_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Client_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Client_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Client", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateClientResponse_client(ctx context.Context, field graphql.CollectedField, obj *model.CreateClientResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateClientResponse_client(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Client, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Client)
+	fc.Result = res
+	return ec.marshalNClient2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateClientResponse_client(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateClientResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Client_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Client_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Client_description(ctx, field)
+			case "allowed_scopes":
+				return ec.fieldContext_Client_allowed_scopes(ctx, field)
+			case "is_active":
+				return ec.fieldContext_Client_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Client_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Client_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Client", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateClientResponse_client_secret(ctx context.Context, field graphql.CollectedField, obj *model.CreateClientResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateClientResponse_client_secret(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateClientResponse_client_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateClientResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13540,6 +14866,483 @@ func (ec *executionContext) fieldContext_Mutation__delete_webhook(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__create_client(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__create_client(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateClient(rctx, fc.Args["params"].(model.CreateClientRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.CreateClientResponse)
+	fc.Result = res
+	return ec.marshalNCreateClientResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__create_client(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "client":
+				return ec.fieldContext_CreateClientResponse_client(ctx, field)
+			case "client_secret":
+				return ec.fieldContext_CreateClientResponse_client_secret(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateClientResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__create_client_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__update_client(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__update_client(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateClient(rctx, fc.Args["params"].(model.UpdateClientRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Client)
+	fc.Result = res
+	return ec.marshalNClient2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__update_client(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Client_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Client_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Client_description(ctx, field)
+			case "allowed_scopes":
+				return ec.fieldContext_Client_allowed_scopes(ctx, field)
+			case "is_active":
+				return ec.fieldContext_Client_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Client_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Client_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Client", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__update_client_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_client(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_client(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteClient(rctx, fc.Args["params"].(model.ClientRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_client(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_client_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__rotate_client_secret(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__rotate_client_secret(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RotateClientSecret(rctx, fc.Args["params"].(model.ClientRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.CreateClientResponse)
+	fc.Result = res
+	return ec.marshalNCreateClientResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__rotate_client_secret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "client":
+				return ec.fieldContext_CreateClientResponse_client(ctx, field)
+			case "client_secret":
+				return ec.fieldContext_CreateClientResponse_client_secret(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateClientResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__rotate_client_secret_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__add_trusted_issuer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__add_trusted_issuer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddTrustedIssuer(rctx, fc.Args["params"].(model.AddTrustedIssuerRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TrustedIssuer)
+	fc.Result = res
+	return ec.marshalNTrustedIssuer2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__add_trusted_issuer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrustedIssuer_id(ctx, field)
+			case "service_account_id":
+				return ec.fieldContext_TrustedIssuer_service_account_id(ctx, field)
+			case "name":
+				return ec.fieldContext_TrustedIssuer_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_TrustedIssuer_issuer_url(ctx, field)
+			case "key_source_type":
+				return ec.fieldContext_TrustedIssuer_key_source_type(ctx, field)
+			case "jwks_url":
+				return ec.fieldContext_TrustedIssuer_jwks_url(ctx, field)
+			case "expected_aud":
+				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
+			case "subject_claim":
+				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "issuer_type":
+				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
+			case "is_active":
+				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
+			case "spiffe_refresh_hint_seconds":
+				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TrustedIssuer_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrustedIssuer", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__add_trusted_issuer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__update_trusted_issuer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__update_trusted_issuer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateTrustedIssuer(rctx, fc.Args["params"].(model.UpdateTrustedIssuerRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TrustedIssuer)
+	fc.Result = res
+	return ec.marshalNTrustedIssuer2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__update_trusted_issuer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrustedIssuer_id(ctx, field)
+			case "service_account_id":
+				return ec.fieldContext_TrustedIssuer_service_account_id(ctx, field)
+			case "name":
+				return ec.fieldContext_TrustedIssuer_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_TrustedIssuer_issuer_url(ctx, field)
+			case "key_source_type":
+				return ec.fieldContext_TrustedIssuer_key_source_type(ctx, field)
+			case "jwks_url":
+				return ec.fieldContext_TrustedIssuer_jwks_url(ctx, field)
+			case "expected_aud":
+				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
+			case "subject_claim":
+				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "issuer_type":
+				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
+			case "is_active":
+				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
+			case "spiffe_refresh_hint_seconds":
+				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TrustedIssuer_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrustedIssuer", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__update_trusted_issuer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_trusted_issuer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_trusted_issuer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteTrustedIssuer(rctx, fc.Args["params"].(model.TrustedIssuerRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_trusted_issuer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_trusted_issuer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__test_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__test_endpoint(ctx, field)
 	if err != nil {
@@ -15478,6 +17281,282 @@ func (ec *executionContext) fieldContext_Query__webhook_logs(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__client(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__client(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Client(rctx, fc.Args["params"].(model.ClientRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Client)
+	fc.Result = res
+	return ec.marshalNClient2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__client(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Client_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Client_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Client_description(ctx, field)
+			case "allowed_scopes":
+				return ec.fieldContext_Client_allowed_scopes(ctx, field)
+			case "is_active":
+				return ec.fieldContext_Client_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Client_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Client_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Client", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__client_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__clients(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__clients(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Clients(rctx, fc.Args["params"].(*model.ListClientsRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Clients)
+	fc.Result = res
+	return ec.marshalNClients2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClients(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__clients(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pagination":
+				return ec.fieldContext_Clients_pagination(ctx, field)
+			case "clients":
+				return ec.fieldContext_Clients_clients(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Clients", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__clients_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__trusted_issuer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__trusted_issuer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TrustedIssuer(rctx, fc.Args["params"].(model.TrustedIssuerRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TrustedIssuer)
+	fc.Result = res
+	return ec.marshalNTrustedIssuer2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__trusted_issuer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrustedIssuer_id(ctx, field)
+			case "service_account_id":
+				return ec.fieldContext_TrustedIssuer_service_account_id(ctx, field)
+			case "name":
+				return ec.fieldContext_TrustedIssuer_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_TrustedIssuer_issuer_url(ctx, field)
+			case "key_source_type":
+				return ec.fieldContext_TrustedIssuer_key_source_type(ctx, field)
+			case "jwks_url":
+				return ec.fieldContext_TrustedIssuer_jwks_url(ctx, field)
+			case "expected_aud":
+				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
+			case "subject_claim":
+				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "issuer_type":
+				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
+			case "is_active":
+				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
+			case "spiffe_refresh_hint_seconds":
+				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TrustedIssuer_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrustedIssuer", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__trusted_issuer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__trusted_issuers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__trusted_issuers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TrustedIssuers(rctx, fc.Args["params"].(*model.ListTrustedIssuersRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TrustedIssuers)
+	fc.Result = res
+	return ec.marshalNTrustedIssuers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuers(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__trusted_issuers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pagination":
+				return ec.fieldContext_TrustedIssuers_pagination(ctx, field)
+			case "trusted_issuers":
+				return ec.fieldContext_TrustedIssuers_trusted_issuers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrustedIssuers", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__trusted_issuers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__email_templates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__email_templates(ctx, field)
 	if err != nil {
@@ -16203,6 +18282,692 @@ func (ec *executionContext) fieldContext_TestEndpointResponse_response(_ context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_id(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_service_account_id(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_service_account_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ServiceAccountID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_service_account_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_name(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_issuer_url(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_issuer_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IssuerURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_issuer_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_key_source_type(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_key_source_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.KeySourceType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_key_source_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_jwks_url(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_jwks_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JwksURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_jwks_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_expected_aud(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExpectedAud, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_expected_aud(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_subject_claim(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubjectClaim, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_subject_claim(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_issuer_type(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IssuerType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_issuer_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_is_active(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_is_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_spiffe_refresh_hint_seconds(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SpiffeRefreshHintSeconds, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_created_at(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuers_pagination(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuers) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuers_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuers_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuers",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			case "page":
+				return ec.fieldContext_Pagination_page(ctx, field)
+			case "offset":
+				return ec.fieldContext_Pagination_offset(ctx, field)
+			case "total":
+				return ec.fieldContext_Pagination_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuers_trusted_issuers(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuers) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuers_trusted_issuers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TrustedIssuers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TrustedIssuer)
+	fc.Result = res
+	return ec.marshalNTrustedIssuer2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuerᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuers_trusted_issuers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuers",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrustedIssuer_id(ctx, field)
+			case "service_account_id":
+				return ec.fieldContext_TrustedIssuer_service_account_id(ctx, field)
+			case "name":
+				return ec.fieldContext_TrustedIssuer_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_TrustedIssuer_issuer_url(ctx, field)
+			case "key_source_type":
+				return ec.fieldContext_TrustedIssuer_key_source_type(ctx, field)
+			case "jwks_url":
+				return ec.fieldContext_TrustedIssuer_jwks_url(ctx, field)
+			case "expected_aud":
+				return ec.fieldContext_TrustedIssuer_expected_aud(ctx, field)
+			case "subject_claim":
+				return ec.fieldContext_TrustedIssuer_subject_claim(ctx, field)
+			case "issuer_type":
+				return ec.fieldContext_TrustedIssuer_issuer_type(ctx, field)
+			case "is_active":
+				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
+			case "spiffe_refresh_hint_seconds":
+				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TrustedIssuer_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrustedIssuer", field.Name)
 		},
 	}
 	return fc, nil
@@ -20738,6 +23503,89 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Context, obj any) (model.AddTrustedIssuerRequest, error) {
+	var it model.AddTrustedIssuerRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"service_account_id", "name", "issuer_url", "key_source_type", "jwks_url", "expected_aud", "subject_claim", "issuer_type", "spiffe_refresh_hint_seconds"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "service_account_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("service_account_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceAccountID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "issuer_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issuer_url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IssuerURL = data
+		case "key_source_type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key_source_type"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.KeySourceType = data
+		case "jwks_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jwks_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.JwksURL = data
+		case "expected_aud":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expected_aud"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpectedAud = data
+		case "subject_claim":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject_claim"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SubjectClaim = data
+		case "issuer_type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issuer_type"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IssuerType = data
+		case "spiffe_refresh_hint_seconds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("spiffe_refresh_hint_seconds"))
+			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpiffeRefreshHintSeconds = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context, obj any) (model.AddWebhookRequest, error) {
 	var it model.AddWebhookRequest
 	asMap := map[string]any{}
@@ -20875,6 +23723,74 @@ func (ec *executionContext) unmarshalInputCheckPermissionsInput(ctx context.Cont
 				return it, err
 			}
 			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClientRequest(ctx context.Context, obj any) (model.ClientRequest, error) {
+	var it model.ClientRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateClientRequest(ctx context.Context, obj any) (model.CreateClientRequest, error) {
+	var it model.CreateClientRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description", "allowed_scopes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "allowed_scopes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowed_scopes"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowedScopes = data
 		}
 	}
 
@@ -21406,6 +24322,33 @@ func (ec *executionContext) unmarshalInputListAuditLogRequest(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputListClientsRequest(ctx context.Context, obj any) (model.ListClientsRequest, error) {
+	var it model.ListClientsRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"pagination"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputListPermissionsInput(ctx context.Context, obj any) (model.ListPermissionsInput, error) {
 	var it model.ListPermissionsInput
 	asMap := map[string]any{}
@@ -21441,6 +24384,40 @@ func (ec *executionContext) unmarshalInputListPermissionsInput(ctx context.Conte
 				return it, err
 			}
 			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListTrustedIssuersRequest(ctx context.Context, obj any) (model.ListTrustedIssuersRequest, error) {
+	var it model.ListTrustedIssuersRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"service_account_id", "pagination"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "service_account_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("service_account_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceAccountID = data
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
 		}
 	}
 
@@ -22293,6 +25270,33 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTrustedIssuerRequest(ctx context.Context, obj any) (model.TrustedIssuerRequest, error) {
+	var it model.TrustedIssuerRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Context, obj any) (model.UpdateAccessRequest, error) {
 	var it model.UpdateAccessRequest
 	asMap := map[string]any{}
@@ -22314,6 +25318,61 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 				return it, err
 			}
 			it.UserID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateClientRequest(ctx context.Context, obj any) (model.UpdateClientRequest, error) {
+	var it model.UpdateClientRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "description", "allowed_scopes", "is_active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "allowed_scopes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowed_scopes"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowedScopes = data
+		case "is_active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsActive = data
 		}
 	}
 
@@ -22947,6 +26006,68 @@ func (ec *executionContext) unmarshalInputUpdateProfileRequest(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateTrustedIssuerRequest(ctx context.Context, obj any) (model.UpdateTrustedIssuerRequest, error) {
+	var it model.UpdateTrustedIssuerRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "jwks_url", "expected_aud", "is_active", "spiffe_refresh_hint_seconds"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "jwks_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jwks_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.JwksURL = data
+		case "expected_aud":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expected_aud"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpectedAud = data
+		case "is_active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsActive = data
+		case "spiffe_refresh_hint_seconds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("spiffe_refresh_hint_seconds"))
+			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpiffeRefreshHintSeconds = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateUserRequest(ctx context.Context, obj any) (model.UpdateUserRequest, error) {
 	var it model.UpdateUserRequest
 	asMap := map[string]any{}
@@ -23573,6 +26694,154 @@ func (ec *executionContext) _CheckPermissionsResponse(ctx context.Context, sel a
 			out.Values[i] = graphql.MarshalString("CheckPermissionsResponse")
 		case "results":
 			out.Values[i] = ec._CheckPermissionsResponse_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var clientImplementors = []string{"Client"}
+
+func (ec *executionContext) _Client(ctx context.Context, sel ast.SelectionSet, obj *model.Client) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, clientImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Client")
+		case "id":
+			out.Values[i] = ec._Client_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Client_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._Client_description(ctx, field, obj)
+		case "allowed_scopes":
+			out.Values[i] = ec._Client_allowed_scopes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_active":
+			out.Values[i] = ec._Client_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._Client_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._Client_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var clientsImplementors = []string{"Clients"}
+
+func (ec *executionContext) _Clients(ctx context.Context, sel ast.SelectionSet, obj *model.Clients) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, clientsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Clients")
+		case "pagination":
+			out.Values[i] = ec._Clients_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "clients":
+			out.Values[i] = ec._Clients_clients(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var createClientResponseImplementors = []string{"CreateClientResponse"}
+
+func (ec *executionContext) _CreateClientResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CreateClientResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createClientResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateClientResponse")
+		case "client":
+			out.Values[i] = ec._CreateClientResponse_client(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "client_secret":
+			out.Values[i] = ec._CreateClientResponse_client_secret(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -24712,6 +27981,55 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_create_client":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__create_client(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_update_client":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__update_client(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_client":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_client(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_rotate_client_secret":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__rotate_client_secret(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_add_trusted_issuer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__add_trusted_issuer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_update_trusted_issuer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__update_trusted_issuer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_trusted_issuer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_trusted_issuer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_test_endpoint":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__test_endpoint(ctx, field)
@@ -25265,6 +28583,94 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_client":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__client(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_clients":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__clients(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_trusted_issuer":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__trusted_issuer(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_trusted_issuers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__trusted_issuers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_email_templates":
 			field := field
 
@@ -25526,6 +28932,137 @@ func (ec *executionContext) _TestEndpointResponse(ctx context.Context, sel ast.S
 			out.Values[i] = ec._TestEndpointResponse_http_status(ctx, field, obj)
 		case "response":
 			out.Values[i] = ec._TestEndpointResponse_response(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trustedIssuerImplementors = []string{"TrustedIssuer"}
+
+func (ec *executionContext) _TrustedIssuer(ctx context.Context, sel ast.SelectionSet, obj *model.TrustedIssuer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trustedIssuerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrustedIssuer")
+		case "id":
+			out.Values[i] = ec._TrustedIssuer_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "service_account_id":
+			out.Values[i] = ec._TrustedIssuer_service_account_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._TrustedIssuer_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "issuer_url":
+			out.Values[i] = ec._TrustedIssuer_issuer_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "key_source_type":
+			out.Values[i] = ec._TrustedIssuer_key_source_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "jwks_url":
+			out.Values[i] = ec._TrustedIssuer_jwks_url(ctx, field, obj)
+		case "expected_aud":
+			out.Values[i] = ec._TrustedIssuer_expected_aud(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "subject_claim":
+			out.Values[i] = ec._TrustedIssuer_subject_claim(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "issuer_type":
+			out.Values[i] = ec._TrustedIssuer_issuer_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_active":
+			out.Values[i] = ec._TrustedIssuer_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "spiffe_refresh_hint_seconds":
+			out.Values[i] = ec._TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field, obj)
+		case "created_at":
+			out.Values[i] = ec._TrustedIssuer_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._TrustedIssuer_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trustedIssuersImplementors = []string{"TrustedIssuers"}
+
+func (ec *executionContext) _TrustedIssuers(ctx context.Context, sel ast.SelectionSet, obj *model.TrustedIssuers) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trustedIssuersImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrustedIssuers")
+		case "pagination":
+			out.Values[i] = ec._TrustedIssuers_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trusted_issuers":
+			out.Values[i] = ec._TrustedIssuers_trusted_issuers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -26398,6 +29935,11 @@ func (ec *executionContext) unmarshalNAddEmailTemplateRequest2githubᚗcomᚋaut
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNAddTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddTrustedIssuerRequest(ctx context.Context, v any) (model.AddTrustedIssuerRequest, error) {
+	res, err := ec.unmarshalInputAddTrustedIssuerRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v any) (model.AddWebhookRequest, error) {
 	res, err := ec.unmarshalInputAddWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -26542,6 +30084,102 @@ func (ec *executionContext) marshalNCheckPermissionsResponse2ᚖgithubᚗcomᚋa
 		return graphql.Null
 	}
 	return ec._CheckPermissionsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNClient2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx context.Context, sel ast.SelectionSet, v model.Client) graphql.Marshaler {
+	return ec._Client(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNClient2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Client) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNClient2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNClient2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClient(ctx context.Context, sel ast.SelectionSet, v *model.Client) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Client(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClientRequest(ctx context.Context, v any) (model.ClientRequest, error) {
+	res, err := ec.unmarshalInputClientRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNClients2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClients(ctx context.Context, sel ast.SelectionSet, v model.Clients) graphql.Marshaler {
+	return ec._Clients(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNClients2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐClients(ctx context.Context, sel ast.SelectionSet, v *model.Clients) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Clients(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNCreateClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientRequest(ctx context.Context, v any) (model.CreateClientRequest, error) {
+	res, err := ec.unmarshalInputCreateClientRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreateClientResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientResponse(ctx context.Context, sel ast.SelectionSet, v model.CreateClientResponse) graphql.Marshaler {
+	return ec._CreateClientResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateClientResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateClientResponse(ctx context.Context, sel ast.SelectionSet, v *model.CreateClientResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateClientResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v any) (model.DeleteEmailTemplateRequest, error) {
@@ -27180,8 +30818,90 @@ func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋautho
 	return ec._TestEndpointResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNTrustedIssuer2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx context.Context, sel ast.SelectionSet, v model.TrustedIssuer) graphql.Marshaler {
+	return ec._TrustedIssuer(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrustedIssuer2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TrustedIssuer) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTrustedIssuer2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTrustedIssuer2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuer(ctx context.Context, sel ast.SelectionSet, v *model.TrustedIssuer) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrustedIssuer(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuerRequest(ctx context.Context, v any) (model.TrustedIssuerRequest, error) {
+	res, err := ec.unmarshalInputTrustedIssuerRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTrustedIssuers2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuers(ctx context.Context, sel ast.SelectionSet, v model.TrustedIssuers) graphql.Marshaler {
+	return ec._TrustedIssuers(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrustedIssuers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTrustedIssuers(ctx context.Context, sel ast.SelectionSet, v *model.TrustedIssuers) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrustedIssuers(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNUpdateAccessRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessRequest(ctx context.Context, v any) (model.UpdateAccessRequest, error) {
 	res, err := ec.unmarshalInputUpdateAccessRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateClientRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateClientRequest(ctx context.Context, v any) (model.UpdateClientRequest, error) {
+	res, err := ec.unmarshalInputUpdateClientRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -27197,6 +30917,11 @@ func (ec *executionContext) unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizer
 
 func (ec *executionContext) unmarshalNUpdateProfileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileRequest(ctx context.Context, v any) (model.UpdateProfileRequest, error) {
 	res, err := ec.unmarshalInputUpdateProfileRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateTrustedIssuerRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateTrustedIssuerRequest(ctx context.Context, v any) (model.UpdateTrustedIssuerRequest, error) {
+	res, err := ec.unmarshalInputUpdateTrustedIssuerRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -27898,6 +31623,22 @@ func (ec *executionContext) unmarshalOListAuditLogRequest2ᚖgithubᚗcomᚋauth
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputListAuditLogRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOListClientsRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListClientsRequest(ctx context.Context, v any) (*model.ListClientsRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListClientsRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOListTrustedIssuersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListTrustedIssuersRequest(ctx context.Context, v any) (*model.ListTrustedIssuersRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListTrustedIssuersRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
