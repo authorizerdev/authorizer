@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
+	scimhttp "github.com/authorizerdev/authorizer/internal/http_handlers/scim"
 )
 
 // Config holds the configuration of a server.
@@ -37,6 +38,8 @@ type Dependencies struct {
 	AppConfig       *config.Config
 	GraphQLProvider graphql.Provider
 	HTTPProvider    http_handlers.Provider
+	// ScimHandler serves the per-org inbound SCIM 2.0 surface at /scim/v2.
+	ScimHandler *scimhttp.Handler
 	// GRPCServer is the configured (but not yet listening) gRPC server.
 	// nil disables both the gRPC listener and the REST `/v1/*` gateway.
 	GRPCServer *grpcsrv.Server

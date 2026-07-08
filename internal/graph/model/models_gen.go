@@ -128,6 +128,15 @@ type CreateOrganizationRequest struct {
 	DisplayName *string `json:"display_name,omitempty"`
 }
 
+type CreateScimEndpointRequest struct {
+	OrgID string `json:"org_id"`
+}
+
+type CreateScimEndpointResponse struct {
+	ScimEndpoint *ScimEndpoint `json:"scim_endpoint"`
+	Token        string        `json:"token"`
+}
+
 type DeleteEmailTemplateRequest struct {
 	ID string `json:"id"`
 }
@@ -544,6 +553,18 @@ type ResetPasswordRequest struct {
 
 type Response struct {
 	Message string `json:"message"`
+}
+
+type ScimEndpoint struct {
+	ID        string `json:"id"`
+	OrgID     string `json:"org_id"`
+	Enabled   bool   `json:"enabled"`
+	CreatedAt *int64 `json:"created_at,omitempty"`
+	UpdatedAt *int64 `json:"updated_at,omitempty"`
+}
+
+type ScimEndpointRequest struct {
+	OrgID string `json:"org_id"`
 }
 
 type SessionQueryRequest struct {

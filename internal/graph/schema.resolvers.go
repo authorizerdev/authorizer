@@ -212,6 +212,21 @@ func (r *mutationResolver) RemoveOrgMember(ctx context.Context, params model.Rem
 	return r.GraphQLProvider.RemoveOrgMember(ctx, &params)
 }
 
+// CreateScimEndpoint is the resolver for the _create_scim_endpoint field.
+func (r *mutationResolver) CreateScimEndpoint(ctx context.Context, params model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, error) {
+	return r.GraphQLProvider.CreateScimEndpoint(ctx, &params)
+}
+
+// RotateScimToken is the resolver for the _rotate_scim_token field.
+func (r *mutationResolver) RotateScimToken(ctx context.Context, params model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, error) {
+	return r.GraphQLProvider.RotateScimToken(ctx, &params)
+}
+
+// DeleteScimEndpoint is the resolver for the _delete_scim_endpoint field.
+func (r *mutationResolver) DeleteScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteScimEndpoint(ctx, &params)
+}
+
 // TestEndpoint is the resolver for the _test_endpoint field.
 func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
 	return r.GraphQLProvider.TestEndpoint(ctx, &params)
@@ -355,6 +370,11 @@ func (r *queryResolver) Organizations(ctx context.Context, params *model.ListOrg
 // OrgMembers is the resolver for the _org_members field.
 func (r *queryResolver) OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error) {
 	return r.GraphQLProvider.OrgMembers(ctx, &params)
+}
+
+// ScimEndpoint is the resolver for the _scim_endpoint field.
+func (r *queryResolver) ScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.ScimEndpoint, error) {
+	return r.GraphQLProvider.ScimEndpoint(ctx, &params)
 }
 
 // EmailTemplates is the resolver for the _email_templates field.

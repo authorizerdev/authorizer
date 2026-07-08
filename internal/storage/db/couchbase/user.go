@@ -142,6 +142,30 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	return user, nil
 }
 
+// GetUserByExternalID to get user information from database using the
+// org-namespaced external ID. external_id is stored as "<orgID>:<externalID>"
+// so IdP identifiers never collide across organizations.
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE external_id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
+		PositionalParameters: []interface{}{orgID + ":" + externalID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	user := &schemas.User{}
+	if err := decodeDocument(raw, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)

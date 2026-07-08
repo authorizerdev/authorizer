@@ -153,6 +153,36 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	return user, nil
 }
 
+// GetUserByExternalID to get user information from database using the
+// org-namespaced external id. external_id is stored as "<orgID>:<externalID>"
+// so the same IdP external id can map to distinct users across organizations.
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("FOR d in %s FILTER d.external_id == @extid RETURN d", schemas.Collections.User)
+	bindVars := map[string]interface{}{
+		"extid": orgID + ":" + externalID,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = cursor.Close() }()
+	for {
+		if !cursor.HasMore() {
+			if user == nil {
+				return nil, fmt.Errorf("user not found")
+			}
+			break
+		}
+		u := &schemas.User{}
+		if _, err := readDocument(ctx, cursor, u); err != nil {
+			return nil, err
+		}
+		user = u
+	}
+	return user, nil
+}
+
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	var user *schemas.User

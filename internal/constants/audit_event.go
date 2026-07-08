@@ -37,6 +37,8 @@ const (
 	AuditResourceTypeOrganization = "organization"
 	// AuditResourceTypeOrgMembership represents an org membership entity.
 	AuditResourceTypeOrgMembership = "org_membership"
+	// AuditResourceTypeScimEndpoint represents a per-org SCIM endpoint.
+	AuditResourceTypeScimEndpoint = "scim_endpoint"
 )
 
 // Audit event type constants used for structured audit logging.
@@ -184,6 +186,19 @@ const (
 	AuditOrgMemberRemovedEvent = "admin.org_member_removed"
 	// AuditOrgMemberRemoveFailedEvent is logged when removing an org member fails.
 	AuditOrgMemberRemoveFailedEvent = "admin.org_member_remove_failed"
+
+	// AuditScimEndpointCreatedEvent is logged when an admin creates a SCIM endpoint.
+	AuditScimEndpointCreatedEvent = "admin.scim_endpoint_created"
+	// AuditScimEndpointCreateFailedEvent is logged when SCIM endpoint creation fails.
+	AuditScimEndpointCreateFailedEvent = "admin.scim_endpoint_create_failed"
+	// AuditScimTokenRotatedEvent is logged when an admin rotates a SCIM token.
+	AuditScimTokenRotatedEvent = "admin.scim_token_rotated"
+	// AuditScimTokenRotateFailedEvent is logged when a SCIM token rotation fails.
+	AuditScimTokenRotateFailedEvent = "admin.scim_token_rotate_failed"
+	// AuditScimEndpointDeletedEvent is logged when an admin deletes a SCIM endpoint.
+	AuditScimEndpointDeletedEvent = "admin.scim_endpoint_deleted"
+	// AuditScimEndpointDeleteFailedEvent is logged when a SCIM endpoint delete fails.
+	AuditScimEndpointDeleteFailedEvent = "admin.scim_endpoint_delete_failed"
 
 	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
 	// via the client_credentials grant (RFC 6749 §4.4).

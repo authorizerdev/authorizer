@@ -110,6 +110,11 @@ type ComplexityRoot struct {
 		ClientSecret func(childComplexity int) int
 	}
 
+	CreateScimEndpointResponse struct {
+		ScimEndpoint func(childComplexity int) int
+		Token        func(childComplexity int) int
+	}
+
 	EmailTemplate struct {
 		CreatedAt func(childComplexity int) int
 		Design    func(childComplexity int) int
@@ -283,10 +288,12 @@ type ComplexityRoot struct {
 		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
 		CreateClient        func(childComplexity int, params model.CreateClientRequest) int
 		CreateOrganization  func(childComplexity int, params model.CreateOrganizationRequest) int
+		CreateScimEndpoint  func(childComplexity int, params model.CreateScimEndpointRequest) int
 		DeactivateAccount   func(childComplexity int) int
 		DeleteClient        func(childComplexity int, params model.ClientRequest) int
 		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
 		DeleteOrganization  func(childComplexity int, params model.OrganizationRequest) int
+		DeleteScimEndpoint  func(childComplexity int, params model.ScimEndpointRequest) int
 		DeleteTrustedIssuer func(childComplexity int, params model.TrustedIssuerRequest) int
 		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
 		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
@@ -310,6 +317,7 @@ type ComplexityRoot struct {
 		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
 		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
 		RotateClientSecret  func(childComplexity int, params model.ClientRequest) int
+		RotateScimToken     func(childComplexity int, params model.ScimEndpointRequest) int
 		Signup              func(childComplexity int, params model.SignUpRequest) int
 		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
 		UpdateClient        func(childComplexity int, params model.UpdateClientRequest) int
@@ -389,6 +397,7 @@ type ComplexityRoot struct {
 		Organization         func(childComplexity int, params model.OrganizationRequest) int
 		Organizations        func(childComplexity int, params *model.ListOrganizationsRequest) int
 		Profile              func(childComplexity int) int
+		ScimEndpoint         func(childComplexity int, params model.ScimEndpointRequest) int
 		Session              func(childComplexity int, params *model.SessionQueryRequest) int
 		TrustedIssuer        func(childComplexity int, params model.TrustedIssuerRequest) int
 		TrustedIssuers       func(childComplexity int, params *model.ListTrustedIssuersRequest) int
@@ -404,6 +413,14 @@ type ComplexityRoot struct {
 
 	Response struct {
 		Message func(childComplexity int) int
+	}
+
+	ScimEndpoint struct {
+		CreatedAt func(childComplexity int) int
+		Enabled   func(childComplexity int) int
+		ID        func(childComplexity int) int
+		OrgID     func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	TestEndpointResponse struct {
@@ -561,6 +578,9 @@ type MutationResolver interface {
 	DeleteOrganization(ctx context.Context, params model.OrganizationRequest) (*model.Response, error)
 	AddOrgMember(ctx context.Context, params model.AddOrgMemberRequest) (*model.OrgMember, error)
 	RemoveOrgMember(ctx context.Context, params model.RemoveOrgMemberRequest) (*model.Response, error)
+	CreateScimEndpoint(ctx context.Context, params model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
+	RotateScimToken(ctx context.Context, params model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
+	DeleteScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.Response, error)
 	TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error)
 	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
 	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
@@ -592,6 +612,7 @@ type QueryResolver interface {
 	Organization(ctx context.Context, params model.OrganizationRequest) (*model.Organization, error)
 	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
+	ScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.ScimEndpoint, error)
 	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
@@ -900,6 +921,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CreateClientResponse.ClientSecret(childComplexity), true
+
+	case "CreateScimEndpointResponse.scim_endpoint":
+		if e.complexity.CreateScimEndpointResponse.ScimEndpoint == nil {
+			break
+		}
+
+		return e.complexity.CreateScimEndpointResponse.ScimEndpoint(childComplexity), true
+
+	case "CreateScimEndpointResponse.token":
+		if e.complexity.CreateScimEndpointResponse.Token == nil {
+			break
+		}
+
+		return e.complexity.CreateScimEndpointResponse.Token(childComplexity), true
 
 	case "EmailTemplate.created_at":
 		if e.complexity.EmailTemplate.CreatedAt == nil {
@@ -1851,6 +1886,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateOrganization(childComplexity, args["params"].(model.CreateOrganizationRequest)), true
 
+	case "Mutation._create_scim_endpoint":
+		if e.complexity.Mutation.CreateScimEndpoint == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__create_scim_endpoint_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateScimEndpoint(childComplexity, args["params"].(model.CreateScimEndpointRequest)), true
+
 	case "Mutation.deactivate_account":
 		if e.complexity.Mutation.DeactivateAccount == nil {
 			break
@@ -1893,6 +1940,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteOrganization(childComplexity, args["params"].(model.OrganizationRequest)), true
+
+	case "Mutation._delete_scim_endpoint":
+		if e.complexity.Mutation.DeleteScimEndpoint == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_scim_endpoint_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteScimEndpoint(childComplexity, args["params"].(model.ScimEndpointRequest)), true
 
 	case "Mutation._delete_trusted_issuer":
 		if e.complexity.Mutation.DeleteTrustedIssuer == nil {
@@ -2159,6 +2218,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RotateClientSecret(childComplexity, args["params"].(model.ClientRequest)), true
+
+	case "Mutation._rotate_scim_token":
+		if e.complexity.Mutation.RotateScimToken == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__rotate_scim_token_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RotateScimToken(childComplexity, args["params"].(model.ScimEndpointRequest)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
@@ -2665,6 +2736,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Profile(childComplexity), true
 
+	case "Query._scim_endpoint":
+		if e.complexity.Query.ScimEndpoint == nil {
+			break
+		}
+
+		args, err := ec.field_Query__scim_endpoint_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ScimEndpoint(childComplexity, args["params"].(model.ScimEndpointRequest)), true
+
 	case "Query.session":
 		if e.complexity.Query.Session == nil {
 			break
@@ -2803,6 +2886,41 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Response.Message(childComplexity), true
+
+	case "ScimEndpoint.created_at":
+		if e.complexity.ScimEndpoint.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ScimEndpoint.CreatedAt(childComplexity), true
+
+	case "ScimEndpoint.enabled":
+		if e.complexity.ScimEndpoint.Enabled == nil {
+			break
+		}
+
+		return e.complexity.ScimEndpoint.Enabled(childComplexity), true
+
+	case "ScimEndpoint.id":
+		if e.complexity.ScimEndpoint.ID == nil {
+			break
+		}
+
+		return e.complexity.ScimEndpoint.ID(childComplexity), true
+
+	case "ScimEndpoint.org_id":
+		if e.complexity.ScimEndpoint.OrgID == nil {
+			break
+		}
+
+		return e.complexity.ScimEndpoint.OrgID(childComplexity), true
+
+	case "ScimEndpoint.updated_at":
+		if e.complexity.ScimEndpoint.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.ScimEndpoint.UpdatedAt(childComplexity), true
 
 	case "TestEndpointResponse.http_status":
 		if e.complexity.TestEndpointResponse.HTTPStatus == nil {
@@ -3340,6 +3458,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputClientRequest,
 		ec.unmarshalInputCreateClientRequest,
 		ec.unmarshalInputCreateOrganizationRequest,
+		ec.unmarshalInputCreateScimEndpointRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
 		ec.unmarshalInputDeleteUserRequest,
 		ec.unmarshalInputFgaExpandInput,
@@ -3373,6 +3492,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputResendOTPRequest,
 		ec.unmarshalInputResendVerifyEmailRequest,
 		ec.unmarshalInputResetPasswordRequest,
+		ec.unmarshalInputScimEndpointRequest,
 		ec.unmarshalInputSessionQueryRequest,
 		ec.unmarshalInputSignUpRequest,
 		ec.unmarshalInputTestEndpointRequest,
@@ -3852,6 +3972,25 @@ type Organizations {
   organizations: [Organization!]!
 }
 
+# ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The bearer
+# token is NEVER returned here; it is returned exactly once in
+# CreateScimEndpointResponse (creation and rotation) and never again.
+type ScimEndpoint {
+  id: ID!
+  org_id: String!
+  enabled: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type CreateScimEndpointResponse {
+  scim_endpoint: ScimEndpoint!
+  # token is the bearer credential the org's IdP presents at /scim/v2/. It is
+  # returned ONCE at creation and ONCE at rotation. Store it securely; it can
+  # never be retrieved again.
+  token: String!
+}
+
 type OrgMember {
   id: ID!
   org_id: String!
@@ -4318,6 +4457,15 @@ input ListOrganizationsRequest {
   pagination: PaginatedRequest
 }
 
+# All SCIM endpoint admin ops are keyed by org_id — one endpoint per org.
+input CreateScimEndpointRequest {
+  org_id: String!
+}
+
+input ScimEndpointRequest {
+  org_id: String!
+}
+
 input AddOrgMemberRequest {
   org_id: String!
   user_id: String!
@@ -4525,6 +4673,10 @@ type Mutation {
   _delete_organization(params: OrganizationRequest!): Response!
   _add_org_member(params: AddOrgMemberRequest!): OrgMember!
   _remove_org_member(params: RemoveOrgMemberRequest!): Response!
+  # Per-org inbound SCIM 2.0 endpoints. The token is revealed once.
+  _create_scim_endpoint(params: CreateScimEndpointRequest!): CreateScimEndpointResponse!
+  _rotate_scim_token(params: ScimEndpointRequest!): CreateScimEndpointResponse!
+  _delete_scim_endpoint(params: ScimEndpointRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -4565,6 +4717,8 @@ type Query {
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
   _org_members(params: ListOrgMembersRequest!): OrgMembers!
+  # Per-org inbound SCIM 2.0 endpoint metadata (token never returned here).
+  _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
@@ -4808,6 +4962,34 @@ func (ec *executionContext) field_Mutation__create_organization_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__create_scim_endpoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__create_scim_endpoint_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__create_scim_endpoint_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CreateScimEndpointRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CreateScimEndpointRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCreateScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointRequest(ctx, tmp)
+	}
+
+	var zeroVal model.CreateScimEndpointRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__delete_client_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4889,6 +5071,34 @@ func (ec *executionContext) field_Mutation__delete_organization_argsParams(
 	}
 
 	var zeroVal model.OrganizationRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_scim_endpoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_scim_endpoint_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_scim_endpoint_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ScimEndpointRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ScimEndpointRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpointRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ScimEndpointRequest
 	return zeroVal, nil
 }
 
@@ -5225,6 +5435,34 @@ func (ec *executionContext) field_Mutation__rotate_client_secret_argsParams(
 	}
 
 	var zeroVal model.ClientRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__rotate_scim_token_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__rotate_scim_token_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__rotate_scim_token_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ScimEndpointRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ScimEndpointRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpointRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ScimEndpointRequest
 	return zeroVal, nil
 }
 
@@ -6121,6 +6359,34 @@ func (ec *executionContext) field_Query__organizations_argsParams(
 	}
 
 	var zeroVal *model.ListOrganizationsRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__scim_endpoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__scim_endpoint_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__scim_endpoint_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ScimEndpointRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ScimEndpointRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpointRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ScimEndpointRequest
 	return zeroVal, nil
 }
 
@@ -8412,6 +8678,106 @@ func (ec *executionContext) _CreateClientResponse_client_secret(ctx context.Cont
 func (ec *executionContext) fieldContext_CreateClientResponse_client_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CreateClientResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateScimEndpointResponse_scim_endpoint(ctx context.Context, field graphql.CollectedField, obj *model.CreateScimEndpointResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateScimEndpointResponse_scim_endpoint(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ScimEndpoint, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ScimEndpoint)
+	fc.Result = res
+	return ec.marshalNScimEndpoint2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpoint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateScimEndpointResponse_scim_endpoint(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateScimEndpointResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ScimEndpoint_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_ScimEndpoint_org_id(ctx, field)
+			case "enabled":
+				return ec.fieldContext_ScimEndpoint_enabled(ctx, field)
+			case "created_at":
+				return ec.fieldContext_ScimEndpoint_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_ScimEndpoint_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ScimEndpoint", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateScimEndpointResponse_token(ctx context.Context, field graphql.CollectedField, obj *model.CreateScimEndpointResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateScimEndpointResponse_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateScimEndpointResponse_token(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateScimEndpointResponse",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -16248,6 +16614,187 @@ func (ec *executionContext) fieldContext_Mutation__remove_org_member(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__create_scim_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__create_scim_endpoint(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateScimEndpoint(rctx, fc.Args["params"].(model.CreateScimEndpointRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.CreateScimEndpointResponse)
+	fc.Result = res
+	return ec.marshalNCreateScimEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__create_scim_endpoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "scim_endpoint":
+				return ec.fieldContext_CreateScimEndpointResponse_scim_endpoint(ctx, field)
+			case "token":
+				return ec.fieldContext_CreateScimEndpointResponse_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateScimEndpointResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__create_scim_endpoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__rotate_scim_token(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__rotate_scim_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RotateScimToken(rctx, fc.Args["params"].(model.ScimEndpointRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.CreateScimEndpointResponse)
+	fc.Result = res
+	return ec.marshalNCreateScimEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__rotate_scim_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "scim_endpoint":
+				return ec.fieldContext_CreateScimEndpointResponse_scim_endpoint(ctx, field)
+			case "token":
+				return ec.fieldContext_CreateScimEndpointResponse_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateScimEndpointResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__rotate_scim_token_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_scim_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_scim_endpoint(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteScimEndpoint(rctx, fc.Args["params"].(model.ScimEndpointRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_scim_endpoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_scim_endpoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__test_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__test_endpoint(ctx, field)
 	if err != nil {
@@ -19392,6 +19939,73 @@ func (ec *executionContext) fieldContext_Query__org_members(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__scim_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__scim_endpoint(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ScimEndpoint(rctx, fc.Args["params"].(model.ScimEndpointRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ScimEndpoint)
+	fc.Result = res
+	return ec.marshalNScimEndpoint2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpoint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__scim_endpoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ScimEndpoint_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_ScimEndpoint_org_id(ctx, field)
+			case "enabled":
+				return ec.fieldContext_ScimEndpoint_enabled(ctx, field)
+			case "created_at":
+				return ec.fieldContext_ScimEndpoint_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_ScimEndpoint_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ScimEndpoint", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__scim_endpoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__email_templates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__email_templates(ctx, field)
 	if err != nil {
@@ -20035,6 +20649,220 @@ func (ec *executionContext) fieldContext_Response_message(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ScimEndpoint_id(ctx context.Context, field graphql.CollectedField, obj *model.ScimEndpoint) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ScimEndpoint_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ScimEndpoint_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ScimEndpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ScimEndpoint_org_id(ctx context.Context, field graphql.CollectedField, obj *model.ScimEndpoint) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ScimEndpoint_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ScimEndpoint_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ScimEndpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ScimEndpoint_enabled(ctx context.Context, field graphql.CollectedField, obj *model.ScimEndpoint) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ScimEndpoint_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Enabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ScimEndpoint_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ScimEndpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ScimEndpoint_created_at(ctx context.Context, field graphql.CollectedField, obj *model.ScimEndpoint) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ScimEndpoint_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ScimEndpoint_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ScimEndpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ScimEndpoint_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.ScimEndpoint) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ScimEndpoint_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ScimEndpoint_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ScimEndpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -25757,6 +26585,33 @@ func (ec *executionContext) unmarshalInputCreateOrganizationRequest(ctx context.
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateScimEndpointRequest(ctx context.Context, obj any) (model.CreateScimEndpointRequest, error) {
+	var it model.CreateScimEndpointRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context.Context, obj any) (model.DeleteEmailTemplateRequest, error) {
 	var it model.DeleteEmailTemplateRequest
 	asMap := map[string]any{}
@@ -27111,6 +27966,33 @@ func (ec *executionContext) unmarshalInputResetPasswordRequest(ctx context.Conte
 				return it, err
 			}
 			it.ConfirmPassword = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputScimEndpointRequest(ctx context.Context, obj any) (model.ScimEndpointRequest, error) {
+	var it model.ScimEndpointRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
 		}
 	}
 
@@ -29005,6 +29887,50 @@ func (ec *executionContext) _CreateClientResponse(ctx context.Context, sel ast.S
 	return out
 }
 
+var createScimEndpointResponseImplementors = []string{"CreateScimEndpointResponse"}
+
+func (ec *executionContext) _CreateScimEndpointResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CreateScimEndpointResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createScimEndpointResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateScimEndpointResponse")
+		case "scim_endpoint":
+			out.Values[i] = ec._CreateScimEndpointResponse_scim_endpoint(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "token":
+			out.Values[i] = ec._CreateScimEndpointResponse_token(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var emailTemplateImplementors = []string{"EmailTemplate"}
 
 func (ec *executionContext) _EmailTemplate(ctx context.Context, sel ast.SelectionSet, obj *model.EmailTemplate) graphql.Marshaler {
@@ -30202,6 +31128,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_create_scim_endpoint":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__create_scim_endpoint(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_rotate_scim_token":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__rotate_scim_token(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_scim_endpoint":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_scim_endpoint(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_test_endpoint":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__test_endpoint(ctx, field)
@@ -31110,6 +32057,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_scim_endpoint":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__scim_endpoint(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_email_templates":
 			field := field
 
@@ -31333,6 +32302,59 @@ func (ec *executionContext) _Response(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var scimEndpointImplementors = []string{"ScimEndpoint"}
+
+func (ec *executionContext) _ScimEndpoint(ctx context.Context, sel ast.SelectionSet, obj *model.ScimEndpoint) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, scimEndpointImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ScimEndpoint")
+		case "id":
+			out.Values[i] = ec._ScimEndpoint_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._ScimEndpoint_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "enabled":
+			out.Values[i] = ec._ScimEndpoint_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._ScimEndpoint_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._ScimEndpoint_updated_at(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -32633,6 +33655,25 @@ func (ec *executionContext) unmarshalNCreateOrganizationRequest2githubᚗcomᚋa
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointRequest(ctx context.Context, v any) (model.CreateScimEndpointRequest, error) {
+	res, err := ec.unmarshalInputCreateScimEndpointRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreateScimEndpointResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointResponse(ctx context.Context, sel ast.SelectionSet, v model.CreateScimEndpointResponse) graphql.Marshaler {
+	return ec._CreateScimEndpointResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateScimEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointResponse(ctx context.Context, sel ast.SelectionSet, v *model.CreateScimEndpointResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateScimEndpointResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v any) (model.DeleteEmailTemplateRequest, error) {
 	res, err := ec.unmarshalInputDeleteEmailTemplateRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -33356,6 +34397,25 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋa
 		return graphql.Null
 	}
 	return ec._Response(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNScimEndpoint2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpoint(ctx context.Context, sel ast.SelectionSet, v model.ScimEndpoint) graphql.Marshaler {
+	return ec._ScimEndpoint(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNScimEndpoint2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpoint(ctx context.Context, sel ast.SelectionSet, v *model.ScimEndpoint) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ScimEndpoint(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpointRequest(ctx context.Context, v any) (model.ScimEndpointRequest, error) {
+	res, err := ec.unmarshalInputScimEndpointRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNSignUpRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpRequest(ctx context.Context, v any) (model.SignUpRequest, error) {
