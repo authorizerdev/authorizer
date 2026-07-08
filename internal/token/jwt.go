@@ -12,6 +12,13 @@ import (
 
 // SignJWTToken common util to sing jwt token
 func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
+	return p.signJWTToken(jwtclaims, "")
+}
+
+// signJWTToken signs the claims, optionally stamping the JWT header `typ`
+// (RFC 9068: an OAuth2 access token uses "at+jwt"). An empty typ leaves the
+// default "JWT" header, preserving the behavior of every existing caller.
+func (p *provider) signJWTToken(jwtclaims jwt.MapClaims, typ string) (string, error) {
 	signingMethod := jwt.GetSigningMethod(p.config.JWTType)
 	if signingMethod == nil {
 		return "", errors.New("unsupported signing method")
@@ -21,6 +28,9 @@ func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
 		return "", errors.New("unsupported signing method")
 	}
 	t.Claims = jwtclaims
+	if typ != "" {
+		t.Header["typ"] = typ
+	}
 
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
