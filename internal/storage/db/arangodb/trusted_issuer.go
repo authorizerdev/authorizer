@@ -22,7 +22,11 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 	issuer.CreatedAt = now
 	issuer.UpdatedAt = now
 	issuerCollection, _ := p.db.Collection(ctx, schemas.Collections.TrustedIssuer)
-	meta, err := issuerCollection.CreateDocument(ctx, issuer)
+	doc, err := structToDocument(issuer)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := issuerCollection.CreateDocument(ctx, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +46,11 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 	}
 	issuer.UpdatedAt = time.Now().Unix()
 	issuerCollection, _ := p.db.Collection(ctx, schemas.Collections.TrustedIssuer)
-	meta, err := issuerCollection.UpdateDocument(ctx, issuer.Key, issuer)
+	doc, err := structToDocument(issuer)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := issuerCollection.UpdateDocument(ctx, issuer.Key, doc)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +90,11 @@ func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schema
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &issuer)
-		if err != nil {
+		ti := &schemas.TrustedIssuer{}
+		if _, err := readDocument(ctx, cursor, ti); err != nil {
 			return nil, err
 		}
+		issuer = ti
 	}
 	return issuer, nil
 }
@@ -110,10 +119,41 @@ func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL st
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(ctx, &issuer)
-		if err != nil {
+		ti := &schemas.TrustedIssuer{}
+		if _, err := readDocument(ctx, cursor, ti); err != nil {
 			return nil, err
 		}
+		issuer = ti
+	}
+	return issuer, nil
+}
+
+// GetTrustedIssuerByOrgIDAndKind fetches the trusted issuer for an (orgID, kind)
+// pair — the org's SSO connection lookup (kind = sso_oidc/sso_saml).
+func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error) {
+	var issuer *schemas.TrustedIssuer
+	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id AND d.kind == @kind LIMIT 1 RETURN d", schemas.Collections.TrustedIssuer)
+	bindVars := map[string]interface{}{
+		"org_id": orgID,
+		"kind":   kind,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = cursor.Close() }()
+	for {
+		if !cursor.HasMore() {
+			if issuer == nil {
+				return nil, fmt.Errorf("trusted issuer not found")
+			}
+			break
+		}
+		ti := &schemas.TrustedIssuer{}
+		if _, err := readDocument(ctx, cursor, ti); err != nil {
+			return nil, err
+		}
+		issuer = ti
 	}
 	return issuer, nil
 }
@@ -137,8 +177,8 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var issuer *schemas.TrustedIssuer
-		meta, err := cursor.ReadDocument(ctx, &issuer)
+		issuer := &schemas.TrustedIssuer{}
+		meta, err := readDocument(ctx, cursor, issuer)
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 
@@ -70,6 +71,26 @@ func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schema
 // Called on every client_assertion validation — served by the issuer_url GSI.
 func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL string) (*schemas.TrustedIssuer, error) {
 	items, err := p.queryEqLimit(ctx, schemas.Collections.TrustedIssuer, "issuer_url", "issuer_url", issuerURL, nil, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == 0 {
+		return nil, errors.New("no document found")
+	}
+	var issuer schemas.TrustedIssuer
+	if err := unmarshalItem(items[0], &issuer); err != nil {
+		return nil, err
+	}
+	return &issuer, nil
+}
+
+// GetTrustedIssuerByOrgIDAndKind fetches a trusted issuer by its (org_id, kind)
+// pair. TrustedIssuer has no org_id GSI, so scan the base table with a combined
+// org_id + kind filter and return the first match.
+func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error) {
+	f := expression.Name("org_id").Equal(expression.Value(orgID)).
+		And(expression.Name("kind").Equal(expression.Value(kind)))
+	items, err := p.scanFilteredAll(ctx, schemas.Collections.TrustedIssuer, nil, &f)
 	if err != nil {
 		return nil, err
 	}

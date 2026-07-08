@@ -412,7 +412,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Client, "client_id", 30*time.Second)
 
 	// TrustedIssuer table and indexes
-	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
+	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
 	err = session.Query(trustedIssuerCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
@@ -422,6 +422,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	trustedIssuerAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (allowed_subjects text);`, KeySpace, schemas.Collections.TrustedIssuer)
 	if err = session.Query(trustedIssuerAlterQuery).Exec(); err != nil {
 		deps.Log.Debug().Err(err).Msg("Failed to alter trusted_issuers table as allowed_subjects column exists")
+		// continue
+	}
+	// Add SSO broker columns for keyspaces created before the sso_oidc kind (§4.3)
+	// landed. Tolerated if the columns already exist.
+	trustedIssuerSSOAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text);`, KeySpace, schemas.Collections.TrustedIssuer)
+	if err = session.Query(trustedIssuerSSOAlterQuery).Exec(); err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter trusted_issuers table as SSO broker columns exist")
 		// continue
 	}
 	trustedIssuerIssuerURLIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_trusted_issuer_issuer_url ON %s.%s (issuer_url)", KeySpace, schemas.Collections.TrustedIssuer)
@@ -461,11 +468,28 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(orgMembershipUserIndex).Exec(); err != nil {
 		return nil, err
 	}
+
+	// FederatedIdentity table and indexes
+	federatedIdentityCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, issuer text, subject text, user_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.FederatedIdentity)
+	if err = session.Query(federatedIdentityCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	federatedIdentityOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_federated_identity_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.FederatedIdentity)
+	if err = session.Query(federatedIdentityOrgIndex).Exec(); err != nil {
+		return nil, err
+	}
+	federatedIdentityUserIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_federated_identity_user_id ON %s.%s (user_id)", KeySpace, schemas.Collections.FederatedIdentity)
+	if err = session.Query(federatedIdentityUserIndex).Exec(); err != nil {
+		return nil, err
+	}
+
 	// ScyllaDB builds secondary indexes asynchronously; wait for the lookup
 	// columns used by the uniqueness guard and membership listings.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Organization, "name", 30*time.Second)
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "org_id", 30*time.Second)
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "user_id", 30*time.Second)
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.FederatedIdentity, "org_id", 30*time.Second)
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.FederatedIdentity, "user_id", 30*time.Second)
 
 	// ScimEndpoint table and index
 	scimEndpointCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, token_hash text, enabled boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.ScimEndpoint)

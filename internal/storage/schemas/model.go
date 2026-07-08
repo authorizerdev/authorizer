@@ -20,6 +20,7 @@ type CollectionList struct {
 	TrustedIssuer          string
 	Organization           string
 	OrgMembership          string
+	FederatedIdentity      string
 	ScimEndpoint           string
 }
 
@@ -46,6 +47,7 @@ var (
 		TrustedIssuer:          Prefix + "trusted_issuers",
 		Organization:           Prefix + "organizations",
 		OrgMembership:          Prefix + "org_memberships",
+		FederatedIdentity:      Prefix + "federated_identities",
 		ScimEndpoint:           Prefix + "scim_endpoints",
 	}
 )

@@ -86,7 +86,10 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		AllowedSubjects: allowedSubjects,
 		IssuerType:      params.IssuerType,
 		// Set explicitly rather than relying on the GORM column default so NoSQL
-		// providers (no default support) persist the same values.
+		// providers (no default support) persist the same values. This admin op
+		// only ever creates client_assertion_trust rows; org-scoped SSO connections
+		// are created through the dedicated OIDC-connection admin API.
+		Kind:                     constants.TrustKindClientAssertion,
 		AuthMethod:               "jwt_assertion",
 		IsActive:                 true,
 		SpiffeRefreshHintSeconds: refs.Int64Value(params.SpiffeRefreshHintSeconds),

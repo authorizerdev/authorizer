@@ -279,57 +279,60 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddOrgMember        func(childComplexity int, params model.AddOrgMemberRequest) int
-		AddTrustedIssuer    func(childComplexity int, params model.AddTrustedIssuerRequest) int
-		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin          func(childComplexity int, params model.AdminLoginRequest) int
-		AdminLogout         func(childComplexity int) int
-		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
-		CreateClient        func(childComplexity int, params model.CreateClientRequest) int
-		CreateOrganization  func(childComplexity int, params model.CreateOrganizationRequest) int
-		CreateScimEndpoint  func(childComplexity int, params model.CreateScimEndpointRequest) int
-		DeactivateAccount   func(childComplexity int) int
-		DeleteClient        func(childComplexity int, params model.ClientRequest) int
-		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteOrganization  func(childComplexity int, params model.OrganizationRequest) int
-		DeleteScimEndpoint  func(childComplexity int, params model.ScimEndpointRequest) int
-		DeleteTrustedIssuer func(childComplexity int, params model.TrustedIssuerRequest) int
-		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
-		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
-		FgaDeleteTuples     func(childComplexity int, params model.FgaWriteTuplesInput) int
-		FgaReset            func(childComplexity int) int
-		FgaWriteModel       func(childComplexity int, params model.FgaWriteModelInput) int
-		FgaWriteTuples      func(childComplexity int, params model.FgaWriteTuplesInput) int
-		ForgotPassword      func(childComplexity int, params model.ForgotPasswordRequest) int
-		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysRequest) int
-		InviteMembers       func(childComplexity int, params model.InviteMemberRequest) int
-		Login               func(childComplexity int, params model.LoginRequest) int
-		Logout              func(childComplexity int) int
-		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginRequest) int
-		MobileLogin         func(childComplexity int, params model.MobileLoginRequest) int
-		MobileSignup        func(childComplexity int, params *model.MobileSignUpRequest) int
-		RemoveOrgMember     func(childComplexity int, params model.RemoveOrgMemberRequest) int
-		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailRequest) int
-		ResetPassword       func(childComplexity int, params model.ResetPasswordRequest) int
-		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
-		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
-		RotateClientSecret  func(childComplexity int, params model.ClientRequest) int
-		RotateScimToken     func(childComplexity int, params model.ScimEndpointRequest) int
-		Signup              func(childComplexity int, params model.SignUpRequest) int
-		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateClient        func(childComplexity int, params model.UpdateClientRequest) int
-		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv           func(childComplexity int, params model.UpdateEnvRequest) int
-		UpdateOrganization  func(childComplexity int, params model.UpdateOrganizationRequest) int
-		UpdateProfile       func(childComplexity int, params model.UpdateProfileRequest) int
-		UpdateTrustedIssuer func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
-		UpdateUser          func(childComplexity int, params model.UpdateUserRequest) int
-		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail         func(childComplexity int, params model.VerifyEmailRequest) int
-		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate        func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddOrgMember            func(childComplexity int, params model.AddOrgMemberRequest) int
+		AddTrustedIssuer        func(childComplexity int, params model.AddTrustedIssuerRequest) int
+		AddWebhook              func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin              func(childComplexity int, params model.AdminLoginRequest) int
+		AdminLogout             func(childComplexity int) int
+		AdminSignup             func(childComplexity int, params model.AdminSignupRequest) int
+		CreateClient            func(childComplexity int, params model.CreateClientRequest) int
+		CreateOrgOidcConnection func(childComplexity int, params model.CreateOrgOIDCConnectionRequest) int
+		CreateOrganization      func(childComplexity int, params model.CreateOrganizationRequest) int
+		CreateScimEndpoint      func(childComplexity int, params model.CreateScimEndpointRequest) int
+		DeactivateAccount       func(childComplexity int) int
+		DeleteClient            func(childComplexity int, params model.ClientRequest) int
+		DeleteEmailTemplate     func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteOrgOidcConnection func(childComplexity int, params model.OrgOIDCConnectionRequest) int
+		DeleteOrganization      func(childComplexity int, params model.OrganizationRequest) int
+		DeleteScimEndpoint      func(childComplexity int, params model.ScimEndpointRequest) int
+		DeleteTrustedIssuer     func(childComplexity int, params model.TrustedIssuerRequest) int
+		DeleteUser              func(childComplexity int, params model.DeleteUserRequest) int
+		DeleteWebhook           func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess            func(childComplexity int, param model.UpdateAccessRequest) int
+		FgaDeleteTuples         func(childComplexity int, params model.FgaWriteTuplesInput) int
+		FgaReset                func(childComplexity int) int
+		FgaWriteModel           func(childComplexity int, params model.FgaWriteModelInput) int
+		FgaWriteTuples          func(childComplexity int, params model.FgaWriteTuplesInput) int
+		ForgotPassword          func(childComplexity int, params model.ForgotPasswordRequest) int
+		GenerateJwtKeys         func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		InviteMembers           func(childComplexity int, params model.InviteMemberRequest) int
+		Login                   func(childComplexity int, params model.LoginRequest) int
+		Logout                  func(childComplexity int) int
+		MagicLinkLogin          func(childComplexity int, params model.MagicLinkLoginRequest) int
+		MobileLogin             func(childComplexity int, params model.MobileLoginRequest) int
+		MobileSignup            func(childComplexity int, params *model.MobileSignUpRequest) int
+		RemoveOrgMember         func(childComplexity int, params model.RemoveOrgMemberRequest) int
+		ResendOtp               func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail       func(childComplexity int, params model.ResendVerifyEmailRequest) int
+		ResetPassword           func(childComplexity int, params model.ResetPasswordRequest) int
+		Revoke                  func(childComplexity int, params model.OAuthRevokeRequest) int
+		RevokeAccess            func(childComplexity int, param model.UpdateAccessRequest) int
+		RotateClientSecret      func(childComplexity int, params model.ClientRequest) int
+		RotateScimToken         func(childComplexity int, params model.ScimEndpointRequest) int
+		Signup                  func(childComplexity int, params model.SignUpRequest) int
+		TestEndpoint            func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateClient            func(childComplexity int, params model.UpdateClientRequest) int
+		UpdateEmailTemplate     func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv               func(childComplexity int, params model.UpdateEnvRequest) int
+		UpdateOrgOidcConnection func(childComplexity int, params model.UpdateOrgOIDCConnectionRequest) int
+		UpdateOrganization      func(childComplexity int, params model.UpdateOrganizationRequest) int
+		UpdateProfile           func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateTrustedIssuer     func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
+		UpdateUser              func(childComplexity int, params model.UpdateUserRequest) int
+		UpdateWebhook           func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail             func(childComplexity int, params model.VerifyEmailRequest) int
+		VerifyOtp               func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	OrgMember struct {
@@ -344,6 +347,19 @@ type ComplexityRoot struct {
 	OrgMembers struct {
 		OrgMembers func(childComplexity int) int
 		Pagination func(childComplexity int) int
+	}
+
+	OrgOIDCConnection struct {
+		CreatedAt   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsActive    func(childComplexity int) int
+		IssuerURL   func(childComplexity int) int
+		Name        func(childComplexity int) int
+		OrgID       func(childComplexity int) int
+		RedirectURI func(childComplexity int) int
+		Scopes      func(childComplexity int) int
+		SsoClientID func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	Organization struct {
@@ -394,6 +410,7 @@ type ComplexityRoot struct {
 		ListPermissions      func(childComplexity int, params model.ListPermissionsInput) int
 		Meta                 func(childComplexity int) int
 		OrgMembers           func(childComplexity int, params model.ListOrgMembersRequest) int
+		OrgOidcConnection    func(childComplexity int, params model.OrgOIDCConnectionRequest) int
 		Organization         func(childComplexity int, params model.OrganizationRequest) int
 		Organizations        func(childComplexity int, params *model.ListOrganizationsRequest) int
 		Profile              func(childComplexity int) int
@@ -573,6 +590,9 @@ type MutationResolver interface {
 	AddTrustedIssuer(ctx context.Context, params model.AddTrustedIssuerRequest) (*model.TrustedIssuer, error)
 	UpdateTrustedIssuer(ctx context.Context, params model.UpdateTrustedIssuerRequest) (*model.TrustedIssuer, error)
 	DeleteTrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.Response, error)
+	CreateOrgOidcConnection(ctx context.Context, params model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	UpdateOrgOidcConnection(ctx context.Context, params model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	DeleteOrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.Response, error)
 	CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error)
 	UpdateOrganization(ctx context.Context, params model.UpdateOrganizationRequest) (*model.Organization, error)
 	DeleteOrganization(ctx context.Context, params model.OrganizationRequest) (*model.Response, error)
@@ -609,6 +629,7 @@ type QueryResolver interface {
 	Clients(ctx context.Context, params *model.ListClientsRequest) (*model.Clients, error)
 	TrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.TrustedIssuer, error)
 	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
+	OrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
 	Organization(ctx context.Context, params model.OrganizationRequest) (*model.Organization, error)
 	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
@@ -1874,6 +1895,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateClient(childComplexity, args["params"].(model.CreateClientRequest)), true
 
+	case "Mutation._create_org_oidc_connection":
+		if e.complexity.Mutation.CreateOrgOidcConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__create_org_oidc_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateOrgOidcConnection(childComplexity, args["params"].(model.CreateOrgOIDCConnectionRequest)), true
+
 	case "Mutation._create_organization":
 		if e.complexity.Mutation.CreateOrganization == nil {
 			break
@@ -1928,6 +1961,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEmailTemplate(childComplexity, args["params"].(model.DeleteEmailTemplateRequest)), true
+
+	case "Mutation._delete_org_oidc_connection":
+		if e.complexity.Mutation.DeleteOrgOidcConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_org_oidc_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteOrgOidcConnection(childComplexity, args["params"].(model.OrgOIDCConnectionRequest)), true
 
 	case "Mutation._delete_organization":
 		if e.complexity.Mutation.DeleteOrganization == nil {
@@ -2291,6 +2336,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UpdateEnv(childComplexity, args["params"].(model.UpdateEnvRequest)), true
 
+	case "Mutation._update_org_oidc_connection":
+		if e.complexity.Mutation.UpdateOrgOidcConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_org_oidc_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateOrgOidcConnection(childComplexity, args["params"].(model.UpdateOrgOIDCConnectionRequest)), true
+
 	case "Mutation._update_organization":
 		if e.complexity.Mutation.UpdateOrganization == nil {
 			break
@@ -2430,6 +2487,76 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.OrgMembers.Pagination(childComplexity), true
+
+	case "OrgOIDCConnection.created_at":
+		if e.complexity.OrgOIDCConnection.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.CreatedAt(childComplexity), true
+
+	case "OrgOIDCConnection.id":
+		if e.complexity.OrgOIDCConnection.ID == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.ID(childComplexity), true
+
+	case "OrgOIDCConnection.is_active":
+		if e.complexity.OrgOIDCConnection.IsActive == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.IsActive(childComplexity), true
+
+	case "OrgOIDCConnection.issuer_url":
+		if e.complexity.OrgOIDCConnection.IssuerURL == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.IssuerURL(childComplexity), true
+
+	case "OrgOIDCConnection.name":
+		if e.complexity.OrgOIDCConnection.Name == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.Name(childComplexity), true
+
+	case "OrgOIDCConnection.org_id":
+		if e.complexity.OrgOIDCConnection.OrgID == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.OrgID(childComplexity), true
+
+	case "OrgOIDCConnection.redirect_uri":
+		if e.complexity.OrgOIDCConnection.RedirectURI == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.RedirectURI(childComplexity), true
+
+	case "OrgOIDCConnection.scopes":
+		if e.complexity.OrgOIDCConnection.Scopes == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.Scopes(childComplexity), true
+
+	case "OrgOIDCConnection.sso_client_id":
+		if e.complexity.OrgOIDCConnection.SsoClientID == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.SsoClientID(childComplexity), true
+
+	case "OrgOIDCConnection.updated_at":
+		if e.complexity.OrgOIDCConnection.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgOIDCConnection.UpdatedAt(childComplexity), true
 
 	case "Organization.created_at":
 		if e.complexity.Organization.CreatedAt == nil {
@@ -2704,6 +2831,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.OrgMembers(childComplexity, args["params"].(model.ListOrgMembersRequest)), true
+
+	case "Query._org_oidc_connection":
+		if e.complexity.Query.OrgOidcConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Query__org_oidc_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OrgOidcConnection(childComplexity, args["params"].(model.OrgOIDCConnectionRequest)), true
 
 	case "Query._organization":
 		if e.complexity.Query.Organization == nil {
@@ -3457,6 +3596,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCheckPermissionsInput,
 		ec.unmarshalInputClientRequest,
 		ec.unmarshalInputCreateClientRequest,
+		ec.unmarshalInputCreateOrgOIDCConnectionRequest,
 		ec.unmarshalInputCreateOrganizationRequest,
 		ec.unmarshalInputCreateScimEndpointRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
@@ -3484,6 +3624,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputMobileLoginRequest,
 		ec.unmarshalInputMobileSignUpRequest,
 		ec.unmarshalInputOAuthRevokeRequest,
+		ec.unmarshalInputOrgOIDCConnectionRequest,
 		ec.unmarshalInputOrganizationRequest,
 		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
@@ -3501,6 +3642,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateClientRequest,
 		ec.unmarshalInputUpdateEmailTemplateRequest,
 		ec.unmarshalInputUpdateEnvRequest,
+		ec.unmarshalInputUpdateOrgOIDCConnectionRequest,
 		ec.unmarshalInputUpdateOrganizationRequest,
 		ec.unmarshalInputUpdateProfileRequest,
 		ec.unmarshalInputUpdateTrustedIssuerRequest,
@@ -3955,6 +4097,22 @@ type TrustedIssuer {
 type TrustedIssuers {
   pagination: Pagination!
   trusted_issuers: [TrustedIssuer!]!
+}
+
+# OrgOIDCConnection is a per-organization upstream OIDC IdP that Authorizer
+# brokers as a Relying Party. The upstream client_secret is NEVER projected here.
+type OrgOIDCConnection {
+  id: ID!
+  org_id: String!
+  name: String!
+  issuer_url: String!
+  # sso_client_id: the client_id Authorizer uses AT the upstream IdP.
+  sso_client_id: String!
+  scopes: String
+  redirect_uri: String
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
 }
 
 type Organization {
@@ -4436,6 +4594,40 @@ input ListTrustedIssuersRequest {
   pagination: PaginatedRequest
 }
 
+input CreateOrgOIDCConnectionRequest {
+  org_id: String!
+  name: String!
+  # issuer_url: the upstream IdP issuer (its OIDC discovery base).
+  issuer_url: String!
+  # client_id / client_secret: the credentials Authorizer holds AT the upstream
+  # IdP. The secret is stored encrypted and never returned.
+  client_id: String!
+  client_secret: String!
+  # scopes: space-separated. Defaults to "openid profile email" when omitted.
+  scopes: String
+  # redirect_uri registered at the upstream IdP. Derived from the request host
+  # when omitted.
+  redirect_uri: String
+}
+
+input UpdateOrgOIDCConnectionRequest {
+  id: ID!
+  name: String
+  issuer_url: String
+  client_id: String
+  # Supplying client_secret rotates it; omitting leaves the stored secret intact.
+  client_secret: String
+  scopes: String
+  redirect_uri: String
+  is_active: Boolean
+}
+
+input OrgOIDCConnectionRequest {
+  # Look up by connection id OR by org_id (supply exactly one).
+  id: ID
+  org_id: String
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -4667,6 +4859,10 @@ type Mutation {
   _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
   _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
   _delete_trusted_issuer(params: TrustedIssuerRequest!): Response!
+  # Per-organization SSO OIDC connections (Authorizer as Relying Party)
+  _create_org_oidc_connection(params: CreateOrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _update_org_oidc_connection(params: UpdateOrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _delete_org_oidc_connection(params: OrgOIDCConnectionRequest!): Response!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -4713,6 +4909,7 @@ type Query {
   # Trusted issuers
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
+  _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
@@ -4934,6 +5131,34 @@ func (ec *executionContext) field_Mutation__create_client_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__create_org_oidc_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__create_org_oidc_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__create_org_oidc_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CreateOrgOIDCConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CreateOrgOIDCConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCreateOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrgOIDCConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.CreateOrgOIDCConnectionRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__create_organization_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5043,6 +5268,34 @@ func (ec *executionContext) field_Mutation__delete_email_template_argsParams(
 	}
 
 	var zeroVal model.DeleteEmailTemplateRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_org_oidc_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_org_oidc_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_org_oidc_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.OrgOIDCConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.OrgOIDCConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.OrgOIDCConnectionRequest
 	return zeroVal, nil
 }
 
@@ -5575,6 +5828,34 @@ func (ec *executionContext) field_Mutation__update_env_argsParams(
 	}
 
 	var zeroVal model.UpdateEnvRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__update_org_oidc_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__update_org_oidc_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__update_org_oidc_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateOrgOIDCConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateOrgOIDCConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateOrgOIDCConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateOrgOIDCConnectionRequest
 	return zeroVal, nil
 }
 
@@ -6303,6 +6584,34 @@ func (ec *executionContext) field_Query__org_members_argsParams(
 	}
 
 	var zeroVal model.ListOrgMembersRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__org_oidc_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__org_oidc_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__org_oidc_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.OrgOIDCConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.OrgOIDCConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.OrgOIDCConnectionRequest
 	return zeroVal, nil
 }
 
@@ -16289,6 +16598,219 @@ func (ec *executionContext) fieldContext_Mutation__delete_trusted_issuer(ctx con
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__create_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__create_org_oidc_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateOrgOidcConnection(rctx, fc.Args["params"].(model.CreateOrgOIDCConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgOIDCConnection)
+	fc.Result = res
+	return ec.marshalNOrgOIDCConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__create_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgOIDCConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgOIDCConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgOIDCConnection_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_OrgOIDCConnection_issuer_url(ctx, field)
+			case "sso_client_id":
+				return ec.fieldContext_OrgOIDCConnection_sso_client_id(ctx, field)
+			case "scopes":
+				return ec.fieldContext_OrgOIDCConnection_scopes(ctx, field)
+			case "redirect_uri":
+				return ec.fieldContext_OrgOIDCConnection_redirect_uri(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgOIDCConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgOIDCConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgOIDCConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgOIDCConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__create_org_oidc_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__update_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__update_org_oidc_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateOrgOidcConnection(rctx, fc.Args["params"].(model.UpdateOrgOIDCConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgOIDCConnection)
+	fc.Result = res
+	return ec.marshalNOrgOIDCConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__update_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgOIDCConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgOIDCConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgOIDCConnection_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_OrgOIDCConnection_issuer_url(ctx, field)
+			case "sso_client_id":
+				return ec.fieldContext_OrgOIDCConnection_sso_client_id(ctx, field)
+			case "scopes":
+				return ec.fieldContext_OrgOIDCConnection_scopes(ctx, field)
+			case "redirect_uri":
+				return ec.fieldContext_OrgOIDCConnection_redirect_uri(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgOIDCConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgOIDCConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgOIDCConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgOIDCConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__update_org_oidc_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_org_oidc_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteOrgOidcConnection(rctx, fc.Args["params"].(model.OrgOIDCConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_org_oidc_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_org_oidc_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__create_organization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__create_organization(ctx, field)
 	if err != nil {
@@ -17625,6 +18147,434 @@ func (ec *executionContext) fieldContext_OrgMembers_org_members(_ context.Contex
 				return ec.fieldContext_OrgMember_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type OrgMember", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_org_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_issuer_url(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_issuer_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IssuerURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_issuer_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_sso_client_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_sso_client_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SsoClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_sso_client_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_scopes(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_scopes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Scopes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_scopes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_redirect_uri(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_redirect_uri(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RedirectURI, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_redirect_uri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_is_active(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_is_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_created_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgOIDCConnection_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgOIDCConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgOIDCConnection_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgOIDCConnection_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -19742,6 +20692,83 @@ func (ec *executionContext) fieldContext_Query__trusted_issuers(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query__trusted_issuers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__org_oidc_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__org_oidc_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().OrgOidcConnection(rctx, fc.Args["params"].(model.OrgOIDCConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgOIDCConnection)
+	fc.Result = res
+	return ec.marshalNOrgOIDCConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__org_oidc_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgOIDCConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgOIDCConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgOIDCConnection_name(ctx, field)
+			case "issuer_url":
+				return ec.fieldContext_OrgOIDCConnection_issuer_url(ctx, field)
+			case "sso_client_id":
+				return ec.fieldContext_OrgOIDCConnection_sso_client_id(ctx, field)
+			case "scopes":
+				return ec.fieldContext_OrgOIDCConnection_scopes(ctx, field)
+			case "redirect_uri":
+				return ec.fieldContext_OrgOIDCConnection_redirect_uri(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgOIDCConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgOIDCConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgOIDCConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgOIDCConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__org_oidc_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -26551,6 +27578,75 @@ func (ec *executionContext) unmarshalInputCreateClientRequest(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateOrgOIDCConnectionRequest(ctx context.Context, obj any) (model.CreateOrgOIDCConnectionRequest, error) {
+	var it model.CreateOrgOIDCConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "name", "issuer_url", "client_id", "client_secret", "scopes", "redirect_uri"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "issuer_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issuer_url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IssuerURL = data
+		case "client_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientID = data
+		case "client_secret":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client_secret"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientSecret = data
+		case "scopes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scopes"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Scopes = data
+		case "redirect_uri":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RedirectURI = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateOrganizationRequest(ctx context.Context, obj any) (model.CreateOrganizationRequest, error) {
 	var it model.CreateOrganizationRequest
 	asMap := map[string]any{}
@@ -27666,6 +28762,40 @@ func (ec *executionContext) unmarshalInputOAuthRevokeRequest(ctx context.Context
 				return it, err
 			}
 			it.RefreshToken = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputOrgOIDCConnectionRequest(ctx context.Context, obj any) (model.OrgOIDCConnectionRequest, error) {
+	var it model.OrgOIDCConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
 		}
 	}
 
@@ -28846,6 +29976,82 @@ func (ec *executionContext) unmarshalInputUpdateEnvRequest(ctx context.Context, 
 				return it, err
 			}
 			it.DisableTotpLogin = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateOrgOIDCConnectionRequest(ctx context.Context, obj any) (model.UpdateOrgOIDCConnectionRequest, error) {
+	var it model.UpdateOrgOIDCConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "issuer_url", "client_id", "client_secret", "scopes", "redirect_uri", "is_active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "issuer_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issuer_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IssuerURL = data
+		case "client_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientID = data
+		case "client_secret":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client_secret"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientSecret = data
+		case "scopes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scopes"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Scopes = data
+		case "redirect_uri":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RedirectURI = data
+		case "is_active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsActive = data
 		}
 	}
 
@@ -31093,6 +32299,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_create_org_oidc_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__create_org_oidc_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_update_org_oidc_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__update_org_oidc_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_org_oidc_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_org_oidc_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_create_organization":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__create_organization(ctx, field)
@@ -31307,6 +32534,78 @@ func (ec *executionContext) _OrgMembers(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var orgOIDCConnectionImplementors = []string{"OrgOIDCConnection"}
+
+func (ec *executionContext) _OrgOIDCConnection(ctx context.Context, sel ast.SelectionSet, obj *model.OrgOIDCConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, orgOIDCConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OrgOIDCConnection")
+		case "id":
+			out.Values[i] = ec._OrgOIDCConnection_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._OrgOIDCConnection_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._OrgOIDCConnection_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "issuer_url":
+			out.Values[i] = ec._OrgOIDCConnection_issuer_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sso_client_id":
+			out.Values[i] = ec._OrgOIDCConnection_sso_client_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "scopes":
+			out.Values[i] = ec._OrgOIDCConnection_scopes(ctx, field, obj)
+		case "redirect_uri":
+			out.Values[i] = ec._OrgOIDCConnection_redirect_uri(ctx, field, obj)
+		case "is_active":
+			out.Values[i] = ec._OrgOIDCConnection_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._OrgOIDCConnection_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._OrgOIDCConnection_updated_at(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -31979,6 +33278,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__trusted_issuers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_org_oidc_connection":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__org_oidc_connection(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -33650,6 +34971,11 @@ func (ec *executionContext) marshalNCreateClientResponse2ᚖgithubᚗcomᚋautho
 	return ec._CreateClientResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCreateOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrgOIDCConnectionRequest(ctx context.Context, v any) (model.CreateOrgOIDCConnectionRequest, error) {
+	res, err := ec.unmarshalInputCreateOrgOIDCConnectionRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateOrganizationRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrganizationRequest(ctx context.Context, v any) (model.CreateOrganizationRequest, error) {
 	res, err := ec.unmarshalInputCreateOrganizationRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -34150,6 +35476,25 @@ func (ec *executionContext) marshalNOrgMembers2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._OrgMembers(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNOrgOIDCConnection2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnection(ctx context.Context, sel ast.SelectionSet, v model.OrgOIDCConnection) graphql.Marshaler {
+	return ec._OrgOIDCConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOrgOIDCConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnection(ctx context.Context, sel ast.SelectionSet, v *model.OrgOIDCConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrgOIDCConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgOIDCConnectionRequest(ctx context.Context, v any) (model.OrgOIDCConnectionRequest, error) {
+	res, err := ec.unmarshalInputOrgOIDCConnectionRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNOrganization2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v model.Organization) graphql.Marshaler {
 	return ec._Organization(ctx, sel, &v)
 }
@@ -34582,6 +35927,11 @@ func (ec *executionContext) unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋ
 
 func (ec *executionContext) unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvRequest(ctx context.Context, v any) (model.UpdateEnvRequest, error) {
 	res, err := ec.unmarshalInputUpdateEnvRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateOrgOIDCConnectionRequest(ctx context.Context, v any) (model.UpdateOrgOIDCConnectionRequest, error) {
+	res, err := ec.unmarshalInputUpdateOrgOIDCConnectionRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

@@ -80,6 +80,17 @@ func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL st
 	return issuer, nil
 }
 
+// GetTrustedIssuerByOrgIDAndKind fetches a trusted issuer by its (org_id, kind) pair.
+func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error) {
+	var issuer *schemas.TrustedIssuer
+	issuerCollection := p.db.Collection(schemas.Collections.TrustedIssuer, options.Collection())
+	err := issuerCollection.FindOne(ctx, bson.M{"org_id": orgID, "kind": kind}).Decode(&issuer)
+	if err != nil {
+		return nil, err
+	}
+	return issuer, nil
+}
+
 // ListTrustedIssuers returns paginated trusted issuers, optionally filtered by serviceAccountID.
 func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error) {
 	issuers := []*schemas.TrustedIssuer{}
