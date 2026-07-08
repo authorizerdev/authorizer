@@ -32,6 +32,21 @@ type Client struct {
 
 	ID string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 
+	// ClientID is the public OAuth client_id presented at the authorize/token
+	// endpoints. It is distinct from the surrogate primary key ID: ID is an
+	// internal UUID, ClientID is the externally-referenced identifier and is
+	// UNIQUE across the registry. ClientID is IMMUTABLE after creation.
+	//
+	// For the reserved interactive client seeded at boot, ClientID equals the
+	// deployment's Config.ClientID verbatim (BC1) — every token aud, JWKS kid,
+	// and introspection client_id continues to key on that exact string.
+	//
+	// When left empty on create, every provider defaults ClientID to ID so the
+	// unique index always holds and lookups keep working for admin-created
+	// clients that do not (yet) supply an explicit client_id — ID has
+	// historically doubled as the client_id.
+	ClientID string `gorm:"uniqueIndex" json:"client_id" bson:"client_id" cql:"client_id" dynamo:"client_id" index:"client_id,hash"`
+
 	// Kind distinguishes the client type. Values: "interactive" (human-facing
 	// login clients) | "service_account" (machine/workload clients). It is
 	// immutable after creation. This rename step defaults existing and newly
@@ -61,6 +76,22 @@ type Client struct {
 	// endpoint — an unparseable or empty AllowedScopes must reject the request.
 	AllowedScopes string `json:"allowed_scopes" bson:"allowed_scopes" cql:"allowed_scopes" dynamo:"allowed_scopes"`
 
+	// RedirectURIs is a comma-separated allow-list of exact redirect URIs for
+	// interactive clients. Empty for service_account clients. The service layer
+	// MUST exact-match a presented redirect_uri against a parsed segment of this
+	// list — never a prefix or substring match.
+	RedirectURIs string `json:"redirect_uris" bson:"redirect_uris" cql:"redirect_uris" dynamo:"redirect_uris"`
+
+	// GrantTypes is a comma-separated list of OAuth2 grant types this client is
+	// allowed to use (e.g. "authorization_code,refresh_token" for interactive
+	// clients, "client_credentials" for service accounts).
+	GrantTypes string `json:"grant_types" bson:"grant_types" cql:"grant_types" dynamo:"grant_types"`
+
+	// TokenEndpointAuthMethod is how the client authenticates at the token
+	// endpoint: "client_secret_basic" | "client_secret_post" | "none" (public
+	// client authenticating via PKCE only).
+	TokenEndpointAuthMethod string `json:"token_endpoint_auth_method" bson:"token_endpoint_auth_method" cql:"token_endpoint_auth_method" dynamo:"token_endpoint_auth_method"`
+
 	// IsActive controls whether this service account may authenticate.
 	// Flipping to false blocks new token issuance immediately; existing
 	// tokens remain valid until their exp.
@@ -70,6 +101,17 @@ type Client struct {
 	// layer must always set IsActive explicitly and use Save (not Create-only)
 	// when creating a disabled account.
 	IsActive bool `json:"is_active" bson:"is_active" cql:"is_active" dynamo:"is_active" gorm:"default:true"`
+
+	// OrgID optionally scopes this client to an organization. A nil value means
+	// the client is global (not org-scoped). This is a plain nullable column,
+	// NOT a cross-table foreign key — five of the six storage providers are
+	// NoSQL and cannot enforce an FK constraint, so referential integrity is the
+	// service layer's responsibility.
+	//
+	// No `omitempty` on the json/bson tags: a nil pointer must serialize to
+	// null so an update clears a previously-set org (see
+	// docs/storage-optional-null-fields.md).
+	OrgID *string `json:"org_id" bson:"org_id" cql:"org_id" dynamo:"org_id" gorm:"index"`
 
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`

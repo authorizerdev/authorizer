@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const clientColumns = "id, kind, name, description, client_secret, allowed_scopes, is_active, created_at, updated_at"
+const clientColumns = "id, client_id, kind, name, description, client_secret, allowed_scopes, redirect_uris, grant_types, token_endpoint_auth_method, is_active, org_id, created_at, updated_at"
 
 // AddClient creates a new service account record.
 func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error) {
@@ -21,11 +21,25 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
+	if sa.ClientID == "" {
+		sa.ClientID = sa.ID
+	}
+	// Cassandra has no cross-attribute unique constraint, so guard client_id
+	// uniqueness with a check-then-insert mirroring AddTrustedIssuer's issuer_url
+	// pre-check.
+	// ponytail: inherent TOCTOU race — two concurrent inserts of the same
+	// client_id can both pass this check. Cassandra offers no atomic IF NOT
+	// EXISTS on a non-partition-key column; this closes the common case
+	// (sequential admin/boot-seed) only. A fully race-free guard would need an
+	// LWT on a dedicated client_id-keyed table.
+	if existing, _ := p.GetClientByClientID(ctx, sa.ClientID); existing != nil {
+		return nil, fmt.Errorf("client with client_id %s already exists", sa.ClientID)
+	}
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
-	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.Client, clientColumns)
-	err := p.db.Query(insertQuery, sa.ID, sa.Kind, sa.Name, sa.Description, sa.ClientSecret, sa.AllowedScopes, sa.IsActive, sa.CreatedAt, sa.UpdatedAt).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.Client, clientColumns)
+	err := p.db.Query(insertQuery, sa.ID, sa.ClientID, sa.Kind, sa.Name, sa.Description, sa.ClientSecret, sa.AllowedScopes, sa.RedirectURIs, sa.GrantTypes, sa.TokenEndpointAuthMethod, sa.IsActive, sa.OrgID, sa.CreatedAt, sa.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +124,19 @@ func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
 func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Client, error) {
 	var sa schemas.Client
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE id = ? LIMIT 1", clientColumns, KeySpace+"."+schemas.Collections.Client)
-	err := p.db.Query(query, id).Consistency(gocql.One).Scan(&sa.ID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.IsActive, &sa.CreatedAt, &sa.UpdatedAt)
+	err := p.db.Query(query, id).Consistency(gocql.One).Scan(&sa.ID, &sa.ClientID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.RedirectURIs, &sa.GrantTypes, &sa.TokenEndpointAuthMethod, &sa.IsActive, &sa.OrgID, &sa.CreatedAt, &sa.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &sa, nil
+}
+
+// GetClientByClientID fetches a client by its unique public client_id.
+// Served by the client_id secondary index.
+func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
+	var sa schemas.Client
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE client_id = ? LIMIT 1 ALLOW FILTERING", clientColumns, KeySpace+"."+schemas.Collections.Client)
+	err := p.db.Query(query, clientID).Consistency(gocql.One).Scan(&sa.ID, &sa.ClientID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.RedirectURIs, &sa.GrantTypes, &sa.TokenEndpointAuthMethod, &sa.IsActive, &sa.OrgID, &sa.CreatedAt, &sa.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +161,7 @@ func (p *provider) ListClients(ctx context.Context, pagination *model.Pagination
 	for scanner.Next() {
 		if counter >= pagination.Offset {
 			var sa schemas.Client
-			err := scanner.Scan(&sa.ID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.IsActive, &sa.CreatedAt, &sa.UpdatedAt)
+			err := scanner.Scan(&sa.ID, &sa.ClientID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.RedirectURIs, &sa.GrantTypes, &sa.TokenEndpointAuthMethod, &sa.IsActive, &sa.OrgID, &sa.CreatedAt, &sa.UpdatedAt)
 			if err != nil {
 				return nil, nil, err
 			}

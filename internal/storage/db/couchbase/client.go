@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const clientColumns = "_id, kind, name, description, client_secret, allowed_scopes, is_active, created_at, updated_at"
+const clientColumns = "_id, client_id, kind, name, description, client_secret, allowed_scopes, redirect_uris, grant_types, token_endpoint_auth_method, is_active, org_id, created_at, updated_at"
 
 // AddClient creates a new service account record.
 func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.Client, error) {
@@ -21,6 +21,16 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
+	if sa.ClientID == "" {
+		sa.ClientID = sa.ID
+	}
+	// Couchbase enforces uniqueness only on the document key (_id), so guard
+	// client_id uniqueness with a check-then-insert.
+	// ponytail: inherent TOCTOU race — sequential admin/boot-seed only; a
+	// concurrent double-insert of the same client_id is not fully prevented.
+	if existing, _ := p.GetClientByClientID(ctx, sa.ClientID); existing != nil {
+		return nil, fmt.Errorf("client with client_id %s already exists", sa.ClientID)
+	}
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
@@ -93,6 +103,30 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 	params := make(map[string]interface{}, 1)
 	params["_id"] = id
 	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE _id=$_id LIMIT 1`, clientColumns, p.scopeName, schemas.Collections.Client)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		NamedParameters: params,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	sa := &schemas.Client{}
+	if err := decodeDocument(raw, sa); err != nil {
+		return nil, err
+	}
+	return sa, nil
+}
+
+// GetClientByClientID fetches a client by its unique public client_id.
+func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
+	params := make(map[string]interface{}, 1)
+	params["client_id"] = clientID
+	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE client_id=$client_id LIMIT 1`, clientColumns, p.scopeName, schemas.Collections.Client)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

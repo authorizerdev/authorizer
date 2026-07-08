@@ -17,6 +17,9 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
+	if sa.ClientID == "" {
+		sa.ClientID = sa.ID
+	}
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
@@ -56,6 +59,16 @@ func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
 func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Client, error) {
 	var sa schemas.Client
 	res := p.db.Where("id = ?", id).First(&sa)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &sa, nil
+}
+
+// GetClientByClientID fetches a client by its unique public client_id.
+func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
+	var sa schemas.Client
+	res := p.db.Where("client_id = ?", clientID).First(&sa)
 	if res.Error != nil {
 		return nil, res.Error
 	}
