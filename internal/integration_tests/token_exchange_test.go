@@ -56,6 +56,27 @@ func newDelegationAgent(t *testing.T, ts *testSetup, ceiling string) (string, st
 	return agent.ClientID, secret
 }
 
+// agentAccessToken mints the agent's OWN access token via client_credentials —
+// this is the token an agent presents as its actor_token (its client_id claim
+// binds it to the authenticated client per RFC 8693).
+func agentAccessToken(t *testing.T, ts *testSetup, router http.Handler, clientID, secret string) string {
+	t.Helper()
+	f := url.Values{}
+	f.Set("grant_type", "client_credentials")
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(f.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Authorizer-URL", testAuthorizerHost(ts))
+	req.SetBasicAuth(clientID, secret)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "agent client_credentials must succeed: %s", w.Body.String())
+	var resp map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	tok, _ := resp["access_token"].(string)
+	require.NotEmpty(t, tok)
+	return tok
+}
+
 func postTokenExchange(ts *testSetup, router http.Handler, form url.Values, clientID, secret string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(form.Encode()))
@@ -76,7 +97,8 @@ func TestTokenExchangeDelegation(t *testing.T) {
 	baseForm := func(agentScopeCeiling string) (url.Values, string, string) {
 		clientID, secret := newDelegationAgent(t, ts, agentScopeCeiling)
 		subject := testAccessToken(t, ts)
-		actor := testAccessToken(t, ts)
+		// actor_token is the agent's OWN token (client_id bound to the agent).
+		actor := agentAccessToken(t, ts, router, clientID, secret)
 		form := url.Values{}
 		form.Set("grant_type", tokenExchangeGrant)
 		form.Set("subject_token", subject)
@@ -157,5 +179,21 @@ func TestTokenExchangeDelegation(t *testing.T) {
 		scope, _ := claims["scope"].(string)
 		assert.NotContains(t, strings.Fields(scope), "admin",
 			"a scope outside the agent's ceiling must never be granted (non-widening)")
+	})
+
+	t.Run("actor_token_must_belong_to_authenticated_agent", func(t *testing.T) {
+		// A valid token that is NOT the agent's own (here a user token, whose
+		// client_id != the agent) must be rejected as the actor (RFC 8693 §1.1).
+		clientID, secret := newDelegationAgent(t, ts, "openid,profile,email")
+		form := url.Values{}
+		form.Set("grant_type", tokenExchangeGrant)
+		form.Set("subject_token", testAccessToken(t, ts))
+		form.Set("subject_token_type", accessTokenType)
+		form.Set("actor_token", testAccessToken(t, ts)) // a user token, not the agent's
+		form.Set("actor_token_type", accessTokenType)
+		form.Set("resource", "https://api.example.com/v1")
+		w := postTokenExchange(ts, router, form, clientID, secret)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "actor_token", "a foreign actor_token must be rejected")
 	})
 }

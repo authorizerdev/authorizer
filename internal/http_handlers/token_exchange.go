@@ -88,11 +88,25 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		})
 		return
 	}
-	if _, err := h.validateExchangeToken(actorToken, hostname); err != nil {
+	actorClaims, err := h.validateExchangeToken(actorToken, hostname)
+	if err != nil {
 		log.Debug().Err(err).Msg("invalid actor_token")
 		gc.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_grant",
 			"error_description": "The actor_token is invalid or has expired",
+		})
+		return
+	}
+	// RFC 8693 §1.1: the actor_token represents the acting party. Bind it to the
+	// authenticated agent — a valid-but-unrelated token must not stand in as the
+	// actor. The agent's own machine token (client_credentials) carries
+	// sub = the service-account's surrogate ID (see token.go ServiceAccountID: sa.ID),
+	// so require the actor_token's subject to be this client.
+	if actorSub, _ := actorClaims["sub"].(string); actorSub != agent.ID {
+		log.Debug().Msg("actor_token does not belong to the authenticated client")
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_grant",
+			"error_description": "The actor_token must belong to the authenticated client",
 		})
 		return
 	}
@@ -107,11 +121,25 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	}
 
 	// Fail-closed on a revoked authority source: a deprovisioned user (SCIM
-	// active:false / RevokedTimestamp) must never seed a fresh delegation. A sub
-	// that resolves to no user (e.g. a service-account authority) is left alone —
-	// this only demotes, mirroring the introspection revocation check.
+	// active:false / RevokedTimestamp) must never seed a fresh delegation.
+	// Distinguish a machine/service-account subject (a multi-hop agent chain, which
+	// has no user row) from a user subject by the token's login_method — NOT by a
+	// failed user lookup, so a transient DB error can't be silently treated as
+	// "not a user" and fail open past the revocation check.
 	onBehalfOfType := constants.AuditActorTypeUser
-	if user, uErr := h.StorageProvider.GetUserByID(gc, subject); uErr == nil && user != nil {
+	if lm, _ := subjectClaims["login_method"].(string); lm == constants.AuthRecipeMethodServiceAccount {
+		onBehalfOfType = "agent"
+	} else {
+		user, uErr := h.StorageProvider.GetUserByID(gc, subject)
+		if uErr != nil || user == nil {
+			// A user authority we cannot load must not seed a delegation (fail closed).
+			log.Debug().Err(uErr).Msg("subject user could not be verified")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_grant",
+				"error_description": "The subject could not be verified",
+			})
+			return
+		}
 		if user.RevokedTimestamp != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_grant",
@@ -119,8 +147,6 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 			})
 			return
 		}
-	} else {
-		onBehalfOfType = "agent"
 	}
 
 	// Attenuation (DC2/H1), fail-closed: effective = subject_scope ∩ agent_ceiling
