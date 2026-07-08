@@ -214,27 +214,27 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 		ctx := c.Request.Context()
 		slug := strings.TrimSpace(c.Param("org_slug"))
 		if h.MemoryStoreProvider == nil {
-			samlFail(c, &log, slug, "internal_error", "server error")
+			h.samlFail(c, &log, slug, "internal_error", "server error")
 			return
 		}
 		if err := c.Request.ParseForm(); err != nil {
-			samlFail(c, &log, slug, "invalid_request", "malformed request")
+			h.samlFail(c, &log, slug, "invalid_request", "malformed request")
 			return
 		}
 		// Artifact binding performs an outbound resolution call (SSRF surface) and
 		// is not supported here — only the HTTP-POST assertion binding is accepted.
 		if strings.TrimSpace(c.Request.PostForm.Get("SAMLart")) != "" {
-			samlFail(c, &log, slug, "unsupported_binding", "artifact binding is not supported")
+			h.samlFail(c, &log, slug, "unsupported_binding", "artifact binding is not supported")
 			return
 		}
 		rawResponse := strings.TrimSpace(c.Request.PostForm.Get("SAMLResponse"))
 		if rawResponse == "" {
-			samlFail(c, &log, slug, "invalid_request", "missing SAMLResponse")
+			h.samlFail(c, &log, slug, "invalid_request", "missing SAMLResponse")
 			return
 		}
 		decoded, err := base64.StdEncoding.DecodeString(rawResponse)
 		if err != nil {
-			samlFail(c, &log, slug, "invalid_request", "malformed SAMLResponse")
+			h.samlFail(c, &log, slug, "invalid_request", "malformed SAMLResponse")
 			return
 		}
 
@@ -245,7 +245,7 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 		sp, err := buildSAMLServiceProvider(conn, parsers.GetHost(c), slug)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to build SP for acs")
-			samlFail(c, &log, slug, "sso_config_error", "connection misconfigured")
+			h.samlFail(c, &log, slug, "sso_config_error", "connection misconfigured")
 			return
 		}
 
@@ -261,14 +261,14 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 			// crewjam wraps the real cause in InvalidResponseError.PrivateErr.
 			log.Debug().Err(err).Msg("saml assertion validation failed")
 			metrics.RecordSecurityEvent("saml_assertion_invalid", slug)
-			samlFail(c, &log, slug, "saml_assertion_invalid", "assertion validation failed")
+			h.samlFail(c, &log, slug, "saml_assertion_invalid", "assertion validation failed")
 			return
 		}
 
 		// Single-use AssertionID (replay defence). crewjam does not dedupe.
 		if err := h.consumeSAMLAssertionID(conn.OrgID, assertion); err != nil {
 			metrics.RecordSecurityEvent("saml_assertion_replay", slug)
-			samlFail(c, &log, slug, "saml_assertion_replay", "assertion already used")
+			h.samlFail(c, &log, slug, "saml_assertion_replay", "assertion already used")
 			return
 		}
 
@@ -277,7 +277,7 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 			subject = strings.TrimSpace(assertion.Subject.NameID.Value)
 		}
 		if subject == "" {
-			samlFail(c, &log, slug, "saml_assertion_invalid", "assertion has no subject NameID")
+			h.samlFail(c, &log, slug, "saml_assertion_invalid", "assertion has no subject NameID")
 			return
 		}
 
@@ -287,13 +287,15 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 		user, isSignUp, err := h.jitProvisionFederatedUser(ctx, conn.OrgID, conn.IssuerURL, subject, profile)
 		if err != nil {
 			log.Debug().Err(err).Msg("saml JIT provisioning rejected")
-			samlFail(c, &log, slug, "saml_provisioning_failed", err.Error())
+			// Do not echo the internal reason (e.g. "account with this email
+			// already exists") — an IdP-colluding actor could enumerate accounts.
+			h.samlFail(c, &log, slug, "saml_provisioning_failed", "provisioning failed")
 			return
 		}
 
 		if err := h.issueSAMLSession(c, slug, appRedirect, appState, user, isSignUp); err != nil {
 			log.Debug().Err(err).Msg("failed to issue session")
-			samlFail(c, &log, slug, "saml_session_failed", "could not establish session")
+			h.samlFail(c, &log, slug, "saml_session_failed", "could not establish session")
 			return
 		}
 	}
@@ -313,11 +315,11 @@ func (h *httpProvider) resolveSAMLResponseContext(c *gin.Context, sp *saml.Servi
 		if strings.TrimSpace(raw) != "" {
 			var flow samlFlowState
 			if err := json.Unmarshal([]byte(raw), &flow); err != nil {
-				samlFail(c, log, slug, "invalid_state", "corrupt state")
+				h.samlFail(c, log, slug, "invalid_state", "corrupt state")
 				return nil, "", "", false
 			}
 			if flow.OrgSlug != slug {
-				samlFail(c, log, slug, "invalid_state", "state/route mismatch")
+				h.samlFail(c, log, slug, "invalid_state", "state/route mismatch")
 				return nil, "", "", false
 			}
 			return []string{flow.RequestID}, flow.AppRedirect, flow.AppState, true
@@ -327,14 +329,14 @@ func (h *httpProvider) resolveSAMLResponseContext(c *gin.Context, sp *saml.Servi
 	// No pending SP-initiated request — this is an IdP-initiated response.
 	if !sp.AllowIDPInitiated {
 		metrics.RecordSecurityEvent("saml_idp_initiated_rejected", slug)
-		samlFail(c, log, slug, "idp_initiated_disabled", "IdP-initiated SSO is disabled for this connection")
+		h.samlFail(c, log, slug, "idp_initiated_disabled", "IdP-initiated SSO is disabled for this connection")
 		return nil, "", "", false
 	}
 	// The redirect target for an IdP-initiated flow must still be an explicit,
 	// AllowedOrigins-validated redirect_uri — RelayState is not trusted as a URL.
 	appRedirect := strings.TrimSpace(c.Request.PostForm.Get("redirect_uri"))
 	if appRedirect == "" || !validators.IsValidRedirectURI(appRedirect, h.Config.AllowedOrigins, parsers.GetHost(c)) {
-		samlFail(c, log, slug, "invalid_request", "invalid redirect_uri for IdP-initiated flow")
+		h.samlFail(c, log, slug, "invalid_request", "invalid redirect_uri for IdP-initiated flow")
 		return nil, "", "", false
 	}
 	return nil, appRedirect, "", true
@@ -573,8 +575,19 @@ func (h *httpProvider) issueSAMLSession(c *gin.Context, slug, appRedirect, appSt
 }
 
 // samlFail writes a uniform OAuth-style error response and records the failure.
-func samlFail(c *gin.Context, log *zerolog.Logger, slug, code, desc string) {
+// It emits the saml.acs_failed audit event so assertion-forgery attempts (invalid
+// signature, replay, cross-org, IdP-initiated-rejected) leave an audit trail, not
+// just a metric — successes are already audited in issueSAMLSession.
+func (h *httpProvider) samlFail(c *gin.Context, log *zerolog.Logger, slug, code, desc string) {
 	metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
 	log.Debug().Str("error", code).Str("org", slug).Msg("saml acs failed")
+	h.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditSAMLACSFailedEvent,
+		ActorType:    constants.AuditActorTypeUser,
+		ResourceType: constants.AuditResourceTypeSession,
+		Metadata:     slug + ":" + code,
+		IPAddress:    utils.GetIP(c.Request),
+		UserAgent:    utils.GetUserAgent(c.Request),
+	})
 	c.JSON(http.StatusBadRequest, gin.H{"error": code, "error_description": desc})
 }

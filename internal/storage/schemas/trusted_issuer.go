@@ -207,7 +207,10 @@ type TrustedIssuer struct {
 	// matching pending AuthnRequest). DEFAULT FALSE — SP-initiated only, with
 	// InResponseTo bound to a pending request. Enable only if the org's IdP does
 	// not support SP-initiated flows and the operator accepts the reduced CSRF
-	// protection.
+	// protection. NOTE: enabling this disables InResponseTo validation for ALL
+	// responses on this connection (crewjam limitation), including SP-initiated
+	// ones — the assertion then relies solely on the single-use AssertionID cache
+	// for replay defence.
 	SAMLAllowIDPInitiated bool `json:"saml_allow_idp_initiated" bson:"saml_allow_idp_initiated" cql:"saml_allow_idp_initiated" dynamo:"saml_allow_idp_initiated"`
 
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
