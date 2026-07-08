@@ -204,6 +204,17 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 
 	// Client collection and indexes
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.Client, options.CreateCollection())
+	clientCollection := mongodb.Collection(schemas.Collections.Client, options.Collection())
+	_, _ = clientCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"client_id": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"org_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
 
 	// TrustedIssuer collection and indexes
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.TrustedIssuer, options.CreateCollection())

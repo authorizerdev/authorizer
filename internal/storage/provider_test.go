@@ -1221,12 +1221,19 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 // caller — client_credentials authentication would be completely broken.
 func testClientOperations(t *testing.T, ctx context.Context, provider Provider) {
 	const initialSecretHash = "bcrypt-hash-placeholder-initial"
+	explicitClientID := "client-" + uuid.New().String()
+	orgID := "org-" + uuid.New().String()
 	sa := &schemas.Client{
-		Name:          "test_service_account_" + uuid.New().String(),
-		Kind:          "service_account",
-		ClientSecret:  initialSecretHash,
-		AllowedScopes: "read,write",
-		IsActive:      true,
+		Name:                    "test_service_account_" + uuid.New().String(),
+		Kind:                    "interactive",
+		ClientID:                explicitClientID,
+		ClientSecret:            initialSecretHash,
+		AllowedScopes:           "read,write",
+		RedirectURIs:            "https://app.example.com/callback,https://app.example.com/callback2",
+		GrantTypes:              "authorization_code,refresh_token",
+		TokenEndpointAuthMethod: "client_secret_basic",
+		OrgID:                   &orgID,
+		IsActive:                true,
 	}
 
 	created, err := provider.AddClient(ctx, sa)
@@ -1242,9 +1249,34 @@ func testClientOperations(t *testing.T, ctx context.Context, provider Provider) 
 	fetched, err := provider.GetClientByID(ctx, clientID)
 	require.NoError(t, err, "GetClientByID must resolve the API-facing client_id")
 	assert.Equal(t, sa.Name, fetched.Name)
-	assert.Equal(t, "service_account", fetched.Kind, "Kind must round-trip through storage")
+	assert.Equal(t, "interactive", fetched.Kind, "Kind must round-trip through storage")
 	assert.True(t, fetched.IsActive)
 	assert.Equal(t, []string{"read", "write"}, fetched.ParsedAllowedScopes())
+
+	// Interactive-kind registry columns must round-trip through storage.
+	assert.Equal(t, explicitClientID, fetched.ClientID, "ClientID must round-trip through storage")
+	assert.Equal(t, "https://app.example.com/callback,https://app.example.com/callback2", fetched.RedirectURIs, "RedirectURIs must round-trip")
+	assert.Equal(t, "authorization_code,refresh_token", fetched.GrantTypes, "GrantTypes must round-trip")
+	assert.Equal(t, "client_secret_basic", fetched.TokenEndpointAuthMethod, "TokenEndpointAuthMethod must round-trip")
+	require.NotNil(t, fetched.OrgID, "OrgID must round-trip as a non-nil pointer")
+	assert.Equal(t, orgID, *fetched.OrgID, "OrgID value must round-trip")
+
+	// GetClientByClientID resolves by the public client_id (distinct from the
+	// surrogate id) — the lookup the token endpoint and boot-time seed use.
+	byClientID, err := provider.GetClientByClientID(ctx, explicitClientID)
+	require.NoError(t, err, "GetClientByClientID must resolve the public client_id")
+	assert.Equal(t, clientID, byClientID.AsAPIClient().ID, "GetClientByClientID must return the same client")
+	assert.Equal(t, explicitClientID, byClientID.ClientID)
+
+	// A second client with the same client_id must be rejected (unique client_id).
+	_, dupErr := provider.AddClient(ctx, &schemas.Client{
+		Name:         "dup_" + uuid.New().String(),
+		Kind:         "interactive",
+		ClientID:     explicitClientID,
+		ClientSecret: initialSecretHash,
+		IsActive:     true,
+	})
+	assert.Error(t, dupErr, "duplicate client_id must be rejected")
 	// ClientSecret has json:"-" (kept out of API responses/logs) — a storage
 	// provider that (de)serializes via encoding/json for persistence (e.g.
 	// Couchbase) can silently drop it on write or read unless it routes

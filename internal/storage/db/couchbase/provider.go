@@ -291,6 +291,11 @@ func getIndex(scopeName string) map[string][]string {
 	trustedIssuerIndex2 := fmt.Sprintf("CREATE INDEX TrustedIssuerClientIdIndex ON %s.%s(client_id)", scopeName, schemas.Collections.TrustedIssuer)
 	indices[schemas.Collections.TrustedIssuer] = []string{trustedIssuerIndex1, trustedIssuerIndex2}
 
+	// Client indexes
+	clientIndex1 := fmt.Sprintf("CREATE INDEX ClientClientIdIndex ON %s.%s(client_id)", scopeName, schemas.Collections.Client)
+	clientIndex2 := fmt.Sprintf("CREATE INDEX ClientOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.Client)
+	indices[schemas.Collections.Client] = []string{clientIndex1, clientIndex2}
+
 	// Organization index
 	organizationIndex1 := fmt.Sprintf("CREATE INDEX OrganizationNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Organization)
 	indices[schemas.Collections.Organization] = []string{organizationIndex1}

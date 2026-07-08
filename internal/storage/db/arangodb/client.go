@@ -18,6 +18,9 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
+	if sa.ClientID == "" {
+		sa.ClientID = sa.ID
+	}
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
@@ -102,6 +105,34 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 		if !cursor.HasMore() {
 			if sa == nil {
 				return nil, fmt.Errorf("service account not found")
+			}
+			break
+		}
+		s := &schemas.Client{}
+		if _, err := readDocument(ctx, cursor, s); err != nil {
+			return nil, err
+		}
+		sa = s
+	}
+	return sa, nil
+}
+
+// GetClientByClientID fetches a client by its unique public client_id.
+func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
+	var sa *schemas.Client
+	query := fmt.Sprintf("FOR d in %s FILTER d.client_id == @client_id LIMIT 1 RETURN d", schemas.Collections.Client)
+	bindVars := map[string]interface{}{
+		"client_id": clientID,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = cursor.Close() }()
+	for {
+		if !cursor.HasMore() {
+			if sa == nil {
+				return nil, fmt.Errorf("client not found")
 			}
 			break
 		}

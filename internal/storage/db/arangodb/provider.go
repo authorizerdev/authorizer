@@ -359,6 +359,17 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 			return nil, err
 		}
 	}
+	clientCollection, err := arangodb.Collection(ctx, schemas.Collections.Client)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = clientCollection.EnsureHashIndex(ctx, []string{"client_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	_, _, _ = clientCollection.EnsureHashIndex(ctx, []string{"org_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
 
 	// TrustedIssuer collection and indexes
 	trustedIssuerCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.TrustedIssuer)

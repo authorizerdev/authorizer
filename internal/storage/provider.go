@@ -190,8 +190,12 @@ type Provider interface {
 	// DeleteClient removes a service account. Callers must delete
 	// associated TrustedIssuers before or within the same logical operation.
 	DeleteClient(ctx context.Context, sa *schemas.Client) error
-	// GetClientByID fetches a service account by its primary key (= client_id).
+	// GetClientByID fetches a client by its surrogate primary key.
 	GetClientByID(ctx context.Context, id string) (*schemas.Client, error)
+	// GetClientByClientID fetches a client by its public, unique client_id
+	// (distinct from the surrogate ID). This is the lookup the token/authorize
+	// endpoints and the boot-time reserved-client seed use.
+	GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error)
 	// ListClients returns a paginated list of all service accounts.
 	ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error)
 

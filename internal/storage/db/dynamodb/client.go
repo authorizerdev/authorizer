@@ -19,6 +19,17 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 		sa.ID = uuid.New().String()
 	}
 	sa.Key = sa.ID
+	if sa.ClientID == "" {
+		sa.ClientID = sa.ID
+	}
+	// DynamoDB has no unique constraint on a GSI, so guard client_id uniqueness
+	// with a check-then-insert.
+	// ponytail: inherent TOCTOU race — two concurrent inserts of the same
+	// client_id can both pass this check; DynamoDB offers no cross-item
+	// uniqueness. This closes the common case (sequential admin/boot-seed) only.
+	if existing, _ := p.GetClientByClientID(ctx, sa.ClientID); existing != nil {
+		return nil, fmt.Errorf("client with client_id %s already exists", sa.ClientID)
+	}
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
@@ -80,6 +91,23 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 	}
 	if sa.ID == "" {
 		return nil, errors.New("no document found")
+	}
+	return &sa, nil
+}
+
+// GetClientByClientID fetches a client by its unique public client_id.
+// Served by the client_id GSI.
+func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
+	items, err := p.queryEqLimit(ctx, schemas.Collections.Client, "client_id", "client_id", clientID, nil, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == 0 {
+		return nil, errors.New("no document found")
+	}
+	var sa schemas.Client
+	if err := unmarshalItem(items[0], &sa); err != nil {
+		return nil, err
 	}
 	return &sa, nil
 }
