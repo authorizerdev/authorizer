@@ -133,6 +133,18 @@ type CreateOrgOIDCConnectionRequest struct {
 	RedirectURI  *string `json:"redirect_uri,omitempty"`
 }
 
+type CreateOrgSAMLConnectionRequest struct {
+	OrgID             string  `json:"org_id"`
+	Name              string  `json:"name"`
+	IdpEntityID       string  `json:"idp_entity_id"`
+	IdpSsoURL         string  `json:"idp_sso_url"`
+	IdpCertificate    string  `json:"idp_certificate"`
+	SpEntityID        *string `json:"sp_entity_id,omitempty"`
+	AcsURL            *string `json:"acs_url,omitempty"`
+	AttributeMapping  *string `json:"attribute_mapping,omitempty"`
+	AllowIdpInitiated *bool   `json:"allow_idp_initiated,omitempty"`
+}
+
 type CreateOrganizationRequest struct {
 	Name        string  `json:"name"`
 	DisplayName *string `json:"display_name,omitempty"`
@@ -500,6 +512,26 @@ type OrgOIDCConnectionRequest struct {
 	OrgID *string `json:"org_id,omitempty"`
 }
 
+type OrgSAMLConnection struct {
+	ID                string  `json:"id"`
+	OrgID             string  `json:"org_id"`
+	Name              string  `json:"name"`
+	IdpEntityID       string  `json:"idp_entity_id"`
+	IdpSsoURL         *string `json:"idp_sso_url,omitempty"`
+	SpEntityID        *string `json:"sp_entity_id,omitempty"`
+	AcsURL            *string `json:"acs_url,omitempty"`
+	AttributeMapping  *string `json:"attribute_mapping,omitempty"`
+	AllowIdpInitiated bool    `json:"allow_idp_initiated"`
+	IsActive          bool    `json:"is_active"`
+	CreatedAt         *int64  `json:"created_at,omitempty"`
+	UpdatedAt         *int64  `json:"updated_at,omitempty"`
+}
+
+type OrgSAMLConnectionRequest struct {
+	ID    *string `json:"id,omitempty"`
+	OrgID *string `json:"org_id,omitempty"`
+}
+
 type Organization struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
@@ -754,6 +786,19 @@ type UpdateOrgOIDCConnectionRequest struct {
 	Scopes       *string `json:"scopes,omitempty"`
 	RedirectURI  *string `json:"redirect_uri,omitempty"`
 	IsActive     *bool   `json:"is_active,omitempty"`
+}
+
+type UpdateOrgSAMLConnectionRequest struct {
+	ID                string  `json:"id"`
+	Name              *string `json:"name,omitempty"`
+	IdpEntityID       *string `json:"idp_entity_id,omitempty"`
+	IdpSsoURL         *string `json:"idp_sso_url,omitempty"`
+	IdpCertificate    *string `json:"idp_certificate,omitempty"`
+	SpEntityID        *string `json:"sp_entity_id,omitempty"`
+	AcsURL            *string `json:"acs_url,omitempty"`
+	AttributeMapping  *string `json:"attribute_mapping,omitempty"`
+	AllowIdpInitiated *bool   `json:"allow_idp_initiated,omitempty"`
+	IsActive          *bool   `json:"is_active,omitempty"`
 }
 
 type UpdateOrganizationRequest struct {

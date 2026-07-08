@@ -68,6 +68,10 @@ type AdminProvider interface {
 	UpdateOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error)
 	DeleteOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.Response, *ResponseSideEffects, error)
 	OrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error)
+	CreateOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error)
+	UpdateOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error)
+	DeleteOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.Response, *ResponseSideEffects, error)
+	OrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error)
 
 	// Organizations and per-org membership.
 	CreateOrganization(ctx context.Context, meta RequestMetadata, params *model.CreateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)

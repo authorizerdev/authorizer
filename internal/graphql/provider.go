@@ -251,6 +251,18 @@ type Provider interface {
 	// OrgOidcConnection returns a per-org OIDC connection by id or org_id.
 	// Permissions: authorizer:admin
 	OrgOidcConnection(ctx context.Context, params *model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	// CreateOrgSamlConnection registers a per-org upstream SAML IdP connection.
+	// Permissions: authorizer:admin
+	CreateOrgSamlConnection(ctx context.Context, params *model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	// UpdateOrgSamlConnection updates a per-org SAML connection.
+	// Permissions: authorizer:admin
+	UpdateOrgSamlConnection(ctx context.Context, params *model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	// DeleteOrgSamlConnection deletes a per-org SAML connection.
+	// Permissions: authorizer:admin
+	DeleteOrgSamlConnection(ctx context.Context, params *model.OrgSAMLConnectionRequest) (*model.Response, error)
+	// OrgSamlConnection returns a per-org SAML connection by id or org_id.
+	// Permissions: authorizer:admin
+	OrgSamlConnection(ctx context.Context, params *model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
 	// CreateOrganization creates a new organization.
 	// Permissions: authorizer:admin
 	CreateOrganization(ctx context.Context, params *model.CreateOrganizationRequest) (*model.Organization, error)

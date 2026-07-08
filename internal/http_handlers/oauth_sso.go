@@ -502,13 +502,48 @@ func (h *httpProvider) fetchSSOJWKS(ctx context.Context, jwksURI string) (*jose.
 // silently linked to that account.
 func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowState, claims jwt.MapClaims) (*schemas.User, bool, error) {
 	sub, _ := claims["sub"].(string)
-	sub = strings.TrimSpace(sub)
-	if sub == "" {
+	profile := federatedProfile{
+		Email:         strings.TrimSpace(claimString(claims, "email")),
+		EmailVerified: emailVerifiedClaim(claims),
+		GivenName:     claimString(claims, "given_name"),
+		FamilyName:    claimString(claims, "family_name"),
+		Nickname:      claimString(claims, "name"),
+		Picture:       claimString(claims, "picture"),
+	}
+	return h.jitProvisionFederatedUser(ctx, flow.OrgID, flow.ExpectedIssuer, sub, profile)
+}
+
+// federatedProfile carries the optional profile attributes extracted from an
+// upstream identity (OIDC ID-token claims or SAML assertion attributes) for JIT
+// provisioning. The subject (federated identity) is passed separately.
+type federatedProfile struct {
+	Email         string
+	EmailVerified bool
+	GivenName     string
+	FamilyName    string
+	Nickname      string
+	Picture       string
+}
+
+// jitProvisionFederatedUser is the shared JIT provisioning core for BOTH the
+// OIDC broker and the SAML SP. Federated principals are namespaced by
+// (orgID, issuer, subject); the security-critical invariants live here so the
+// two brokers cannot drift apart:
+//
+//   - a returning principal is resolved ONLY via the (orgID, issuer, subject)
+//     FederatedIdentity row;
+//   - a first-time principal whose email collides with ANY existing account is
+//     rejected fail-closed — never silently linked (account-takeover defense);
+//   - a partial provisioning (user created, federated-identity insert failed) is
+//     rolled back by deleting the orphaned user so a retry is clean.
+func (h *httpProvider) jitProvisionFederatedUser(ctx context.Context, orgID, issuer, subject string, profile federatedProfile) (*schemas.User, bool, error) {
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
 		return nil, false, fmt.Errorf("missing subject")
 	}
 
 	// Returning principal?
-	if fi, err := h.StorageProvider.GetFederatedIdentity(ctx, flow.OrgID, flow.ExpectedIssuer, sub); err == nil && fi != nil {
+	if fi, err := h.StorageProvider.GetFederatedIdentity(ctx, orgID, issuer, subject); err == nil && fi != nil {
 		user, err := h.StorageProvider.GetUserByID(ctx, fi.UserID)
 		if err != nil || user == nil {
 			return nil, false, fmt.Errorf("federated identity references an unknown user")
@@ -523,7 +558,7 @@ func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowSta
 		return nil, false, fmt.Errorf("signup is disabled for this instance")
 	}
 
-	email := strings.TrimSpace(claimString(claims, "email"))
+	email := strings.TrimSpace(profile.Email)
 	// Account-takeover defense: never link to an existing account by email.
 	if email != "" {
 		if existing, err := h.StorageProvider.GetUserByEmail(ctx, email); err == nil && existing != nil {
@@ -538,21 +573,21 @@ func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowSta
 	}
 	if email != "" {
 		user.Email = refs.NewStringRef(email)
-		if emailVerifiedClaim(claims) {
+		if profile.EmailVerified {
 			user.EmailVerifiedAt = &now
 		}
 	}
-	if v := claimString(claims, "given_name"); v != "" {
-		user.GivenName = refs.NewStringRef(v)
+	if profile.GivenName != "" {
+		user.GivenName = refs.NewStringRef(profile.GivenName)
 	}
-	if v := claimString(claims, "family_name"); v != "" {
-		user.FamilyName = refs.NewStringRef(v)
+	if profile.FamilyName != "" {
+		user.FamilyName = refs.NewStringRef(profile.FamilyName)
 	}
-	if v := claimString(claims, "name"); v != "" {
-		user.Nickname = refs.NewStringRef(v)
+	if profile.Nickname != "" {
+		user.Nickname = refs.NewStringRef(profile.Nickname)
 	}
-	if v := claimString(claims, "picture"); v != "" {
-		user.Picture = refs.NewStringRef(v)
+	if profile.Picture != "" {
+		user.Picture = refs.NewStringRef(profile.Picture)
 	}
 
 	user, err := h.StorageProvider.AddUser(ctx, user)
@@ -560,9 +595,9 @@ func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowSta
 		return nil, false, fmt.Errorf("failed to provision user")
 	}
 	if _, err := h.StorageProvider.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
-		OrgID:   flow.OrgID,
-		Issuer:  flow.ExpectedIssuer,
-		Subject: sub,
+		OrgID:   orgID,
+		Issuer:  issuer,
+		Subject: subject,
 		UserID:  user.ID,
 	}); err != nil {
 		// Compensating action (LOW-1): the user we just created now has an email on
@@ -577,7 +612,7 @@ func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowSta
 	// Best-effort org membership: the (org_id, user_id) uniqueness guard tolerates
 	// a pre-existing row. A failure here must not block the login.
 	if _, err := h.StorageProvider.AddOrgMembership(ctx, &schemas.OrgMembership{
-		OrgID:  flow.OrgID,
+		OrgID:  orgID,
 		UserID: user.ID,
 	}); err != nil {
 		h.Log.Debug().Err(err).Msg("failed to add org membership (non-fatal)")

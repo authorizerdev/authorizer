@@ -67,6 +67,10 @@ func (s *server) NewRouter() *gin.Engine {
 	// Per-organization enterprise OIDC SSO broker (Authorizer as Relying Party)
 	router.GET("/oauth/sso/:org_slug/login", s.Dependencies.HTTPProvider.SSOLoginHandler())
 	router.GET("/oauth/sso/:org_slug/callback", s.Dependencies.HTTPProvider.SSOCallbackHandler())
+	// Per-organization enterprise SAML 2.0 SSO (Authorizer as Service Provider)
+	router.GET("/oauth/saml/:org_slug/metadata", s.Dependencies.HTTPProvider.SAMLMetadataHandler())
+	router.GET("/oauth/saml/:org_slug/login", s.Dependencies.HTTPProvider.SAMLLoginHandler())
+	router.POST("/oauth/saml/:org_slug/acs", s.Dependencies.HTTPProvider.SAMLACSHandler())
 	router.GET("/verify_email", s.Dependencies.HTTPProvider.VerifyEmailHandler())
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())

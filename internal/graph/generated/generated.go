@@ -288,12 +288,14 @@ type ComplexityRoot struct {
 		AdminSignup             func(childComplexity int, params model.AdminSignupRequest) int
 		CreateClient            func(childComplexity int, params model.CreateClientRequest) int
 		CreateOrgOidcConnection func(childComplexity int, params model.CreateOrgOIDCConnectionRequest) int
+		CreateOrgSamlConnection func(childComplexity int, params model.CreateOrgSAMLConnectionRequest) int
 		CreateOrganization      func(childComplexity int, params model.CreateOrganizationRequest) int
 		CreateScimEndpoint      func(childComplexity int, params model.CreateScimEndpointRequest) int
 		DeactivateAccount       func(childComplexity int) int
 		DeleteClient            func(childComplexity int, params model.ClientRequest) int
 		DeleteEmailTemplate     func(childComplexity int, params model.DeleteEmailTemplateRequest) int
 		DeleteOrgOidcConnection func(childComplexity int, params model.OrgOIDCConnectionRequest) int
+		DeleteOrgSamlConnection func(childComplexity int, params model.OrgSAMLConnectionRequest) int
 		DeleteOrganization      func(childComplexity int, params model.OrganizationRequest) int
 		DeleteScimEndpoint      func(childComplexity int, params model.ScimEndpointRequest) int
 		DeleteTrustedIssuer     func(childComplexity int, params model.TrustedIssuerRequest) int
@@ -326,6 +328,7 @@ type ComplexityRoot struct {
 		UpdateEmailTemplate     func(childComplexity int, params model.UpdateEmailTemplateRequest) int
 		UpdateEnv               func(childComplexity int, params model.UpdateEnvRequest) int
 		UpdateOrgOidcConnection func(childComplexity int, params model.UpdateOrgOIDCConnectionRequest) int
+		UpdateOrgSamlConnection func(childComplexity int, params model.UpdateOrgSAMLConnectionRequest) int
 		UpdateOrganization      func(childComplexity int, params model.UpdateOrganizationRequest) int
 		UpdateProfile           func(childComplexity int, params model.UpdateProfileRequest) int
 		UpdateTrustedIssuer     func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
@@ -360,6 +363,21 @@ type ComplexityRoot struct {
 		Scopes      func(childComplexity int) int
 		SsoClientID func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
+	}
+
+	OrgSAMLConnection struct {
+		AcsURL            func(childComplexity int) int
+		AllowIdpInitiated func(childComplexity int) int
+		AttributeMapping  func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		ID                func(childComplexity int) int
+		IdpEntityID       func(childComplexity int) int
+		IdpSsoURL         func(childComplexity int) int
+		IsActive          func(childComplexity int) int
+		Name              func(childComplexity int) int
+		OrgID             func(childComplexity int) int
+		SpEntityID        func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
 	}
 
 	Organization struct {
@@ -411,6 +429,7 @@ type ComplexityRoot struct {
 		Meta                 func(childComplexity int) int
 		OrgMembers           func(childComplexity int, params model.ListOrgMembersRequest) int
 		OrgOidcConnection    func(childComplexity int, params model.OrgOIDCConnectionRequest) int
+		OrgSamlConnection    func(childComplexity int, params model.OrgSAMLConnectionRequest) int
 		Organization         func(childComplexity int, params model.OrganizationRequest) int
 		Organizations        func(childComplexity int, params *model.ListOrganizationsRequest) int
 		Profile              func(childComplexity int) int
@@ -593,6 +612,9 @@ type MutationResolver interface {
 	CreateOrgOidcConnection(ctx context.Context, params model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
 	UpdateOrgOidcConnection(ctx context.Context, params model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
 	DeleteOrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.Response, error)
+	CreateOrgSamlConnection(ctx context.Context, params model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	UpdateOrgSamlConnection(ctx context.Context, params model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	DeleteOrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.Response, error)
 	CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error)
 	UpdateOrganization(ctx context.Context, params model.UpdateOrganizationRequest) (*model.Organization, error)
 	DeleteOrganization(ctx context.Context, params model.OrganizationRequest) (*model.Response, error)
@@ -630,6 +652,7 @@ type QueryResolver interface {
 	TrustedIssuer(ctx context.Context, params model.TrustedIssuerRequest) (*model.TrustedIssuer, error)
 	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
 	OrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	OrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
 	Organization(ctx context.Context, params model.OrganizationRequest) (*model.Organization, error)
 	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
@@ -1907,6 +1930,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateOrgOidcConnection(childComplexity, args["params"].(model.CreateOrgOIDCConnectionRequest)), true
 
+	case "Mutation._create_org_saml_connection":
+		if e.complexity.Mutation.CreateOrgSamlConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__create_org_saml_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateOrgSamlConnection(childComplexity, args["params"].(model.CreateOrgSAMLConnectionRequest)), true
+
 	case "Mutation._create_organization":
 		if e.complexity.Mutation.CreateOrganization == nil {
 			break
@@ -1973,6 +2008,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteOrgOidcConnection(childComplexity, args["params"].(model.OrgOIDCConnectionRequest)), true
+
+	case "Mutation._delete_org_saml_connection":
+		if e.complexity.Mutation.DeleteOrgSamlConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_org_saml_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteOrgSamlConnection(childComplexity, args["params"].(model.OrgSAMLConnectionRequest)), true
 
 	case "Mutation._delete_organization":
 		if e.complexity.Mutation.DeleteOrganization == nil {
@@ -2348,6 +2395,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UpdateOrgOidcConnection(childComplexity, args["params"].(model.UpdateOrgOIDCConnectionRequest)), true
 
+	case "Mutation._update_org_saml_connection":
+		if e.complexity.Mutation.UpdateOrgSamlConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_org_saml_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateOrgSamlConnection(childComplexity, args["params"].(model.UpdateOrgSAMLConnectionRequest)), true
+
 	case "Mutation._update_organization":
 		if e.complexity.Mutation.UpdateOrganization == nil {
 			break
@@ -2557,6 +2616,90 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.OrgOIDCConnection.UpdatedAt(childComplexity), true
+
+	case "OrgSAMLConnection.acs_url":
+		if e.complexity.OrgSAMLConnection.AcsURL == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.AcsURL(childComplexity), true
+
+	case "OrgSAMLConnection.allow_idp_initiated":
+		if e.complexity.OrgSAMLConnection.AllowIdpInitiated == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.AllowIdpInitiated(childComplexity), true
+
+	case "OrgSAMLConnection.attribute_mapping":
+		if e.complexity.OrgSAMLConnection.AttributeMapping == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.AttributeMapping(childComplexity), true
+
+	case "OrgSAMLConnection.created_at":
+		if e.complexity.OrgSAMLConnection.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.CreatedAt(childComplexity), true
+
+	case "OrgSAMLConnection.id":
+		if e.complexity.OrgSAMLConnection.ID == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.ID(childComplexity), true
+
+	case "OrgSAMLConnection.idp_entity_id":
+		if e.complexity.OrgSAMLConnection.IdpEntityID == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.IdpEntityID(childComplexity), true
+
+	case "OrgSAMLConnection.idp_sso_url":
+		if e.complexity.OrgSAMLConnection.IdpSsoURL == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.IdpSsoURL(childComplexity), true
+
+	case "OrgSAMLConnection.is_active":
+		if e.complexity.OrgSAMLConnection.IsActive == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.IsActive(childComplexity), true
+
+	case "OrgSAMLConnection.name":
+		if e.complexity.OrgSAMLConnection.Name == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.Name(childComplexity), true
+
+	case "OrgSAMLConnection.org_id":
+		if e.complexity.OrgSAMLConnection.OrgID == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.OrgID(childComplexity), true
+
+	case "OrgSAMLConnection.sp_entity_id":
+		if e.complexity.OrgSAMLConnection.SpEntityID == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.SpEntityID(childComplexity), true
+
+	case "OrgSAMLConnection.updated_at":
+		if e.complexity.OrgSAMLConnection.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgSAMLConnection.UpdatedAt(childComplexity), true
 
 	case "Organization.created_at":
 		if e.complexity.Organization.CreatedAt == nil {
@@ -2843,6 +2986,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.OrgOidcConnection(childComplexity, args["params"].(model.OrgOIDCConnectionRequest)), true
+
+	case "Query._org_saml_connection":
+		if e.complexity.Query.OrgSamlConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Query__org_saml_connection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OrgSamlConnection(childComplexity, args["params"].(model.OrgSAMLConnectionRequest)), true
 
 	case "Query._organization":
 		if e.complexity.Query.Organization == nil {
@@ -3597,6 +3752,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputClientRequest,
 		ec.unmarshalInputCreateClientRequest,
 		ec.unmarshalInputCreateOrgOIDCConnectionRequest,
+		ec.unmarshalInputCreateOrgSAMLConnectionRequest,
 		ec.unmarshalInputCreateOrganizationRequest,
 		ec.unmarshalInputCreateScimEndpointRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
@@ -3625,6 +3781,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputMobileSignUpRequest,
 		ec.unmarshalInputOAuthRevokeRequest,
 		ec.unmarshalInputOrgOIDCConnectionRequest,
+		ec.unmarshalInputOrgSAMLConnectionRequest,
 		ec.unmarshalInputOrganizationRequest,
 		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
@@ -3643,6 +3800,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateEmailTemplateRequest,
 		ec.unmarshalInputUpdateEnvRequest,
 		ec.unmarshalInputUpdateOrgOIDCConnectionRequest,
+		ec.unmarshalInputUpdateOrgSAMLConnectionRequest,
 		ec.unmarshalInputUpdateOrganizationRequest,
 		ec.unmarshalInputUpdateProfileRequest,
 		ec.unmarshalInputUpdateTrustedIssuerRequest,
@@ -4110,6 +4268,31 @@ type OrgOIDCConnection {
   sso_client_id: String!
   scopes: String
   redirect_uri: String
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+# OrgSAMLConnection is a per-organization upstream SAML 2.0 IdP for which
+# Authorizer acts as the Service Provider. The IdP signing certificate is
+# accepted on write but never projected back here.
+type OrgSAMLConnection {
+  id: ID!
+  org_id: String!
+  name: String!
+  # idp_entity_id: the upstream IdP entity ID (the assertion Issuer).
+  idp_entity_id: String!
+  # idp_sso_url: the IdP Single Sign-On endpoint the AuthnRequest is sent to.
+  idp_sso_url: String
+  # sp_entity_id / acs_url: the SP identity Authorizer advertises for this org.
+  # Empty means "derived from the request host". Register these at the IdP, or
+  # fetch the concrete SP metadata XML from /oauth/saml/{org}/metadata.
+  sp_entity_id: String
+  acs_url: String
+  # attribute_mapping: JSON mapping profile fields to SAML attribute names.
+  attribute_mapping: String
+  # allow_idp_initiated: whether IdP-initiated SSO is permitted (default false).
+  allow_idp_initiated: Boolean!
   is_active: Boolean!
   created_at: Int64
   updated_at: Int64
@@ -4628,6 +4811,46 @@ input OrgOIDCConnectionRequest {
   org_id: String
 }
 
+input CreateOrgSAMLConnectionRequest {
+  org_id: String!
+  name: String!
+  # idp_entity_id: the upstream IdP entity ID (matched against the assertion
+  # Issuer). Globally unique across all trusted issuers.
+  idp_entity_id: String!
+  # idp_sso_url: the IdP Single Sign-On endpoint (HTTP-Redirect binding).
+  idp_sso_url: String!
+  # idp_certificate: the IdP X.509 signing certificate (PEM). Assertion
+  # signatures are validated ONLY against this certificate.
+  idp_certificate: String!
+  # sp_entity_id / acs_url: override the host-derived SP identity. Optional.
+  sp_entity_id: String
+  acs_url: String
+  # attribute_mapping: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  attribute_mapping: String
+  # allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated: Boolean
+}
+
+input UpdateOrgSAMLConnectionRequest {
+  id: ID!
+  name: String
+  idp_entity_id: String
+  idp_sso_url: String
+  # Supplying idp_certificate replaces it; omitting leaves the stored cert intact.
+  idp_certificate: String
+  sp_entity_id: String
+  acs_url: String
+  attribute_mapping: String
+  allow_idp_initiated: Boolean
+  is_active: Boolean
+}
+
+input OrgSAMLConnectionRequest {
+  # Look up by connection id OR by org_id (supply exactly one).
+  id: ID
+  org_id: String
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -4863,6 +5086,10 @@ type Mutation {
   _create_org_oidc_connection(params: CreateOrgOIDCConnectionRequest!): OrgOIDCConnection!
   _update_org_oidc_connection(params: UpdateOrgOIDCConnectionRequest!): OrgOIDCConnection!
   _delete_org_oidc_connection(params: OrgOIDCConnectionRequest!): Response!
+  # Per-organization SSO SAML connections (Authorizer as Service Provider)
+  _create_org_saml_connection(params: CreateOrgSAMLConnectionRequest!): OrgSAMLConnection!
+  _update_org_saml_connection(params: UpdateOrgSAMLConnectionRequest!): OrgSAMLConnection!
+  _delete_org_saml_connection(params: OrgSAMLConnectionRequest!): Response!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -4910,6 +5137,7 @@ type Query {
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _org_saml_connection(params: OrgSAMLConnectionRequest!): OrgSAMLConnection!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
@@ -5159,6 +5387,34 @@ func (ec *executionContext) field_Mutation__create_org_oidc_connection_argsParam
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__create_org_saml_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__create_org_saml_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__create_org_saml_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CreateOrgSAMLConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CreateOrgSAMLConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCreateOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrgSAMLConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.CreateOrgSAMLConnectionRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__create_organization_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5296,6 +5552,34 @@ func (ec *executionContext) field_Mutation__delete_org_oidc_connection_argsParam
 	}
 
 	var zeroVal model.OrgOIDCConnectionRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_org_saml_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_org_saml_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_org_saml_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.OrgSAMLConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.OrgSAMLConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.OrgSAMLConnectionRequest
 	return zeroVal, nil
 }
 
@@ -5856,6 +6140,34 @@ func (ec *executionContext) field_Mutation__update_org_oidc_connection_argsParam
 	}
 
 	var zeroVal model.UpdateOrgOIDCConnectionRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__update_org_saml_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__update_org_saml_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__update_org_saml_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateOrgSAMLConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateOrgSAMLConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateOrgSAMLConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateOrgSAMLConnectionRequest
 	return zeroVal, nil
 }
 
@@ -6612,6 +6924,34 @@ func (ec *executionContext) field_Query__org_oidc_connection_argsParams(
 	}
 
 	var zeroVal model.OrgOIDCConnectionRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__org_saml_connection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__org_saml_connection_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__org_saml_connection_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.OrgSAMLConnectionRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.OrgSAMLConnectionRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnectionRequest(ctx, tmp)
+	}
+
+	var zeroVal model.OrgSAMLConnectionRequest
 	return zeroVal, nil
 }
 
@@ -16811,6 +17151,227 @@ func (ec *executionContext) fieldContext_Mutation__delete_org_oidc_connection(ct
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__create_org_saml_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__create_org_saml_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateOrgSamlConnection(rctx, fc.Args["params"].(model.CreateOrgSAMLConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgSAMLConnection)
+	fc.Result = res
+	return ec.marshalNOrgSAMLConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__create_org_saml_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgSAMLConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgSAMLConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgSAMLConnection_name(ctx, field)
+			case "idp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_idp_entity_id(ctx, field)
+			case "idp_sso_url":
+				return ec.fieldContext_OrgSAMLConnection_idp_sso_url(ctx, field)
+			case "sp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_sp_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_OrgSAMLConnection_acs_url(ctx, field)
+			case "attribute_mapping":
+				return ec.fieldContext_OrgSAMLConnection_attribute_mapping(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_OrgSAMLConnection_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgSAMLConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgSAMLConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgSAMLConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgSAMLConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__create_org_saml_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__update_org_saml_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__update_org_saml_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateOrgSamlConnection(rctx, fc.Args["params"].(model.UpdateOrgSAMLConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgSAMLConnection)
+	fc.Result = res
+	return ec.marshalNOrgSAMLConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__update_org_saml_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgSAMLConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgSAMLConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgSAMLConnection_name(ctx, field)
+			case "idp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_idp_entity_id(ctx, field)
+			case "idp_sso_url":
+				return ec.fieldContext_OrgSAMLConnection_idp_sso_url(ctx, field)
+			case "sp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_sp_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_OrgSAMLConnection_acs_url(ctx, field)
+			case "attribute_mapping":
+				return ec.fieldContext_OrgSAMLConnection_attribute_mapping(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_OrgSAMLConnection_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgSAMLConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgSAMLConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgSAMLConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgSAMLConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__update_org_saml_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_org_saml_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_org_saml_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteOrgSamlConnection(rctx, fc.Args["params"].(model.OrgSAMLConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_org_saml_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_org_saml_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__create_organization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__create_organization(ctx, field)
 	if err != nil {
@@ -18570,6 +19131,516 @@ func (ec *executionContext) _OrgOIDCConnection_updated_at(ctx context.Context, f
 func (ec *executionContext) fieldContext_OrgOIDCConnection_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "OrgOIDCConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_org_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_idp_entity_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_idp_entity_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IdpEntityID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_idp_entity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_idp_sso_url(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_idp_sso_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IdpSsoURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_idp_sso_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_sp_entity_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_sp_entity_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SpEntityID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_sp_entity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_acs_url(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_acs_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AcsURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_acs_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_attribute_mapping(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_attribute_mapping(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AttributeMapping, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_attribute_mapping(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_allow_idp_initiated(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_allow_idp_initiated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AllowIdpInitiated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_allow_idp_initiated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_is_active(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_is_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_created_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgSAMLConnection_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgSAMLConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgSAMLConnection_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgSAMLConnection_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgSAMLConnection",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -20769,6 +21840,87 @@ func (ec *executionContext) fieldContext_Query__org_oidc_connection(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query__org_oidc_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__org_saml_connection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__org_saml_connection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().OrgSamlConnection(rctx, fc.Args["params"].(model.OrgSAMLConnectionRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgSAMLConnection)
+	fc.Result = res
+	return ec.marshalNOrgSAMLConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__org_saml_connection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_OrgSAMLConnection_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgSAMLConnection_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_OrgSAMLConnection_name(ctx, field)
+			case "idp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_idp_entity_id(ctx, field)
+			case "idp_sso_url":
+				return ec.fieldContext_OrgSAMLConnection_idp_sso_url(ctx, field)
+			case "sp_entity_id":
+				return ec.fieldContext_OrgSAMLConnection_sp_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_OrgSAMLConnection_acs_url(ctx, field)
+			case "attribute_mapping":
+				return ec.fieldContext_OrgSAMLConnection_attribute_mapping(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_OrgSAMLConnection_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_OrgSAMLConnection_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgSAMLConnection_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgSAMLConnection_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgSAMLConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__org_saml_connection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -27647,6 +28799,89 @@ func (ec *executionContext) unmarshalInputCreateOrgOIDCConnectionRequest(ctx con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateOrgSAMLConnectionRequest(ctx context.Context, obj any) (model.CreateOrgSAMLConnectionRequest, error) {
+	var it model.CreateOrgSAMLConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "name", "idp_entity_id", "idp_sso_url", "idp_certificate", "sp_entity_id", "acs_url", "attribute_mapping", "allow_idp_initiated"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "idp_entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_entity_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpEntityID = data
+		case "idp_sso_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_sso_url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpSsoURL = data
+		case "idp_certificate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_certificate"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpCertificate = data
+		case "sp_entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sp_entity_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpEntityID = data
+		case "acs_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acs_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcsURL = data
+		case "attribute_mapping":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attribute_mapping"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AttributeMapping = data
+		case "allow_idp_initiated":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allow_idp_initiated"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowIdpInitiated = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateOrganizationRequest(ctx context.Context, obj any) (model.CreateOrganizationRequest, error) {
 	var it model.CreateOrganizationRequest
 	asMap := map[string]any{}
@@ -28770,6 +30005,40 @@ func (ec *executionContext) unmarshalInputOAuthRevokeRequest(ctx context.Context
 
 func (ec *executionContext) unmarshalInputOrgOIDCConnectionRequest(ctx context.Context, obj any) (model.OrgOIDCConnectionRequest, error) {
 	var it model.OrgOIDCConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputOrgSAMLConnectionRequest(ctx context.Context, obj any) (model.OrgSAMLConnectionRequest, error) {
+	var it model.OrgSAMLConnectionRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -30045,6 +31314,96 @@ func (ec *executionContext) unmarshalInputUpdateOrgOIDCConnectionRequest(ctx con
 				return it, err
 			}
 			it.RedirectURI = data
+		case "is_active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsActive = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateOrgSAMLConnectionRequest(ctx context.Context, obj any) (model.UpdateOrgSAMLConnectionRequest, error) {
+	var it model.UpdateOrgSAMLConnectionRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "idp_entity_id", "idp_sso_url", "idp_certificate", "sp_entity_id", "acs_url", "attribute_mapping", "allow_idp_initiated", "is_active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "idp_entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_entity_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpEntityID = data
+		case "idp_sso_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_sso_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpSsoURL = data
+		case "idp_certificate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idp_certificate"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdpCertificate = data
+		case "sp_entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sp_entity_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpEntityID = data
+		case "acs_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acs_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcsURL = data
+		case "attribute_mapping":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attribute_mapping"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AttributeMapping = data
+		case "allow_idp_initiated":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allow_idp_initiated"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowIdpInitiated = data
 		case "is_active":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -32320,6 +33679,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_create_org_saml_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__create_org_saml_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_update_org_saml_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__update_org_saml_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_org_saml_connection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_org_saml_connection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_create_organization":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__create_organization(ctx, field)
@@ -32606,6 +33986,82 @@ func (ec *executionContext) _OrgOIDCConnection(ctx context.Context, sel ast.Sele
 			out.Values[i] = ec._OrgOIDCConnection_created_at(ctx, field, obj)
 		case "updated_at":
 			out.Values[i] = ec._OrgOIDCConnection_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var orgSAMLConnectionImplementors = []string{"OrgSAMLConnection"}
+
+func (ec *executionContext) _OrgSAMLConnection(ctx context.Context, sel ast.SelectionSet, obj *model.OrgSAMLConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, orgSAMLConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OrgSAMLConnection")
+		case "id":
+			out.Values[i] = ec._OrgSAMLConnection_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._OrgSAMLConnection_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._OrgSAMLConnection_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "idp_entity_id":
+			out.Values[i] = ec._OrgSAMLConnection_idp_entity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "idp_sso_url":
+			out.Values[i] = ec._OrgSAMLConnection_idp_sso_url(ctx, field, obj)
+		case "sp_entity_id":
+			out.Values[i] = ec._OrgSAMLConnection_sp_entity_id(ctx, field, obj)
+		case "acs_url":
+			out.Values[i] = ec._OrgSAMLConnection_acs_url(ctx, field, obj)
+		case "attribute_mapping":
+			out.Values[i] = ec._OrgSAMLConnection_attribute_mapping(ctx, field, obj)
+		case "allow_idp_initiated":
+			out.Values[i] = ec._OrgSAMLConnection_allow_idp_initiated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_active":
+			out.Values[i] = ec._OrgSAMLConnection_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._OrgSAMLConnection_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._OrgSAMLConnection_updated_at(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -33300,6 +34756,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__org_oidc_connection(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_org_saml_connection":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__org_saml_connection(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -34976,6 +36454,11 @@ func (ec *executionContext) unmarshalNCreateOrgOIDCConnectionRequest2githubᚗco
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrgSAMLConnectionRequest(ctx context.Context, v any) (model.CreateOrgSAMLConnectionRequest, error) {
+	res, err := ec.unmarshalInputCreateOrgSAMLConnectionRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateOrganizationRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateOrganizationRequest(ctx context.Context, v any) (model.CreateOrganizationRequest, error) {
 	res, err := ec.unmarshalInputCreateOrganizationRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -35495,6 +36978,25 @@ func (ec *executionContext) unmarshalNOrgOIDCConnectionRequest2githubᚗcomᚋau
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNOrgSAMLConnection2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnection(ctx context.Context, sel ast.SelectionSet, v model.OrgSAMLConnection) graphql.Marshaler {
+	return ec._OrgSAMLConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOrgSAMLConnection2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnection(ctx context.Context, sel ast.SelectionSet, v *model.OrgSAMLConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrgSAMLConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgSAMLConnectionRequest(ctx context.Context, v any) (model.OrgSAMLConnectionRequest, error) {
+	res, err := ec.unmarshalInputOrgSAMLConnectionRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNOrganization2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v model.Organization) graphql.Marshaler {
 	return ec._Organization(ctx, sel, &v)
 }
@@ -35932,6 +37434,11 @@ func (ec *executionContext) unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizer
 
 func (ec *executionContext) unmarshalNUpdateOrgOIDCConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateOrgOIDCConnectionRequest(ctx context.Context, v any) (model.UpdateOrgOIDCConnectionRequest, error) {
 	res, err := ec.unmarshalInputUpdateOrgOIDCConnectionRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateOrgSAMLConnectionRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateOrgSAMLConnectionRequest(ctx context.Context, v any) (model.UpdateOrgSAMLConnectionRequest, error) {
+	res, err := ec.unmarshalInputUpdateOrgSAMLConnectionRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
