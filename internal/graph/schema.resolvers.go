@@ -202,6 +202,21 @@ func (r *mutationResolver) DeleteOrgOidcConnection(ctx context.Context, params m
 	return r.GraphQLProvider.DeleteOrgOidcConnection(ctx, &params)
 }
 
+// CreateOrgSamlConnection is the resolver for the _create_org_saml_connection field.
+func (r *mutationResolver) CreateOrgSamlConnection(ctx context.Context, params model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error) {
+	return r.GraphQLProvider.CreateOrgSamlConnection(ctx, &params)
+}
+
+// UpdateOrgSamlConnection is the resolver for the _update_org_saml_connection field.
+func (r *mutationResolver) UpdateOrgSamlConnection(ctx context.Context, params model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error) {
+	return r.GraphQLProvider.UpdateOrgSamlConnection(ctx, &params)
+}
+
+// DeleteOrgSamlConnection is the resolver for the _delete_org_saml_connection field.
+func (r *mutationResolver) DeleteOrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteOrgSamlConnection(ctx, &params)
+}
+
 // CreateOrganization is the resolver for the _create_organization field.
 func (r *mutationResolver) CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error) {
 	return r.GraphQLProvider.CreateOrganization(ctx, &params)
@@ -375,6 +390,11 @@ func (r *queryResolver) TrustedIssuers(ctx context.Context, params *model.ListTr
 // OrgOidcConnection is the resolver for the _org_oidc_connection field.
 func (r *queryResolver) OrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error) {
 	return r.GraphQLProvider.OrgOidcConnection(ctx, &params)
+}
+
+// OrgSamlConnection is the resolver for the _org_saml_connection field.
+func (r *queryResolver) OrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error) {
+	return r.GraphQLProvider.OrgSamlConnection(ctx, &params)
 }
 
 // Organization is the resolver for the _organization field.

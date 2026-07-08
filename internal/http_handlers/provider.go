@@ -111,6 +111,12 @@ type Provider interface {
 	SSOLoginHandler() gin.HandlerFunc
 	// SSOCallbackHandler completes a per-org enterprise OIDC SSO broker login.
 	SSOCallbackHandler() gin.HandlerFunc
+	// SAMLMetadataHandler serves a per-org SP SAML metadata document.
+	SAMLMetadataHandler() gin.HandlerFunc
+	// SAMLLoginHandler starts a per-org SP-initiated SAML SSO login.
+	SAMLLoginHandler() gin.HandlerFunc
+	// SAMLACSHandler consumes a per-org SAML assertion (Assertion Consumer Service).
+	SAMLACSHandler() gin.HandlerFunc
 	// OpenIDConfigurationHandler is the main handler that handels all the openid configuration requests
 	OpenIDConfigurationHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests

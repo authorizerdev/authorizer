@@ -170,6 +170,49 @@ type TrustedIssuer struct {
 	// {scheme}://{host}/oauth/sso/{org}/callback from the request host.
 	SSORedirectURI string `json:"sso_redirect_uri" bson:"sso_redirect_uri" cql:"sso_redirect_uri" dynamo:"sso_redirect_uri"`
 
+	// --- SSO SAML SP (kind = sso_saml) ---
+	// These fields hold the upstream corporate IdP configuration Authorizer uses
+	// as a SAML 2.0 Service Provider. They are empty on non-sso_saml rows. The IdP
+	// entity ID (the assertion Issuer and the FederatedIdentity issuer) reuses the
+	// globally-unique IssuerURL field, so a SAML IdP cannot shadow an OIDC/client-
+	// assertion issuer at the same value and vice-versa.
+
+	// SAMLSSOURL is the upstream IdP Single Sign-On endpoint the signed
+	// AuthnRequest is sent to (HTTP-Redirect binding).
+	SAMLSSOURL *string `json:"saml_sso_url" bson:"saml_sso_url" cql:"saml_sso_url" dynamo:"saml_sso_url"`
+
+	// SAMLIDPCertPEM is the IdP's X.509 signing certificate (PEM). Assertion
+	// signatures are validated ONLY against this certificate — the sole trust
+	// anchor for this org's connection.
+	SAMLIDPCertPEM *string `json:"saml_idp_cert_pem" bson:"saml_idp_cert_pem" cql:"saml_idp_cert_pem" dynamo:"saml_idp_cert_pem"`
+
+	// SAMLSPEntityID is the SP entity ID Authorizer advertises for this org (the
+	// assertion Audience an incoming assertion MUST target). When empty the SP
+	// derives {scheme}://{host}/oauth/saml/{org}/metadata from the request host.
+	SAMLSPEntityID *string `json:"saml_sp_entity_id" bson:"saml_sp_entity_id" cql:"saml_sp_entity_id" dynamo:"saml_sp_entity_id"`
+
+	// SAMLACSURL is the Assertion Consumer Service URL for this org (the
+	// Recipient/Destination an incoming assertion MUST target). When empty the SP
+	// derives {scheme}://{host}/oauth/saml/{org}/acs from the request host.
+	SAMLACSURL *string `json:"saml_acs_url" bson:"saml_acs_url" cql:"saml_acs_url" dynamo:"saml_acs_url"`
+
+	// SAMLAttributeMapping is a JSON object mapping Authorizer profile fields to
+	// upstream SAML attribute names, e.g.
+	// {"email":"email","given_name":"firstName","family_name":"lastName"}.
+	// The NameID is ALWAYS the federated-identity subject; this map only governs
+	// optional profile-attribute extraction. Empty means "use default names".
+	SAMLAttributeMapping *string `json:"saml_attribute_mapping" bson:"saml_attribute_mapping" cql:"saml_attribute_mapping" dynamo:"saml_attribute_mapping"`
+
+	// SAMLAllowIDPInitiated permits IdP-initiated SSO (a POST to ACS with no
+	// matching pending AuthnRequest). DEFAULT FALSE — SP-initiated only, with
+	// InResponseTo bound to a pending request. Enable only if the org's IdP does
+	// not support SP-initiated flows and the operator accepts the reduced CSRF
+	// protection. NOTE: enabling this disables InResponseTo validation for ALL
+	// responses on this connection (crewjam limitation), including SP-initiated
+	// ones — the assertion then relies solely on the single-use AssertionID cache
+	// for replay defence.
+	SAMLAllowIDPInitiated bool `json:"saml_allow_idp_initiated" bson:"saml_allow_idp_initiated" cql:"saml_allow_idp_initiated" dynamo:"saml_allow_idp_initiated"`
+
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 }

@@ -35,6 +35,8 @@ const (
 	AuditResourceTypeTrustedIssuer = "trusted_issuer"
 	// AuditResourceTypeOrgOIDCConnection represents a per-org upstream OIDC IdP.
 	AuditResourceTypeOrgOIDCConnection = "org_oidc_connection"
+	// AuditResourceTypeOrgSAMLConnection represents a per-org upstream SAML IdP.
+	AuditResourceTypeOrgSAMLConnection = "org_saml_connection"
 	// AuditResourceTypeOrganization represents an organization entity.
 	AuditResourceTypeOrganization = "organization"
 	// AuditResourceTypeOrgMembership represents an org membership entity.
@@ -135,6 +137,12 @@ const (
 	AuditSSOCallbackSuccessEvent = "sso.callback_success"
 	// AuditSSOCallbackFailedEvent is logged when an org OIDC SSO callback fails.
 	AuditSSOCallbackFailedEvent = "sso.callback_failed"
+	// AuditSAMLLoginInitiatedEvent is logged when an org SAML SP login is started.
+	AuditSAMLLoginInitiatedEvent = "saml.login_initiated"
+	// AuditSAMLACSSuccessEvent is logged when an org SAML ACS assertion is accepted.
+	AuditSAMLACSSuccessEvent = "saml.acs_success"
+	// AuditSAMLACSFailedEvent is logged when an org SAML ACS assertion is rejected.
+	AuditSAMLACSFailedEvent = "saml.acs_failed"
 
 	// AuditTokenIssuedEvent is logged when a new token is issued.
 	AuditTokenIssuedEvent = "token.issued"
@@ -169,6 +177,12 @@ const (
 	AuditOrgOIDCConnectionUpdatedEvent = "admin.org_oidc_connection_updated"
 	// AuditOrgOIDCConnectionDeletedEvent is logged when an admin deletes an org OIDC connection.
 	AuditOrgOIDCConnectionDeletedEvent = "admin.org_oidc_connection_deleted"
+	// AuditOrgSAMLConnectionCreatedEvent is logged when an admin creates an org SAML connection.
+	AuditOrgSAMLConnectionCreatedEvent = "admin.org_saml_connection_created"
+	// AuditOrgSAMLConnectionUpdatedEvent is logged when an admin updates an org SAML connection.
+	AuditOrgSAMLConnectionUpdatedEvent = "admin.org_saml_connection_updated"
+	// AuditOrgSAMLConnectionDeletedEvent is logged when an admin deletes an org SAML connection.
+	AuditOrgSAMLConnectionDeletedEvent = "admin.org_saml_connection_deleted"
 	// AuditTrustedIssuerCreatedEvent is logged when an admin adds a trusted issuer.
 	AuditTrustedIssuerCreatedEvent = "admin.trusted_issuer_created"
 	// AuditTrustedIssuerUpdatedEvent is logged when an admin updates a trusted issuer.

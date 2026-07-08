@@ -200,6 +200,10 @@ func TestStorageProvider(t *testing.T) {
 				testOrgOIDCAndFederatedOperations(t, ctx, provider, dbType)
 			})
 
+			t.Run("Org SAML Connection Operations", func(t *testing.T) {
+				testOrgSAMLOperations(t, ctx, provider, dbType)
+			})
+
 			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
 				testScimEndpointOperations(t, ctx, provider)
 			})
@@ -1725,6 +1729,70 @@ func testOrgOIDCAndFederatedOperations(t *testing.T, ctx context.Context, provid
 	// A different subject at the same (org, issuer) is a distinct identity.
 	_, err = provider.GetFederatedIdentity(ctx, orgID, issuerURL, "unknown-sub")
 	assert.Error(t, err, "unknown federated identity must not resolve")
+}
+
+// testOrgSAMLOperations exercises the sso_saml TrustedIssuer fields (nullable
+// SAML SP config) round-tripping across every backend, plus the
+// GetTrustedIssuerByOrgIDAndKind lookup and an UpdateTrustedIssuer mutation.
+func testOrgSAMLOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
+	orgID := "org-" + uuid.New().String()
+	idpEntityID := "https://idp-" + uuid.New().String() + ".example.com/metadata"
+	const certPEM = "-----BEGIN CERTIFICATE-----\nMIIBsomethingfakebutstable==\n-----END CERTIFICATE-----"
+	const attrMap = `{"email":"mail","given_name":"gn"}`
+
+	conn, err := provider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
+		Kind:                  constants.TrustKindSSOSAML,
+		OrgID:                 orgID,
+		Name:                  "saml_" + uuid.New().String(),
+		IssuerURL:             idpEntityID,
+		KeySourceType:         "saml_idp_certificate",
+		IssuerType:            "saml",
+		AuthMethod:            "saml_assertion",
+		SAMLSSOURL:            refs.NewStringRef("https://idp.example.com/sso"),
+		SAMLIDPCertPEM:        refs.NewStringRef(certPEM),
+		SAMLSPEntityID:        refs.NewStringRef("https://authorizer.example.com/oauth/saml/x/metadata"),
+		SAMLACSURL:            refs.NewStringRef("https://authorizer.example.com/oauth/saml/x/acs"),
+		SAMLAttributeMapping:  refs.NewStringRef(attrMap),
+		SAMLAllowIDPInitiated: true,
+		IsActive:              true,
+	})
+	require.NoError(t, err)
+	connID := conn.AsAPITrustedIssuer().ID
+	require.NotEmpty(t, connID)
+
+	// Round-trip: every SAML field must persist across write->read.
+	fetched, err := provider.GetTrustedIssuerByID(ctx, connID)
+	require.NoError(t, err)
+	assert.Equal(t, constants.TrustKindSSOSAML, fetched.EffectiveKind())
+	assert.Equal(t, orgID, fetched.OrgID)
+	assert.Equal(t, idpEntityID, fetched.IssuerURL)
+	require.NotNil(t, fetched.SAMLSSOURL)
+	assert.Equal(t, "https://idp.example.com/sso", *fetched.SAMLSSOURL)
+	require.NotNil(t, fetched.SAMLIDPCertPEM)
+	assert.Equal(t, certPEM, *fetched.SAMLIDPCertPEM, "IdP certificate must persist on "+dbType)
+	require.NotNil(t, fetched.SAMLSPEntityID)
+	assert.Equal(t, "https://authorizer.example.com/oauth/saml/x/metadata", *fetched.SAMLSPEntityID)
+	require.NotNil(t, fetched.SAMLACSURL)
+	assert.Equal(t, "https://authorizer.example.com/oauth/saml/x/acs", *fetched.SAMLACSURL)
+	require.NotNil(t, fetched.SAMLAttributeMapping)
+	assert.Equal(t, attrMap, *fetched.SAMLAttributeMapping)
+	assert.True(t, fetched.SAMLAllowIDPInitiated)
+
+	// GetTrustedIssuerByOrgIDAndKind resolves the org's SAML connection.
+	byOrg, err := provider.GetTrustedIssuerByOrgIDAndKind(ctx, orgID, constants.TrustKindSSOSAML)
+	require.NoError(t, err)
+	assert.Equal(t, connID, byOrg.AsAPITrustedIssuer().ID)
+
+	// Update mutates SAML fields (load-then-mutate); the bool must flip to false.
+	fetched.SAMLAllowIDPInitiated = false
+	fetched.SAMLSSOURL = refs.NewStringRef("https://idp.example.com/sso2")
+	_, err = provider.UpdateTrustedIssuer(ctx, fetched)
+	require.NoError(t, err)
+	reFetched, err := provider.GetTrustedIssuerByID(ctx, connID)
+	require.NoError(t, err)
+	assert.False(t, reFetched.SAMLAllowIDPInitiated, "SAMLAllowIDPInitiated must persist as false on "+dbType)
+	require.NotNil(t, reFetched.SAMLSSOURL)
+	assert.Equal(t, "https://idp.example.com/sso2", *reFetched.SAMLSSOURL)
 }
 
 // testScimEndpointOperations exercises ScimEndpoint CRUD including that the

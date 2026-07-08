@@ -412,7 +412,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Client, "client_id", 30*time.Second)
 
 	// TrustedIssuer table and indexes
-	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
+	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text, saml_sso_url text, saml_idp_cert_pem text, saml_sp_entity_id text, saml_acs_url text, saml_attribute_mapping text, saml_allow_idp_initiated boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
 	err = session.Query(trustedIssuerCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
@@ -429,6 +429,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	trustedIssuerSSOAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text);`, KeySpace, schemas.Collections.TrustedIssuer)
 	if err = session.Query(trustedIssuerSSOAlterQuery).Exec(); err != nil {
 		deps.Log.Debug().Err(err).Msg("Failed to alter trusted_issuers table as SSO broker columns exist")
+		// continue
+	}
+	// Add SAML SP columns for keyspaces created before the sso_saml kind (§4.4)
+	// landed. Tolerated if the columns already exist.
+	trustedIssuerSAMLAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (saml_sso_url text, saml_idp_cert_pem text, saml_sp_entity_id text, saml_acs_url text, saml_attribute_mapping text, saml_allow_idp_initiated boolean);`, KeySpace, schemas.Collections.TrustedIssuer)
+	if err = session.Query(trustedIssuerSAMLAlterQuery).Exec(); err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter trusted_issuers table as SAML SP columns exist")
 		// continue
 	}
 	trustedIssuerIssuerURLIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_trusted_issuer_issuer_url ON %s.%s (issuer_url)", KeySpace, schemas.Collections.TrustedIssuer)

@@ -363,6 +363,31 @@ type OrgOIDCConnection {
   updated_at: Int64
 }
 
+# OrgSAMLConnection is a per-organization upstream SAML 2.0 IdP for which
+# Authorizer acts as the Service Provider. The IdP signing certificate is
+# accepted on write but never projected back here.
+type OrgSAMLConnection {
+  id: ID!
+  org_id: String!
+  name: String!
+  # idp_entity_id: the upstream IdP entity ID (the assertion Issuer).
+  idp_entity_id: String!
+  # idp_sso_url: the IdP Single Sign-On endpoint the AuthnRequest is sent to.
+  idp_sso_url: String
+  # sp_entity_id / acs_url: the SP identity Authorizer advertises for this org.
+  # Empty means "derived from the request host". Register these at the IdP, or
+  # fetch the concrete SP metadata XML from /oauth/saml/{org}/metadata.
+  sp_entity_id: String
+  acs_url: String
+  # attribute_mapping: JSON mapping profile fields to SAML attribute names.
+  attribute_mapping: String
+  # allow_idp_initiated: whether IdP-initiated SSO is permitted (default false).
+  allow_idp_initiated: Boolean!
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
 type Organization {
   id: ID!
   # name is a unique, URL-safe slug identifying the organization.
@@ -876,6 +901,46 @@ input OrgOIDCConnectionRequest {
   org_id: String
 }
 
+input CreateOrgSAMLConnectionRequest {
+  org_id: String!
+  name: String!
+  # idp_entity_id: the upstream IdP entity ID (matched against the assertion
+  # Issuer). Globally unique across all trusted issuers.
+  idp_entity_id: String!
+  # idp_sso_url: the IdP Single Sign-On endpoint (HTTP-Redirect binding).
+  idp_sso_url: String!
+  # idp_certificate: the IdP X.509 signing certificate (PEM). Assertion
+  # signatures are validated ONLY against this certificate.
+  idp_certificate: String!
+  # sp_entity_id / acs_url: override the host-derived SP identity. Optional.
+  sp_entity_id: String
+  acs_url: String
+  # attribute_mapping: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  attribute_mapping: String
+  # allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated: Boolean
+}
+
+input UpdateOrgSAMLConnectionRequest {
+  id: ID!
+  name: String
+  idp_entity_id: String
+  idp_sso_url: String
+  # Supplying idp_certificate replaces it; omitting leaves the stored cert intact.
+  idp_certificate: String
+  sp_entity_id: String
+  acs_url: String
+  attribute_mapping: String
+  allow_idp_initiated: Boolean
+  is_active: Boolean
+}
+
+input OrgSAMLConnectionRequest {
+  # Look up by connection id OR by org_id (supply exactly one).
+  id: ID
+  org_id: String
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -1111,6 +1176,10 @@ type Mutation {
   _create_org_oidc_connection(params: CreateOrgOIDCConnectionRequest!): OrgOIDCConnection!
   _update_org_oidc_connection(params: UpdateOrgOIDCConnectionRequest!): OrgOIDCConnection!
   _delete_org_oidc_connection(params: OrgOIDCConnectionRequest!): Response!
+  # Per-organization SSO SAML connections (Authorizer as Service Provider)
+  _create_org_saml_connection(params: CreateOrgSAMLConnectionRequest!): OrgSAMLConnection!
+  _update_org_saml_connection(params: UpdateOrgSAMLConnectionRequest!): OrgSAMLConnection!
+  _delete_org_saml_connection(params: OrgSAMLConnectionRequest!): Response!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -1158,6 +1227,7 @@ type Query {
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _org_saml_connection(params: OrgSAMLConnectionRequest!): OrgSAMLConnection!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
