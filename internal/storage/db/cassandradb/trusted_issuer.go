@@ -13,11 +13,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const trustedIssuerColumns = "id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, allowed_subjects, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
+const trustedIssuerColumns = "id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, allowed_subjects, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, kind, org_id, sso_client_id, sso_client_secret_enc, sso_scopes, sso_redirect_uri, created_at, updated_at"
 
 // scanTrustedIssuer maps the trustedIssuerColumns projection onto a struct.
 func scanTrustedIssuer(scan func(...interface{}) error, issuer *schemas.TrustedIssuer) error {
-	return scan(&issuer.ID, &issuer.ClientID, &issuer.Name, &issuer.IssuerURL, &issuer.KeySourceType, &issuer.JWKSUrl, &issuer.ExpectedAud, &issuer.SubjectClaim, &issuer.AllowedSubjects, &issuer.IssuerType, &issuer.AuthMethod, &issuer.IsActive, &issuer.EnableTokenReview, &issuer.KubernetesAPIServerURL, &issuer.SpiffeRefreshHintSeconds, &issuer.TrustedProxyHeader, &issuer.TrustedProxyCIDRs, &issuer.CreatedAt, &issuer.UpdatedAt)
+	return scan(&issuer.ID, &issuer.ClientID, &issuer.Name, &issuer.IssuerURL, &issuer.KeySourceType, &issuer.JWKSUrl, &issuer.ExpectedAud, &issuer.SubjectClaim, &issuer.AllowedSubjects, &issuer.IssuerType, &issuer.AuthMethod, &issuer.IsActive, &issuer.EnableTokenReview, &issuer.KubernetesAPIServerURL, &issuer.SpiffeRefreshHintSeconds, &issuer.TrustedProxyHeader, &issuer.TrustedProxyCIDRs, &issuer.Kind, &issuer.OrgID, &issuer.SSOClientID, &issuer.SSOClientSecretEnc, &issuer.SSOScopes, &issuer.SSORedirectURI, &issuer.CreatedAt, &issuer.UpdatedAt)
 }
 
 // AddTrustedIssuer creates a new trusted issuer record.
@@ -41,8 +41,8 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 	if existing, _ := p.GetTrustedIssuerByIssuerURL(ctx, issuer.IssuerURL); existing != nil {
 		return nil, fmt.Errorf("trusted issuer with %s issuer_url already exists", issuer.IssuerURL)
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.TrustedIssuer, trustedIssuerColumns)
-	err := p.db.Query(insertQuery, issuer.ID, issuer.ClientID, issuer.Name, issuer.IssuerURL, issuer.KeySourceType, issuer.JWKSUrl, issuer.ExpectedAud, issuer.SubjectClaim, issuer.AllowedSubjects, issuer.IssuerType, issuer.AuthMethod, issuer.IsActive, issuer.EnableTokenReview, issuer.KubernetesAPIServerURL, issuer.SpiffeRefreshHintSeconds, issuer.TrustedProxyHeader, issuer.TrustedProxyCIDRs, issuer.CreatedAt, issuer.UpdatedAt).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.TrustedIssuer, trustedIssuerColumns)
+	err := p.db.Query(insertQuery, issuer.ID, issuer.ClientID, issuer.Name, issuer.IssuerURL, issuer.KeySourceType, issuer.JWKSUrl, issuer.ExpectedAud, issuer.SubjectClaim, issuer.AllowedSubjects, issuer.IssuerType, issuer.AuthMethod, issuer.IsActive, issuer.EnableTokenReview, issuer.KubernetesAPIServerURL, issuer.SpiffeRefreshHintSeconds, issuer.TrustedProxyHeader, issuer.TrustedProxyCIDRs, issuer.Kind, issuer.OrgID, issuer.SSOClientID, issuer.SSOClientSecretEnc, issuer.SSOScopes, issuer.SSORedirectURI, issuer.CreatedAt, issuer.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +110,18 @@ func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL st
 	var issuer schemas.TrustedIssuer
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE issuer_url = ? LIMIT 1 ALLOW FILTERING", trustedIssuerColumns, KeySpace+"."+schemas.Collections.TrustedIssuer)
 	err := scanTrustedIssuer(p.db.Query(query, issuerURL).Consistency(gocql.One).Scan, &issuer)
+	if err != nil {
+		return nil, err
+	}
+	return &issuer, nil
+}
+
+// GetTrustedIssuerByOrgIDAndKind fetches a trusted issuer by its (org_id, kind) pair.
+// Used to locate an organization's SSO connection.
+func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error) {
+	var issuer schemas.TrustedIssuer
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? AND kind = ? LIMIT 1 ALLOW FILTERING", trustedIssuerColumns, KeySpace+"."+schemas.Collections.TrustedIssuer)
+	err := scanTrustedIssuer(p.db.Query(query, orgID, kind).Consistency(gocql.One).Scan, &issuer)
 	if err != nil {
 		return nil, err
 	}

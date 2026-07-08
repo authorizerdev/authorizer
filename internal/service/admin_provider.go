@@ -63,6 +63,12 @@ type AdminProvider interface {
 	TrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.TrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)
 	TrustedIssuers(ctx context.Context, meta RequestMetadata, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, *ResponseSideEffects, error)
 
+	// Per-org SSO OIDC connections (Authorizer as Relying Party).
+	CreateOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error)
+	UpdateOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error)
+	DeleteOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.Response, *ResponseSideEffects, error)
+	OrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error)
+
 	// Organizations and per-org membership.
 	CreateOrganization(ctx context.Context, meta RequestMetadata, params *model.CreateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)
 	UpdateOrganization(ctx context.Context, meta RequestMetadata, params *model.UpdateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)

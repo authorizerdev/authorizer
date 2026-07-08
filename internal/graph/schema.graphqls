@@ -347,6 +347,22 @@ type TrustedIssuers {
   trusted_issuers: [TrustedIssuer!]!
 }
 
+# OrgOIDCConnection is a per-organization upstream OIDC IdP that Authorizer
+# brokers as a Relying Party. The upstream client_secret is NEVER projected here.
+type OrgOIDCConnection {
+  id: ID!
+  org_id: String!
+  name: String!
+  issuer_url: String!
+  # sso_client_id: the client_id Authorizer uses AT the upstream IdP.
+  sso_client_id: String!
+  scopes: String
+  redirect_uri: String
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
 type Organization {
   id: ID!
   # name is a unique, URL-safe slug identifying the organization.
@@ -826,6 +842,40 @@ input ListTrustedIssuersRequest {
   pagination: PaginatedRequest
 }
 
+input CreateOrgOIDCConnectionRequest {
+  org_id: String!
+  name: String!
+  # issuer_url: the upstream IdP issuer (its OIDC discovery base).
+  issuer_url: String!
+  # client_id / client_secret: the credentials Authorizer holds AT the upstream
+  # IdP. The secret is stored encrypted and never returned.
+  client_id: String!
+  client_secret: String!
+  # scopes: space-separated. Defaults to "openid profile email" when omitted.
+  scopes: String
+  # redirect_uri registered at the upstream IdP. Derived from the request host
+  # when omitted.
+  redirect_uri: String
+}
+
+input UpdateOrgOIDCConnectionRequest {
+  id: ID!
+  name: String
+  issuer_url: String
+  client_id: String
+  # Supplying client_secret rotates it; omitting leaves the stored secret intact.
+  client_secret: String
+  scopes: String
+  redirect_uri: String
+  is_active: Boolean
+}
+
+input OrgOIDCConnectionRequest {
+  # Look up by connection id OR by org_id (supply exactly one).
+  id: ID
+  org_id: String
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -1057,6 +1107,10 @@ type Mutation {
   _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
   _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
   _delete_trusted_issuer(params: TrustedIssuerRequest!): Response!
+  # Per-organization SSO OIDC connections (Authorizer as Relying Party)
+  _create_org_oidc_connection(params: CreateOrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _update_org_oidc_connection(params: UpdateOrgOIDCConnectionRequest!): OrgOIDCConnection!
+  _delete_org_oidc_connection(params: OrgOIDCConnectionRequest!): Response!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -1103,6 +1157,7 @@ type Query {
   # Trusted issuers
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
+  _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!

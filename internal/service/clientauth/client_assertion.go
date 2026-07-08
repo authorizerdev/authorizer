@@ -116,14 +116,21 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	}
 
 	// 3. Resolve the trust row by iss. Unknown or inactive issuer → invalid_client.
-	// ponytail: once SSO rows share this table (a `kind` discriminator), this
-	// lookup MUST additionally filter kind='client_assertion_trust' AND
-	// org_id IS NULL (design §5.2 CR1) so an SSO row can never authenticate a
-	// client. No SSO rows exist on this table yet, so the confusion is not
-	// reachable today — add the filter when SSO lands.
 	issuer, err := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, iss)
 	if err != nil || issuer == nil {
 		log.Debug().Err(err).Str("iss", iss).Msg("no trusted issuer for iss")
+		return nil, ErrInvalidClient
+	}
+	// SECURITY (design §5.2 CR1 — kind confusion): the unified trusted_issuers
+	// table also holds per-org SSO connections (kind=sso_oidc/sso_saml), which have
+	// NO subject pin and federate end users, not clients. Only a
+	// client_assertion_trust row with an empty OrgID may authenticate an OAuth
+	// client. issuer_url is globally unique so this lookup returns at most one row;
+	// reject it here if it is anything other than an instance-global
+	// client_assertion_trust row. A pre-existing row (empty Kind) is treated as
+	// client_assertion_trust by EffectiveKind, so upgrades are unaffected.
+	if issuer.EffectiveKind() != constants.TrustKindClientAssertion || strings.TrimSpace(issuer.OrgID) != "" {
+		log.Debug().Str("iss", iss).Str("kind", issuer.EffectiveKind()).Msg("trusted issuer is not a client_assertion trust row")
 		return nil, ErrInvalidClient
 	}
 	if !issuer.IsActive {

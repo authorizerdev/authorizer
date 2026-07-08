@@ -239,6 +239,18 @@ type Provider interface {
 	// TrustedIssuers lists trusted issuers, optionally filtered by service account.
 	// Permissions: authorizer:admin
 	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
+	// CreateOrgOidcConnection registers a per-org upstream OIDC IdP connection.
+	// Permissions: authorizer:admin
+	CreateOrgOidcConnection(ctx context.Context, params *model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	// UpdateOrgOidcConnection updates a per-org OIDC connection.
+	// Permissions: authorizer:admin
+	UpdateOrgOidcConnection(ctx context.Context, params *model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
+	// DeleteOrgOidcConnection deletes a per-org OIDC connection.
+	// Permissions: authorizer:admin
+	DeleteOrgOidcConnection(ctx context.Context, params *model.OrgOIDCConnectionRequest) (*model.Response, error)
+	// OrgOidcConnection returns a per-org OIDC connection by id or org_id.
+	// Permissions: authorizer:admin
+	OrgOidcConnection(ctx context.Context, params *model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
 	// CreateOrganization creates a new organization.
 	// Permissions: authorizer:admin
 	CreateOrganization(ctx context.Context, params *model.CreateOrganizationRequest) (*model.Organization, error)

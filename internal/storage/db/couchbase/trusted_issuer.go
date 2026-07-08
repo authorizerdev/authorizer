@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -14,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const trustedIssuerColumns = "_id, client_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, allowed_subjects, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, created_at, updated_at"
+const trustedIssuerColumns = "_id, client_id, kind, org_id, name, issuer_url, key_source_type, jwks_url, expected_aud, subject_claim, allowed_subjects, issuer_type, auth_method, is_active, enable_token_review, kubernetes_api_server_url, spiffe_refresh_hint_seconds, trusted_proxy_header, trusted_proxy_cidrs, sso_client_id, sso_client_secret_enc, sso_scopes, sso_redirect_uri, created_at, updated_at"
 
 // AddTrustedIssuer creates a new trusted issuer record.
 func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.TrustedIssuer) (*schemas.TrustedIssuer, error) {
@@ -28,7 +27,11 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, issuer *schemas.Trusted
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(schemas.Collections.TrustedIssuer).Insert(issuer.ID, issuer, &insertOpt)
+	doc, err := structToDocument(issuer)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.db.Collection(schemas.Collections.TrustedIssuer).Insert(issuer.ID, doc, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -43,15 +46,7 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 		return nil, fmt.Errorf("UpdateTrustedIssuer: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	issuer.UpdatedAt = time.Now().Unix()
-	bytes, err := json.Marshal(issuer)
-	if err != nil {
-		return nil, err
-	}
-	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
-	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
-	decoder.UseNumber()
-	issuerMap := map[string]interface{}{}
-	err = decoder.Decode(&issuerMap)
+	issuerMap, err := structToDocument(issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +78,6 @@ func (p *provider) DeleteTrustedIssuer(ctx context.Context, issuer *schemas.Trus
 
 // GetTrustedIssuerByID fetches a trusted issuer by primary key.
 func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schemas.TrustedIssuer, error) {
-	var issuer *schemas.TrustedIssuer
 	params := make(map[string]interface{}, 1)
 	params["_id"] = id
 	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE _id=$_id LIMIT 1`, trustedIssuerColumns, p.scopeName, schemas.Collections.TrustedIssuer)
@@ -95,8 +89,12 @@ func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schema
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&issuer)
-	if err != nil {
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	issuer := &schemas.TrustedIssuer{}
+	if err := decodeDocument(raw, issuer); err != nil {
 		return nil, err
 	}
 	return issuer, nil
@@ -105,7 +103,6 @@ func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schema
 // GetTrustedIssuerByIssuerURL fetches a trusted issuer by its unique issuer URL.
 // Called on every client_assertion validation — served by the issuer_url index.
 func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL string) (*schemas.TrustedIssuer, error) {
-	var issuer *schemas.TrustedIssuer
 	params := make(map[string]interface{}, 1)
 	params["issuer_url"] = issuerURL
 	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE issuer_url=$issuer_url LIMIT 1`, trustedIssuerColumns, p.scopeName, schemas.Collections.TrustedIssuer)
@@ -117,8 +114,38 @@ func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL st
 	if err != nil {
 		return nil, err
 	}
-	err = q.One(&issuer)
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	issuer := &schemas.TrustedIssuer{}
+	if err := decodeDocument(raw, issuer); err != nil {
+		return nil, err
+	}
+	return issuer, nil
+}
+
+// GetTrustedIssuerByOrgIDAndKind fetches an organization's SSO connection by its
+// (org_id, kind) pair — the lookup that resolves an org's sso_oidc/sso_saml row.
+func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, kind string) (*schemas.TrustedIssuer, error) {
+	params := make(map[string]interface{}, 2)
+	params["org_id"] = orgID
+	params["kind"] = kind
+	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE org_id=$org_id AND kind=$kind LIMIT 1`, trustedIssuerColumns, p.scopeName, schemas.Collections.TrustedIssuer)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		NamedParameters: params,
+	})
 	if err != nil {
+		return nil, err
+	}
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	issuer := &schemas.TrustedIssuer{}
+	if err := decodeDocument(raw, issuer); err != nil {
 		return nil, err
 	}
 	return issuer, nil
@@ -166,12 +193,15 @@ func (p *provider) ListTrustedIssuers(ctx context.Context, serviceAccountID stri
 		return nil, nil, err
 	}
 	for queryResult.Next() {
-		var issuer schemas.TrustedIssuer
-		err := queryResult.Row(&issuer)
-		if err != nil {
+		var raw json.RawMessage
+		if err := queryResult.Row(&raw); err != nil {
 			return nil, nil, err
 		}
-		issuers = append(issuers, &issuer)
+		issuer := &schemas.TrustedIssuer{}
+		if err := decodeDocument(raw, issuer); err != nil {
+			return nil, nil, err
+		}
+		issuers = append(issuers, issuer)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
