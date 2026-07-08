@@ -1377,17 +1377,22 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 	saClientID := sa.AsAPIClient().ID
 
 	issuerURL := "https://issuer.example.com/" + uuid.New().String()
+	// A SPIFFE-typed row: IssuerType = spiffe_jwt plus the reused Phase-4
+	// TokenReview fields must round-trip on every provider (no schema change was
+	// introduced for SPIFFE/TokenReview — these are existing columns).
 	issuer := &schemas.TrustedIssuer{
-		ClientID:        saClientID,
-		Name:            "test_trusted_issuer_" + uuid.New().String(),
-		IssuerURL:       issuerURL,
-		KeySourceType:   "static_jwks_url",
-		ExpectedAud:     "https://authorizer.example.com",
-		SubjectClaim:    "sub",
-		AllowedSubjects: "system:serviceaccount:prod:payments,system:serviceaccount:prod:billing",
-		IssuerType:      "oidc",
-		AuthMethod:      "jwt_assertion",
-		IsActive:        true,
+		ClientID:               saClientID,
+		Name:                   "test_trusted_issuer_" + uuid.New().String(),
+		IssuerURL:              issuerURL,
+		KeySourceType:          "static_jwks_url",
+		ExpectedAud:            "https://authorizer.example.com",
+		SubjectClaim:           "sub",
+		AllowedSubjects:        "system:serviceaccount:prod:payments,system:serviceaccount:prod:billing",
+		IssuerType:             constants.IssuerTypeSPIFFEJWT,
+		AuthMethod:             "jwt_assertion",
+		EnableTokenReview:      true,
+		KubernetesAPIServerURL: refs.NewStringRef("https://kube-apiserver.example.com:6443"),
+		IsActive:               true,
 	}
 
 	created, err := provider.AddTrustedIssuer(ctx, issuer)
@@ -1404,6 +1409,11 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 	// AllowedSubjects (§5.2 C1 subject pin) must round-trip verbatim on every DB.
 	assert.Equal(t, issuer.AllowedSubjects, fetched.AllowedSubjects)
 	assert.Equal(t, []string{"system:serviceaccount:prod:payments", "system:serviceaccount:prod:billing"}, fetched.ParsedAllowedSubjects())
+	// SPIFFE + TokenReview fields must round-trip on every provider.
+	assert.Equal(t, constants.IssuerTypeSPIFFEJWT, fetched.IssuerType, "spiffe_jwt IssuerType must persist")
+	assert.True(t, fetched.EnableTokenReview, "EnableTokenReview must persist")
+	require.NotNil(t, fetched.KubernetesAPIServerURL)
+	assert.Equal(t, "https://kube-apiserver.example.com:6443", *fetched.KubernetesAPIServerURL)
 
 	fetchedByURL, err := provider.GetTrustedIssuerByIssuerURL(ctx, issuerURL)
 	require.NoError(t, err)

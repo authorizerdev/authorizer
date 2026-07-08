@@ -18,6 +18,7 @@ package clientauth
 //   - Lifetime (H4): exp − iat MUST be ≤ a short ceiling.
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -25,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +62,16 @@ const (
 
 	// maxJWKSBytes caps the response body read from an issuer-controlled endpoint.
 	maxJWKSBytes = 1 << 20 // 1 MiB
+
+	// tokenReviewPath is the Kubernetes TokenReview subresource (authentication.k8s.io/v1).
+	tokenReviewPath = "/apis/authentication.k8s.io/v1/tokenreviews"
+
+	// inClusterSATokenPath is the standard mount for Authorizer's OWN projected
+	// ServiceAccount token. TokenReview requires the caller (Authorizer) to
+	// authenticate to the apiserver with a token that carries the
+	// system:auth-delegator RBAC; when running in-cluster this file is present.
+	// Read best-effort — absent means the Authorization header is omitted.
+	inClusterSATokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 // allowedAssertionAlgs is the asymmetric signature allow-list (RFC 8725 §3.1).
@@ -71,15 +83,33 @@ var allowedAssertionAlgs = []string{
 	"ES256", "ES384", "ES512",
 }
 
-// resolveViaClientAssertion authenticates a client by verifying an RFC 7523
-// JWT-bearer assertion against a registered TrustedIssuer. On success it returns
-// the active Client the trust row is bound to.
+// resolveViaClientAssertion authenticates a client by verifying a client
+// assertion against a registered TrustedIssuer. Two assertion types are handled:
+//
+//   - jwt-bearer (RFC 7523): a generic trusted-issuer JWT (K8s SA token, cloud
+//     OIDC token). The trust row is a non-SPIFFE issuer_type.
+//   - jwt-spiffe (draft-ietf-oauth-spiffe-client-auth): a SPIFFE JWT-SVID whose
+//     `sub` is a SPIFFE ID (spiffe://…). The trust row is issuer_type spiffe_jwt.
+//     The token's `iss` is the SPIRE server, NOT the subject — iss ≠ sub is
+//     expected and correct, which is exactly why this is a distinct type: `iss`
+//     locates the trust row and its bundle, while `sub` (the SPIFFE ID) is pinned
+//     against AllowedSubjects. No private_key_jwt iss==sub==client_id assumption
+//     is (or ever was) applied on this path.
+//
+// On success it returns the active Client the trust row is bound to. All
+// validation is fail-closed; every rejection returns the generic ErrInvalidClient.
 func (p *provider) resolveViaClientAssertion(ctx context.Context, params ResolveParams) (*schemas.Client, error) {
 	log := p.Log.With().Str("func", "resolveViaClientAssertion").Logger()
 
-	// Only the jwt-bearer assertion type is handled here. The jwt-spiffe type is a
-	// follow-up PR; a missing/unknown type is a malformed request (invalid_request).
-	if params.ClientAssertionType != constants.ClientAssertionTypeJWTBearer {
+	// Select the assertion profile. A missing/unknown type is a malformed request
+	// (invalid_request); spiffe toggles the SPIFFE-specific checks below.
+	var spiffe bool
+	switch params.ClientAssertionType {
+	case constants.ClientAssertionTypeJWTBearer:
+		spiffe = false
+	case constants.ClientAssertionTypeJWTSPIFFE:
+		spiffe = true
+	default:
 		log.Debug().Str("client_assertion_type", params.ClientAssertionType).Msg("unsupported client_assertion_type")
 		return nil, ErrUnsupportedAssertionType
 	}
@@ -135,6 +165,18 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	}
 	if !issuer.IsActive {
 		log.Debug().Str("iss", iss).Msg("trusted issuer is inactive")
+		return nil, ErrInvalidClient
+	}
+
+	// SECURITY: the assertion type MUST match the trust row's issuer_type. A
+	// spiffe_jwt row (whose AllowedSubjects hold spiffe:// IDs and whose key set is
+	// a SPIFFE trust bundle) is reachable ONLY via the jwt-spiffe type; a generic
+	// jwt-bearer row is reachable ONLY via jwt-bearer. Enforcing the match both
+	// ways stops a caller from routing a SPIFFE row through the bearer profile
+	// (which would skip the spiffe:// subject-format check) or vice versa.
+	rowIsSpiffe := issuer.IssuerType == constants.IssuerTypeSPIFFEJWT
+	if spiffe != rowIsSpiffe {
+		log.Debug().Str("iss", iss).Str("issuer_type", issuer.IssuerType).Bool("assertion_is_spiffe", spiffe).Msg("client_assertion type does not match trusted issuer type")
 		return nil, ErrInvalidClient
 	}
 
@@ -207,6 +249,14 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	}
 	subject, _ := claims[subjectClaim].(string)
 	subject = strings.TrimSpace(subject)
+	// SPIFFE (draft-ietf-oauth-spiffe-client-auth): the subject MUST be a SPIFFE ID
+	// (a spiffe:// URI). AllowedSubjects on a spiffe_jwt row hold spiffe:// IDs, so
+	// requiring the scheme here rejects a non-SPIFFE subject before the exact-match
+	// and keeps the allow-list semantics unambiguous.
+	if spiffe && !strings.HasPrefix(subject, "spiffe://") {
+		log.Debug().Str("subject_claim", subjectClaim).Msg("spiffe client_assertion subject is not a SPIFFE ID")
+		return nil, ErrInvalidClient
+	}
 	allowed := issuer.ParsedAllowedSubjects()
 	if subject == "" || !contains(allowed, subject) {
 		log.Debug().Str("subject_claim", subjectClaim).Msg("client_assertion subject not in the allow-list")
@@ -221,6 +271,30 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 		log.Debug().Msg("client_assertion replay detected")
 		return nil, ErrInvalidClient
 	}
+
+	// 8b. Kubernetes TokenReview (S7): offline JWKS validation proves the token was
+	//     signed by the cluster, but NOT that the bound Pod/ServiceAccount still
+	//     exists — a deleted pod's not-yet-expired token would otherwise pass. When
+	//     the trust row opts in, call the cluster's TokenReview API to confirm the
+	//     presented token is still authenticated online, and fail closed otherwise.
+	//     Done BEFORE the replay marker is set so a transient apiserver failure does
+	//     not permanently burn a legitimate token (the token is retryable), and
+	//     AFTER the replay CHECK so a replay is rejected without any apiserver call.
+	if issuer.EnableTokenReview {
+		apiServerURL := ""
+		if issuer.KubernetesAPIServerURL != nil {
+			apiServerURL = strings.TrimSpace(*issuer.KubernetesAPIServerURL)
+		}
+		if apiServerURL == "" {
+			log.Debug().Msg("enable_token_review is set but kubernetes_api_server_url is empty")
+			return nil, ErrInvalidClient
+		}
+		if err := p.performTokenReview(ctx, apiServerURL, params.ClientAssertion, issuer.ExpectedAud); err != nil {
+			log.Debug().Err(err).Msg("kubernetes TokenReview rejected the client_assertion")
+			return nil, ErrInvalidClient
+		}
+	}
+
 	replayTTL := exp - now.Unix()
 	if replayTTL < 1 {
 		replayTTL = 1
@@ -373,6 +447,101 @@ func (p *provider) safeFetchURL(ctx context.Context, rawURL string) ([]byte, err
 		return nil, fmt.Errorf("unexpected status %d fetching %s", resp.StatusCode, rawURL)
 	}
 	return io.ReadAll(io.LimitReader(resp.Body, maxJWKSBytes))
+}
+
+// tokenReviewRequest / tokenReviewResponse are the minimal shapes of the K8s
+// authentication.k8s.io/v1 TokenReview API. Declared inline so the resolver does
+// not pull in k8s.io/client-go for a single JSON round-trip.
+type tokenReviewRequest struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Spec       struct {
+		Token     string   `json:"token"`
+		Audiences []string `json:"audiences,omitempty"`
+	} `json:"spec"`
+}
+
+type tokenReviewResponse struct {
+	Status struct {
+		Authenticated bool   `json:"authenticated"`
+		Error         string `json:"error,omitempty"`
+	} `json:"status"`
+}
+
+// performTokenReview POSTs the presented token to the cluster's TokenReview API
+// and returns nil only when the apiserver reports it still authenticated. It
+// fails closed on any error (unreachable apiserver, non-2xx, malformed body,
+// authenticated=false) so a deleted-pod token whose exp has not yet passed is
+// rejected.
+//
+// SSRF: the admin-supplied apiServerURL is routed through the same SSRF-hardened
+// client as JWKS fetches (validators.SafeHTTPClient) — the host is resolved once
+// and pinned, and redirects are refused.
+//
+// KNOWN LIMITATION (reported, not silently worked around): SafeHTTPClient rejects
+// private/loopback/link-local IPs, so the common in-cluster apiserver address
+// (https://kubernetes.default.svc, a ClusterIP in a private range) is NOT
+// reachable through it. TokenReview therefore works today only against a
+// publicly-routable apiserver endpoint (e.g. a managed cluster's public API
+// endpoint). Reaching a private in-cluster apiserver needs a deliberate SSRF
+// exemption + CA-pinning decision, which is intentionally left to the operator/
+// security owner rather than weakening the SSRF guard here.
+func (p *provider) performTokenReview(ctx context.Context, apiServerURL, token, expectedAud string) error {
+	var reqBody tokenReviewRequest
+	reqBody.APIVersion = "authentication.k8s.io/v1"
+	reqBody.Kind = "TokenReview"
+	reqBody.Spec.Token = token
+	if strings.TrimSpace(expectedAud) != "" {
+		reqBody.Spec.Audiences = []string{expectedAud}
+	}
+	body, err := json.Marshal(&reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal TokenReview request: %w", err)
+	}
+
+	reviewURL := strings.TrimSuffix(apiServerURL, "/") + tokenReviewPath
+	client, err := p.safeHTTPClient(ctx, reviewURL, httpFetchTimeout)
+	if err != nil {
+		return err
+	}
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reviewURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	// Authenticate to the apiserver with Authorizer's own in-cluster SA token when
+	// present; a TokenReview call is otherwise anonymous (which most clusters
+	// reject — surfaced as authenticated=false / non-2xx and thus fail-closed).
+	if saToken, rErr := os.ReadFile(inClusterSATokenPath); rErr == nil {
+		if t := strings.TrimSpace(string(saToken)); t != "" {
+			req.Header.Set("Authorization", "Bearer "+t)
+		}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("TokenReview API returned status %d", resp.StatusCode)
+	}
+
+	// Size-cap the apiserver-controlled body; a truncated read surfaces as a JSON
+	// parse failure below → fail-closed.
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxJWKSBytes))
+	var review tokenReviewResponse
+	if err := json.Unmarshal(raw, &review); err != nil {
+		return fmt.Errorf("malformed TokenReview response: %w", err)
+	}
+	if !review.Status.Authenticated {
+		return fmt.Errorf("TokenReview reported the token is not authenticated: %s", review.Status.Error)
+	}
+	return nil
 }
 
 // assertionReplayKey derives the single-use key. A jti (when present) is the

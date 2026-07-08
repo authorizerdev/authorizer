@@ -63,7 +63,8 @@ func TestClientAssertionTokenEndpoint(t *testing.T) {
 		form := url.Values{}
 		form.Set("grant_type", constants.GrantTypeClientCredentials)
 		form.Set("client_assertion", signAssertion("https://issuer.example.com"))
-		form.Set("client_assertion_type", constants.ClientAssertionTypeJWTSPIFFE)
+		// jwt-bearer and jwt-spiffe are both supported; a SAML-bearer type is not.
+		form.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:saml2-bearer")
 
 		w := postClientCredentials(router, form, nil)
 		require.Equal(t, http.StatusBadRequest, w.Code, "body: %s", w.Body.String())
