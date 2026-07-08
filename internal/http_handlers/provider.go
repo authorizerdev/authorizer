@@ -63,8 +63,9 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 		// same storage + config the handlers already hold, so no extra wiring is
 		// needed at construction sites.
 		clientAuthProvider: clientauth.New(cfg, &clientauth.Dependencies{
-			Log:             deps.Log,
-			StorageProvider: deps.StorageProvider,
+			Log:                 deps.Log,
+			StorageProvider:     deps.StorageProvider,
+			MemoryStoreProvider: deps.MemoryStoreProvider,
 		}),
 	}
 	return g, nil

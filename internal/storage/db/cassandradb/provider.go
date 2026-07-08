@@ -393,10 +393,17 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Client, "client_id", 30*time.Second)
 
 	// TrustedIssuer table and indexes
-	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
+	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
 	err = session.Query(trustedIssuerCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
+	}
+	// Add allowed_subjects column for keyspaces created before the client_assertion
+	// subject-pin (§5.2 C1) landed. Tolerated if the column already exists.
+	trustedIssuerAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (allowed_subjects text);`, KeySpace, schemas.Collections.TrustedIssuer)
+	if err = session.Query(trustedIssuerAlterQuery).Exec(); err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter trusted_issuers table as allowed_subjects column exists")
+		// continue
 	}
 	trustedIssuerIssuerURLIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_trusted_issuer_issuer_url ON %s.%s (issuer_url)", KeySpace, schemas.Collections.TrustedIssuer)
 	err = session.Query(trustedIssuerIssuerURLIndex).Exec()

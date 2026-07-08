@@ -37,6 +37,10 @@ type RequestBody struct {
 	// used by the client_credentials grant to request a subset of the service
 	// account's allowed scopes.
 	Scope string `form:"scope" json:"scope"`
+	// ClientAssertion / ClientAssertionType carry the RFC 7523 JWT-bearer client
+	// credential — the secretless workload-identity path (K8s SA tokens etc.).
+	ClientAssertion     string `form:"client_assertion" json:"client_assertion"`
+	ClientAssertionType string `form:"client_assertion_type" json:"client_assertion_type"`
 }
 
 // TokenHandler to handle /oauth/token requests
@@ -92,12 +96,20 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// no-PKCE "secret required" rule further down.
 		basicClientID, basicClientSecret, hasBasicAuth := gc.Request.BasicAuth()
 		secretPresented := bodyClientSecret != "" || (hasBasicAuth && basicClientSecret != "")
+		clientAssertion := strings.TrimSpace(reqBody.ClientAssertion)
+		clientAssertionType := strings.TrimSpace(reqBody.ClientAssertionType)
 		resolvedClient, authErr := h.clientAuthProvider.ResolveClient(gc, clientauth.ResolveParams{
 			BodyClientID:  strings.TrimSpace(reqBody.ClientID),
 			BodySecret:    bodyClientSecret,
 			BasicClientID: basicClientID,
 			BasicSecret:   basicClientSecret,
 			HasBasicAuth:  hasBasicAuth,
+			// RFC 7523 client_assertion: when present the resolver authenticates the
+			// client by verifying the JWT against a registered TrustedIssuer instead
+			// of a secret. Presenting it alongside a secret is rejected as multiple
+			// auth methods (RFC 6749 §2.3).
+			ClientAssertion:     clientAssertion,
+			ClientAssertionType: clientAssertionType,
 			// client_credentials always requires a secret; authorization_code
 			// verifies a presented secret (PKCE gates a secret-less request);
 			// refresh_token ignores the secret and authenticates the client_id
@@ -529,6 +541,12 @@ func (h *httpProvider) respondClientAuthError(gc *gin.Context, err error, resolv
 		gc.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_request",
 			"error_description": "The client_id parameter is required",
+		})
+		return
+	case errors.Is(err, clientauth.ErrUnsupportedAssertionType):
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_request",
+			"error_description": "Unsupported client_assertion_type",
 		})
 		return
 	case errors.Is(err, clientauth.ErrUnauthorizedClient):

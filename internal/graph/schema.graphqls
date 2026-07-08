@@ -333,6 +333,8 @@ type TrustedIssuer {
   jwks_url: String
   expected_aud: String!
   subject_claim: String!
+  # allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  allowed_subjects: String
   issuer_type: String!
   is_active: Boolean!
   spiffe_refresh_hint_seconds: Int64
@@ -777,6 +779,9 @@ input AddTrustedIssuerRequest {
   expected_aud: String!
   # subject_claim defaults to "sub" if omitted
   subject_claim: String
+  # allowed_subjects: comma-separated exact subject allow-list. Empty/omitted =
+  # deny-all — a row with no configured subjects authenticates nobody.
+  allowed_subjects: String
   # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
   issuer_type: String!
   spiffe_refresh_hint_seconds: Int64
@@ -787,6 +792,8 @@ input UpdateTrustedIssuerRequest {
   name: String
   jwks_url: String
   expected_aud: String
+  # allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  allowed_subjects: String
   is_active: Boolean
   spiffe_refresh_hint_seconds: Int64
 }
