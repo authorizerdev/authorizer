@@ -21,11 +21,13 @@ import (
 // jitProvisionSSOUser touches; every other method panics via the embedded nil.
 type jitStore struct {
 	storage.Provider
-	federated    map[string]*schemas.FederatedIdentity // key: org|issuer|sub
-	usersByID    map[string]*schemas.User
-	usersByEmail map[string]*schemas.User
-	addUserCalls int
-	addFedCalls  int
+	federated      map[string]*schemas.FederatedIdentity // key: org|issuer|sub
+	usersByID      map[string]*schemas.User
+	usersByEmail   map[string]*schemas.User
+	addUserCalls   int
+	addFedCalls    int
+	deleteUserCall int
+	failAddFed     bool
 }
 
 func newJITStore() *jitStore {
@@ -73,11 +75,23 @@ func (s *jitStore) AddUser(_ context.Context, user *schemas.User) (*schemas.User
 
 func (s *jitStore) AddFederatedIdentity(_ context.Context, fi *schemas.FederatedIdentity) (*schemas.FederatedIdentity, error) {
 	s.addFedCalls++
+	if s.failAddFed {
+		return nil, errors.New("simulated federated-identity insert failure")
+	}
 	if fi.ID == "" {
 		fi.ID = uuid.New().String()
 	}
 	s.federated[fedKey(fi.OrgID, fi.Issuer, fi.Subject)] = fi
 	return fi, nil
+}
+
+func (s *jitStore) DeleteUser(_ context.Context, user *schemas.User) error {
+	s.deleteUserCall++
+	delete(s.usersByID, user.ID)
+	if user.Email != nil {
+		delete(s.usersByEmail, *user.Email)
+	}
+	return nil
 }
 
 func (s *jitStore) AddOrgMembership(_ context.Context, m *schemas.OrgMembership) (*schemas.OrgMembership, error) {
@@ -155,6 +169,23 @@ func TestSSOJIT_EmailCollisionNotLinked(t *testing.T) {
 	assert.Contains(t, err.Error(), "already exists")
 	assert.Equal(t, 0, store.addUserCalls, "must not create a shadow user")
 	assert.Equal(t, 0, store.addFedCalls, "must not link a federated identity to the victim account")
+}
+
+// LOW-1: if AddFederatedIdentity fails after AddUser, the just-created user must
+// be deleted (compensating action) so no orphan pollutes email lookups and the
+// principal isn't locked out on retry.
+func TestSSOJIT_OrphanUserCleanedUpOnFedIdentityFailure(t *testing.T) {
+	store := newJITStore()
+	store.failAddFed = true
+	h := newJITProvider(store, true)
+
+	user, _, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), jitClaims("upstream-x", "dave@corp.example.com"))
+	require.Error(t, err)
+	assert.Nil(t, user)
+	assert.Equal(t, 1, store.addUserCalls)
+	assert.Equal(t, 1, store.deleteUserCall, "the orphaned user must be deleted")
+	assert.Empty(t, store.usersByEmail, "no orphan user may remain")
+	assert.Empty(t, store.usersByID, "no orphan user may remain")
 }
 
 // Signup disabled → a first-time federated principal is rejected.

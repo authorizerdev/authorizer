@@ -21,6 +21,7 @@ type CollectionList struct {
 	Organization           string
 	OrgMembership          string
 	FederatedIdentity      string
+	ScimEndpoint           string
 }
 
 var (
@@ -47,5 +48,6 @@ var (
 		Organization:           Prefix + "organizations",
 		OrgMembership:          Prefix + "org_memberships",
 		FederatedIdentity:      Prefix + "federated_identities",
+		ScimEndpoint:           Prefix + "scim_endpoints",
 	}
 )

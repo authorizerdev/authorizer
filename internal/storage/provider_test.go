@@ -200,6 +200,14 @@ func TestStorageProvider(t *testing.T) {
 				testOrgOIDCAndFederatedOperations(t, ctx, provider, dbType)
 			})
 
+			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
+				testScimEndpointOperations(t, ctx, provider)
+			})
+
+			t.Run("User SCIM Fields", func(t *testing.T) {
+				testUserScimFields(t, ctx, provider)
+			})
+
 			if isSQLTestDB(dbType) {
 				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
 					testSQLCRUDCorrectnessFixes(t, ctx, provider)
@@ -1707,4 +1715,105 @@ func testOrgOIDCAndFederatedOperations(t *testing.T, ctx context.Context, provid
 	// A different subject at the same (org, issuer) is a distinct identity.
 	_, err = provider.GetFederatedIdentity(ctx, orgID, issuerURL, "unknown-sub")
 	assert.Error(t, err, "unknown federated identity must not resolve")
+}
+
+// testScimEndpointOperations exercises ScimEndpoint CRUD including that the
+// bcrypt token hash round-trips (a json:"-" secret must persist) and never
+// serializes out, and that the org lookup resolves the same row.
+func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Provider) {
+	org, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "scim-org-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgID := org.AsAPIOrganization().ID
+
+	const tokenHash = "$2a$12$abcdefghijklmnopqrstuvSCIMhashvaluethatmustroundtrip.xyz"
+	created, err := provider.AddScimEndpoint(ctx, &schemas.ScimEndpoint{
+		OrgID:     orgID,
+		TokenHash: tokenHash,
+		Enabled:   true,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	// Use the API-facing id (bare key). ArangoDB returns created.ID as the full
+	// "collection/key" handle; the runtime by-id lookup (GetScimEndpointByID) is
+	// keyed on the bare id the token carries, exactly as AsAPIScimEndpoint exposes.
+	endpointID := created.AsAPIScimEndpoint().ID
+	require.NotEmpty(t, endpointID)
+
+	// Lookup by id (the token-embedded key) must resolve the row and its hash.
+	byID, err := provider.GetScimEndpointByID(ctx, endpointID)
+	require.NoError(t, err)
+	assert.Equal(t, orgID, byID.OrgID)
+	assert.Equal(t, tokenHash, byID.TokenHash, "bcrypt token hash must round-trip")
+	assert.True(t, byID.Enabled)
+
+	// Lookup by org (admin surface) must resolve the same endpoint.
+	byOrg, err := provider.GetScimEndpointByOrgID(ctx, orgID)
+	require.NoError(t, err)
+	assert.Equal(t, endpointID, byOrg.AsAPIScimEndpoint().ID)
+
+	// The secret must never serialize out (json:"-").
+	blob, err := json.Marshal(byID)
+	require.NoError(t, err)
+	assert.NotContains(t, string(blob), tokenHash, "token hash must not appear in JSON")
+
+	// Rotate: update the hash (load-then-mutate) and confirm it persists.
+	const rotated = "$2a$12$ROTATEDhashvaluethatmustalsoroundtrip.abcdefghijklmnop"
+	byID.TokenHash = rotated
+	_, err = provider.UpdateScimEndpoint(ctx, byID)
+	require.NoError(t, err)
+	afterRotate, err := provider.GetScimEndpointByID(ctx, endpointID)
+	require.NoError(t, err)
+	assert.Equal(t, rotated, afterRotate.TokenHash, "rotated hash must persist")
+
+	// Delete.
+	require.NoError(t, provider.DeleteScimEndpoint(ctx, afterRotate))
+	_, err = provider.GetScimEndpointByID(ctx, endpointID)
+	assert.Error(t, err, "endpoint should be gone after delete")
+
+	require.NoError(t, provider.DeleteOrganization(ctx, org))
+}
+
+// testUserScimFields verifies the additive User fields (ExternalID, IsActive)
+// persist and that GetUserByExternalID resolves by the org-namespaced key.
+func testUserScimFields(t *testing.T, ctx context.Context, provider Provider) {
+	orgID := uuid.New().String()
+	email := "scim-user-" + uuid.New().String() + "@example.com"
+	nsExt := orgID + ":okta-" + uuid.New().String()
+
+	created, err := provider.AddUser(ctx, &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         &email,
+		SignupMethods: "scim",
+		ExternalID:    &nsExt,
+		IsActive:      true,
+	})
+	require.NoError(t, err)
+
+	// Additive fields round-trip.
+	fetched, err := provider.GetUserByID(ctx, created.ID)
+	require.NoError(t, err)
+	require.NotNil(t, fetched.ExternalID)
+	assert.Equal(t, nsExt, *fetched.ExternalID)
+	assert.True(t, fetched.IsActive, "IsActive must persist as true")
+
+	// GetUserByExternalID resolves by the org-namespaced (orgID, rawExternalID).
+	rawExt := nsExt[len(orgID)+1:]
+	byExt, err := provider.GetUserByExternalID(ctx, orgID, rawExt)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, byExt.ID, "GetUserByExternalID must resolve the org-scoped user")
+
+	// A different org must NOT resolve the same external id (H6 at the data layer).
+	_, err = provider.GetUserByExternalID(ctx, "other-org", rawExt)
+	assert.Error(t, err, "external id is namespaced per org — another org must not resolve it")
+
+	// Deactivate: IsActive=false persists.
+	fetched.IsActive = false
+	_, err = provider.UpdateUser(ctx, fetched)
+	require.NoError(t, err)
+	afterDeactivate, err := provider.GetUserByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.False(t, afterDeactivate.IsActive, "IsActive=false must persist")
 }

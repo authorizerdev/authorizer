@@ -60,8 +60,12 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			attr: []types.AttributeDefinition{
 				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
 				{AttributeName: aws.String("email"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("external_id"), AttributeType: types.ScalarAttributeTypeS},
 			},
-			gsi: []types.GlobalSecondaryIndex{gsi("email", "email")},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("email", "email"),
+				gsi("external_id", "external_id"),
+			},
 		},
 		{
 			name: schemas.Collections.Session,
@@ -229,6 +233,15 @@ func (p *provider) ensureTables(ctx context.Context) error {
 				gsi("org_id", "org_id"),
 				gsi("user_id", "user_id"),
 			},
+		},
+		{
+			name: schemas.Collections.ScimEndpoint,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("org_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("org_id", "org_id")},
 		},
 	}
 

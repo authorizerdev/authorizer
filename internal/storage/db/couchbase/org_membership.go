@@ -13,7 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const orgMembershipColumns = "_id, org_id, user_id, roles, created_at, updated_at"
+// roles is a N1QL reserved word — it MUST be backticked in every statement
+// that names it (SELECT projection here; the UPDATE SET clause is quoted by
+// GetSetFields).
+const orgMembershipColumns = "_id, org_id, user_id, `roles`, created_at, updated_at"
 
 // AddOrgMembership creates a new membership. (org_id, user_id) is unique;
 // Couchbase has no compound unique constraint, so guard with a

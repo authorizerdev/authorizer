@@ -43,6 +43,12 @@ type Provider interface {
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error)
 	// GetUserByID to get user information from database using user ID
 	GetUserByID(ctx context.Context, id string) (*schemas.User, error)
+	// GetUserByExternalID fetches an IdP-provisioned user by its org-namespaced
+	// external id. The lookup key is composed as "<orgID>:<externalID>" so one
+	// org's SCIM/SSO connection can never resolve another org's user by external
+	// id (design §4.4 H6). Provisioning stores User.ExternalID in the same
+	// namespaced form.
+	GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error)
 	// UpdateUsers to update multiple users, identified by the ids slice.
 	// If ids is nil / empty NO update is performed: global updates are disabled,
 	// so implementations return an error (SQL: gorm.ErrMissingWhereClause) rather
@@ -268,6 +274,23 @@ type Provider interface {
 	// GetFederatedIdentity fetches the identity for a (orgID, issuer, subject)
 	// triple. Returns an error when no matching row exists.
 	GetFederatedIdentity(ctx context.Context, orgID, issuer, subject string) (*schemas.FederatedIdentity, error)
+
+	// ScimEndpoint methods (per-org inbound SCIM 2.0 connection credential).
+
+	// AddScimEndpoint creates a new SCIM endpoint. OrgID is unique — one
+	// endpoint per org.
+	AddScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) (*schemas.ScimEndpoint, error)
+	// GetScimEndpointByID fetches an endpoint by primary key (the id embedded in
+	// the presented bearer token).
+	GetScimEndpointByID(ctx context.Context, id string) (*schemas.ScimEndpoint, error)
+	// GetScimEndpointByOrgID fetches an org's endpoint (admin surface, uniqueness
+	// pre-check).
+	GetScimEndpointByOrgID(ctx context.Context, orgID string) (*schemas.ScimEndpoint, error)
+	// UpdateScimEndpoint updates an existing endpoint (token rotation, enable).
+	// Callers MUST load-then-mutate — Save writes every column.
+	UpdateScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) (*schemas.ScimEndpoint, error)
+	// DeleteScimEndpoint removes an endpoint.
+	DeleteScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) error
 }
 
 // New creates a new database provider based on the configuration

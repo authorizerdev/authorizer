@@ -275,6 +275,18 @@ type Provider interface {
 	// OrgMembers lists an organization's members.
 	// Permissions: authorizer:admin
 	OrgMembers(ctx context.Context, params *model.ListOrgMembersRequest) (*model.OrgMembers, error)
+	// CreateScimEndpoint provisions a per-org SCIM endpoint and returns its token once.
+	// Permissions: authorizer:admin
+	CreateScimEndpoint(ctx context.Context, params *model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
+	// RotateScimToken mints a fresh SCIM bearer token for an org endpoint.
+	// Permissions: authorizer:admin
+	RotateScimToken(ctx context.Context, params *model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
+	// DeleteScimEndpoint removes an org's SCIM endpoint.
+	// Permissions: authorizer:admin
+	DeleteScimEndpoint(ctx context.Context, params *model.ScimEndpointRequest) (*model.Response, error)
+	// ScimEndpoint returns an org's SCIM endpoint metadata (token never returned).
+	// Permissions: authorizer:admin
+	ScimEndpoint(ctx context.Context, params *model.ScimEndpointRequest) (*model.ScimEndpoint, error)
 	// FgaWriteModel installs a new fine-grained authorization model.
 	// Permissions: authorizer:admin
 	FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error)

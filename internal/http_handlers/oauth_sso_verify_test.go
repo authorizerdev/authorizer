@@ -124,6 +124,28 @@ func TestSSOIDToken_AlgNoneRejected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// OIDC Core §3.1.3.7 step 4: a multi-valued aud without a matching azp is rejected.
+func TestSSOIDToken_MultiAudMissingAzpRejected(t *testing.T) {
+	key := ssoGenKey(t)
+	flow, conn := ssoFlowAndConn()
+	c := ssoValidClaims()
+	c["aud"] = []string{ssoTestClientID, "another-rp"}
+	// no azp
+	_, err := verifyIDTokenAgainstJWKS(flow, conn, ssoSignRS256(t, key, ssoTestKID, c), ssoJWKS(&key.PublicKey, ssoTestKID))
+	require.Error(t, err)
+}
+
+// A multi-valued aud WITH azp == our client_id is accepted.
+func TestSSOIDToken_MultiAudWithAzpPasses(t *testing.T) {
+	key := ssoGenKey(t)
+	flow, conn := ssoFlowAndConn()
+	c := ssoValidClaims()
+	c["aud"] = []string{ssoTestClientID, "another-rp"}
+	c["azp"] = ssoTestClientID
+	_, err := verifyIDTokenAgainstJWKS(flow, conn, ssoSignRS256(t, key, ssoTestKID, c), ssoJWKS(&key.PublicKey, ssoTestKID))
+	require.NoError(t, err)
+}
+
 // A token signed by a key NOT in the JWKS (but claiming a known kid) must fail
 // signature verification.
 func TestSSOIDToken_WrongSignatureRejected(t *testing.T) {

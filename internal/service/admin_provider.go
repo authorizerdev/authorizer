@@ -79,6 +79,12 @@ type AdminProvider interface {
 	RemoveOrgMember(ctx context.Context, meta RequestMetadata, params *model.RemoveOrgMemberRequest) (*model.Response, *ResponseSideEffects, error)
 	OrgMembers(ctx context.Context, meta RequestMetadata, params *model.ListOrgMembersRequest) (*model.OrgMembers, *ResponseSideEffects, error)
 
+	// Per-org inbound SCIM 2.0 endpoints. The bearer token is revealed once.
+	CreateScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, *ResponseSideEffects, error)
+	RotateScimToken(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, *ResponseSideEffects, error)
+	DeleteScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.Response, *ResponseSideEffects, error)
+	ScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.ScimEndpoint, *ResponseSideEffects, error)
+
 	// Email templates.
 	AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
 	UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)

@@ -147,6 +147,17 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	return nil
 }
 
+// GetUserByExternalID fetches an IdP-provisioned user by its org-namespaced
+// external ID. The lookup key is the composite "<orgID>:<externalID>".
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	var user *schemas.User
+	result := p.db.Where("external_id = ?", orgID+":"+externalID).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return user, nil
+}
+
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
 	var user *schemas.User

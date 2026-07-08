@@ -453,6 +453,14 @@ func verifyIDTokenAgainstJWKS(flow *ssoFlowState, conn *schemas.TrustedIssuer, r
 	if !ssoAudienceContains(claims["aud"], conn.SSOClientID) {
 		return nil, fmt.Errorf("id_token aud does not contain our client_id")
 	}
+	// OIDC Core §3.1.3.7 step 4: when aud is multi-valued, azp MUST be present and
+	// equal our client_id (defends against a token minted for another RP that also
+	// lists us in aud).
+	if ssoAudMultiValued(claims["aud"]) {
+		if azp, _ := claims["azp"].(string); azp != conn.SSOClientID {
+			return nil, fmt.Errorf("id_token azp missing or mismatched for a multi-audience token")
+		}
+	}
 	// nonce MUST match the one we sent.
 	if n, _ := claims["nonce"].(string); n != flow.Nonce {
 		return nil, fmt.Errorf("id_token nonce mismatch")
@@ -557,6 +565,13 @@ func (h *httpProvider) jitProvisionSSOUser(ctx context.Context, flow *ssoFlowSta
 		Subject: sub,
 		UserID:  user.ID,
 	}); err != nil {
+		// Compensating action (LOW-1): the user we just created now has an email on
+		// record but NO federated-identity mapping. Left in place, the next login
+		// would hit the email-collision guard and lock this principal out forever,
+		// and the orphan would pollute email lookups. Delete it so a retry is clean.
+		if delErr := h.StorageProvider.DeleteUser(ctx, user); delErr != nil {
+			h.Log.Debug().Err(delErr).Msg("failed to delete orphaned user after federated-identity insert failure")
+		}
 		return nil, false, fmt.Errorf("failed to record federated identity")
 	}
 	// Best-effort org membership: the (org_id, user_id) uniqueness guard tolerates
@@ -703,6 +718,17 @@ func ssoAudienceContains(aud interface{}, expected string) bool {
 				return true
 			}
 		}
+	}
+	return false
+}
+
+// ssoAudMultiValued reports whether the aud claim carries more than one audience.
+func ssoAudMultiValued(aud interface{}) bool {
+	switch v := aud.(type) {
+	case []interface{}:
+		return len(v) > 1
+	case []string:
+		return len(v) > 1
 	}
 	return false
 }

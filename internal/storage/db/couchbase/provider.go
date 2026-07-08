@@ -308,6 +308,9 @@ func getIndex(scopeName string) map[string][]string {
 	// FederatedIdentity indexes
 	federatedIdentityIndex1 := fmt.Sprintf("CREATE INDEX FederatedIdentityOrgIssuerSubjectIndex ON %s.%s(org_id, issuer, subject)", scopeName, schemas.Collections.FederatedIdentity)
 	indices[schemas.Collections.FederatedIdentity] = []string{federatedIdentityIndex1}
+	// ScimEndpoint index
+	scimEndpointIndex1 := fmt.Sprintf("CREATE INDEX ScimEndpointOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.ScimEndpoint)
+	indices[schemas.Collections.ScimEndpoint] = []string{scimEndpointIndex1}
 
 	return indices
 }

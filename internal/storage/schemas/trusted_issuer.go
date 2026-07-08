@@ -62,8 +62,12 @@ type TrustedIssuer struct {
 	// Part of the (kind, org_id) lookup that finds an org's SSO connection.
 	OrgID string `json:"org_id" bson:"org_id" cql:"org_id" dynamo:"org_id" gorm:"index" index:"org_id,hash"`
 
-	// ClientID links this issuer to the Client it authenticates.
-	ClientID string `json:"client_id" bson:"client_id" cql:"client_id" dynamo:"client_id" gorm:"index" index:"client_id,hash"`
+	// ClientID links this issuer to the Client it authenticates. Empty on
+	// sso_oidc/sso_saml rows (which federate users, not clients). client_id is a
+	// DynamoDB GSI key and DynamoDB rejects an empty-string key value, so
+	// dynamo:"...,omitempty" omits it when empty — the row simply doesn't appear
+	// in the client_id GSI (sparse index), which is correct for SSO rows.
+	ClientID string `json:"client_id" bson:"client_id" cql:"client_id" dynamo:"client_id,omitempty" gorm:"index" index:"client_id,hash"`
 
 	// Name is a human-readable label (e.g. "prod-k8s-cluster").
 	Name string `json:"name" bson:"name" cql:"name" dynamo:"name"`

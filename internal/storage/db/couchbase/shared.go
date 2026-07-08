@@ -125,8 +125,11 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 		if key == "_key" {
 			continue
 		}
+		// Backtick the column identifier so N1QL reserved words (e.g. `roles`)
+		// are always legal in the SET clause. The bind-param name ($key) is not
+		// an identifier and needs no quoting.
 		if value == nil {
-			updateFields += fmt.Sprintf("%s=$%s,", key, key)
+			updateFields += fmt.Sprintf("`%s`=$%s,", key, key)
 			// Bind an actual nil so the gocb N1QL driver serializes it to JSON
 			// null (a real N1QL NULL). Binding the string "null" here would
 			// persist the 4-char literal instead of clearing the field.
@@ -135,11 +138,11 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 		}
 		valueType := reflect.TypeOf(value)
 		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = $%s, ", key, key)
+			updateFields += fmt.Sprintf("`%s` = $%s, ", key, key)
 			params[key] = value.(string)
 
 		} else {
-			updateFields += fmt.Sprintf("%s = $%s, ", key, key)
+			updateFields += fmt.Sprintf("`%s` = $%s, ", key, key)
 			params[key] = value
 		}
 	}

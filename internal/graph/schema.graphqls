@@ -378,6 +378,25 @@ type Organizations {
   organizations: [Organization!]!
 }
 
+# ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The bearer
+# token is NEVER returned here; it is returned exactly once in
+# CreateScimEndpointResponse (creation and rotation) and never again.
+type ScimEndpoint {
+  id: ID!
+  org_id: String!
+  enabled: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type CreateScimEndpointResponse {
+  scim_endpoint: ScimEndpoint!
+  # token is the bearer credential the org's IdP presents at /scim/v2/. It is
+  # returned ONCE at creation and ONCE at rotation. Store it securely; it can
+  # never be retrieved again.
+  token: String!
+}
+
 type OrgMember {
   id: ID!
   org_id: String!
@@ -878,6 +897,15 @@ input ListOrganizationsRequest {
   pagination: PaginatedRequest
 }
 
+# All SCIM endpoint admin ops are keyed by org_id — one endpoint per org.
+input CreateScimEndpointRequest {
+  org_id: String!
+}
+
+input ScimEndpointRequest {
+  org_id: String!
+}
+
 input AddOrgMemberRequest {
   org_id: String!
   user_id: String!
@@ -1089,6 +1117,10 @@ type Mutation {
   _delete_organization(params: OrganizationRequest!): Response!
   _add_org_member(params: AddOrgMemberRequest!): OrgMember!
   _remove_org_member(params: RemoveOrgMemberRequest!): Response!
+  # Per-org inbound SCIM 2.0 endpoints. The token is revealed once.
+  _create_scim_endpoint(params: CreateScimEndpointRequest!): CreateScimEndpointResponse!
+  _rotate_scim_token(params: ScimEndpointRequest!): CreateScimEndpointResponse!
+  _delete_scim_endpoint(params: ScimEndpointRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -1130,6 +1162,8 @@ type Query {
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
   _org_members(params: ListOrgMembersRequest!): OrgMembers!
+  # Per-org inbound SCIM 2.0 endpoint metadata (token never returned here).
+  _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
