@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"sync"
 	"testing"
@@ -236,6 +238,29 @@ func TestClientAssertion_EmptyAllowedSubjectsDenyAll(t *testing.T) {
 	r := buildResolver(t, jwksBytes(t, &key.PublicKey, testKID), "") // deny-all
 	_, err := r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, testKID, validClaims())))
 	assert.ErrorIs(t, err, ErrInvalidClient, "empty AllowedSubjects must authenticate nobody")
+}
+
+func TestClientAssertion_HS256WithPublicKeyRejected(t *testing.T) {
+	// JWKS-confusion attack: an attacker who knows the issuer's PUBLIC key (it's
+	// published in the JWKS) forges an HS256 token using that public key's PEM as
+	// the HMAC secret. It MUST be rejected — the asymmetric-only algorithm
+	// allow-list means HS256 is never accepted, so a public key is never treated as
+	// a symmetric secret. This locks the property against future refactors of the
+	// parse options.
+	key := genKey(t)
+	r := buildResolver(t, jwksBytes(t, &key.PublicKey, testKID), testSubject)
+
+	pubDER, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	require.NoError(t, err)
+	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubDER})
+
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, validClaims())
+	tok.Header["kid"] = testKID
+	forged, err := tok.SignedString(pubPEM)
+	require.NoError(t, err)
+
+	_, err = r.ResolveClient(context.Background(), assertionParams(forged))
+	assert.ErrorIs(t, err, ErrInvalidClient, "HS256 signed with the JWKS public key must be rejected")
 }
 
 func TestClientAssertion_AlgNoneRejected(t *testing.T) {
