@@ -335,7 +335,7 @@ func TestClientAssertion_UnsupportedTypeRejected(t *testing.T) {
 	key := genKey(t)
 	r := buildResolver(t, jwksBytes(t, &key.PublicKey, testKID), testSubject)
 	params := assertionParams(signRS256(t, key, testKID, validClaims()))
-	params.ClientAssertionType = constants.ClientAssertionTypeJWTSPIFFE // out of scope here
+	params.ClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:saml2-bearer" // not supported
 	_, err := r.ResolveClient(context.Background(), params)
 	assert.ErrorIs(t, err, ErrUnsupportedAssertionType)
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Sentinel errors callers map to the RFC 6749 §5.2 token-endpoint responses.
@@ -49,9 +51,9 @@ var (
 	ErrUnauthorizedClient = errors.New("clientauth: client not authorized for this grant")
 
 	// ErrUnsupportedAssertionType is returned when a client_assertion is presented
-	// with a missing or unsupported client_assertion_type. Only
-	// urn:ietf:params:oauth:client-assertion-type:jwt-bearer is supported here
-	// (the jwt-spiffe type is a follow-up PR). Map to invalid_request.
+	// with a missing or unsupported client_assertion_type. The jwt-bearer (RFC 7523)
+	// and jwt-spiffe (draft-ietf-oauth-spiffe-client-auth) types are supported; any
+	// other value is rejected. Map to invalid_request.
 	ErrUnsupportedAssertionType = errors.New("clientauth: unsupported client_assertion_type")
 )
 
@@ -111,11 +113,12 @@ type ResolveParams struct {
 	// secret-confirmation oracle on this grant.
 	RequireServiceAccountKind bool
 
-	// ClientAssertion / ClientAssertionType carry the RFC 7523 JWT-bearer client
-	// credential. When ClientAssertion is non-empty the resolver authenticates the
-	// client by verifying the assertion against a registered TrustedIssuer instead
-	// of a secret. ClientAssertionType MUST be
-	// urn:ietf:params:oauth:client-assertion-type:jwt-bearer.
+	// ClientAssertion / ClientAssertionType carry the JWT client credential. When
+	// ClientAssertion is non-empty the resolver authenticates the client by
+	// verifying the assertion against a registered TrustedIssuer instead of a
+	// secret. ClientAssertionType MUST be
+	// urn:ietf:params:oauth:client-assertion-type:jwt-bearer (RFC 7523) or
+	// urn:ietf:params:oauth:client-assertion-type:jwt-spiffe (SPIFFE JWT-SVID).
 	ClientAssertion     string
 	ClientAssertionType string
 }
@@ -152,6 +155,14 @@ type provider struct {
 	// the resolver is exercised without a real network round-trip (loopback is
 	// deliberately blocked by the SSRF guard, so httptest cannot be reached).
 	fetchURL func(ctx context.Context, rawURL string) ([]byte, error)
+
+	// safeHTTPClient builds the SSRF-hardened *http.Client used for the Kubernetes
+	// TokenReview POST. Production uses validators.SafeHTTPClient (host resolved
+	// once and pinned, private/loopback IPs refused). In-package tests inject a
+	// plain client so performTokenReview's real request-building and
+	// authenticated-flag parsing can be exercised against an httptest apiserver
+	// (the SSRF guard blocks loopback, so httptest is otherwise unreachable).
+	safeHTTPClient func(ctx context.Context, rawURL string, timeout time.Duration) (*http.Client, error)
 }
 
 var _ Provider = &provider{}
@@ -166,6 +177,7 @@ func New(cfg *config.Config, deps *Dependencies) Provider {
 		maxAssertionLifetime: defaultMaxClientAssertionLifetime,
 	}
 	p.fetchURL = p.safeFetchURL
+	p.safeHTTPClient = validators.SafeHTTPClient
 	return p
 }
 
