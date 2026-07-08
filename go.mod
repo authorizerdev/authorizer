@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.8.37
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1
 	github.com/aws/smithy-go v1.24.3
-	github.com/beevik/etree v1.5.0
+	github.com/beevik/etree v1.6.0
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/couchbase/gocb/v2 v2.6.4
 	github.com/crewjam/saml v0.5.1
@@ -34,7 +34,7 @@ require (
 	github.com/redis/go-redis/v9 v9.6.3
 	github.com/robertkrimen/otto v0.2.1
 	github.com/rs/zerolog v1.33.0
-	github.com/russellhaering/goxmldsig v1.4.0
+	github.com/russellhaering/goxmldsig v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/twilio/twilio-go v1.14.1
