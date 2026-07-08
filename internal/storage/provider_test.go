@@ -1566,6 +1566,34 @@ func testOrgMembershipOperations(t *testing.T, ctx context.Context, provider Pro
 	_, err = provider.GetOrgMembership(ctx, orgBID, userID)
 	assert.NoError(t, err, "deleting the Org A membership must not affect the Org B membership")
 
+	// Multi-member org: two distinct users in ONE org. This exercises the path
+	// where the DynamoDB GetOrgMembership filter+Limit bug (now fixed) returned a
+	// false "not found" — Limit was applied before the user_id filter, so a lookup
+	// for a member not scanned first missed it, silently allowing duplicate
+	// memberships and breaking member removal. Single-member-per-org tests above
+	// never hit this. Guards the regression under TEST_DBS=dynamodb.
+	orgC, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "org-c-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgCID := orgC.AsAPIOrganization().ID
+	userX := uuid.New().String()
+	userY := uuid.New().String()
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{OrgID: orgCID, UserID: userX, Roles: "admin"})
+	require.NoError(t, err)
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{OrgID: orgCID, UserID: userY, Roles: "viewer"})
+	require.NoError(t, err)
+	gx, err := provider.GetOrgMembership(ctx, orgCID, userX)
+	require.NoError(t, err, "first member must be found in a multi-member org")
+	assert.Equal(t, userX, gx.UserID)
+	gy, err := provider.GetOrgMembership(ctx, orgCID, userY)
+	require.NoError(t, err, "second member must be found in a multi-member org (filter+Limit regression)")
+	assert.Equal(t, userY, gy.UserID)
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{OrgID: orgCID, UserID: userY, Roles: "viewer"})
+	assert.Error(t, err, "duplicate membership in a multi-member org must be rejected")
+	require.NoError(t, provider.DeleteOrganization(ctx, orgC))
+
 	require.NoError(t, provider.DeleteOrganization(ctx, orgA))
 	require.NoError(t, provider.DeleteOrganization(ctx, orgB))
 }

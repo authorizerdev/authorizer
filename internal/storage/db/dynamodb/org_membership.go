@@ -62,7 +62,13 @@ func (p *provider) DeleteOrgMembership(ctx context.Context, membership *schemas.
 // org_id GSI with a user_id filter.
 func (p *provider) GetOrgMembership(ctx context.Context, orgID, userID string) (*schemas.OrgMembership, error) {
 	f := expression.Name("user_id").Equal(expression.Value(userID))
-	items, err := p.queryEqLimit(ctx, schemas.Collections.OrgMembership, "org_id", "org_id", orgID, &f, 1)
+	// Must NOT pass a Limit alongside a FilterExpression: DynamoDB applies Limit
+	// BEFORE the filter, so Limit=1 reads one arbitrary item from the org_id
+	// partition and returns zero matches for a multi-member org even when the
+	// (org_id, user_id) row exists — silently allowing duplicate memberships and
+	// breaking member removal. queryEq paginates and filters server-side across
+	// the whole partition; the unique (org_id, user_id) invariant means at most one match.
+	items, err := p.queryEq(ctx, schemas.Collections.OrgMembership, "org_id", "org_id", orgID, &f)
 	if err != nil {
 		return nil, err
 	}
