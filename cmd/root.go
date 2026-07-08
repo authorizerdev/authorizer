@@ -431,6 +431,12 @@ func runRoot(c *cobra.Command, args []string) {
 		}
 	}()
 
+	// Seed the reserved interactive client (Config.ClientID) into the client
+	// registry. Idempotent and non-fatal — must run after storage is up and
+	// before the Token/HTTP subsystems that will (in a later PR) resolve client
+	// auth from this row.
+	seedReservedClient(context.Background(), storageProvider, &rootArgs.config, &log)
+
 	// Authenticator provider
 	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
 		Log:             &log,

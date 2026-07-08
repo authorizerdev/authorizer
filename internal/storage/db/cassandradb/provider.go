@@ -372,11 +372,25 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog, 30*time.Second)
 
 	// Client table
-	clientCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, kind text, name text, description text, client_secret text, allowed_scopes text, is_active boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Client)
+	clientCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, kind text, name text, description text, client_secret text, allowed_scopes text, redirect_uris text, grant_types text, token_endpoint_auth_method text, is_active boolean, org_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Client)
 	err = session.Query(clientCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
 	}
+	clientClientIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_client_client_id ON %s.%s (client_id)", KeySpace, schemas.Collections.Client)
+	err = session.Query(clientClientIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	clientOrgIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_client_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.Client)
+	err = session.Query(clientOrgIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the client_id
+	// index (used by GetClientByClientID and the boot-time reserved-client seed)
+	// to become queryable.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Client, "client_id", 30*time.Second)
 
 	// TrustedIssuer table and indexes
 	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
@@ -396,7 +410,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}
 	// ScyllaDB builds secondary indexes asynchronously; wait for the issuer_url
 	// index (hot path for client_assertion validation) to become queryable.
-	waitForCassandraTrustedIssuerIndexes(session, KeySpace, schemas.Collections.TrustedIssuer, 30*time.Second)
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.TrustedIssuer, "issuer_url", 30*time.Second)
 
 	return &provider{
 		config:       cfg,
@@ -426,12 +440,13 @@ func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table s
 	}
 }
 
-// waitForCassandraTrustedIssuerIndexes polls a probe query that requires the
-// issuer_url secondary index until it succeeds or the timeout is reached.
-// ScyllaDB builds secondary indexes asynchronously; the issuer_url lookup is a
-// hot path (client_assertion validation) so we wait for it to become queryable.
-func waitForCassandraTrustedIssuerIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE issuer_url='' LIMIT 1 ALLOW FILTERING", keyspace, table)
+// waitForCassandraSecondaryIndex polls a probe query that requires the given
+// column's secondary index until it succeeds or the timeout is reached.
+// ScyllaDB builds secondary indexes asynchronously; hot-path lookups (e.g.
+// issuer_url for client_assertion validation, client_id for client resolution)
+// must wait for the index to become queryable.
+func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, table, column string, timeout time.Duration) {
+	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1 ALLOW FILTERING", keyspace, table, column)
 	deadline := time.Now().Add(timeout)
 	delay := 500 * time.Millisecond
 	for {

@@ -178,7 +178,9 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			hash: "id",
 			attr: []types.AttributeDefinition{
 				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("client_id"), AttributeType: types.ScalarAttributeTypeS},
 			},
+			gsi: []types.GlobalSecondaryIndex{gsi("client_id", "client_id")},
 		},
 		{
 			name: schemas.Collections.TrustedIssuer,
