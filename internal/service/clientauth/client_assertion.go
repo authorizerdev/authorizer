@@ -516,9 +516,14 @@ func (p *provider) performTokenReview(ctx context.Context, apiServerURL, token, 
 	// Authenticate to the apiserver with Authorizer's own in-cluster SA token when
 	// present; a TokenReview call is otherwise anonymous (which most clusters
 	// reject — surfaced as authenticated=false / non-2xx and thus fail-closed).
-	if saToken, rErr := os.ReadFile(inClusterSATokenPath); rErr == nil {
-		if t := strings.TrimSpace(string(saToken)); t != "" {
-			req.Header.Set("Authorization", "Bearer "+t)
+	// Only attach it over https: the apiserver URL is admin-supplied, so a
+	// misconfigured/malicious http:// URL must never receive Authorizer's SA
+	// credential in cleartext (a real kube apiserver is always https).
+	if strings.EqualFold(req.URL.Scheme, "https") {
+		if saToken, rErr := os.ReadFile(inClusterSATokenPath); rErr == nil {
+			if t := strings.TrimSpace(string(saToken)); t != "" {
+				req.Header.Set("Authorization", "Bearer "+t)
+			}
 		}
 	}
 
