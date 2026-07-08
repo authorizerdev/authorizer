@@ -187,6 +187,14 @@ func TestStorageProvider(t *testing.T) {
 				testTrustedIssuerOperations(t, ctx, provider, dbType)
 			})
 
+			t.Run("Organization Operations", func(t *testing.T) {
+				testOrganizationOperations(t, ctx, provider)
+			})
+
+			t.Run("Org Membership Operations", func(t *testing.T) {
+				testOrgMembershipOperations(t, ctx, provider)
+			})
+
 			if isSQLTestDB(dbType) {
 				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
 					testSQLCRUDCorrectnessFixes(t, ctx, provider)
@@ -1403,4 +1411,161 @@ func testTrustedIssuerOperations(t *testing.T, ctx context.Context, provider Pro
 	assert.Error(t, err, "trusted issuer should be gone after delete")
 
 	require.NoError(t, provider.DeleteClient(ctx, sa))
+}
+
+// testOrganizationOperations exercises Organization CRUD plus the cascade that
+// removes an org's memberships on delete. Every lookup uses the API-facing id.
+func testOrganizationOperations(t *testing.T, ctx context.Context, provider Provider) {
+	displayName := "Acme Corporation"
+	org := &schemas.Organization{
+		Name:        "acme-" + uuid.New().String(),
+		DisplayName: &displayName,
+		Enabled:     true,
+	}
+
+	created, err := provider.AddOrganization(ctx, org)
+	require.NoError(t, err)
+	require.NotNil(t, created)
+
+	orgID := created.AsAPIOrganization().ID
+	require.NotEmpty(t, orgID)
+
+	fetched, err := provider.GetOrganizationByID(ctx, orgID)
+	require.NoError(t, err, "GetOrganizationByID must resolve the API-facing id")
+	assert.Equal(t, org.Name, fetched.Name)
+	require.NotNil(t, fetched.DisplayName)
+	assert.Equal(t, displayName, *fetched.DisplayName)
+	assert.True(t, fetched.Enabled)
+
+	byName, err := provider.GetOrganizationByName(ctx, org.Name)
+	require.NoError(t, err)
+	assert.Equal(t, orgID, byName.AsAPIOrganization().ID, "GetOrganizationByName must resolve the same org")
+
+	// Update: disable and rename display name — must persist (not silently no-op).
+	newDisplay := "Acme Inc"
+	fetched.Enabled = false
+	fetched.DisplayName = &newDisplay
+	updated, err := provider.UpdateOrganization(ctx, fetched)
+	require.NoError(t, err)
+	assert.False(t, updated.Enabled)
+	refetched, err := provider.GetOrganizationByID(ctx, orgID)
+	require.NoError(t, err)
+	assert.False(t, refetched.Enabled, "disabled state must persist")
+	require.NotNil(t, refetched.DisplayName)
+	assert.Equal(t, newDisplay, *refetched.DisplayName)
+
+	// A membership bound to this org (via the API-facing id) must cascade-delete
+	// with the organization — not survive as an orphan.
+	userID := uuid.New().String()
+	membership, err := provider.AddOrgMembership(ctx, &schemas.OrgMembership{
+		OrgID:  orgID,
+		UserID: userID,
+		Roles:  "admin",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, membership)
+
+	// ListOrganizations should include the created org.
+	list, _, err := provider.ListOrganizations(ctx, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	foundInList := false
+	for _, o := range list {
+		if o.AsAPIOrganization().ID == orgID {
+			foundInList = true
+			break
+		}
+	}
+	assert.True(t, foundInList, "created organization should appear in ListOrganizations")
+
+	// DeleteOrganization must cascade: the membership must be gone too.
+	require.NoError(t, provider.DeleteOrganization(ctx, refetched))
+
+	_, err = provider.GetOrganizationByID(ctx, orgID)
+	assert.Error(t, err, "organization should be gone after delete")
+
+	_, err = provider.GetOrgMembership(ctx, orgID, userID)
+	assert.Error(t, err, "membership must be cascade-deleted with its organization, not orphaned")
+
+	remaining, _, err := provider.ListOrgMembershipsByOrg(ctx, orgID, &model.Pagination{Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(remaining), "no orphaned memberships should remain after cascade delete")
+}
+
+// testOrgMembershipOperations exercises membership uniqueness, cross-org role
+// independence, and the by-user listing.
+func testOrgMembershipOperations(t *testing.T, ctx context.Context, provider Provider) {
+	orgA, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "org-a-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgAID := orgA.AsAPIOrganization().ID
+
+	orgB, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "org-b-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgBID := orgB.AsAPIOrganization().ID
+
+	userID := uuid.New().String()
+
+	// Same user is admin in Org A and viewer in Org B — roles independent.
+	memberA, err := provider.AddOrgMembership(ctx, &schemas.OrgMembership{
+		OrgID:  orgAID,
+		UserID: userID,
+		Roles:  "admin",
+	})
+	require.NoError(t, err)
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{
+		OrgID:  orgBID,
+		UserID: userID,
+		Roles:  "viewer",
+	})
+	require.NoError(t, err)
+
+	inA, err := provider.GetOrgMembership(ctx, orgAID, userID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"admin"}, inA.ParsedRoles())
+	inB, err := provider.GetOrgMembership(ctx, orgBID, userID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"viewer"}, inB.ParsedRoles())
+
+	// Duplicate membership: the same (org_id, user_id) must be rejected. Every
+	// provider enforces this (unique index or check-then-insert guard).
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{
+		OrgID:  orgAID,
+		UserID: userID,
+		Roles:  "admin",
+	})
+	assert.Error(t, err, "a duplicate (org_id, user_id) membership must be rejected")
+
+	// The user must be a member of exactly two organizations.
+	byUser, _, err := provider.ListOrgMembershipsByUser(ctx, userID, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	assert.Equal(t, 2, len(byUser), "user should have memberships in exactly two organizations")
+
+	// Org A must list exactly this one member.
+	byOrg, _, err := provider.ListOrgMembershipsByOrg(ctx, orgAID, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(byOrg))
+	assert.Equal(t, userID, byOrg[0].UserID)
+
+	// UpdateOrgMembership: load-then-mutate the roles — must persist.
+	inA.Roles = "admin,billing"
+	_, err = provider.UpdateOrgMembership(ctx, inA)
+	require.NoError(t, err)
+	refetched, err := provider.GetOrgMembership(ctx, orgAID, userID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"admin", "billing"}, refetched.ParsedRoles(), "updated roles must persist")
+
+	// Direct membership delete removes only the targeted membership.
+	require.NoError(t, provider.DeleteOrgMembership(ctx, memberA))
+	_, err = provider.GetOrgMembership(ctx, orgAID, userID)
+	assert.Error(t, err, "membership should be gone after delete")
+	_, err = provider.GetOrgMembership(ctx, orgBID, userID)
+	assert.NoError(t, err, "deleting the Org A membership must not affect the Org B membership")
+
+	require.NoError(t, provider.DeleteOrganization(ctx, orgA))
+	require.NoError(t, provider.DeleteOrganization(ctx, orgB))
 }

@@ -383,6 +383,48 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// Organization collection and indexes
+	organizationCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Organization)
+	if err != nil {
+		return nil, err
+	}
+	if !organizationCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Organization, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	organizationCollection, err := arangodb.Collection(ctx, schemas.Collections.Organization)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = organizationCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	// OrgMembership collection and indexes
+	orgMembershipCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.OrgMembership)
+	if err != nil {
+		return nil, err
+	}
+	if !orgMembershipCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.OrgMembership, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	orgMembershipCollection, err := arangodb.Collection(ctx, schemas.Collections.OrgMembership)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = orgMembershipCollection.EnsureHashIndex(ctx, []string{"org_id", "user_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+	})
+	_, _, _ = orgMembershipCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

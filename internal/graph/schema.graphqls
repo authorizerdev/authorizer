@@ -345,6 +345,36 @@ type TrustedIssuers {
   trusted_issuers: [TrustedIssuer!]!
 }
 
+type Organization {
+  id: ID!
+  # name is a unique, URL-safe slug identifying the organization.
+  name: String!
+  display_name: String
+  enabled: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type Organizations {
+  pagination: Pagination!
+  organizations: [Organization!]!
+}
+
+type OrgMember {
+  id: ID!
+  org_id: String!
+  user_id: String!
+  # roles is the set of per-organization roles granted to this member.
+  roles: [String!]!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type OrgMembers {
+  pagination: Pagination!
+  org_members: [OrgMember!]!
+}
+
 type WebhookLog {
   id: ID!
   http_status: Int64
@@ -770,6 +800,44 @@ input ListTrustedIssuersRequest {
   pagination: PaginatedRequest
 }
 
+input CreateOrganizationRequest {
+  # name must be a unique, URL-safe slug.
+  name: String!
+  display_name: String
+}
+
+input UpdateOrganizationRequest {
+  id: ID!
+  name: String
+  display_name: String
+  enabled: Boolean
+}
+
+input OrganizationRequest {
+  id: ID!
+}
+
+input ListOrganizationsRequest {
+  pagination: PaginatedRequest
+}
+
+input AddOrgMemberRequest {
+  org_id: String!
+  user_id: String!
+  # roles defaults to an empty set when omitted.
+  roles: [String!]
+}
+
+input RemoveOrgMemberRequest {
+  org_id: String!
+  user_id: String!
+}
+
+input ListOrgMembersRequest {
+  org_id: String!
+  pagination: PaginatedRequest
+}
+
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
@@ -954,6 +1022,12 @@ type Mutation {
   _add_trusted_issuer(params: AddTrustedIssuerRequest!): TrustedIssuer!
   _update_trusted_issuer(params: UpdateTrustedIssuerRequest!): TrustedIssuer!
   _delete_trusted_issuer(params: TrustedIssuerRequest!): Response!
+  # Organizations and per-org membership
+  _create_organization(params: CreateOrganizationRequest!): Organization!
+  _update_organization(params: UpdateOrganizationRequest!): Organization!
+  _delete_organization(params: OrganizationRequest!): Response!
+  _add_org_member(params: AddOrgMemberRequest!): OrgMember!
+  _remove_org_member(params: RemoveOrgMemberRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -990,6 +1064,10 @@ type Query {
   # Trusted issuers
   _trusted_issuer(params: TrustedIssuerRequest!): TrustedIssuer!
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
+  # Organizations and per-org membership
+  _organization(params: OrganizationRequest!): Organization!
+  _organizations(params: ListOrganizationsRequest): Organizations!
+  _org_members(params: ListOrgMembersRequest!): OrgMembers!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)

@@ -63,6 +63,16 @@ type AdminProvider interface {
 	TrustedIssuer(ctx context.Context, meta RequestMetadata, params *model.TrustedIssuerRequest) (*model.TrustedIssuer, *ResponseSideEffects, error)
 	TrustedIssuers(ctx context.Context, meta RequestMetadata, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, *ResponseSideEffects, error)
 
+	// Organizations and per-org membership.
+	CreateOrganization(ctx context.Context, meta RequestMetadata, params *model.CreateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)
+	UpdateOrganization(ctx context.Context, meta RequestMetadata, params *model.UpdateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)
+	DeleteOrganization(ctx context.Context, meta RequestMetadata, params *model.OrganizationRequest) (*model.Response, *ResponseSideEffects, error)
+	Organization(ctx context.Context, meta RequestMetadata, params *model.OrganizationRequest) (*model.Organization, *ResponseSideEffects, error)
+	Organizations(ctx context.Context, meta RequestMetadata, params *model.ListOrganizationsRequest) (*model.Organizations, *ResponseSideEffects, error)
+	AddOrgMember(ctx context.Context, meta RequestMetadata, params *model.AddOrgMemberRequest) (*model.OrgMember, *ResponseSideEffects, error)
+	RemoveOrgMember(ctx context.Context, meta RequestMetadata, params *model.RemoveOrgMemberRequest) (*model.Response, *ResponseSideEffects, error)
+	OrgMembers(ctx context.Context, meta RequestMetadata, params *model.ListOrgMembersRequest) (*model.OrgMembers, *ResponseSideEffects, error)
+
 	// Email templates.
 	AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
 	UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)

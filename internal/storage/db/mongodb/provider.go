@@ -219,6 +219,30 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// Organization collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.Organization, options.CreateCollection())
+	organizationCollection := mongodb.Collection(schemas.Collections.Organization, options.Collection())
+	_, _ = organizationCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"name": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
+	// OrgMembership collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.OrgMembership, options.CreateCollection())
+	orgMembershipCollection := mongodb.Collection(schemas.Collections.OrgMembership, options.Collection())
+	_, _ = orgMembershipCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys:    bson.M{"user_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

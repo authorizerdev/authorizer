@@ -213,6 +213,38 @@ type Provider interface {
 	// ListTrustedIssuers returns trusted issuers filtered by serviceAccountID.
 	// Pass an empty serviceAccountID to list all issuers.
 	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
+
+	// Organization methods.
+
+	// AddOrganization creates a new organization record.
+	AddOrganization(ctx context.Context, org *schemas.Organization) (*schemas.Organization, error)
+	// GetOrganizationByID fetches an organization by its primary key.
+	GetOrganizationByID(ctx context.Context, id string) (*schemas.Organization, error)
+	// GetOrganizationByName fetches an organization by its unique name slug.
+	GetOrganizationByName(ctx context.Context, name string) (*schemas.Organization, error)
+	// UpdateOrganization updates name, display_name, or enabled.
+	UpdateOrganization(ctx context.Context, org *schemas.Organization) (*schemas.Organization, error)
+	// DeleteOrganization removes an organization and cascade-deletes its
+	// memberships. Mirrors the DeleteClient cascade pattern.
+	DeleteOrganization(ctx context.Context, org *schemas.Organization) error
+	// ListOrganizations returns a paginated list of all organizations.
+	ListOrganizations(ctx context.Context, pagination *model.Pagination) ([]*schemas.Organization, *model.Pagination, error)
+
+	// OrgMembership methods.
+
+	// AddOrgMembership creates a new membership. The (org_id, user_id) pair is
+	// unique — adding a duplicate returns an error.
+	AddOrgMembership(ctx context.Context, membership *schemas.OrgMembership) (*schemas.OrgMembership, error)
+	// GetOrgMembership fetches the membership for a (orgID, userID) pair.
+	GetOrgMembership(ctx context.Context, orgID, userID string) (*schemas.OrgMembership, error)
+	// UpdateOrgMembership updates the roles of an existing membership.
+	UpdateOrgMembership(ctx context.Context, membership *schemas.OrgMembership) (*schemas.OrgMembership, error)
+	// DeleteOrgMembership removes a membership.
+	DeleteOrgMembership(ctx context.Context, membership *schemas.OrgMembership) error
+	// ListOrgMembershipsByOrg returns paginated memberships of an organization.
+	ListOrgMembershipsByOrg(ctx context.Context, orgID string, pagination *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error)
+	// ListOrgMembershipsByUser returns paginated memberships held by a user.
+	ListOrgMembershipsByUser(ctx context.Context, userID string, pagination *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error)
 }
 
 // New creates a new database provider based on the configuration

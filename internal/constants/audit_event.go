@@ -33,6 +33,10 @@ const (
 	AuditResourceTypeServiceAccount = "service_account"
 	// AuditResourceTypeTrustedIssuer represents a trusted external JWT issuer.
 	AuditResourceTypeTrustedIssuer = "trusted_issuer"
+	// AuditResourceTypeOrganization represents an organization entity.
+	AuditResourceTypeOrganization = "organization"
+	// AuditResourceTypeOrgMembership represents an org membership entity.
+	AuditResourceTypeOrgMembership = "org_membership"
 )
 
 // Audit event type constants used for structured audit logging.
@@ -159,6 +163,27 @@ const (
 	// Downgrading from online (true) to offline (false) is a security-posture change and
 	// must be queryable independently of generic trusted_issuer_updated events.
 	AuditTrustedIssuerTokenReviewChangedEvent = "admin.trusted_issuer_token_review_changed"
+
+	// AuditOrganizationCreatedEvent is logged when an admin creates an organization.
+	AuditOrganizationCreatedEvent = "admin.organization_created"
+	// AuditOrganizationCreateFailedEvent is logged when organization creation fails.
+	AuditOrganizationCreateFailedEvent = "admin.organization_create_failed"
+	// AuditOrganizationUpdatedEvent is logged when an admin updates an organization.
+	AuditOrganizationUpdatedEvent = "admin.organization_updated"
+	// AuditOrganizationUpdateFailedEvent is logged when an organization update fails.
+	AuditOrganizationUpdateFailedEvent = "admin.organization_update_failed"
+	// AuditOrganizationDeletedEvent is logged when an admin deletes an organization.
+	AuditOrganizationDeletedEvent = "admin.organization_deleted"
+	// AuditOrganizationDeleteFailedEvent is logged when an organization delete fails.
+	AuditOrganizationDeleteFailedEvent = "admin.organization_delete_failed"
+	// AuditOrgMemberAddedEvent is logged when an admin adds a user to an organization.
+	AuditOrgMemberAddedEvent = "admin.org_member_added"
+	// AuditOrgMemberAddFailedEvent is logged when adding an org member fails.
+	AuditOrgMemberAddFailedEvent = "admin.org_member_add_failed"
+	// AuditOrgMemberRemovedEvent is logged when an admin removes a user from an organization.
+	AuditOrgMemberRemovedEvent = "admin.org_member_removed"
+	// AuditOrgMemberRemoveFailedEvent is logged when removing an org member fails.
+	AuditOrgMemberRemoveFailedEvent = "admin.org_member_remove_failed"
 
 	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
 	// via the client_credentials grant (RFC 6749 §4.4).
