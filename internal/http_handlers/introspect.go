@@ -1,7 +1,7 @@
 package http_handlers
 
 import (
-	"crypto/subtle"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 )
 
 // IntrospectHandler implements RFC 7662 OAuth 2.0 Token Introspection at
@@ -29,66 +30,28 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 		tokenTypeHint := strings.TrimSpace(gc.PostForm("token_type_hint"))
 		_ = tokenTypeHint // Per RFC 7662 §2.1, unknown hints are ignored.
 
-		clientID := strings.TrimSpace(gc.PostForm("client_id"))
-		clientSecret := strings.TrimSpace(gc.PostForm("client_secret"))
-
-		// If no form creds, fall back to HTTP Basic.
-		hasBasicAuth := false
-		if clientID == "" && clientSecret == "" {
-			if id, secret, ok := gc.Request.BasicAuth(); ok {
-				clientID = id
-				clientSecret = secret
-				hasBasicAuth = true
-			}
-		}
-
-		if clientID == "" {
-			log.Debug().Msg("client_id missing on introspect request")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "The client_id parameter is required",
-			})
+		// RFC 7662 §2.1: the introspection caller MUST authenticate. Route the
+		// credential through the shared registry resolver (RFC 6749 §2.3) so the
+		// caller is authenticated against the authoritative client registry rather
+		// than the single static Config.ClientID/Secret. RequireSecret enforces a
+		// secret on every caller (introspection is a confidential-client endpoint);
+		// the reserved client keeps working via the resolver's Config fallback when
+		// its registry row is absent.
+		basicClientID, basicClientSecret, hasBasicAuth := gc.Request.BasicAuth()
+		resolvedClient, authErr := h.clientAuthProvider.ResolveClient(gc, clientauth.ResolveParams{
+			BodyClientID:  strings.TrimSpace(gc.PostForm("client_id")),
+			BodySecret:    gc.PostForm("client_secret"),
+			BasicClientID: basicClientID,
+			BasicSecret:   basicClientSecret,
+			HasBasicAuth:  hasBasicAuth,
+			RequireSecret: true,
+		})
+		if authErr != nil {
+			log.Debug().Err(authErr).Msg("introspection caller authentication failed")
+			// Non-basic invalid_client maps to 400 on the introspection endpoint,
+			// preserving the pre-registry response shape.
+			respondResourceClientAuthError(gc, authErr, hasBasicAuth, http.StatusBadRequest)
 			return
-		}
-
-		// Client authentication: client_id must match, and when the server
-		// has a client_secret configured the caller MUST supply it.
-		if h.Config.ClientID != clientID {
-			log.Debug().Str("client_id", clientID).Msg("client_id mismatch on introspect")
-			if hasBasicAuth {
-				gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
-				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "invalid_client",
-					"error_description": "Client authentication failed",
-				})
-			} else {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_client",
-					"error_description": "The client_id is invalid",
-				})
-			}
-			return
-		}
-		// When the server has a client_secret, always require it.
-		// Previously the check was `clientSecret != "" && h.Config.ClientSecret != ""`
-		// which allowed callers to skip authentication by omitting the secret.
-		if h.Config.ClientSecret != "" {
-			if clientSecret == "" || subtle.ConstantTimeCompare([]byte(clientSecret), []byte(h.Config.ClientSecret)) != 1 {
-				log.Debug().Msg("client_secret missing or mismatch on introspect")
-				if hasBasicAuth {
-					gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
-					gc.JSON(http.StatusUnauthorized, gin.H{
-						"error":             "invalid_client",
-						"error_description": "Client authentication failed",
-					})
-				} else {
-					gc.JSON(http.StatusBadRequest, gin.H{
-						"error":             "invalid_client",
-						"error_description": "The client_secret is required",
-					})
-				}
-				return
-			}
 		}
 
 		if tokenValue == "" {
@@ -137,8 +100,12 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Check aud matches our client_id.
-		if !audienceMatchesIntrospect(claims["aud"], h.Config.ClientID) {
+		// Registry-aware audience check: a token's aud is its client's client_id.
+		// The token is only "active" for the authenticated caller when it was
+		// issued to that caller — validate against the resolved caller's client_id,
+		// not a single static Config.ClientID. A token minted for a different client
+		// yields {"active": false} (no oracle) rather than leaking its claims.
+		if !audienceMatchesIntrospect(claims["aud"], resolvedClient.ClientID) {
 			gc.JSON(http.StatusOK, gin.H{"active": false})
 			return
 		}
@@ -164,12 +131,11 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			}
 		}
 		copyIfPresent("scope", "scope")
-		// RFC 7662 §2.2: client_id MUST be a string — set it directly
-		// from h.Config.ClientID rather than copying from the `aud`
-		// claim, which may be a JSON array for multi-audience tokens.
-		// The audience check above already confirmed h.Config.ClientID
-		// is in the audience set.
-		resp["client_id"] = h.Config.ClientID
+		// RFC 7662 §2.2: client_id MUST be a string — set it to the resolved
+		// caller's client_id rather than copying from the `aud` claim, which may be
+		// a JSON array for multi-audience tokens. The audience check above already
+		// confirmed the resolved client's id is in the audience set.
+		resp["client_id"] = resolvedClient.ClientID
 		copyIfPresent("exp", "exp")
 		copyIfPresent("iat", "iat")
 		copyIfPresent("sub", "sub")
@@ -183,6 +149,42 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 		}
 		gc.JSON(http.StatusOK, resp)
 	}
+}
+
+// respondResourceClientAuthError maps a clientauth resolver error for the
+// resource-facing endpoints that authenticate a calling client — introspection
+// (RFC 7662 §2.1) and revocation (RFC 7009 §2.1). A missing client_id or more
+// than one auth method maps to invalid_request (400). Any other failure maps to
+// invalid_client: 401 + WWW-Authenticate when the caller used HTTP Basic
+// (RFC 6749 §5.2), otherwise nonBasicStatus (400 for introspection, 401 for
+// revocation — each preserving that endpoint's pre-registry response).
+func respondResourceClientAuthError(gc *gin.Context, err error, hasBasicAuth bool, nonBasicStatus int) {
+	switch {
+	case errors.Is(err, clientauth.ErrMissingClientID):
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_request",
+			"error_description": "The client_id parameter is required",
+		})
+		return
+	case errors.Is(err, clientauth.ErrMultipleAuthMethods):
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_request",
+			"error_description": "Only one client authentication method may be used per request",
+		})
+		return
+	}
+	if hasBasicAuth {
+		gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
+		gc.JSON(http.StatusUnauthorized, gin.H{
+			"error":             "invalid_client",
+			"error_description": "Client authentication failed",
+		})
+		return
+	}
+	gc.JSON(nonBasicStatus, gin.H{
+		"error":             "invalid_client",
+		"error_description": "Client authentication failed",
+	})
 }
 
 // audienceMatchesIntrospect accepts either a string aud or a []interface{}

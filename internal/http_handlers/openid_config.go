@@ -28,7 +28,9 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 
 		// grant_types_supported stays consistent with response_types_supported:
 		// "implicit" corresponds to response_type=token / id_token / id_token token.
-		grantTypes := []string{"authorization_code", "refresh_token", "implicit"}
+		// "client_credentials" is the machine/service-account grant (RFC 6749 §4.4)
+		// served by the token endpoint via the client registry.
+		grantTypes := []string{"authorization_code", "refresh_token", "client_credentials", "implicit"}
 
 		// Back-channel logout is advertised only when the operator has
 		// configured a backchannel_logout_uri — avoids lying to RPs.
