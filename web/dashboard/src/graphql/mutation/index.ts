@@ -161,3 +161,70 @@ export const FgaReset = `
     }
   }
 `;
+
+export const CreateClient = `
+  mutation createClient($params: CreateClientRequest!) {
+    _create_client(params: $params) {
+      client {
+        id
+        name
+      }
+      client_secret
+    }
+  }
+`;
+
+export const UpdateClient = `
+  mutation updateClient($params: UpdateClientRequest!) {
+    _update_client(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteClient = `
+  mutation deleteClient($params: ClientRequest!) {
+    _delete_client(params: $params) {
+      message
+    }
+  }
+`;
+
+export const RotateClientSecret = `
+  mutation rotateClientSecret($params: ClientRequest!) {
+    _rotate_client_secret(params: $params) {
+      client {
+        id
+        name
+      }
+      client_secret
+    }
+  }
+`;
+
+export const AddTrustedIssuer = `
+  mutation addTrustedIssuer($params: AddTrustedIssuerRequest!) {
+    _add_trusted_issuer(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateTrustedIssuer = `
+  mutation updateTrustedIssuer($params: UpdateTrustedIssuerRequest!) {
+    _update_trusted_issuer(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteTrustedIssuer = `
+  mutation deleteTrustedIssuer($params: TrustedIssuerRequest!) {
+    _delete_trusted_issuer(params: $params) {
+      message
+    }
+  }
+`;

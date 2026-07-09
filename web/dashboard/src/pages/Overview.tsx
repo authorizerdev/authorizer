@@ -156,7 +156,7 @@ const Overview = () => {
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between pb-2">
 						<CardTitle className="text-sm font-medium text-gray-500">
-							Client ID
+							Default Client ID
 						</CardTitle>
 						<button
 							onClick={handleCopyClientId}
@@ -174,7 +174,13 @@ const Overview = () => {
 						<div className="text-sm font-mono text-gray-900 truncate">
 							{meta?.client_id || '—'}
 						</div>
-						<p className="mt-1 text-xs text-gray-500">Click icon to copy</p>
+						<button
+							type="button"
+							onClick={() => navigate('/identity/clients')}
+							className="mt-1 text-xs text-blue-600 hover:text-blue-700"
+						>
+							Manage clients →
+						</button>
 					</CardContent>
 				</Card>
 			</div>

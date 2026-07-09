@@ -185,3 +185,50 @@ export interface AdminRolesResponse {
 		roles?: string[] | null;
 	} | null;
 }
+
+export interface Client {
+	id: string;
+	name: string;
+	description?: string | null;
+	allowed_scopes: string[];
+	is_active: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface ClientsResponse {
+	_clients: {
+		pagination: PaginationInfo;
+		clients: Client[];
+	};
+}
+
+export interface CreateClientResponse {
+	client: Client;
+	// Returned exactly once at creation/rotation; never retrievable again.
+	client_secret: string;
+}
+
+export interface TrustedIssuer {
+	id: string;
+	service_account_id: string;
+	name: string;
+	issuer_url: string;
+	key_source_type: string;
+	jwks_url?: string | null;
+	expected_aud: string;
+	subject_claim: string;
+	allowed_subjects?: string | null;
+	issuer_type: string;
+	is_active: boolean;
+	spiffe_refresh_hint_seconds?: number | null;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface TrustedIssuersResponse {
+	_trusted_issuers: {
+		pagination: PaginationInfo;
+		trusted_issuers: TrustedIssuer[];
+	};
+}

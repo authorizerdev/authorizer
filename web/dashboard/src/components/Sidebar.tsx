@@ -16,6 +16,9 @@ import {
 	Network,
 	SearchCheck,
 	ChevronDown,
+	Fingerprint,
+	KeyRound,
+	BadgeCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -61,6 +64,23 @@ const navGroups: NavGroupConfig[] = [
 				name: 'Relationship Tuples',
 				icon: Network,
 				route: '/authorization/tuples',
+			},
+		],
+	},
+	{
+		name: 'Identity',
+		icon: Fingerprint,
+		basePath: '/identity',
+		items: [
+			{
+				name: 'Clients',
+				icon: KeyRound,
+				route: '/identity/clients',
+			},
+			{
+				name: 'Trusted Issuers',
+				icon: BadgeCheck,
+				route: '/identity/trusted-issuers',
 			},
 		],
 	},
