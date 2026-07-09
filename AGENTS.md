@@ -108,7 +108,7 @@ Use `-p 1` for integration tests (shared state). Storage tests honour `TEST_DBS`
 **Key paths**:
 - GraphQL schema: `internal/graph/schema.graphqls` | Resolvers: `internal/graphql/` | Business logic: `internal/service/`
 - gRPC: `proto/authorizer/v1/` → `gen/` | Server: `internal/grpcsrv/` | REST via grpc-gateway
-- gRPC auth docs: `docs/grpc-rest-api-spec.md` (§2.3 client metadata)
+- gRPC auth docs: authorizer-docs repo, `specs/GRPC_REST_API_SPEC.md` (§2.3 client metadata)
 - Request principal (gRPC interceptor): `internal/authctx/`
 - Storage interface: `internal/storage/provider.go` | SQL: `internal/storage/db/sql/` | NoSQL: `mongodb/`, `arangodb/`, `cassandradb/`, `dynamodb/`, `couchbase/`
 - FGA engine: `internal/authorization/`

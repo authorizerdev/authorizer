@@ -23,7 +23,7 @@ import (
 // This struct intentionally omits email, phone, MFA, social-login, and
 // session fields — those belong to User. Mixing human and machine identity
 // in the same table is an anti-pattern explicitly avoided here.
-// See: docs/specs/WORKLOAD_IDENTITY_PROGRAM.md §3.
+// See: authorizer-docs repo, specs/WORKLOAD_IDENTITY_PROGRAM.md §3.
 //
 // Note: any field addition must also be reflected in the cassandradb provider;
 // it does not use GORM AutoMigrate for collection creation.

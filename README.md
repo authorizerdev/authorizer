@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://docs.authorizer.dev/">Documentation</a> ·
-  <a href="docs/oauth2-oidc-endpoints.md">OAuth 2.0 / OIDC</a> ·
+  <a href="https://docs.authorizer.dev/core/oauth2-oidc">OAuth 2.0 / OIDC</a> ·
   <a href="MIGRATION.md">v1 → v2 migration</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="https://discord.gg/Zv2D5h6kkK">Discord</a>
