@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Health/readiness JSON**: failure responses return a generic `error` string; details remain in server logs.
 - **OAuth callback JSON**: generic OAuth-style error body on provider processing failure; details remain in logs.
 - **`/playground`** is subject to the same per-IP rate limits as other routes (health and OIDC discovery paths stay exempt). **`/metrics`** is not on the main HTTP router.
-- **BREAKING: `/userinfo` now strictly filters claims by scope per OIDC Core §5.4.** The endpoint returns only `sub` plus the claims permitted by the standard scope groups (`profile`, `email`, `phone`, `address`) encoded in the access token. Previously, `/userinfo` returned the full user object regardless of scopes. Clients that request only the `openid` scope but read profile/email claims from `/userinfo` **must** now request those scopes explicitly. See `docs/oauth2-oidc-endpoints.md` for the full scope→claim mapping.
+- **BREAKING: `/userinfo` now strictly filters claims by scope per OIDC Core §5.4.** The endpoint returns only `sub` plus the claims permitted by the standard scope groups (`profile`, `email`, `phone`, `address`) encoded in the access token. Previously, `/userinfo` returned the full user object regardless of scopes. Clients that request only the `openid` scope but read profile/email claims from `/userinfo` **must** now request those scopes explicitly. See https://docs.authorizer.dev/core/oauth2-oidc for the full scope→claim mapping.
 
 ### Removed
 
