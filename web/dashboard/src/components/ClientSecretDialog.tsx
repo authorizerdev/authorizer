@@ -13,20 +13,26 @@ import {
 } from './ui/dialog';
 
 interface ClientSecretDialogProps {
-	// Plaintext secret returned once by _create_client / _rotate_client_secret.
+	// Plaintext secret returned once by the server (client secret, SCIM token).
 	secret: string | null;
 	onClose: () => void;
+	// Label used in the dialog title, copy toast and aria-label.
+	label?: string;
 }
 
-// One-time display of a client secret. The server never returns it again.
-const ClientSecretDialog = ({ secret, onClose }: ClientSecretDialogProps) => {
+// One-time display of a secret. The server never returns it again.
+const ClientSecretDialog = ({
+	secret,
+	onClose,
+	label = 'Client Secret',
+}: ClientSecretDialogProps) => {
 	const [copied, setCopied] = useState(false);
 
 	const handleCopy = async () => {
 		if (!secret) return;
 		await copyTextToClipboard(secret);
 		setCopied(true);
-		toast.success('Client secret copied');
+		toast.success(`${label} copied`);
 		setTimeout(() => setCopied(false), 2000);
 	};
 
@@ -39,7 +45,7 @@ const ClientSecretDialog = ({ secret, onClose }: ClientSecretDialogProps) => {
 		>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Client Secret</DialogTitle>
+					<DialogTitle>{label}</DialogTitle>
 					<DialogDescription>
 						Copy this secret and store it securely.
 					</DialogDescription>
@@ -57,7 +63,7 @@ const ClientSecretDialog = ({ secret, onClose }: ClientSecretDialogProps) => {
 						type="button"
 						onClick={handleCopy}
 						className="text-gray-400 hover:text-gray-600"
-						aria-label="Copy client secret"
+						aria-label={`Copy ${label.toLowerCase()}`}
 					>
 						{copied ? (
 							<Check className="h-4 w-4 text-green-500" />
