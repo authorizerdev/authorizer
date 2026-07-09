@@ -232,3 +232,78 @@ export interface TrustedIssuersResponse {
 		trusted_issuers: TrustedIssuer[];
 	};
 }
+
+export interface Organization {
+	id: string;
+	// name is a unique, URL-safe slug identifying the organization.
+	name: string;
+	display_name?: string | null;
+	enabled: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface OrganizationsResponse {
+	_organizations: {
+		pagination: PaginationInfo;
+		organizations: Organization[];
+	};
+}
+
+export interface OrgMember {
+	id: string;
+	org_id: string;
+	user_id: string;
+	roles: string[];
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface OrgMembersResponse {
+	_org_members: {
+		pagination: PaginationInfo;
+		org_members: OrgMember[];
+	};
+}
+
+export interface OrgOIDCConnection {
+	id: string;
+	org_id: string;
+	name: string;
+	issuer_url: string;
+	sso_client_id: string;
+	scopes?: string | null;
+	redirect_uri?: string | null;
+	is_active: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface OrgSAMLConnection {
+	id: string;
+	org_id: string;
+	name: string;
+	idp_entity_id: string;
+	idp_sso_url?: string | null;
+	sp_entity_id?: string | null;
+	acs_url?: string | null;
+	attribute_mapping?: string | null;
+	allow_idp_initiated: boolean;
+	is_active: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface ScimEndpoint {
+	id: string;
+	org_id: string;
+	enabled: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface CreateScimEndpointResponse {
+	scim_endpoint: ScimEndpoint;
+	// Returned exactly once at creation/rotation; never retrievable again.
+	token: string;
+}

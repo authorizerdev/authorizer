@@ -236,3 +236,105 @@ export const TrustedIssuersQuery = `
     }
   }
 `;
+
+export const OrganizationsQuery = `
+  query getOrganizations($params: ListOrganizationsRequest) {
+    _organizations(params: $params) {
+      organizations {
+        id
+        name
+        display_name
+        enabled
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const OrganizationQuery = `
+  query getOrganization($params: OrganizationRequest!) {
+    _organization(params: $params) {
+      id
+      name
+      display_name
+      enabled
+      created_at
+      updated_at
+    }
+  }
+`;
+
+export const OrgMembersQuery = `
+  query getOrgMembers($params: ListOrgMembersRequest!) {
+    _org_members(params: $params) {
+      org_members {
+        id
+        org_id
+        user_id
+        roles
+        created_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const OrgOIDCConnectionQuery = `
+  query getOrgOIDCConnection($params: OrgOIDCConnectionRequest!) {
+    _org_oidc_connection(params: $params) {
+      id
+      org_id
+      name
+      issuer_url
+      sso_client_id
+      scopes
+      redirect_uri
+      is_active
+      created_at
+      updated_at
+    }
+  }
+`;
+
+export const OrgSAMLConnectionQuery = `
+  query getOrgSAMLConnection($params: OrgSAMLConnectionRequest!) {
+    _org_saml_connection(params: $params) {
+      id
+      org_id
+      name
+      idp_entity_id
+      idp_sso_url
+      sp_entity_id
+      acs_url
+      attribute_mapping
+      allow_idp_initiated
+      is_active
+      created_at
+      updated_at
+    }
+  }
+`;
+
+export const ScimEndpointQuery = `
+  query getScimEndpoint($params: ScimEndpointRequest!) {
+    _scim_endpoint(params: $params) {
+      id
+      org_id
+      enabled
+      created_at
+      updated_at
+    }
+  }
+`;

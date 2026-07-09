@@ -19,6 +19,7 @@ import {
 	Fingerprint,
 	KeyRound,
 	BadgeCheck,
+	Building2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -81,6 +82,11 @@ const navGroups: NavGroupConfig[] = [
 				name: 'Trusted Issuers',
 				icon: BadgeCheck,
 				route: '/identity/trusted-issuers',
+			},
+			{
+				name: 'Organizations',
+				icon: Building2,
+				route: '/identity/organizations',
 			},
 		],
 	},

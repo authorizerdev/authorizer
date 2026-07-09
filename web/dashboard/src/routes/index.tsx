@@ -14,6 +14,8 @@ const AuthorizationModel = lazy(() => import('../pages/authorization/Model'));
 const AuthorizationTuples = lazy(() => import('../pages/authorization/Tuples'));
 const Clients = lazy(() => import('../pages/Clients'));
 const TrustedIssuers = lazy(() => import('../pages/TrustedIssuers'));
+const Organizations = lazy(() => import('../pages/Organizations'));
+const OrganizationDetail = lazy(() => import('../pages/OrganizationDetail'));
 
 export const AppRoutes = () => {
 	const { isLoggedIn } = useAuthContext();
@@ -47,6 +49,14 @@ export const AppRoutes = () => {
 							<Route
 								path="identity/trusted-issuers"
 								element={<TrustedIssuers />}
+							/>
+							<Route
+								path="identity/organizations"
+								element={<Organizations />}
+							/>
+							<Route
+								path="identity/organizations/:id"
+								element={<OrganizationDetail />}
 							/>
 							<Route path="*" element={<Overview />} />
 						</Route>

@@ -228,3 +228,132 @@ export const DeleteTrustedIssuer = `
     }
   }
 `;
+
+export const CreateOrganization = `
+  mutation createOrganization($params: CreateOrganizationRequest!) {
+    _create_organization(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateOrganization = `
+  mutation updateOrganization($params: UpdateOrganizationRequest!) {
+    _update_organization(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteOrganization = `
+  mutation deleteOrganization($params: OrganizationRequest!) {
+    _delete_organization(params: $params) {
+      message
+    }
+  }
+`;
+
+export const AddOrgMember = `
+  mutation addOrgMember($params: AddOrgMemberRequest!) {
+    _add_org_member(params: $params) {
+      id
+      user_id
+    }
+  }
+`;
+
+export const RemoveOrgMember = `
+  mutation removeOrgMember($params: RemoveOrgMemberRequest!) {
+    _remove_org_member(params: $params) {
+      message
+    }
+  }
+`;
+
+export const CreateOrgOIDCConnection = `
+  mutation createOrgOIDCConnection($params: CreateOrgOIDCConnectionRequest!) {
+    _create_org_oidc_connection(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateOrgOIDCConnection = `
+  mutation updateOrgOIDCConnection($params: UpdateOrgOIDCConnectionRequest!) {
+    _update_org_oidc_connection(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteOrgOIDCConnection = `
+  mutation deleteOrgOIDCConnection($params: OrgOIDCConnectionRequest!) {
+    _delete_org_oidc_connection(params: $params) {
+      message
+    }
+  }
+`;
+
+export const CreateOrgSAMLConnection = `
+  mutation createOrgSAMLConnection($params: CreateOrgSAMLConnectionRequest!) {
+    _create_org_saml_connection(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateOrgSAMLConnection = `
+  mutation updateOrgSAMLConnection($params: UpdateOrgSAMLConnectionRequest!) {
+    _update_org_saml_connection(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteOrgSAMLConnection = `
+  mutation deleteOrgSAMLConnection($params: OrgSAMLConnectionRequest!) {
+    _delete_org_saml_connection(params: $params) {
+      message
+    }
+  }
+`;
+
+export const CreateScimEndpoint = `
+  mutation createScimEndpoint($params: CreateScimEndpointRequest!) {
+    _create_scim_endpoint(params: $params) {
+      scim_endpoint {
+        id
+        org_id
+        enabled
+      }
+      token
+    }
+  }
+`;
+
+export const RotateScimToken = `
+  mutation rotateScimToken($params: ScimEndpointRequest!) {
+    _rotate_scim_token(params: $params) {
+      scim_endpoint {
+        id
+        org_id
+        enabled
+      }
+      token
+    }
+  }
+`;
+
+export const DeleteScimEndpoint = `
+  mutation deleteScimEndpoint($params: ScimEndpointRequest!) {
+    _delete_scim_endpoint(params: $params) {
+      message
+    }
+  }
+`;
