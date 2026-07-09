@@ -190,8 +190,13 @@ const OrganizationDetail = () => {
 				},
 			})
 			.toPromise();
-		setMembers(res.data?._org_members?.org_members || []);
+		const list = res.data?._org_members?.org_members || [];
+		setMembers(list);
 		setMembersTotal(res.data?._org_members?.pagination?.total || 0);
+		// removing the last member of a page > 1 leaves it out of range
+		if (list.length === 0 && page > 1) {
+			setMembersPage(1);
+		}
 	};
 
 	// Fetching a missing connection/endpoint errors on the server; treat any
