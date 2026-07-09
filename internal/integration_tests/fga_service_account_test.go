@@ -15,6 +15,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -137,6 +138,31 @@ func TestFGAServiceAccountSubject(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.False(t, res.Results[0].Allowed, "machine caller must be denied on an ungranted object")
+	})
+
+	t.Run("deactivated service account is denied even with a live token", func(t *testing.T) {
+		token := mintMachineToken(t, tokenRouter, saClientID, saSecret, "")
+
+		setAdminCookie(t, ts)
+		_, err := ts.GraphQLProvider.UpdateClient(ctx, &model.UpdateClientRequest{
+			ID:       saID,
+			IsActive: refs.NewBoolRef(false),
+		})
+		require.NoError(t, err)
+		defer func() {
+			setAdminCookie(t, ts)
+			_, err := ts.GraphQLProvider.UpdateClient(ctx, &model.UpdateClientRequest{
+				ID:       saID,
+				IsActive: refs.NewBoolRef(true),
+			})
+			require.NoError(t, err)
+		}()
+
+		presentMachineToken(ts, token)
+		_, err = ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:sa-granted"}},
+		})
+		require.Error(t, err, "FGA must deny a deactivated service account even if its token is still valid")
 	})
 
 	// Decision: reuse client_id, NEVER the surrogate id.

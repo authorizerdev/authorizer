@@ -162,10 +162,22 @@ func (p *provider) machineFgaSubject(ctx context.Context, serviceAccountID strin
 	if client.Kind != constants.ClientKindServiceAccount {
 		return "", PermissionDenied("unauthorized")
 	}
+	// FGA is an authorization decision surface: deny deactivated service
+	// accounts here even though their tokens stay valid until exp elsewhere
+	// (issuance already blocks new tokens; this gives revocation teeth where
+	// it matters most).
+	if !client.IsActive {
+		return "", PermissionDenied("unauthorized")
+	}
 	clientID := strings.TrimSpace(client.ClientID)
 	if clientID == "" {
 		// Legacy rows may carry an empty client_id; storage defaults it to ID.
 		clientID = client.ID
+	}
+	// Defense in depth: client_id is a server-generated UUID today, but the
+	// subject string must never smuggle tuple syntax if that ever changes.
+	if strings.ContainsAny(clientID, ":#@ \t\n") {
+		return "", PermissionDenied("unauthorized")
 	}
 	return "service_account:" + clientID, nil
 }
