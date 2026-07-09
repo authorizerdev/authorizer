@@ -402,6 +402,7 @@ func projectClient(s *model.Client) *authorizerv1.Client {
 	}
 	return &authorizerv1.Client{
 		Id:            s.ID,
+		ClientId:      s.ClientID,
 		Name:          s.Name,
 		Description:   refs.StringValue(s.Description),
 		AllowedScopes: s.AllowedScopes,

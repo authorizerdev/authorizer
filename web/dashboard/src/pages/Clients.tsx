@@ -158,11 +158,11 @@ const Clients = () => {
 									<TableCell className="max-w-[220px] text-sm">
 										<div className="flex items-center gap-2">
 											<span className="truncate font-mono text-xs">
-												{clientItem.id}
+												{clientItem.client_id}
 											</span>
 											<button
 												type="button"
-												onClick={() => copyClientId(clientItem.id)}
+												onClick={() => copyClientId(clientItem.client_id)}
 												className="text-gray-400 hover:text-gray-600"
 												aria-label="Copy client ID"
 											>

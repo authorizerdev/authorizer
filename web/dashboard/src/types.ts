@@ -188,6 +188,7 @@ export interface AdminRolesResponse {
 
 export interface Client {
 	id: string;
+	client_id: string;
 	name: string;
 	description?: string | null;
 	allowed_scopes: string[];

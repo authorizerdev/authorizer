@@ -302,6 +302,10 @@ type Webhooks {
 
 type Client {
   id: ID!
+  # client_id is the public OAuth identifier presented at the authorize/token
+  # endpoints. Distinct from id (internal surrogate key); for the boot-seeded
+  # interactive client it equals the deployment's configured client ID.
+  client_id: String!
   name: String!
   description: String
   allowed_scopes: [String!]!

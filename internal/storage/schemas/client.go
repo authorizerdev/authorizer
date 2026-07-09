@@ -142,8 +142,17 @@ func (s *Client) AsAPIClient() *model.Client {
 	if strings.Contains(id, Collections.Client+"/") {
 		id = strings.TrimPrefix(id, Collections.Client+"/")
 	}
+	// ClientID defaults to ID on create, but guard against legacy rows where
+	// the column is empty — the public identifier must never be blank.
+	clientID := s.ClientID
+	if clientID == "" {
+		clientID = id
+	} else if strings.Contains(clientID, Collections.Client+"/") {
+		clientID = strings.TrimPrefix(clientID, Collections.Client+"/")
+	}
 	return &model.Client{
 		ID:            id,
+		ClientID:      clientID,
 		Name:          s.Name,
 		Description:   s.Description,
 		AllowedScopes: s.ParsedAllowedScopes(),

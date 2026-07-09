@@ -2592,6 +2592,10 @@
         "updated_at": {
           "type": "string",
           "format": "int64"
+        },
+        "client_id": {
+          "type": "string",
+          "description": "client_id is the public OAuth identifier presented at the authorize/token\nendpoints, distinct from id (internal surrogate key)."
         }
       },
       "description": "Client mirrors model.Client field-for-field. The client\nsecret is deliberately ABSENT (matching the GraphQL type): it is surfaced\nexactly once, only via CreateClientResponse.client_secret, and is\nnever returned by any get/list/update path."
