@@ -191,6 +191,7 @@ export const ClientsQuery = `
     _clients(params: $params) {
       clients {
         id
+        client_id
         name
         description
         allowed_scopes

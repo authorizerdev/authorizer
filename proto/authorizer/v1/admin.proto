@@ -865,6 +865,9 @@ message Client {
   bool is_active = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
+  // client_id is the public OAuth identifier presented at the authorize/token
+  // endpoints, distinct from id (internal surrogate key).
+  string client_id = 8;
 }
 
 // CreateClientRequest mirrors model.CreateClientRequest.

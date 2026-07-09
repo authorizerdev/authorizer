@@ -54,6 +54,9 @@ func TestClientAdmin(t *testing.T) {
 		// Plaintext secret is returned once and is NOT the stored hash.
 		require.NotEmpty(t, res.ClientSecret)
 		assert.Equal(t, name, res.Client.Name)
+		// client_id is exposed and defaults to the internal id on create.
+		assert.NotEmpty(t, res.Client.ClientID)
+		assert.Equal(t, res.Client.ID, res.Client.ClientID)
 		assert.True(t, res.Client.IsActive)
 		assert.ElementsMatch(t, []string{"read", "write"}, res.Client.AllowedScopes)
 
