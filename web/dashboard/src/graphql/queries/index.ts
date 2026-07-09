@@ -185,3 +185,54 @@ export const AdminRolesQuery = `
     }
   }
 `;
+
+export const ClientsQuery = `
+  query getClients($params: ListClientsRequest) {
+    _clients(params: $params) {
+      clients {
+        id
+        name
+        description
+        allowed_scopes
+        is_active
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const TrustedIssuersQuery = `
+  query getTrustedIssuers($params: ListTrustedIssuersRequest) {
+    _trusted_issuers(params: $params) {
+      trusted_issuers {
+        id
+        service_account_id
+        name
+        issuer_url
+        key_source_type
+        jwks_url
+        expected_aud
+        subject_claim
+        allowed_subjects
+        issuer_type
+        is_active
+        spiffe_refresh_hint_seconds
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
