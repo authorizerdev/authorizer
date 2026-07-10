@@ -82,6 +82,31 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return r.GraphQLProvider.ResendOTP(ctx, &params)
 }
 
+// WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
+func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
+	panic(fmt.Errorf("not implemented: WebauthnRegistrationOptions - webauthn_registration_options"))
+}
+
+// WebauthnRegistrationVerify is the resolver for the webauthn_registration_verify field.
+func (r *mutationResolver) WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error) {
+	panic(fmt.Errorf("not implemented: WebauthnRegistrationVerify - webauthn_registration_verify"))
+}
+
+// WebauthnLoginOptions is the resolver for the webauthn_login_options field.
+func (r *mutationResolver) WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error) {
+	panic(fmt.Errorf("not implemented: WebauthnLoginOptions - webauthn_login_options"))
+}
+
+// WebauthnLoginVerify is the resolver for the webauthn_login_verify field.
+func (r *mutationResolver) WebauthnLoginVerify(ctx context.Context, params model.WebauthnLoginVerifyRequest) (*model.AuthResponse, error) {
+	panic(fmt.Errorf("not implemented: WebauthnLoginVerify - webauthn_login_verify"))
+}
+
+// WebauthnDeleteCredential is the resolver for the webauthn_delete_credential field.
+func (r *mutationResolver) WebauthnDeleteCredential(ctx context.Context, id string) (*model.Response, error) {
+	panic(fmt.Errorf("not implemented: WebauthnDeleteCredential - webauthn_delete_credential"))
+}
+
 // DeactivateAccount is the resolver for the deactivate_account field.
 func (r *mutationResolver) DeactivateAccount(ctx context.Context) (*model.Response, error) {
 	return r.GraphQLProvider.DeactivateAccount(ctx)
@@ -320,6 +345,11 @@ func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.Valid
 // ValidateSession is the resolver for the validate_session field.
 func (r *queryResolver) ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error) {
 	return r.GraphQLProvider.ValidateSession(ctx, params)
+}
+
+// WebauthnCredentials is the resolver for the webauthn_credentials field.
+func (r *queryResolver) WebauthnCredentials(ctx context.Context) ([]*model.WebauthnCredentialInfo, error) {
+	panic(fmt.Errorf("not implemented: WebauthnCredentials - webauthn_credentials"))
 }
 
 // Users is the resolver for the _users field.
