@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/oauth2"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -14,6 +15,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
+
+// pkceVerifierKeyPrefix namespaces the PKCE code_verifier entry in the state
+// store so it does not collide with the provider state entry keyed by the raw
+// oauth state string. Used only by providers that require PKCE (Twitter/X).
+const pkceVerifierKeyPrefix = "pkce_verifier:"
 
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
@@ -95,7 +101,22 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		url := cfg.AuthCodeURL(oauthStateString)
+		var authCodeOpts []oauth2.AuthCodeOption
+		if provider == constants.AuthRecipeMethodTwitter {
+			// Twitter/X requires PKCE for the OAuth 2.0 user-context auth code flow.
+			// Generate a verifier, store it keyed by state for the callback to replay,
+			// and send the derived S256 challenge in the authorization request.
+			verifier := oauth2.GenerateVerifier()
+			if err := h.MemoryStoreProvider.SetState(pkceVerifierKeyPrefix+oauthStateString, verifier); err != nil {
+				log.Debug().Err(err).Msg("Error setting pkce verifier")
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			authCodeOpts = append(authCodeOpts, oauth2.S256ChallengeOption(verifier))
+		}
+		url := cfg.AuthCodeURL(oauthStateString, authCodeOpts...)
 		log.Debug().Str("url", url).Msg("redirecting to oauth provider")
 		metrics.RecordAuthEvent(metrics.EventOAuthLogin, metrics.StatusSuccess)
 		h.AuditProvider.LogEvent(audit.Event{

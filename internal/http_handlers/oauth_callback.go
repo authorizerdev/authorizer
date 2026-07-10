@@ -111,13 +111,20 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.AuthRecipeMethodDiscord:
 			user, err = h.processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
-			user, err = h.processTwitterUserInfo(ctx, oauthCode, sessionState)
+			// Twitter/X uses PKCE: retrieve the verifier stored at login keyed by state.
+			verifier, verr := h.MemoryStoreProvider.GetAndRemoveState(pkceVerifierKeyPrefix + state)
+			if verr != nil || verifier == "" {
+				log.Debug().Err(verr).Msg("Missing PKCE verifier for Twitter callback")
+				ctx.JSON(400, gin.H{"error": "invalid oauth state"})
+				return
+			}
+			user, err = h.processTwitterUserInfo(ctx, oauthCode, verifier)
 		case constants.AuthRecipeMethodMicrosoft:
 			user, err = h.processMicrosoftUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitch:
 			user, err = h.processTwitchUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodRoblox:
-			user, err = h.processRobloxUserInfo(ctx, oauthCode, sessionState)
+			user, err = h.processRobloxUserInfo(ctx, oauthCode)
 		default:
 			log.Debug().Err(err).Msg("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -409,7 +416,7 @@ func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 
-	oidcProvider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+	oidcProvider, err := getOIDCProvider(ctx, "https://accounts.google.com")
 	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.GoogleClientID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
@@ -759,7 +766,7 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_
 	}
 
 	// Verify the Apple ID token signature, issuer, and audience using OIDC discovery
-	oidcProvider, err := oidc.NewProvider(ctx, "https://appleid.apple.com")
+	oidcProvider, err := getOIDCProvider(ctx, "https://appleid.apple.com")
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Apple OIDC provider")
 		return user, fmt.Errorf("failed to create oidc provider: %s", err.Error())
@@ -872,7 +879,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
-	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
@@ -957,7 +964,7 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
-	oidcProvider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID))
+	oidcProvider, err := getOIDCProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID))
 	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
 	verifier := oidcProvider.Verifier(&oidc.Config{
 		ClientID:        h.MicrosoftClientID,
@@ -1005,7 +1012,7 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
 		return nil, fmt.Errorf("unable to extract id_token")
 	}
-	oidcProvider, err := oidc.NewProvider(ctx, "https://id.twitch.tv/oauth2")
+	oidcProvider, err := getOIDCProvider(ctx, "https://id.twitch.tv/oauth2")
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create OIDC provider")
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
@@ -1032,14 +1039,16 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 }
 
 // process roblox user information
-func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
+func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processRobloxUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodRoblox)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
 		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
-	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	// Roblox is a confidential client (client_secret set); PKCE is optional and
+	// no code_challenge is sent at login, so no code_verifier is replayed here.
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid roblox exchange code: %s", err.Error())
