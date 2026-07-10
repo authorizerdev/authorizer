@@ -7,8 +7,9 @@ package service
 // let each transport translate it:
 //   - gRPC: interceptors.ErrorMap maps Kind -> codes.Code (and grpc-gateway
 //     then maps the code -> HTTP status for the REST surface).
-//   - GraphQL: the error message is surfaced as-is (Kind is ignored), so
-//     existing GraphQL behaviour is byte-for-byte preserved.
+//   - GraphQL: http_handlers.kindToGraphQLCode maps Kind -> extensions.code
+//     on the GraphQL error, alongside the unchanged message text, so clients
+//     can switch on a stable code instead of matching message strings.
 //
 // Only client-facing (4xx-class) errors need to be wrapped with these
 // constructors. Anything returned bare (storage failures, token-creation

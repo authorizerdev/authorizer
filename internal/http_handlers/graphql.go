@@ -24,8 +24,50 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
+
+// kindToGraphQLCode maps a transport-neutral service.ErrorKind onto a stable
+// extensions.code string, mirroring the gRPC code names used by
+// grpcsrv/interceptors.ErrorMap so clients only need to learn one vocabulary
+// across transports. Only errors explicitly constructed via the service
+// package's typed constructors (InvalidArgument, TooManyRequests, ...) reach
+// this — every other error is left with no code, exactly preserving today's
+// GraphQL behaviour for the vast majority of unclassified/internal errors.
+func kindToGraphQLCode(kind service.ErrorKind) string {
+	switch kind {
+	case service.KindInvalidArgument:
+		return "INVALID_ARGUMENT"
+	case service.KindUnauthenticated:
+		return "UNAUTHENTICATED"
+	case service.KindPermissionDenied:
+		return "PERMISSION_DENIED"
+	case service.KindNotFound:
+		return "NOT_FOUND"
+	case service.KindFailedPrecondition:
+		return "FAILED_PRECONDITION"
+	case service.KindTooManyRequests:
+		return "TOO_MANY_REQUESTS"
+	default:
+		return "INTERNAL"
+	}
+}
+
+// graphQLErrorPresenter wraps gqlgen's default presenter to attach
+// extensions.code for typed service errors, without altering message text or
+// touching errors that aren't service.Error (preserving existing behaviour).
+func graphQLErrorPresenter(ctx context.Context, e error) *gqlerror.Error {
+	gqlErr := gql.DefaultErrorPresenter(ctx, e)
+	var svcErr *service.Error
+	if errors.As(e, &svcErr) {
+		if gqlErr.Extensions == nil {
+			gqlErr.Extensions = map[string]interface{}{}
+		}
+		gqlErr.Extensions["code"] = kindToGraphQLCode(svcErr.Kind)
+	}
+	return gqlErr
+}
 
 // queryLimits is a gqlgen handler extension that enforces depth, alias, and
 // complexity limits on parsed operations. It runs after parsing but before
@@ -243,6 +285,8 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	srv := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
 		GraphQLProvider: gqlProvider,
 	}}))
+
+	srv.SetErrorPresenter(graphQLErrorPresenter)
 
 	srv.AddTransport(transport.Options{})
 	// transport.GET is intentionally omitted: GraphQL queries (and especially
