@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
@@ -16,6 +17,46 @@ import (
 // defaultSubjectClaim is the JWT claim used to identify the workload when the
 // admin does not specify one (spec §6 AddTrustedIssuerRequest comment).
 const defaultSubjectClaim = "sub"
+
+// normalizeAPIServerURL trims the admin-supplied kubernetes_api_server_url and
+// returns nil for an empty value so the column persists as NULL.
+func normalizeAPIServerURL(raw *string) *string {
+	if raw == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*raw)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+// validateTokenReviewConfig enforces the write-time invariants for the
+// Kubernetes TokenReview config. The URL is fetched server-side at runtime, so
+// even though this mutation is super-admin only we validate it is a well-formed
+// https URL and require it whenever online TokenReview is enabled (fail-closed:
+// enabling review without a reachable apiserver would silently reject every
+// token at runtime). apiServerURL is expected to be already normalized.
+func validateTokenReviewConfig(enableTokenReview bool, apiServerURL *string) error {
+	raw := refs.StringValue(apiServerURL)
+	if raw == "" {
+		if enableTokenReview {
+			return fmt.Errorf("kubernetes_api_server_url is required when enable_token_review is true")
+		}
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("kubernetes_api_server_url is not a valid URL: %w", err)
+	}
+	if !strings.EqualFold(u.Scheme, "https") {
+		return fmt.Errorf("kubernetes_api_server_url must be an https URL")
+	}
+	if u.Host == "" {
+		return fmt.Errorf("kubernetes_api_server_url must include a host")
+	}
+	return nil
+}
 
 // AddTrustedIssuer registers an external JWT issuer for a service account.
 // subject_claim defaults to "sub" when omitted. Requires super-admin auth.
@@ -75,6 +116,13 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		allowedSubjects = strings.TrimSpace(*params.AllowedSubjects)
 	}
 
+	enableTokenReview := refs.BoolValue(params.EnableTokenReview)
+	apiServerURL := normalizeAPIServerURL(params.KubernetesAPIServerURL)
+	if err := validateTokenReviewConfig(enableTokenReview, apiServerURL); err != nil {
+		log.Debug().Err(err).Msg("invalid token review config")
+		return nil, nil, err
+	}
+
 	issuer, err := p.StorageProvider.AddTrustedIssuer(ctx, &schemas.TrustedIssuer{
 		ClientID:        params.ServiceAccountID,
 		Name:            strings.TrimSpace(params.Name),
@@ -93,6 +141,8 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		AuthMethod:               "jwt_assertion",
 		IsActive:                 true,
 		SpiffeRefreshHintSeconds: refs.Int64Value(params.SpiffeRefreshHintSeconds),
+		EnableTokenReview:        enableTokenReview,
+		KubernetesAPIServerURL:   apiServerURL,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed AddTrustedIssuer")
@@ -148,6 +198,18 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata
 	}
 	if params.SpiffeRefreshHintSeconds != nil {
 		issuer.SpiffeRefreshHintSeconds = *params.SpiffeRefreshHintSeconds
+	}
+	if params.EnableTokenReview != nil {
+		issuer.EnableTokenReview = *params.EnableTokenReview
+	}
+	if params.KubernetesAPIServerURL != nil {
+		issuer.KubernetesAPIServerURL = normalizeAPIServerURL(params.KubernetesAPIServerURL)
+	}
+	// Validate the merged result so enabling review without a (previously stored)
+	// apiserver URL, or persisting a malformed URL, fails at write time.
+	if err := validateTokenReviewConfig(issuer.EnableTokenReview, issuer.KubernetesAPIServerURL); err != nil {
+		log.Debug().Err(err).Msg("invalid token review config")
+		return nil, nil, err
 	}
 
 	updated, err := p.StorageProvider.UpdateTrustedIssuer(ctx, issuer)

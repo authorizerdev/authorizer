@@ -342,6 +342,13 @@ type TrustedIssuer {
   issuer_type: String!
   is_active: Boolean!
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review activates online Kubernetes TokenReview validation
+  # (kubernetes_sa issuers only): after offline JWT verification Authorizer calls
+  # the cluster API server to confirm the bound Pod/ServiceAccount still exists.
+  enable_token_review: Boolean!
+  # kubernetes_api_server_url is the cluster API server called for TokenReview.
+  # Required when enable_token_review is true; must be an https URL.
+  kubernetes_api_server_url: String
   created_at: Int64
   updated_at: Int64
 }
@@ -849,6 +856,16 @@ input AddTrustedIssuerRequest {
   # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
   issuer_type: String!
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review turns on online Kubernetes TokenReview validation.
+  # kubernetes_api_server_url is REQUIRED (and must be https) when this is true.
+  #
+  # TRUST MODEL: kubernetes_api_server_url is fetched server-side by Authorizer.
+  # This mutation is super-admin only and the URL is validated (https, well-formed)
+  # at write time; the runtime TokenReview call routes it through the SSRF-hardened
+  # HTTP client. An admin-supplied server-side-fetched URL is an accepted risk
+  # gated on super-admin trust.
+  enable_token_review: Boolean
+  kubernetes_api_server_url: String
 }
 
 input UpdateTrustedIssuerRequest {
@@ -860,6 +877,11 @@ input UpdateTrustedIssuerRequest {
   allowed_subjects: String
   is_active: Boolean
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review / kubernetes_api_server_url: see AddTrustedIssuerRequest.
+  # When the effective enable_token_review is true, kubernetes_api_server_url must
+  # be a non-empty https URL.
+  enable_token_review: Boolean
+  kubernetes_api_server_url: String
 }
 
 input TrustedIssuerRequest {

@@ -541,6 +541,8 @@ func (h *AdminHandler) AddTrustedIssuer(ctx context.Context, req *authorizerv1.A
 		AllowedSubjects:          req.AllowedSubjects,
 		IssuerType:               req.GetIssuerType(),
 		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
+		EnableTokenReview:        req.EnableTokenReview,
+		KubernetesAPIServerURL:   req.KubernetesApiServerUrl,
 	})
 	if err != nil {
 		return nil, err
@@ -559,6 +561,8 @@ func (h *AdminHandler) UpdateTrustedIssuer(ctx context.Context, req *authorizerv
 		AllowedSubjects:          req.AllowedSubjects,
 		IsActive:                 req.IsActive,
 		SpiffeRefreshHintSeconds: req.SpiffeRefreshHintSeconds,
+		EnableTokenReview:        req.EnableTokenReview,
+		KubernetesAPIServerURL:   req.KubernetesApiServerUrl,
 	})
 	if err != nil {
 		return nil, err

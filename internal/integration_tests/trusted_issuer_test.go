@@ -123,6 +123,87 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("add persists and round-trips token review config", func(t *testing.T) {
+		saID := createSA(t)
+		req := newIssuerReq(saID)
+		req.EnableTokenReview = refs.NewBoolRef(true)
+		req.KubernetesAPIServerURL = refs.NewStringRef("https://kubernetes.example.com:443")
+
+		res, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.True(t, res.EnableTokenReview)
+		require.NotNil(t, res.KubernetesAPIServerURL)
+		assert.Equal(t, "https://kubernetes.example.com:443", *res.KubernetesAPIServerURL)
+
+		fetched, err := ts.GraphQLProvider.TrustedIssuer(ctx, &model.TrustedIssuerRequest{ID: res.ID})
+		require.NoError(t, err)
+		assert.True(t, fetched.EnableTokenReview)
+		require.NotNil(t, fetched.KubernetesAPIServerURL)
+		assert.Equal(t, "https://kubernetes.example.com:443", *fetched.KubernetesAPIServerURL)
+	})
+
+	t.Run("add rejects enable_token_review without an apiserver url", func(t *testing.T) {
+		saID := createSA(t)
+		req := newIssuerReq(saID)
+		req.EnableTokenReview = refs.NewBoolRef(true)
+
+		res, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, res)
+		assert.Contains(t, err.Error(), "kubernetes_api_server_url is required")
+	})
+
+	t.Run("add rejects a non-https apiserver url", func(t *testing.T) {
+		saID := createSA(t)
+		req := newIssuerReq(saID)
+		req.EnableTokenReview = refs.NewBoolRef(true)
+		req.KubernetesAPIServerURL = refs.NewStringRef("http://kubernetes.example.com")
+
+		res, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, res)
+		assert.Contains(t, err.Error(), "must be an https URL")
+	})
+
+	t.Run("add rejects a malformed apiserver url", func(t *testing.T) {
+		saID := createSA(t)
+		req := newIssuerReq(saID)
+		// Non-empty but has no host: fails the well-formed check even with review off.
+		req.KubernetesAPIServerURL = refs.NewStringRef("https://")
+
+		res, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, res)
+		assert.Contains(t, err.Error(), "must include a host")
+	})
+
+	t.Run("update round-trips token review config and rejects enabling without url", func(t *testing.T) {
+		saID := createSA(t)
+		created, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, newIssuerReq(saID))
+		require.NoError(t, err)
+		assert.False(t, created.EnableTokenReview)
+
+		// Enabling review without ever storing a url must fail (fail-closed).
+		_, err = ts.GraphQLProvider.UpdateTrustedIssuer(ctx, &model.UpdateTrustedIssuerRequest{
+			ID:                created.ID,
+			EnableTokenReview: refs.NewBoolRef(true),
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "kubernetes_api_server_url is required")
+
+		// Enabling review together with a valid url succeeds and round-trips.
+		updated, err := ts.GraphQLProvider.UpdateTrustedIssuer(ctx, &model.UpdateTrustedIssuerRequest{
+			ID:                     created.ID,
+			EnableTokenReview:      refs.NewBoolRef(true),
+			KubernetesAPIServerURL: refs.NewStringRef("https://k8s.internal.example.com"),
+		})
+		require.NoError(t, err)
+		assert.True(t, updated.EnableTokenReview)
+		require.NotNil(t, updated.KubernetesAPIServerURL)
+		assert.Equal(t, "https://k8s.internal.example.com", *updated.KubernetesAPIServerURL)
+	})
+
 	t.Run("list filters by service_account_id", func(t *testing.T) {
 		saID := createSA(t)
 		_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, newIssuerReq(saID))
