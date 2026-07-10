@@ -27,6 +27,8 @@ func kindToCode(kind service.ErrorKind) codes.Code {
 		return codes.NotFound
 	case service.KindFailedPrecondition:
 		return codes.FailedPrecondition
+	case service.KindTooManyRequests:
+		return codes.ResourceExhausted
 	default:
 		return codes.Internal
 	}

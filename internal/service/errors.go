@@ -38,6 +38,10 @@ const (
 	// permitted in the server's current state (e.g. signup disabled).
 	// Maps to gRPC FailedPrecondition / HTTP 400.
 	KindFailedPrecondition
+	// KindTooManyRequests is a request rejected because the caller exceeded
+	// a rate/attempt limit (e.g. MFA verification locked after repeated
+	// failures). Maps to gRPC ResourceExhausted / HTTP 429.
+	KindTooManyRequests
 )
 
 // Error is a typed service error carrying a transport-neutral Kind alongside a
@@ -88,4 +92,9 @@ func NotFound(msg string) error {
 // FailedPrecondition reports a well-formed request disallowed by current state.
 func FailedPrecondition(msg string) error {
 	return &Error{Kind: KindFailedPrecondition, msg: msg}
+}
+
+// TooManyRequests reports a request rejected for exceeding a rate/attempt limit.
+func TooManyRequests(msg string) error {
+	return &Error{Kind: KindTooManyRequests, msg: msg}
 }

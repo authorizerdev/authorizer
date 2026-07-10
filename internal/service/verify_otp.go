@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
+)
+
+const (
+	// totpMaxFailedAttempts is the number of failed TOTP/recovery-code
+	// verifications tolerated for a single user before verification is
+	// locked. The global per-IP rate limiter does not stop an attacker
+	// spreading brute-force guesses for one account across many IPs, so we
+	// additionally cap failures per user.
+	totpMaxFailedAttempts = 5
+	// totpLockoutWindowSeconds is both the sliding window over which
+	// failures accumulate and the duration verification stays locked once
+	// the threshold is hit (15 minutes).
+	totpLockoutWindowSeconds = 15 * 60
+	// totpLockoutCachePrefix namespaces the per-user failed-attempt counter
+	// in the memory store. This is transient state, deliberately kept out
+	// of the DB schema so no storage provider needs a new column.
+	totpLockoutCachePrefix = "totp_failed_attempts:"
 )
 
 // VerifyOTP verifies a one-time passcode (email/SMS OTP, TOTP, or recovery
@@ -72,24 +90,47 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.IsTotp) {
-		status, err := p.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
+		// Per-user lockout: reject before validating once too many recent
+		// attempts have failed, so a correct code offered during the lock
+		// window is still refused. GetCache returns ("", nil) when absent.
+		lockKey := totpLockoutCachePrefix + user.ID
+		attempts := 0
+		if v, cErr := p.MemoryStoreProvider.GetCache(lockKey); cErr == nil && v != "" {
+			attempts, _ = strconv.Atoi(v)
+		}
+		if attempts >= totpMaxFailedAttempts {
+			log.Debug().Int("attempts", attempts).Msg("TOTP verification locked: too many failed attempts")
+			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
+		}
+
+		verified, err := p.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to validate passcode")
 			return nil, nil, errors.New("error while validating passcode")
 		}
-		if !status {
-			log.Debug().Msg("Failed to verify otp request: Incorrect value")
-			log.Info().Msg("Checking if otp is recovery code")
-			// Check if otp is recovery code
-			isValidRecoveryCode, err := p.AuthenticatorProvider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
+		if !verified {
+			log.Info().Msg("TOTP passcode invalid, checking if it is a recovery code")
+			// ValidateRecoveryCode returns (false, nil) for an invalid or
+			// already-used code; a non-nil error is a storage fault and must
+			// not be counted as a user failure (avoids self-lockout on outage).
+			verified, err = p.AuthenticatorProvider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to validate recovery code")
 				return nil, nil, errors.New("error while validating recovery code")
 			}
-			if !isValidRecoveryCode {
-				log.Debug().Msg("Failed to verify otp request: Incorrect value")
-				return nil, nil, InvalidArgument(`invalid otp`)
-			}
+		}
+		if !verified {
+			// Record the failed attempt. SetCache resets the TTL each time,
+			// so the window slides with activity; once the threshold is hit
+			// the early return above stops further increments, fixing the
+			// lock at one full window.
+			_ = p.MemoryStoreProvider.SetCache(lockKey, strconv.Itoa(attempts+1), totpLockoutWindowSeconds)
+			log.Debug().Msg("Failed to verify otp request: Incorrect value")
+			return nil, nil, InvalidArgument(`invalid otp`)
+		}
+		// Successful verification clears the failed-attempt counter for this user.
+		if cErr := p.MemoryStoreProvider.DeleteCacheByPrefix(lockKey); cErr != nil {
+			log.Debug().Err(cErr).Msg("Failed to reset totp failed-attempt counter")
 		}
 	} else {
 		var otp *schemas.OTP

@@ -107,6 +107,26 @@ func TestIsEncryptedTOTPSecret(t *testing.T) {
 	assert.True(t, IsEncryptedTOTPSecret("enc:v1:foo"))
 }
 
+func TestHashRecoveryCode(t *testing.T) {
+	const code = "3f2504e0-4f89-41d3-9a0c-0305e82c3301" // a UUID-shaped recovery code
+
+	h := HashRecoveryCode(code)
+	// Deterministic, hex-encoded, 64 chars, and not equal to the plaintext.
+	assert.Len(t, h, 64)
+	assert.Equal(t, h, HashRecoveryCode(code))
+	assert.NotEqual(t, code, h)
+	assert.NotEqual(t, HashRecoveryCode("other"), h)
+}
+
+func TestIsHashedRecoveryCode(t *testing.T) {
+	// A real hash is recognised; a legacy plaintext UUID is not.
+	assert.True(t, IsHashedRecoveryCode(HashRecoveryCode("x")))
+	assert.False(t, IsHashedRecoveryCode("3f2504e0-4f89-41d3-9a0c-0305e82c3301"))
+	assert.False(t, IsHashedRecoveryCode(""))
+	// Correct length (64) but not hex — must be rejected.
+	assert.False(t, IsHashedRecoveryCode(strings.Repeat("z", 64)))
+}
+
 // flipChar mutates one character in the middle of s so the result still has
 // the same length but differs from the input — used to forge a tampered
 // ciphertext for the GCM-authentication test.
