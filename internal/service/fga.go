@@ -10,6 +10,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -40,36 +41,29 @@ const maxContextualTuplesPerCheck = 100
 // client-supplied explicitUser.
 //
 // Rules (fail-closed):
-//   - explicitUser empty → the caller's own token subject ("user:<sub>" from
-//     the JWT / session cookie). This is the default and the common case.
+//   - explicitUser empty → the caller's own subject (see callerOwnSubject):
+//     "user:<sub>" for a human/session caller, or "service_account:<client_id>"
+//     for an autonomous client_credentials (machine) caller. This is the
+//     default and the common case.
 //   - explicitUser set → normalized (a bare id becomes "user:<id>") and
 //     validated, then honored only when the caller is a super-admin OR the
-//     subject equals the caller's own token subject. Anything else is
-//     REJECTED — never silently self-pinned, never silently ignored —
-//     because honoring it would let an end user probe another subject's
-//     access (IDOR / info disclosure).
-//
-// TODO(phase-2 M2M): machine-to-machine / client-credentials callers should
-// also be allowed to pass an explicit user once that caller type exists;
-// extend the trust check here (the rule must stay centralized in this one
-// helper).
+//     subject equals the caller's own subject. Anything else is REJECTED —
+//     never silently self-pinned, never silently ignored — because honoring it
+//     would let a caller probe another subject's access (IDOR / info
+//     disclosure). A machine caller may therefore only self-pin (its
+//     "service_account:<client_id>") or be denied; it is never a super-admin.
 func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, explicitUser string) (string, error) {
 	explicitUser = strings.TrimSpace(explicitUser)
 
-	// The caller's own subject, when they carry a user token/session. Resolved
-	// lazily-ish here because both branches may need it.
-	ownSubject := ""
-	if principal, ok := authctx.FromContext(ctx); ok && strings.TrimSpace(principal.UserID) != "" {
-		ownSubject = "user:" + principal.UserID
-	} else {
-		gc := &gin.Context{Request: meta.Request}
-		if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && strings.TrimSpace(tokenData.UserID) != "" {
-			ownSubject = "user:" + tokenData.UserID
-		}
+	// The caller's own subject, when they carry a user/session/machine token.
+	// Fail-closed: a machine token whose client cannot be resolved errors here.
+	ownSubject, err := p.callerOwnSubject(ctx, meta)
+	if err != nil {
+		return "", err
 	}
 
 	if explicitUser == "" {
-		// Default: pin to the caller's own token subject.
+		// Default: pin to the caller's own subject.
 		if ownSubject == "" {
 			return "", Unauthenticated("unauthorized")
 		}
@@ -98,6 +92,94 @@ func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, 
 		return subject, nil
 	}
 	return "", PermissionDenied("not authorized to query authorization for another subject")
+}
+
+// callerOwnSubject returns the caller's canonical OpenFGA subject derived from
+// their authenticated token/session, or "" when the request carries no user or
+// machine credential (e.g. a super admin authenticated only by the admin
+// cookie/secret). It is the single place that classifies a caller as a machine
+// (client_credentials) subject vs a human user subject.
+//
+// MACHINE vs USER vs DELEGATED — the classification keys ONLY on the token's
+// login_method claim:
+//   - login_method == constants.AuthRecipeMethodServiceAccount is stamped
+//     EXCLUSIVELY on client_credentials machine tokens
+//     (token.createMachineAccessToken). Those tokens have no resource-owner user
+//     (sub is the service account's surrogate id) and never carry an RFC 8693
+//     `act` delegation claim. Such a caller resolves to
+//     "service_account:<client_id>".
+//   - every other login_method (human recipes, sso) resolves to "user:<sub>".
+//
+// This makes the delegation guard structural, not a runtime check: an RFC 8693
+// delegated token (token.CreateDelegatedAccessToken) is stateless, carries a
+// user `sub` plus an `act` chain, and carries NO login_method claim — so it can
+// never be classified as a machine subject and always resolves to "user:<sub>".
+// The security-critical rule (delegated and user tokens stay user subjects; only
+// autonomous machine tokens become service_account subjects) holds by
+// construction.
+func (p *provider) callerOwnSubject(ctx context.Context, meta RequestMetadata) (string, error) {
+	callerID, loginMethod := "", ""
+	if principal, ok := authctx.FromContext(ctx); ok && strings.TrimSpace(principal.UserID) != "" {
+		callerID = principal.UserID
+		loginMethod = principal.LoginMethod
+	} else {
+		gc := &gin.Context{Request: meta.Request}
+		if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && strings.TrimSpace(tokenData.UserID) != "" {
+			callerID = tokenData.UserID
+			loginMethod = tokenData.LoginMethod
+		}
+	}
+	if callerID == "" {
+		return "", nil
+	}
+	if loginMethod == constants.AuthRecipeMethodServiceAccount {
+		return p.machineFgaSubject(ctx, callerID)
+	}
+	return "user:" + callerID, nil
+}
+
+// machineFgaSubject maps an authenticated client_credentials caller — whose
+// token `sub` is the service account's SURROGATE id (schemas.Client.ID) — to its
+// OpenFGA subject "service_account:<client_id>". It resolves the PUBLIC client_id
+// so that admin-written tuples and the client registry share one key (locked
+// decision: reuse client_id, never the internal surrogate id).
+//
+// Fail-closed: any lookup failure — or a client whose kind is not
+// service_account — denies rather than falling back to any other subject. A
+// machine caller is therefore NEVER silently promoted to a user subject.
+//
+// If the deployment's authorization model does not declare the service_account
+// type, the downstream engine Check/ListObjects on this subject fails closed
+// (error or no-match deny) — the caller can never inherit a user's access.
+func (p *provider) machineFgaSubject(ctx context.Context, serviceAccountID string) (string, error) {
+	client, err := p.StorageProvider.GetClientByID(ctx, serviceAccountID)
+	if err != nil || client == nil {
+		return "", PermissionDenied("unauthorized")
+	}
+	// Defense in depth: only service_account clients are FGA subjects; an
+	// interactive client must never become one. Machine tokens are only ever
+	// issued to service_account clients, so this is a belt-and-suspenders guard.
+	if client.Kind != constants.ClientKindServiceAccount {
+		return "", PermissionDenied("unauthorized")
+	}
+	// FGA is an authorization decision surface: deny deactivated service
+	// accounts here even though their tokens stay valid until exp elsewhere
+	// (issuance already blocks new tokens; this gives revocation teeth where
+	// it matters most).
+	if !client.IsActive {
+		return "", PermissionDenied("unauthorized")
+	}
+	clientID := strings.TrimSpace(client.ClientID)
+	if clientID == "" {
+		// Legacy rows may carry an empty client_id; storage defaults it to ID.
+		clientID = client.ID
+	}
+	// Defense in depth: client_id is a server-generated UUID today, but the
+	// subject string must never smuggle tuple syntax if that ever changes.
+	if strings.ContainsAny(clientID, ":#@ \t\n") {
+		return "", PermissionDenied("unauthorized")
+	}
+	return "service_account:" + clientID, nil
 }
 
 // normalizeFgaSubject turns a bare id into the canonical "user:<id>" form;
