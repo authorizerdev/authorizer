@@ -58,6 +58,18 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt the SAML ACS endpoint (POST /oauth/saml/:org_slug/acs). The
+		// SAML POST binding delivers the assertion via an auto-submitting form
+		// from the IdP's origin — a legitimate cross-origin POST that Origin
+		// allow-listing would always reject. The handler protects itself with
+		// XML signature validation, InResponseTo binding, and the assertion
+		// replay cache — same rationale as /oauth_callback/ above.
+		if strings.HasPrefix(c.Request.URL.Path, "/oauth/saml/") &&
+			strings.HasSuffix(c.Request.URL.Path, "/acs") {
+			c.Next()
+			return
+		}
+
 		// === Origin / Referer enforcement ===
 		// Browsers always send Origin on cross-origin POST. A missing
 		// Origin header on a state-changing request is suspicious and
