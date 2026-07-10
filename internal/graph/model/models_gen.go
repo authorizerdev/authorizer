@@ -26,6 +26,8 @@ type AddTrustedIssuerRequest struct {
 	AllowedSubjects          *string `json:"allowed_subjects,omitempty"`
 	IssuerType               string  `json:"issuer_type"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
+	EnableTokenReview        *bool   `json:"enable_token_review,omitempty"`
+	KubernetesAPIServerURL   *string `json:"kubernetes_api_server_url,omitempty"`
 }
 
 type AddWebhookRequest struct {
@@ -680,6 +682,8 @@ type TrustedIssuer struct {
 	IssuerType               string  `json:"issuer_type"`
 	IsActive                 bool    `json:"is_active"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
+	EnableTokenReview        bool    `json:"enable_token_review"`
+	KubernetesAPIServerURL   *string `json:"kubernetes_api_server_url,omitempty"`
 	CreatedAt                *int64  `json:"created_at,omitempty"`
 	UpdatedAt                *int64  `json:"updated_at,omitempty"`
 }
@@ -834,6 +838,8 @@ type UpdateTrustedIssuerRequest struct {
 	AllowedSubjects          *string `json:"allowed_subjects,omitempty"`
 	IsActive                 *bool   `json:"is_active,omitempty"`
 	SpiffeRefreshHintSeconds *int64  `json:"spiffe_refresh_hint_seconds,omitempty"`
+	EnableTokenReview        *bool   `json:"enable_token_review,omitempty"`
+	KubernetesAPIServerURL   *string `json:"kubernetes_api_server_url,omitempty"`
 }
 
 type UpdateUserRequest struct {

@@ -2313,6 +2313,13 @@
         "allowed_subjects": {
           "type": "string",
           "description": "allowed_subjects: comma-separated exact subject allow-list. Omitted = deny-all."
+        },
+        "enable_token_review": {
+          "type": "boolean",
+          "description": "enable_token_review turns on online Kubernetes TokenReview validation.\nkubernetes_api_server_url is required (https) when this is true."
+        },
+        "kubernetes_api_server_url": {
+          "type": "string"
         }
       },
       "description": "AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,\nsubject_claim, and spiffe_refresh_hint_seconds are optional; subject_claim\ndefaults to \"sub\" when unset."
@@ -3631,6 +3638,14 @@
         "allowed_subjects": {
           "type": "string",
           "description": "allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all."
+        },
+        "enable_token_review": {
+          "type": "boolean",
+          "description": "enable_token_review activates online Kubernetes TokenReview validation."
+        },
+        "kubernetes_api_server_url": {
+          "type": "string",
+          "description": "kubernetes_api_server_url is the API server called for TokenReview (https)."
         }
       },
       "description": "TrustedIssuer mirrors model.TrustedIssuer field-for-field. It references its\nparent via service_account_id (not app_id). Optional pointer fields collapse\nto zero values on the wire."
@@ -3804,6 +3819,13 @@
         "allowed_subjects": {
           "type": "string",
           "description": "allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all."
+        },
+        "enable_token_review": {
+          "type": "boolean",
+          "description": "enable_token_review / kubernetes_api_server_url: when the effective\nenable_token_review is true, kubernetes_api_server_url must be a non-empty\nhttps URL."
+        },
+        "kubernetes_api_server_url": {
+          "type": "string"
         }
       },
       "description": "UpdateTrustedIssuerRequest mirrors model.UpdateTrustedIssuerRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value."

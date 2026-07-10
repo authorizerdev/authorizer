@@ -957,6 +957,10 @@ message TrustedIssuer {
   int64 updated_at = 13;
   // allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
   string allowed_subjects = 14;
+  // enable_token_review activates online Kubernetes TokenReview validation.
+  bool enable_token_review = 15;
+  // kubernetes_api_server_url is the API server called for TokenReview (https).
+  string kubernetes_api_server_url = 16;
 }
 
 // AddTrustedIssuerRequest mirrors model.AddTrustedIssuerRequest. jwks_url,
@@ -974,6 +978,10 @@ message AddTrustedIssuerRequest {
   optional int64 spiffe_refresh_hint_seconds = 9;
   // allowed_subjects: comma-separated exact subject allow-list. Omitted = deny-all.
   optional string allowed_subjects = 10;
+  // enable_token_review turns on online Kubernetes TokenReview validation.
+  // kubernetes_api_server_url is required (https) when this is true.
+  optional bool enable_token_review = 11;
+  optional string kubernetes_api_server_url = 12;
 }
 message AddTrustedIssuerResponse {
   TrustedIssuer trusted_issuer = 1;
@@ -991,6 +999,11 @@ message UpdateTrustedIssuerRequest {
   optional int64 spiffe_refresh_hint_seconds = 6;
   // allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
   optional string allowed_subjects = 7;
+  // enable_token_review / kubernetes_api_server_url: when the effective
+  // enable_token_review is true, kubernetes_api_server_url must be a non-empty
+  // https URL.
+  optional bool enable_token_review = 8;
+  optional string kubernetes_api_server_url = 9;
 }
 message UpdateTrustedIssuerResponse {
   TrustedIssuer trusted_issuer = 1;

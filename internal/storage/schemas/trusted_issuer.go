@@ -247,8 +247,9 @@ func (t *TrustedIssuer) ParsedAllowedSubjects() []string {
 }
 
 // AsAPITrustedIssuer converts the storage record into the GraphQL model. The
-// Phase 4/5/6 fields (EnableTokenReview, KubernetesAPIServerURL, SPIFFE/mTLS
-// proxy) are intentionally not surfaced in the Phase 1 admin API.
+// Phase 4 Kubernetes TokenReview fields (EnableTokenReview, KubernetesAPIServerURL)
+// are surfaced in the admin API; the remaining Phase 5/6 fields (SPIFFE bundle
+// refresh, mTLS proxy) are intentionally not surfaced.
 func (t *TrustedIssuer) AsAPITrustedIssuer() *model.TrustedIssuer {
 	id := t.ID
 	if strings.Contains(id, Collections.TrustedIssuer+"/") {
@@ -267,6 +268,8 @@ func (t *TrustedIssuer) AsAPITrustedIssuer() *model.TrustedIssuer {
 		IssuerType:               t.IssuerType,
 		IsActive:                 t.IsActive,
 		SpiffeRefreshHintSeconds: refs.NewInt64Ref(t.SpiffeRefreshHintSeconds),
+		EnableTokenReview:        t.EnableTokenReview,
+		KubernetesAPIServerURL:   t.KubernetesAPIServerURL,
 		CreatedAt:                refs.NewInt64Ref(t.CreatedAt),
 		UpdatedAt:                refs.NewInt64Ref(t.UpdatedAt),
 	}

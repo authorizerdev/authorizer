@@ -468,6 +468,7 @@ type ComplexityRoot struct {
 	TrustedIssuer struct {
 		AllowedSubjects          func(childComplexity int) int
 		CreatedAt                func(childComplexity int) int
+		EnableTokenReview        func(childComplexity int) int
 		ExpectedAud              func(childComplexity int) int
 		ID                       func(childComplexity int) int
 		IsActive                 func(childComplexity int) int
@@ -475,6 +476,7 @@ type ComplexityRoot struct {
 		IssuerURL                func(childComplexity int) int
 		JwksURL                  func(childComplexity int) int
 		KeySourceType            func(childComplexity int) int
+		KubernetesAPIServerURL   func(childComplexity int) int
 		Name                     func(childComplexity int) int
 		ServiceAccountID         func(childComplexity int) int
 		SpiffeRefreshHintSeconds func(childComplexity int) int
@@ -3252,6 +3254,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.TrustedIssuer.CreatedAt(childComplexity), true
 
+	case "TrustedIssuer.enable_token_review":
+		if e.complexity.TrustedIssuer.EnableTokenReview == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.EnableTokenReview(childComplexity), true
+
 	case "TrustedIssuer.expected_aud":
 		if e.complexity.TrustedIssuer.ExpectedAud == nil {
 			break
@@ -3300,6 +3309,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TrustedIssuer.KeySourceType(childComplexity), true
+
+	case "TrustedIssuer.kubernetes_api_server_url":
+		if e.complexity.TrustedIssuer.KubernetesAPIServerURL == nil {
+			break
+		}
+
+		return e.complexity.TrustedIssuer.KubernetesAPIServerURL(childComplexity), true
 
 	case "TrustedIssuer.name":
 		if e.complexity.TrustedIssuer.Name == nil {
@@ -4260,6 +4276,13 @@ type TrustedIssuer {
   issuer_type: String!
   is_active: Boolean!
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review activates online Kubernetes TokenReview validation
+  # (kubernetes_sa issuers only): after offline JWT verification Authorizer calls
+  # the cluster API server to confirm the bound Pod/ServiceAccount still exists.
+  enable_token_review: Boolean!
+  # kubernetes_api_server_url is the cluster API server called for TokenReview.
+  # Required when enable_token_review is true; must be an https URL.
+  kubernetes_api_server_url: String
   created_at: Int64
   updated_at: Int64
 }
@@ -4767,6 +4790,16 @@ input AddTrustedIssuerRequest {
   # issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
   issuer_type: String!
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review turns on online Kubernetes TokenReview validation.
+  # kubernetes_api_server_url is REQUIRED (and must be https) when this is true.
+  #
+  # TRUST MODEL: kubernetes_api_server_url is fetched server-side by Authorizer.
+  # This mutation is super-admin only and the URL is validated (https, well-formed)
+  # at write time; the runtime TokenReview call routes it through the SSRF-hardened
+  # HTTP client. An admin-supplied server-side-fetched URL is an accepted risk
+  # gated on super-admin trust.
+  enable_token_review: Boolean
+  kubernetes_api_server_url: String
 }
 
 input UpdateTrustedIssuerRequest {
@@ -4778,6 +4811,11 @@ input UpdateTrustedIssuerRequest {
   allowed_subjects: String
   is_active: Boolean
   spiffe_refresh_hint_seconds: Int64
+  # enable_token_review / kubernetes_api_server_url: see AddTrustedIssuerRequest.
+  # When the effective enable_token_review is true, kubernetes_api_server_url must
+  # be a non-empty https URL.
+  enable_token_review: Boolean
+  kubernetes_api_server_url: String
 }
 
 input TrustedIssuerRequest {
@@ -16834,6 +16872,10 @@ func (ec *executionContext) fieldContext_Mutation__add_trusted_issuer(ctx contex
 				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
 			case "spiffe_refresh_hint_seconds":
 				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "enable_token_review":
+				return ec.fieldContext_TrustedIssuer_enable_token_review(ctx, field)
+			case "kubernetes_api_server_url":
+				return ec.fieldContext_TrustedIssuer_kubernetes_api_server_url(ctx, field)
 			case "created_at":
 				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
 			case "updated_at":
@@ -16919,6 +16961,10 @@ func (ec *executionContext) fieldContext_Mutation__update_trusted_issuer(ctx con
 				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
 			case "spiffe_refresh_hint_seconds":
 				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "enable_token_review":
+				return ec.fieldContext_TrustedIssuer_enable_token_review(ctx, field)
+			case "kubernetes_api_server_url":
+				return ec.fieldContext_TrustedIssuer_kubernetes_api_server_url(ctx, field)
 			case "created_at":
 				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
 			case "updated_at":
@@ -21750,6 +21796,10 @@ func (ec *executionContext) fieldContext_Query__trusted_issuer(ctx context.Conte
 				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
 			case "spiffe_refresh_hint_seconds":
 				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "enable_token_review":
+				return ec.fieldContext_TrustedIssuer_enable_token_review(ctx, field)
+			case "kubernetes_api_server_url":
+				return ec.fieldContext_TrustedIssuer_kubernetes_api_server_url(ctx, field)
 			case "created_at":
 				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
 			case "updated_at":
@@ -23712,6 +23762,91 @@ func (ec *executionContext) fieldContext_TrustedIssuer_spiffe_refresh_hint_secon
 	return fc, nil
 }
 
+func (ec *executionContext) _TrustedIssuer_enable_token_review(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_enable_token_review(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EnableTokenReview, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_enable_token_review(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrustedIssuer_kubernetes_api_server_url(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrustedIssuer_kubernetes_api_server_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.KubernetesAPIServerURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrustedIssuer_kubernetes_api_server_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrustedIssuer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TrustedIssuer_created_at(ctx context.Context, field graphql.CollectedField, obj *model.TrustedIssuer) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TrustedIssuer_created_at(ctx, field)
 	if err != nil {
@@ -23911,6 +24046,10 @@ func (ec *executionContext) fieldContext_TrustedIssuers_trusted_issuers(_ contex
 				return ec.fieldContext_TrustedIssuer_is_active(ctx, field)
 			case "spiffe_refresh_hint_seconds":
 				return ec.fieldContext_TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field)
+			case "enable_token_review":
+				return ec.fieldContext_TrustedIssuer_enable_token_review(ctx, field)
+			case "kubernetes_api_server_url":
+				return ec.fieldContext_TrustedIssuer_kubernetes_api_server_url(ctx, field)
 			case "created_at":
 				return ec.fieldContext_TrustedIssuer_created_at(ctx, field)
 			case "updated_at":
@@ -28500,7 +28639,7 @@ func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"service_account_id", "name", "issuer_url", "key_source_type", "jwks_url", "expected_aud", "subject_claim", "allowed_subjects", "issuer_type", "spiffe_refresh_hint_seconds"}
+	fieldsInOrder := [...]string{"service_account_id", "name", "issuer_url", "key_source_type", "jwks_url", "expected_aud", "subject_claim", "allowed_subjects", "issuer_type", "spiffe_refresh_hint_seconds", "enable_token_review", "kubernetes_api_server_url"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -28577,6 +28716,20 @@ func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Co
 				return it, err
 			}
 			it.SpiffeRefreshHintSeconds = data
+		case "enable_token_review":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enable_token_review"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EnableTokenReview = data
+		case "kubernetes_api_server_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kubernetes_api_server_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.KubernetesAPIServerURL = data
 		}
 	}
 
@@ -31654,7 +31807,7 @@ func (ec *executionContext) unmarshalInputUpdateTrustedIssuerRequest(ctx context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "name", "jwks_url", "expected_aud", "allowed_subjects", "is_active", "spiffe_refresh_hint_seconds"}
+	fieldsInOrder := [...]string{"id", "name", "jwks_url", "expected_aud", "allowed_subjects", "is_active", "spiffe_refresh_hint_seconds", "enable_token_review", "kubernetes_api_server_url"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -31710,6 +31863,20 @@ func (ec *executionContext) unmarshalInputUpdateTrustedIssuerRequest(ctx context
 				return it, err
 			}
 			it.SpiffeRefreshHintSeconds = data
+		case "enable_token_review":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enable_token_review"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EnableTokenReview = data
+		case "kubernetes_api_server_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kubernetes_api_server_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.KubernetesAPIServerURL = data
 		}
 	}
 
@@ -35346,6 +35513,13 @@ func (ec *executionContext) _TrustedIssuer(ctx context.Context, sel ast.Selectio
 			}
 		case "spiffe_refresh_hint_seconds":
 			out.Values[i] = ec._TrustedIssuer_spiffe_refresh_hint_seconds(ctx, field, obj)
+		case "enable_token_review":
+			out.Values[i] = ec._TrustedIssuer_enable_token_review(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "kubernetes_api_server_url":
+			out.Values[i] = ec._TrustedIssuer_kubernetes_api_server_url(ctx, field, obj)
 		case "created_at":
 			out.Values[i] = ec._TrustedIssuer_created_at(ctx, field, obj)
 		case "updated_at":

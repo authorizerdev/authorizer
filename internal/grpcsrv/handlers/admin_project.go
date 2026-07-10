@@ -448,6 +448,8 @@ func projectTrustedIssuer(t *model.TrustedIssuer) *authorizerv1.TrustedIssuer {
 		IssuerType:               t.IssuerType,
 		IsActive:                 t.IsActive,
 		SpiffeRefreshHintSeconds: refs.Int64Value(t.SpiffeRefreshHintSeconds),
+		EnableTokenReview:        t.EnableTokenReview,
+		KubernetesApiServerUrl:   refs.StringValue(t.KubernetesAPIServerURL),
 		CreatedAt:                refs.Int64Value(t.CreatedAt),
 		UpdatedAt:                refs.Int64Value(t.UpdatedAt),
 	}
