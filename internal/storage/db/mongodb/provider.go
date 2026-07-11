@@ -230,6 +230,20 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// WebauthnCredential collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.WebauthnCredential, options.CreateCollection())
+	webauthnCredentialCollection := mongodb.Collection(schemas.Collections.WebauthnCredential, options.Collection())
+	_, _ = webauthnCredentialCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"credential_id": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"user_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	// Organization collection and indexes
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.Organization, options.CreateCollection())
 	organizationCollection := mongodb.Collection(schemas.Collections.Organization, options.Collection())

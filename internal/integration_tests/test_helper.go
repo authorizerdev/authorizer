@@ -19,6 +19,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -48,6 +49,7 @@ type testSetup struct {
 	StorageProvider       storage.Provider
 	MemoryStoreProvider   memory_store.Provider
 	AuthenticatorProvider authenticators.Provider
+	WebAuthnProvider      webauthn.Provider
 	TokenProvider         token.Provider
 	// ServiceProvider is the transport-agnostic service layer, exposed so the
 	// gRPC/REST transport tests can mount the same fully-wired service the
@@ -215,6 +217,13 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	webAuthnProvider, err := webauthn.NewProvider(&webauthn.Dependencies{
+		Log:                 &logger,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	require.NoError(t, err)
+
 	smsProvider, err := sms.New(cfg, &sms.Dependencies{
 		Log: &logger,
 	})
@@ -253,6 +262,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		WebAuthnProvider:      webAuthnProvider,
 	})
 	require.NoError(t, err)
 
@@ -328,6 +338,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider:       storageProvider,
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
+		WebAuthnProvider:      webAuthnProvider,
 		TokenProvider:         tokenProvider,
 		ServiceProvider:       serviceProvider,
 	}

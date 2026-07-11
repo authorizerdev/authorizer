@@ -17,6 +17,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -482,6 +483,16 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("failed to create memory store provider")
 	}
 
+	// WebAuthn/passkey provider
+	webAuthnProvider, err := webauthn.NewProvider(&webauthn.Dependencies{
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create webauthn provider")
+	}
+
 	// Rate limit provider
 	rateLimitDeps := &rate_limit.Dependencies{
 		Log: &log,
@@ -561,6 +572,7 @@ func runRoot(c *cobra.Command, args []string) {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		WebAuthnProvider:      webAuthnProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

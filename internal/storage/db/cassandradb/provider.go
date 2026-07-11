@@ -452,6 +452,26 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// index (hot path for client_assertion validation) to become queryable.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.TrustedIssuer, "issuer_url", 30*time.Second)
 
+	// WebauthnCredential table and indexes
+	webauthnCredentialCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, credential_id text, public_key text, sign_count bigint, flags bigint, transports text, aaguid text, name text, created_at bigint, updated_at bigint, last_used_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.WebauthnCredential)
+	err = session.Query(webauthnCredentialCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	webauthnCredentialCredentialIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webauthn_credential_credential_id ON %s.%s (credential_id)", KeySpace, schemas.Collections.WebauthnCredential)
+	err = session.Query(webauthnCredentialCredentialIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	webauthnCredentialUserIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webauthn_credential_user_id ON %s.%s (user_id)", KeySpace, schemas.Collections.WebauthnCredential)
+	err = session.Query(webauthnCredentialUserIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the credential_id
+	// index (hot path for usernameless login) to become queryable.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.WebauthnCredential, "credential_id", 30*time.Second)
+
 	// Organization table and index
 	organizationCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, display_name text, enabled boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Organization)
 	if err = session.Query(organizationCollectionQuery).Exec(); err != nil {

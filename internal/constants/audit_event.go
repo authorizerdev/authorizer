@@ -70,6 +70,10 @@ const (
 	AuditEmailVerifiedEvent = "user.email_verified"
 	// AuditPhoneVerifiedEvent is logged when a user's phone number is verified.
 	AuditPhoneVerifiedEvent = "user.phone_verified"
+	// AuditWebauthnCredentialAddedEvent is logged when a user registers a passkey.
+	AuditWebauthnCredentialAddedEvent = "user.webauthn_credential_added"
+	// AuditWebauthnCredentialDeletedEvent is logged when a user deletes a passkey.
+	AuditWebauthnCredentialDeletedEvent = "user.webauthn_credential_deleted"
 	// AuditMFAEnabledEvent is logged when a user enables multi-factor authentication.
 	AuditMFAEnabledEvent = "user.mfa_enabled"
 	// AuditMFADisabledEvent is logged when a user disables multi-factor authentication.
