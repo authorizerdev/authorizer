@@ -400,5 +400,6 @@ func (h *AuthorizerHandler) Meta(ctx context.Context, _ *authorizerv1.MetaReques
 		IsMultiFactorAuthEnabled:           m.IsMultiFactorAuthEnabled,
 		IsMobileBasicAuthenticationEnabled: m.IsMobileBasicAuthenticationEnabled,
 		IsPhoneVerificationEnabled:         m.IsPhoneVerificationEnabled,
+		IsOrgDiscoveryEnabled:              m.IsOrgDiscoveryEnabled,
 	}, nil
 }

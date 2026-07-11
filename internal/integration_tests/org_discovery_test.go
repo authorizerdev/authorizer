@@ -94,6 +94,18 @@ func TestOrgHomeRealmDiscovery(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	t.Run("Meta reflects the flag on and off", func(t *testing.T) {
+		meta, err := ts.GraphQLProvider.Meta(ctx)
+		require.NoError(t, err)
+		require.True(t, meta.IsOrgDiscoveryEnabled, "flag on → Meta true")
+
+		ts.Config.EnableOrgDiscovery = false
+		meta, err = ts.GraphQLProvider.Meta(ctx)
+		require.NoError(t, err)
+		require.False(t, meta.IsOrgDiscoveryEnabled, "flag off → Meta false")
+		ts.Config.EnableOrgDiscovery = true
+	})
+
 	t.Run("verified SAML domain returns saml login_url", func(t *testing.T) {
 		org := createOrg("saml")
 		domain := addVerifiedDomain(org.ID, "saml")

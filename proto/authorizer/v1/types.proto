@@ -118,4 +118,5 @@ message Meta {
   bool is_multi_factor_auth_enabled = 18;
   bool is_mobile_basic_authentication_enabled = 19;
   bool is_phone_verification_enabled = 20;
+  bool is_org_discovery_enabled = 21;
 }

@@ -117,7 +117,14 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 		setSsoResolved(true);
 	};
 
-	if (view === VIEW_TYPES.LOGIN && !ssoResolved) {
+	// Email-first is opt-in per deployment: only when org discovery is enabled
+	// (server-injected flag mirroring Meta.is_org_discovery_enabled). Off →
+	// render today's password/social/magic-link UI directly, zero regression.
+	if (
+		urlProps.isOrgDiscoveryEnabled &&
+		view === VIEW_TYPES.LOGIN &&
+		!ssoResolved
+	) {
 		return (
 			<Fragment>
 				<h1 style={{ textAlign: 'center' }}>Login</h1>

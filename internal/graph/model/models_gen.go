@@ -460,6 +460,7 @@ type Meta struct {
 	IsMultiFactorAuthEnabled           bool   `json:"is_multi_factor_auth_enabled"`
 	IsMobileBasicAuthenticationEnabled bool   `json:"is_mobile_basic_authentication_enabled"`
 	IsPhoneVerificationEnabled         bool   `json:"is_phone_verification_enabled"`
+	IsOrgDiscoveryEnabled              bool   `json:"is_org_discovery_enabled"`
 }
 
 type MobileLoginRequest struct {
