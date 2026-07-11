@@ -72,6 +72,9 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/oauth/saml/:org_slug/login", s.Dependencies.HTTPProvider.SAMLLoginHandler())
 	router.POST("/oauth/saml/:org_slug/acs", s.Dependencies.HTTPProvider.SAMLACSHandler())
 	router.GET("/verify_email", s.Dependencies.HTTPProvider.VerifyEmailHandler())
+	// Public home-realm discovery: maps a login email's verified domain to the
+	// owning org's SSO login URL (routing hint only; unauthenticated).
+	router.GET("/api/v1/org-discovery", s.Dependencies.HTTPProvider.OrgDiscoveryHandler())
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", s.Dependencies.HTTPProvider.JWKsHandler())

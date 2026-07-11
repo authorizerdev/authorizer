@@ -89,6 +89,21 @@ func normalizeDomain(input string) (string, error) {
 	return ascii, nil
 }
 
+// NormalizeEmailDomain extracts the domain part of an email address and
+// normalizes it through the SAME canonical normalizeDomain used for Phase-2
+// domain verification writes, so a home-realm-discovery lookup resolves to the
+// exact value that was stored (review M3 — one normalizer, no split routing).
+// It splits on the LAST "@" (a valid address has exactly one, but this is
+// robust to quirky local-parts) and requires a non-empty local part.
+func NormalizeEmailDomain(email string) (string, error) {
+	email = strings.TrimSpace(email)
+	at := strings.LastIndex(email, "@")
+	if at <= 0 || at == len(email)-1 {
+		return "", errInvalidDomain
+	}
+	return normalizeDomain(email[at+1:])
+}
+
 // guardVerifiableDomain enforces the write-time policy: a tenant may not verify a
 // public suffix / bare TLD (co.uk, com) nor a shared consumer email provider
 // (gmail.com, …). The input MUST already be normalized (punycode).

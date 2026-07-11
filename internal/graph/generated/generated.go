@@ -270,6 +270,7 @@ type ComplexityRoot struct {
 		IsMicrosoftLoginEnabled            func(childComplexity int) int
 		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
 		IsMultiFactorAuthEnabled           func(childComplexity int) int
+		IsOrgDiscoveryEnabled              func(childComplexity int) int
 		IsPhoneVerificationEnabled         func(childComplexity int) int
 		IsRobloxLoginEnabled               func(childComplexity int) int
 		IsSignUpEnabled                    func(childComplexity int) int
@@ -1817,6 +1818,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Meta.IsMultiFactorAuthEnabled(childComplexity), true
+
+	case "Meta.is_org_discovery_enabled":
+		if e.complexity.Meta.IsOrgDiscoveryEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsOrgDiscoveryEnabled(childComplexity), true
 
 	case "Meta.is_phone_verification_enabled":
 		if e.complexity.Meta.IsPhoneVerificationEnabled == nil {
@@ -4139,6 +4147,7 @@ type Meta {
   is_multi_factor_auth_enabled: Boolean!
   is_mobile_basic_authentication_enabled: Boolean!
   is_phone_verification_enabled: Boolean!
+  is_org_discovery_enabled: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
@@ -15137,6 +15146,50 @@ func (ec *executionContext) fieldContext_Meta_is_phone_verification_enabled(_ co
 	return fc, nil
 }
 
+func (ec *executionContext) _Meta_is_org_discovery_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_org_discovery_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsOrgDiscoveryEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_org_discovery_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_signup(ctx, field)
 	if err != nil {
@@ -21735,6 +21788,8 @@ func (ec *executionContext) fieldContext_Query_meta(_ context.Context, field gra
 				return ec.fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx, field)
 			case "is_phone_verification_enabled":
 				return ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
+			case "is_org_discovery_enabled":
+				return ec.fieldContext_Meta_is_org_discovery_enabled(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 		},
@@ -34962,6 +35017,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_phone_verification_enabled":
 			out.Values[i] = ec._Meta_is_phone_verification_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_org_discovery_enabled":
+			out.Values[i] = ec._Meta_is_org_discovery_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

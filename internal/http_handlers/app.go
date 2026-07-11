@@ -72,6 +72,12 @@ func (h *httpProvider) AppHandler() gin.HandlerFunc {
 				"organizationName": orgName,
 				"organizationLogo": orgLogo,
 				"clientId":         h.Config.ClientID,
+				// Drives the /app email-first SSO step. Injected here (not read
+				// from the useAuthorizer meta query) because the pinned
+				// authorizer-js meta query has a fixed field set and cannot see a
+				// newly added Meta flag; the value mirrors Config.EnableOrgDiscovery
+				// exactly, same as Meta.is_org_discovery_enabled.
+				"isOrgDiscoveryEnabled": h.Config.EnableOrgDiscovery,
 			},
 		})
 	}

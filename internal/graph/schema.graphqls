@@ -33,6 +33,7 @@ type Meta {
   is_multi_factor_auth_enabled: Boolean!
   is_mobile_basic_authentication_enabled: Boolean!
   is_phone_verification_enabled: Boolean!
+  is_org_discovery_enabled: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta

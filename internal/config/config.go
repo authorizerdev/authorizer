@@ -19,6 +19,12 @@ type Config struct {
 
 	// EnableLoginPage is the flag to enable login page
 	EnableLoginPage bool
+	// EnableOrgDiscovery gates the public home-realm-discovery endpoint
+	// (GET /api/v1/org-discovery) AND the /app email-first SSO routing step.
+	// OPT-IN, off by default: most deployments are single-tenant with no
+	// enterprise SSO, so the login page must stay unchanged until a
+	// multi-tenant operator turns this on. Surfaced on Meta so the SPA knows.
+	EnableOrgDiscovery bool
 	// EnablePlayground is the flag to enable playground
 	EnablePlayground bool
 	// EnableGraphQLIntrospection is the flag to enable GraphQL introspection
