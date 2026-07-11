@@ -192,12 +192,19 @@ func TestResetPassword(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resetRes)
 
-		// Session revocation is fire-and-forget; wait for the store to clear.
-		// This is the discriminating assertion: without the fix the session
-		// is never removed and this times out.
-		require.Eventually(t, func() bool { return !hasUserSession() },
-			2*time.Second, 20*time.Millisecond,
-			"all user sessions must be revoked after password reset")
+		// Revocation is now a synchronous call rather than a fire-and-forget
+		// goroutine, so it must have already happened by the time
+		// ResetPassword returns - asserted immediately, no polling needed.
+		// NOTE: this assertion alone does not reliably distinguish the fix
+		// from the old fire-and-forget version - an in-memory single-map-
+		// delete goroutine typically completes before the surrounding code
+		// (LogEvent, metrics, building the return value) finishes anyway, so
+		// the same assertion can pass by luck against the old code too. The
+		// guarantee that matters here comes from the source (no goroutine =
+		// no race, full stop), not from this test's timing sensitivity -
+		// confirmed by reading internal/service/reset_password.go directly
+		// rather than relying on this check alone.
+		assert.False(t, hasUserSession(), "all user sessions must be revoked before password reset returns")
 
 		// End-to-end: the pre-existing refresh token is now rejected.
 		issuer := "http://" + ts.HttpServer.Listener.Addr().String()
