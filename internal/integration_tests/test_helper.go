@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,37 @@ type testSetup struct {
 	// gRPC/REST transport tests can mount the same fully-wired service the
 	// GraphQL path uses.
 	ServiceProvider service.Provider
+	// DNSResolver is the programmable stub wired into the service layer for
+	// domain-verification tests, so no real DNS is ever queried.
+	DNSResolver *mockDNSResolver
+}
+
+// mockDNSResolver is a programmable TXT resolver for domain-verification tests.
+// It satisfies service.DNSResolver; tests set the TXT records a lookup returns.
+type mockDNSResolver struct {
+	mu      sync.Mutex
+	records map[string][]string
+}
+
+func newMockDNSResolver() *mockDNSResolver {
+	return &mockDNSResolver{records: map[string][]string{}}
+}
+
+// Set programs the TXT records returned for an exact lookup name.
+func (m *mockDNSResolver) Set(name string, txt []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.records[name] = txt
+}
+
+// LookupTXT returns the programmed records, or a NXDOMAIN-like error if unset.
+func (m *mockDNSResolver) LookupTXT(_ context.Context, name string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if r, ok := m.records[name]; ok {
+		return r, nil
+	}
+	return nil, fmt.Errorf("no such host: %s", name)
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -242,6 +274,9 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider: storageProvider,
 	})
 
+	// Programmable DNS stub for domain-verification tests — never hits real DNS.
+	dnsResolver := newMockDNSResolver()
+
 	// Transport-agnostic service layer for migrated public ops.
 	serviceProvider, err := service.New(cfg, &service.Dependencies{
 		Log:                   &logger,
@@ -253,6 +288,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		DNSResolver:           dnsResolver,
 	})
 	require.NoError(t, err)
 
@@ -330,6 +366,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
 		ServiceProvider:       serviceProvider,
+		DNSResolver:           dnsResolver,
 	}
 }
 
