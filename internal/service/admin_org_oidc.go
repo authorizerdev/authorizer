@@ -51,13 +51,11 @@ func validateSSOIssuerURL(raw string) error {
 }
 
 // CreateOrgOIDCConnection registers a per-org upstream OIDC IdP (kind=sso_oidc).
-// Requires super-admin auth.
-//
-// ponytail: super-admin gated for now — an org-scoped admin permission model
-// (design H1) is a separate PR; mirror requireSuperAdmin like the other org ops.
+// Gated on the org being written (params.OrgID): a super-admin or an org-admin
+// of that org. See constants.OrgRoleAdmin.
 func (p *provider) CreateOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.CreateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "CreateOrgOIDCConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 
@@ -139,21 +137,22 @@ func (p *provider) CreateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 
 // UpdateOrgOIDCConnection mutates only the fields present in params (load-then-
 // mutate). Kind and OrgID are immutable. Supplying client_secret rotates it.
-// Requires super-admin auth.
+// Gated on the loaded row's OrgID (super-admin or that org's org-admin): the
+// connection is loaded by id FIRST so authorization keys on its real OrgID, not
+// on any caller-supplied org id (design H2, confused-deputy fix).
 func (p *provider) UpdateOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.UpdateOrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "UpdateOrgOIDCConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
-
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
-		return nil, nil, err
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
 	}
 	// Guard: this op only edits sso_oidc rows — never a client_assertion row.
 	if issuer.EffectiveKind() != constants.TrustKindSSOOIDC {
-		return nil, nil, fmt.Errorf("not an OIDC connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("not an OIDC connection"))
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
 	}
 
 	if params.Name != nil {
@@ -228,15 +227,21 @@ func (p *provider) resolveOrgOIDCConnection(ctx context.Context, id, orgID *stri
 	}
 }
 
-// DeleteOrgOIDCConnection removes an org's OIDC connection. Requires super-admin.
+// DeleteOrgOIDCConnection removes an org's OIDC connection. Gated on the loaded
+// row's OrgID (super-admin or that org's org-admin): resolved FIRST so
+// authorization keys on its real OrgID, then a caller-supplied org_id that names
+// a different org is rejected (design H2, confused-deputy fix).
 func (p *provider) DeleteOrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteOrgOIDCConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
 	issuer, err := p.resolveOrgOIDCConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve OIDC connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
+	}
+	if err := rejectOrgIDMismatch(params.OrgID, issuer.OrgID); err != nil {
 		return nil, nil, err
 	}
 	if err := p.StorageProvider.DeleteTrustedIssuer(ctx, issuer); err != nil {
@@ -255,16 +260,20 @@ func (p *provider) DeleteOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	return &model.Response{Message: "OIDC connection deleted"}, nil, nil
 }
 
-// OrgOIDCConnection fetches an org's OIDC connection by id or org_id. Requires
-// super-admin auth. The secret is never projected.
+// OrgOIDCConnection fetches an org's OIDC connection by id or org_id. Gated on
+// the loaded row's OrgID (super-admin or that org's org-admin, design H2). The
+// secret is never projected.
 func (p *provider) OrgOIDCConnection(ctx context.Context, meta RequestMetadata, params *model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "OrgOIDCConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
 	issuer, err := p.resolveOrgOIDCConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve OIDC connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
+	}
+	if err := rejectOrgIDMismatch(params.OrgID, issuer.OrgID); err != nil {
 		return nil, nil, err
 	}
 	return asAPIOrgOIDCConnection(issuer), nil, nil

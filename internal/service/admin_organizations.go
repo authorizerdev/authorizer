@@ -205,10 +205,12 @@ func (p *provider) Organizations(ctx context.Context, meta RequestMetadata, para
 
 // AddOrgMember adds a user to an organization with a set of per-org roles.
 // The organization and user must exist and the (org, user) pair must be unique.
-// Requires super-admin auth.
+// Gated on params.OrgID: super-admin or an org-admin of that org. An org-admin
+// may grant constants.OrgRoleAdmin to another member of their own org
+// (delegated administration, bounded to their org — design invariant 5).
 func (p *provider) AddOrgMember(ctx context.Context, meta RequestMetadata, params *model.AddOrgMemberRequest) (*model.OrgMember, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "AddOrgMember").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 
@@ -262,10 +264,15 @@ func (p *provider) AddOrgMember(ctx context.Context, meta RequestMetadata, param
 	return membership.AsAPIOrgMember(), nil, nil
 }
 
-// RemoveOrgMember removes a user from an organization. Requires super-admin auth.
+// RemoveOrgMember removes a user from an organization. Gated on params.OrgID:
+// super-admin or an org-admin of that org.
+//
+// Last-admin guard (design invariant 5): a NON-super-admin caller cannot remove
+// the org's final constants.OrgRoleAdmin holder — that would lock the org out
+// of self-service. A super-admin is exempt (can always recover the org).
 func (p *provider) RemoveOrgMember(ctx context.Context, meta RequestMetadata, params *model.RemoveOrgMemberRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "RemoveOrgMember").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 
@@ -282,6 +289,22 @@ func (p *provider) RemoveOrgMember(ctx context.Context, meta RequestMetadata, pa
 		log.Debug().Err(err).Msg("membership not found")
 		p.logOrgMemberRemoveFailure(meta, orgID)
 		return nil, nil, fmt.Errorf("membership not found")
+	}
+
+	// Last-admin guard. Skip for super-admins (recovery escape hatch).
+	if p.requireSuperAdmin(ctx, meta) != nil && orgMembershipHasRole(membership, constants.OrgRoleAdmin) {
+		hasOther, err := p.orgHasAdminOtherThan(ctx, orgID, userID)
+		if err != nil {
+			// Fail closed: if we cannot confirm another admin exists, keep this one.
+			log.Debug().Err(err).Msg("failed to verify remaining org admins")
+			p.logOrgMemberRemoveFailure(meta, orgID)
+			return nil, nil, fmt.Errorf("could not verify remaining organization admins")
+		}
+		if !hasOther {
+			log.Debug().Msg("refusing to remove the last org admin")
+			p.logOrgMemberRemoveFailure(meta, orgID)
+			return nil, nil, fmt.Errorf("cannot remove the last %s of the organization", constants.OrgRoleAdmin)
+		}
 	}
 
 	if err := p.StorageProvider.DeleteOrgMembership(ctx, membership); err != nil {
@@ -304,11 +327,11 @@ func (p *provider) RemoveOrgMember(ctx context.Context, meta RequestMetadata, pa
 	}, nil, nil
 }
 
-// OrgMembers returns a paginated list of an organization's members. Requires
-// super-admin auth.
+// OrgMembers returns a paginated list of an organization's members. Gated on
+// params.OrgID: super-admin or an org-admin of that org (never another org's).
 func (p *provider) OrgMembers(ctx context.Context, meta RequestMetadata, params *model.ListOrgMembersRequest) (*model.OrgMembers, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "OrgMembers").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 
@@ -331,6 +354,53 @@ func (p *provider) OrgMembers(ctx context.Context, meta RequestMetadata, params 
 		Pagination: pagination,
 		OrgMembers: res,
 	}, nil, nil
+}
+
+// orgMembershipHasRole reports whether the membership carries role.
+func orgMembershipHasRole(m *schemas.OrgMembership, role string) bool {
+	for _, r := range m.ParsedRoles() {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
+// orgHasAdminOtherThan reports whether orgID has at least one member holding
+// constants.OrgRoleAdmin whose user id is not excludeUserID. It backs the
+// last-admin guard, so it short-circuits as soon as a second admin is found and
+// pages through all members otherwise.
+//
+// KNOWN LIMITATION (check-then-delete, non-atomic): two concurrent
+// RemoveOrgMember calls each removing a *different* one of exactly two admins
+// can both observe "another admin exists" and both proceed, leaving the org
+// with zero admins. This is self-inflicted, single-tenant, and always
+// recoverable by a super-admin (the designed recovery path), so it is accepted
+// for v1. A fully atomic guard would need a storage-layer conditional delete /
+// count-in-transaction, which 3 of the 6 NoSQL providers cannot express
+// uniformly; not worth it for a contained, recoverable race.
+func (p *provider) orgHasAdminOtherThan(ctx context.Context, orgID, excludeUserID string) (bool, error) {
+	const pageLimit = int64(100)
+	offset := int64(0)
+	for {
+		page := &model.Pagination{Limit: pageLimit, Offset: offset, Page: offset/pageLimit + 1}
+		members, pg, err := p.StorageProvider.ListOrgMembershipsByOrg(ctx, orgID, page)
+		if err != nil {
+			return false, err
+		}
+		for _, m := range members {
+			if m.UserID == excludeUserID {
+				continue
+			}
+			if orgMembershipHasRole(m, constants.OrgRoleAdmin) {
+				return true, nil
+			}
+		}
+		offset += int64(len(members))
+		if len(members) < int(pageLimit) || pg == nil || offset >= pg.Total {
+			return false, nil
+		}
+	}
 }
 
 // logOrgFailure records a failed organization admin operation.

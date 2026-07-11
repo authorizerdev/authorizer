@@ -78,13 +78,12 @@ func validateSAMLAttributeMapping(raw string) error {
 }
 
 // CreateOrgSAMLConnection registers a per-org upstream SAML IdP (kind=sso_saml).
-// Requires super-admin auth.
-//
-// ponytail: super-admin gated for now — an org-scoped admin permission model
-// (design H1) is a separate PR; mirror requireSuperAdmin like the OIDC op.
+// Gated on the org being written (params.OrgID): a super-admin or an
+// org-admin of that org. See constants.OrgRoleAdmin — the bare "admin" role is
+// not accepted and existing bare-admin memberships are never auto-promoted.
 func (p *provider) CreateOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "CreateOrgSAMLConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 
@@ -194,21 +193,22 @@ func validateOptionalSAMLFields(spEntityID, acsURL, attrMap *string) (*string, *
 
 // UpdateOrgSAMLConnection mutates only the fields present in params (load-then-
 // mutate). Kind and OrgID are immutable. Supplying idp_certificate replaces it.
-// Requires super-admin auth.
+// Gated on the loaded row's OrgID (super-admin or that org's org-admin): the
+// connection is loaded by id FIRST so authorization keys on its real OrgID, not
+// on any caller-supplied org id (design H2, confused-deputy fix).
 func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "UpdateOrgSAMLConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
-
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
-		return nil, nil, err
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
 	}
 	// Guard: this op only edits sso_saml rows — never a client_assertion row.
 	if issuer.EffectiveKind() != constants.TrustKindSSOSAML {
-		return nil, nil, fmt.Errorf("not a SAML connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("not a SAML connection"))
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
 	}
 
 	if params.Name != nil {
@@ -317,15 +317,21 @@ func (p *provider) resolveOrgSAMLConnection(ctx context.Context, id, orgID *stri
 	}
 }
 
-// DeleteOrgSAMLConnection removes an org's SAML connection. Requires super-admin.
+// DeleteOrgSAMLConnection removes an org's SAML connection. Gated on the loaded
+// row's OrgID (super-admin or that org's org-admin): the connection is resolved
+// FIRST so authorization keys on its real OrgID, then a caller-supplied org_id
+// that names a different org is rejected (design H2, confused-deputy fix).
 func (p *provider) DeleteOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteOrgSAMLConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
 	issuer, err := p.resolveOrgSAMLConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve SAML connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
+	}
+	if err := rejectOrgIDMismatch(params.OrgID, issuer.OrgID); err != nil {
 		return nil, nil, err
 	}
 	if err := p.StorageProvider.DeleteTrustedIssuer(ctx, issuer); err != nil {
@@ -344,16 +350,20 @@ func (p *provider) DeleteOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	return &model.Response{Message: "SAML connection deleted"}, nil, nil
 }
 
-// OrgSAMLConnection fetches an org's SAML connection by id or org_id. Requires
-// super-admin auth. The IdP certificate is never projected.
+// OrgSAMLConnection fetches an org's SAML connection by id or org_id. Gated on
+// the loaded row's OrgID (super-admin or that org's org-admin, design H2). The
+// IdP certificate is never projected.
 func (p *provider) OrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "OrgSAMLConnection").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
-		return nil, nil, err
-	}
 	issuer, err := p.resolveOrgSAMLConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve SAML connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
+	}
+	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
+		return nil, nil, err
+	}
+	if err := rejectOrgIDMismatch(params.OrgID, issuer.OrgID); err != nil {
 		return nil, nil, err
 	}
 	return asAPIOrgSAMLConnection(issuer), nil, nil
