@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -74,6 +75,52 @@ func TestGuardVerifiableDomain(t *testing.T) {
 			}
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("guardVerifiableDomain(%q) = %v, want %v", tc.in, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// TestNormalizeEmailDomainParity locks review M3: the domain a login email
+// resolves to (Phase-3 HRD lookup) must be byte-identical to what Phase-2 wrote
+// via normalizeDomain — one normalizer, no split routing.
+func TestNormalizeEmailDomainParity(t *testing.T) {
+	cases := []struct {
+		name    string
+		email   string
+		want    string
+		wantErr bool
+	}{
+		{name: "simple", email: "jane@acme.com", want: "acme.com"},
+		{name: "uppercased", email: "JANE@Acme.COM", want: "acme.com"},
+		{name: "whitespace", email: "  jane@acme.com \t", want: "acme.com"},
+		{name: "subdomain kept exact", email: "jane@eng.acme.com", want: "eng.acme.com"},
+		{name: "idna to punycode", email: "jane@münchen.de", want: "xn--mnchen-3ya.de"},
+		{name: "plus-addressing local", email: "jane+tag@acme.com", want: "acme.com"},
+		{name: "last-at wins", email: "weird@local@acme.com", want: "acme.com"},
+		{name: "empty", email: "", wantErr: true},
+		{name: "no at", email: "acme.com", wantErr: true},
+		{name: "empty local", email: "@acme.com", wantErr: true},
+		{name: "empty domain", email: "jane@", wantErr: true},
+		{name: "bare label domain", email: "jane@localhost", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := NormalizeEmailDomain(tc.email)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("NormalizeEmailDomain(%q) = %q, want error", tc.email, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("NormalizeEmailDomain(%q) unexpected error: %v", tc.email, err)
+			}
+			if got != tc.want {
+				t.Fatalf("NormalizeEmailDomain(%q) = %q, want %q", tc.email, got, tc.want)
+			}
+			// Parity: same output as normalizing the raw domain part directly.
+			if raw, rerr := normalizeDomain(tc.email[strings.LastIndex(tc.email, "@")+1:]); rerr == nil && raw != got {
+				t.Fatalf("parity broken: email path %q vs domain path %q", got, raw)
 			}
 		})
 	}

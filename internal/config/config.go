@@ -19,6 +19,10 @@ type Config struct {
 
 	// EnableLoginPage is the flag to enable login page
 	EnableLoginPage bool
+	// EnableOrgDiscovery gates the public home-realm-discovery endpoint
+	// (GET /api/v1/org-discovery). Default on; operators who consider even
+	// routing metadata sensitive can turn it off.
+	EnableOrgDiscovery bool
 	// EnablePlayground is the flag to enable playground
 	EnablePlayground bool
 	// EnableGraphQLIntrospection is the flag to enable GraphQL introspection
