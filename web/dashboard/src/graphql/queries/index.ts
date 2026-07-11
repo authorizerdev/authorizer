@@ -272,6 +272,28 @@ export const OrganizationQuery = `
   }
 `;
 
+export const UserOrganizationsQuery = `
+  query getUserOrganizations($params: UserOrganizationsRequest!) {
+    _user_organizations(params: $params) {
+      user_organizations {
+        organization {
+          id
+          name
+          display_name
+          enabled
+        }
+        roles
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
 export const OrgMembersQuery = `
   query getOrgMembers($params: ListOrgMembersRequest!) {
     _org_members(params: $params) {

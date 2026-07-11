@@ -176,6 +176,9 @@ type Provider interface {
 	// User is the method to get user.
 	// Permissions: authorizer:admin
 	User(ctx context.Context, params *model.GetUserRequest) (*model.User, error)
+	// UserOrganizations lists the organizations a user belongs to with per-org roles.
+	// Permissions: authorizer:admin
+	UserOrganizations(ctx context.Context, params *model.UserOrganizationsRequest) (*model.UserOrganizations, error)
 	// Users is the method to list users.
 	// Permissions: authorizer:admin
 	Users(ctx context.Context, in *model.ListUsersRequest) (*model.Users, error)

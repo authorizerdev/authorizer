@@ -937,6 +937,21 @@ type User struct {
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
+type UserOrganization struct {
+	Organization *Organization `json:"organization"`
+	Roles        []string      `json:"roles"`
+}
+
+type UserOrganizations struct {
+	Pagination        *Pagination         `json:"pagination"`
+	UserOrganizations []*UserOrganization `json:"user_organizations"`
+}
+
+type UserOrganizationsRequest struct {
+	UserID     string             `json:"user_id"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
+}
+
 type Users struct {
 	Pagination *Pagination `json:"pagination"`
 	Users      []*User     `json:"users"`

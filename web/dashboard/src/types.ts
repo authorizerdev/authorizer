@@ -267,6 +267,18 @@ export interface OrgMembersResponse {
 	};
 }
 
+export interface UserOrganization {
+	organization: Organization;
+	roles: string[];
+}
+
+export interface UserOrganizationsResponse {
+	_user_organizations: {
+		pagination: PaginationInfo;
+		user_organizations: UserOrganization[];
+	};
+}
+
 export interface OrgOIDCConnection {
 	id: string;
 	org_id: string;

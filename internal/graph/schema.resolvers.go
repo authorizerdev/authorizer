@@ -382,6 +382,11 @@ func (r *queryResolver) User(ctx context.Context, params model.GetUserRequest) (
 	return r.GraphQLProvider.User(ctx, &params)
 }
 
+// UserOrganizations is the resolver for the _user_organizations field.
+func (r *queryResolver) UserOrganizations(ctx context.Context, params model.UserOrganizationsRequest) (*model.UserOrganizations, error) {
+	return r.GraphQLProvider.UserOrganizations(ctx, &params)
+}
+
 // VerificationRequests is the resolver for the _verification_requests field.
 func (r *queryResolver) VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error) {
 	return r.GraphQLProvider.VerificationRequests(ctx, params)

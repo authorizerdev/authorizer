@@ -1,13 +1,14 @@
 import React from 'react';
+import { useClient } from 'urql';
 import dayjs from 'dayjs';
 import { Badge } from './ui/badge';
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from './ui/dialog';
-import type { User } from '../types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { UserOrganizationsQuery } from '../graphql/queries';
+import type {
+	User,
+	UserOrganization,
+	UserOrganizationsResponse,
+} from '../types';
 
 interface ViewUserModalProps {
 	user: User | null;
@@ -16,10 +17,51 @@ interface ViewUserModalProps {
 }
 
 const ViewUserModal = ({ user, open, onClose }: ViewUserModalProps) => {
+	const client = useClient();
+	const [orgs, setOrgs] = React.useState<UserOrganization[]>([]);
+	const [orgLoading, setOrgLoading] = React.useState(false);
+	// orgError degrades the Organizations section gracefully: if the query
+	// fails we simply hide the section rather than break the whole modal.
+	const [orgError, setOrgError] = React.useState(false);
+
+	const userId = user?.id;
+
+	React.useEffect(() => {
+		if (!open || !userId) {
+			return;
+		}
+		let cancelled = false;
+		setOrgLoading(true);
+		setOrgError(false);
+		setOrgs([]);
+		client
+			.query<UserOrganizationsResponse>(UserOrganizationsQuery, {
+				params: { user_id: userId },
+			})
+			.toPromise()
+			.then(({ data, error }) => {
+				if (cancelled) {
+					return;
+				}
+				if (error || !data?._user_organizations) {
+					setOrgError(true);
+				} else {
+					setOrgs(data._user_organizations.user_organizations || []);
+				}
+				setOrgLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [open, userId, client]);
+
 	if (!user) return null;
 
 	const fields: { label: string; value: React.ReactNode }[] = [
-		{ label: 'ID', value: <span className="font-mono text-xs">{user.id}</span> },
+		{
+			label: 'ID',
+			value: <span className="font-mono text-xs">{user.id}</span>,
+		},
 		{ label: 'Email', value: user.email || '—' },
 		{
 			label: 'Email Verified',
@@ -61,7 +103,11 @@ const ViewUserModal = ({ user, open, onClose }: ViewUserModalProps) => {
 		{
 			label: 'MFA',
 			value: (
-				<Badge variant={user.is_multi_factor_auth_enabled ? 'success' : 'destructive'}>
+				<Badge
+					variant={
+						user.is_multi_factor_auth_enabled ? 'success' : 'destructive'
+					}
+				>
 					{user.is_multi_factor_auth_enabled ? 'Enabled' : 'Disabled'}
 				</Badge>
 			),
@@ -103,6 +149,42 @@ const ViewUserModal = ({ user, open, onClose }: ViewUserModalProps) => {
 						</div>
 					))}
 				</div>
+				{!orgError && (
+					<div className="border-t pt-3">
+						<h3 className="mb-2 text-sm font-semibold text-gray-900">
+							Organizations
+						</h3>
+						{orgLoading ? (
+							<p className="text-sm text-gray-400">Loading…</p>
+						) : orgs.length > 0 ? (
+							<div className="grid gap-2">
+								{orgs.map(({ organization, roles }) => (
+									<div
+										key={organization.id}
+										className="grid grid-cols-[1fr_auto] items-center gap-2 text-sm"
+									>
+										<span className="text-gray-900">
+											{organization.display_name || organization.name}
+										</span>
+										<div className="flex flex-wrap justify-end gap-1">
+											{roles.length > 0 ? (
+												roles.map((role) => (
+													<Badge key={role} variant="secondary">
+														{role}
+													</Badge>
+												))
+											) : (
+												<span className="text-gray-400">—</span>
+											)}
+										</div>
+									</div>
+								))}
+							</div>
+						) : (
+							<p className="text-sm text-gray-400">No organizations</p>
+						)}
+					</div>
+				)}
 			</DialogContent>
 		</Dialog>
 	);
