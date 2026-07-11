@@ -167,6 +167,14 @@ func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, or
 		return Unauthenticated("unauthorized")
 	}
 
+	// Defense in depth: machine (client_credentials) tokens are never org
+	// members. They are already rejected implicitly by the membership lookup
+	// (their sub is a client id, not a user id), but reject them explicitly so
+	// the intent survives any future change to how memberships are minted.
+	if tokenData.LoginMethod == constants.AuthRecipeMethodServiceAccount {
+		return Unauthenticated("unauthorized")
+	}
+
 	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, tokenData.UserID)
 	if err != nil || membership == nil {
 		return Unauthenticated("unauthorized")
@@ -184,6 +192,18 @@ func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, or
 // ALSO supplied an org_id that names a different org, deny: they are trying to
 // act on another org's resource under their own org's authority. A nil/empty
 // org_id (the common id-only call) is fine.
+// maskNonSuperAdminError collapses a resource-resolution error (not-found,
+// wrong-kind) into a uniform Unauthenticated for non-super-admin callers, so a
+// tenant admin cannot use these ops as a cross-org existence/kind oracle
+// (CWE-204): probing an arbitrary id must not reveal whether it exists or its
+// kind in another org. Super-admins still get the precise error.
+func (p *provider) maskNonSuperAdminError(ctx context.Context, meta RequestMetadata, err error) error {
+	if p.requireSuperAdmin(ctx, meta) == nil {
+		return err
+	}
+	return Unauthenticated("unauthorized")
+}
+
 func rejectOrgIDMismatch(paramOrgID *string, resourceOrgID string) error {
 	if paramOrgID != nil {
 		if v := strings.TrimSpace(*paramOrgID); v != "" && v != resourceOrgID {

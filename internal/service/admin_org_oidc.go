@@ -145,11 +145,11 @@ func (p *provider) UpdateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
-		return nil, nil, err
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
 	}
 	// Guard: this op only edits sso_oidc rows — never a client_assertion row.
 	if issuer.EffectiveKind() != constants.TrustKindSSOOIDC {
-		return nil, nil, fmt.Errorf("not an OIDC connection")
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("not an OIDC connection"))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
 		return nil, nil, err
@@ -236,7 +236,7 @@ func (p *provider) DeleteOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	issuer, err := p.resolveOrgOIDCConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve OIDC connection")
-		return nil, nil, err
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
 	}
 	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
 		return nil, nil, err
@@ -268,7 +268,7 @@ func (p *provider) OrgOIDCConnection(ctx context.Context, meta RequestMetadata, 
 	issuer, err := p.resolveOrgOIDCConnection(ctx, params.ID, params.OrgID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to resolve OIDC connection")
-		return nil, nil, err
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, err)
 	}
 	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
 		return nil, nil, err

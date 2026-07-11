@@ -370,6 +370,15 @@ func orgMembershipHasRole(m *schemas.OrgMembership, role string) bool {
 // constants.OrgRoleAdmin whose user id is not excludeUserID. It backs the
 // last-admin guard, so it short-circuits as soon as a second admin is found and
 // pages through all members otherwise.
+//
+// KNOWN LIMITATION (check-then-delete, non-atomic): two concurrent
+// RemoveOrgMember calls each removing a *different* one of exactly two admins
+// can both observe "another admin exists" and both proceed, leaving the org
+// with zero admins. This is self-inflicted, single-tenant, and always
+// recoverable by a super-admin (the designed recovery path), so it is accepted
+// for v1. A fully atomic guard would need a storage-layer conditional delete /
+// count-in-transaction, which 3 of the 6 NoSQL providers cannot express
+// uniformly; not worth it for a contained, recoverable race.
 func (p *provider) orgHasAdminOtherThan(ctx context.Context, orgID, excludeUserID string) (bool, error) {
 	const pageLimit = int64(100)
 	offset := int64(0)
