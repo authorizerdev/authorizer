@@ -394,6 +394,29 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// WebauthnCredential collection and indexes
+	webauthnCredentialCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.WebauthnCredential)
+	if err != nil {
+		return nil, err
+	}
+	if !webauthnCredentialCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.WebauthnCredential, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	webauthnCredentialCollection, err := arangodb.Collection(ctx, schemas.Collections.WebauthnCredential)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = webauthnCredentialCollection.EnsureHashIndex(ctx, []string{"credential_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	_, _, _ = webauthnCredentialCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
 	// Organization collection and indexes
 	organizationCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Organization)
 	if err != nil {

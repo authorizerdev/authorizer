@@ -233,6 +233,24 @@ type Provider interface {
 	// Pass an empty serviceAccountID to list all issuers.
 	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
 
+	// WebauthnCredential methods (per-user passkey credentials).
+
+	// AddWebauthnCredential persists a newly registered passkey.
+	AddWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) (*schemas.WebauthnCredential, error)
+	// UpdateWebauthnCredential writes back mutable fields (sign_count, flags,
+	// last_used_at, name). Caller must load the full record first.
+	UpdateWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) (*schemas.WebauthnCredential, error)
+	// DeleteWebauthnCredential removes a passkey.
+	DeleteWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) error
+	// GetWebauthnCredentialByID fetches a passkey by primary key.
+	GetWebauthnCredentialByID(ctx context.Context, id string) (*schemas.WebauthnCredential, error)
+	// GetWebauthnCredentialByCredentialID resolves a passkey by its unique
+	// WebAuthn credential id — the usernameless-login lookup.
+	GetWebauthnCredentialByCredentialID(ctx context.Context, credentialID string) (*schemas.WebauthnCredential, error)
+	// ListWebauthnCredentialsByUserID returns all of a user's passkeys. The list
+	// is inherently small (one per device), so it is not paginated.
+	ListWebauthnCredentialsByUserID(ctx context.Context, userID string) ([]*schemas.WebauthnCredential, error)
+
 	// Organization methods.
 
 	// AddOrganization creates a new organization record.

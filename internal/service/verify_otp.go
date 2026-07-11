@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -16,7 +15,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
-	"github.com/authorizerdev/authorizer/internal/token"
 )
 
 // VerifyOTP verifies a one-time passcode (email/SMS OTP, TOTP, or recovery
@@ -153,81 +151,6 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	if isMobileVerification {
 		loginMethod = constants.AuthRecipeMethodMobileOTP
 	}
-	roles := strings.Split(user.Roles, ",")
-	scope := []string{"openid", "email", "profile"}
-	code := ""
-	codeChallenge := ""
-	nonce := ""
-	oidcNonce := ""
-	authorizeRedirectURI := ""
-	if params.State != nil {
-		// Get state from store
-		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
-		if authorizeState != "" {
-			authorizeStateSplit := strings.Split(authorizeState, "@@")
-			if len(authorizeStateSplit) > 1 {
-				code = authorizeStateSplit[0]
-				codeChallenge = authorizeStateSplit[1]
-				if len(authorizeStateSplit) > 2 {
-					oidcNonce = authorizeStateSplit[2]
-				}
-				if len(authorizeStateSplit) > 3 {
-					authorizeRedirectURI = authorizeStateSplit[3]
-				}
-			} else {
-				nonce = authorizeState
-			}
-			_ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
-		}
-	}
-	if nonce == "" {
-		nonce = uuid.New().String()
-	}
-	hostname := meta.HostURL
-	// TokenProvider.CreateAuthToken takes *gin.Context but doesn't read from
-	// it; reuse the request-wrapping shim so the call works for both gin and
-	// non-gin transports.
-	authToken, err := p.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
-		User:        user,
-		Roles:       roles,
-		Scope:       scope,
-		LoginMethod: loginMethod,
-		Nonce:       nonce,
-		OIDCNonce:   oidcNonce,
-		Code:        code,
-		HostName:    hostname,
-	})
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to create auth token")
-		return nil, nil, err
-	}
-
-	// Code challenge could be optional if PKCE flow is not used
-	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
-			log.Debug().Err(err).Msg("Failed to set state")
-			return nil, nil, err
-		}
-	}
-
-	go func() {
-		ctx := context.WithoutCancel(ctx)
-		if isSignUp {
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
-			// User is also logged in with signup
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
-		} else {
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
-		}
-
-		if err := p.StorageProvider.AddSession(ctx, &schemas.Session{
-			UserID:    user.ID,
-			UserAgent: meta.UserAgent,
-			IP:        meta.IPAddress,
-		}); err != nil {
-			log.Debug().Err(err).Msg("Failed to add session")
-		}
-	}()
 	if isEmailVerification {
 		p.AuditProvider.LogEvent(audit.Event{
 			Action:   constants.AuditEmailVerifiedEvent,
@@ -252,29 +175,9 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		})
 	}
 
-	authTokenExpiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
-	if authTokenExpiresIn <= 0 {
-		authTokenExpiresIn = 1
-	}
-
-	res := &model.AuthResponse{
-		Message:     `OTP verified successfully.`,
-		AccessToken: &authToken.AccessToken.Token,
-		IDToken:     &authToken.IDToken.Token,
-		ExpiresIn:   &authTokenExpiresIn,
-		User:        user.AsAPIUser(),
-	}
-
-	sessionKey := loginMethod + ":" + user.ID
-	for _, c := range cookie.BuildSessionCookies(hostname, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
-		side.AddCookie(c)
-	}
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
-
-	if authToken.RefreshToken != nil {
-		res.RefreshToken = &authToken.RefreshToken.Token
-		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+	res, err := p.issueAuthResponse(ctx, meta, side, user, loginMethod, `OTP verified successfully.`, params.State, isSignUp)
+	if err != nil {
+		return nil, nil, err
 	}
 	return res, side, nil
 }

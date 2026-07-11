@@ -11,6 +11,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -142,6 +143,15 @@ func runMCP(_ *cobra.Command, _ []string) {
 		log.Fatal().Err(err).Msg("failed to create authenticator provider")
 	}
 
+	webAuthnProvider, err := webauthn.NewProvider(&webauthn.Dependencies{
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create webauthn provider")
+	}
+
 	svc, err := service.New(&rootArgs.config, &service.Dependencies{
 		Log:                   &log,
 		AuditProvider:         auditProvider,
@@ -153,6 +163,7 @@ func runMCP(_ *cobra.Command, _ []string) {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		WebAuthnProvider:      webAuthnProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

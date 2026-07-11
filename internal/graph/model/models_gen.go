@@ -995,6 +995,33 @@ type VerifyOrgDomainRequest struct {
 	Domain string `json:"domain"`
 }
 
+type WebauthnCredentialInfo struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Transports []string `json:"transports,omitempty"`
+	CreatedAt  *int64   `json:"created_at,omitempty"`
+	UpdatedAt  *int64   `json:"updated_at,omitempty"`
+	LastUsedAt *int64   `json:"last_used_at,omitempty"`
+}
+
+type WebauthnLoginOptionsResponse struct {
+	Options string `json:"options"`
+}
+
+type WebauthnLoginVerifyRequest struct {
+	State      *string `json:"state,omitempty"`
+	Credential string  `json:"credential"`
+}
+
+type WebauthnRegistrationOptionsResponse struct {
+	Options string `json:"options"`
+}
+
+type WebauthnRegistrationVerifyRequest struct {
+	Name       *string `json:"name,omitempty"`
+	Credential string  `json:"credential"`
+}
+
 type Webhook struct {
 	ID               string         `json:"id"`
 	EventName        *string        `json:"event_name,omitempty"`

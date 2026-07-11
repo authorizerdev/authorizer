@@ -200,6 +200,19 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			},
 		},
 		{
+			name: schemas.Collections.WebauthnCredential,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("credential_id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("user_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("credential_id", "credential_id"),
+				gsi("user_id", "user_id"),
+			},
+		},
+		{
 			name: schemas.Collections.Organization,
 			hash: "id",
 			attr: []types.AttributeDefinition{

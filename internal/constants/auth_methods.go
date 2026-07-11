@@ -9,6 +9,8 @@ const (
 	AuthRecipeMethodMagicLinkLogin = "magic_link_login"
 	// AuthRecipeMethodMobileOTP is the mobile_otp auth method
 	AuthRecipeMethodMobileOTP = "mobile_otp"
+	// AuthRecipeMethodWebauthn is the webauthn/passkey auth method
+	AuthRecipeMethodWebauthn = "webauthn"
 
 	// AuthRecipeMethodGoogle is the google auth method
 	AuthRecipeMethodGoogle = "google"

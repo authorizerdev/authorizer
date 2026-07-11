@@ -95,7 +95,7 @@ func NewProvider(
 	// name-agnostically, before AutoMigrate runs.
 	clearLegacyColumnUniqueness(sqlDB, deps.Log)
 
-	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.OrgDomain{})
+	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{})
 	if err != nil {
 		return nil, err
 	}

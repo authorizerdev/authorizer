@@ -281,67 +281,72 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate        func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddOrgMember            func(childComplexity int, params model.AddOrgMemberRequest) int
-		AddTrustedIssuer        func(childComplexity int, params model.AddTrustedIssuerRequest) int
-		AddVerifiedOrgDomain    func(childComplexity int, params model.AddVerifiedOrgDomainRequest) int
-		AddWebhook              func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin              func(childComplexity int, params model.AdminLoginRequest) int
-		AdminLogout             func(childComplexity int) int
-		AdminSignup             func(childComplexity int, params model.AdminSignupRequest) int
-		CreateClient            func(childComplexity int, params model.CreateClientRequest) int
-		CreateOrgOidcConnection func(childComplexity int, params model.CreateOrgOIDCConnectionRequest) int
-		CreateOrgSamlConnection func(childComplexity int, params model.CreateOrgSAMLConnectionRequest) int
-		CreateOrganization      func(childComplexity int, params model.CreateOrganizationRequest) int
-		CreateScimEndpoint      func(childComplexity int, params model.CreateScimEndpointRequest) int
-		DeactivateAccount       func(childComplexity int) int
-		DeleteClient            func(childComplexity int, params model.ClientRequest) int
-		DeleteEmailTemplate     func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteOrgDomain         func(childComplexity int, params model.DeleteOrgDomainRequest) int
-		DeleteOrgOidcConnection func(childComplexity int, params model.OrgOIDCConnectionRequest) int
-		DeleteOrgSamlConnection func(childComplexity int, params model.OrgSAMLConnectionRequest) int
-		DeleteOrganization      func(childComplexity int, params model.OrganizationRequest) int
-		DeleteScimEndpoint      func(childComplexity int, params model.ScimEndpointRequest) int
-		DeleteTrustedIssuer     func(childComplexity int, params model.TrustedIssuerRequest) int
-		DeleteUser              func(childComplexity int, params model.DeleteUserRequest) int
-		DeleteWebhook           func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess            func(childComplexity int, param model.UpdateAccessRequest) int
-		FgaDeleteTuples         func(childComplexity int, params model.FgaWriteTuplesInput) int
-		FgaReset                func(childComplexity int) int
-		FgaWriteModel           func(childComplexity int, params model.FgaWriteModelInput) int
-		FgaWriteTuples          func(childComplexity int, params model.FgaWriteTuplesInput) int
-		ForgotPassword          func(childComplexity int, params model.ForgotPasswordRequest) int
-		GenerateJwtKeys         func(childComplexity int, params model.GenerateJWTKeysRequest) int
-		InviteMembers           func(childComplexity int, params model.InviteMemberRequest) int
-		Login                   func(childComplexity int, params model.LoginRequest) int
-		Logout                  func(childComplexity int) int
-		MagicLinkLogin          func(childComplexity int, params model.MagicLinkLoginRequest) int
-		MobileLogin             func(childComplexity int, params model.MobileLoginRequest) int
-		MobileSignup            func(childComplexity int, params *model.MobileSignUpRequest) int
-		RemoveOrgMember         func(childComplexity int, params model.RemoveOrgMemberRequest) int
-		RequestOrgDomain        func(childComplexity int, params model.RequestOrgDomainRequest) int
-		ResendOtp               func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail       func(childComplexity int, params model.ResendVerifyEmailRequest) int
-		ResetPassword           func(childComplexity int, params model.ResetPasswordRequest) int
-		Revoke                  func(childComplexity int, params model.OAuthRevokeRequest) int
-		RevokeAccess            func(childComplexity int, param model.UpdateAccessRequest) int
-		RotateClientSecret      func(childComplexity int, params model.ClientRequest) int
-		RotateScimToken         func(childComplexity int, params model.ScimEndpointRequest) int
-		Signup                  func(childComplexity int, params model.SignUpRequest) int
-		TestEndpoint            func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateClient            func(childComplexity int, params model.UpdateClientRequest) int
-		UpdateEmailTemplate     func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv               func(childComplexity int, params model.UpdateEnvRequest) int
-		UpdateOrgOidcConnection func(childComplexity int, params model.UpdateOrgOIDCConnectionRequest) int
-		UpdateOrgSamlConnection func(childComplexity int, params model.UpdateOrgSAMLConnectionRequest) int
-		UpdateOrganization      func(childComplexity int, params model.UpdateOrganizationRequest) int
-		UpdateProfile           func(childComplexity int, params model.UpdateProfileRequest) int
-		UpdateTrustedIssuer     func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
-		UpdateUser              func(childComplexity int, params model.UpdateUserRequest) int
-		UpdateWebhook           func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail             func(childComplexity int, params model.VerifyEmailRequest) int
-		VerifyOrgDomain         func(childComplexity int, params model.VerifyOrgDomainRequest) int
-		VerifyOtp               func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate            func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddOrgMember                func(childComplexity int, params model.AddOrgMemberRequest) int
+		AddTrustedIssuer            func(childComplexity int, params model.AddTrustedIssuerRequest) int
+		AddVerifiedOrgDomain        func(childComplexity int, params model.AddVerifiedOrgDomainRequest) int
+		AddWebhook                  func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin                  func(childComplexity int, params model.AdminLoginRequest) int
+		AdminLogout                 func(childComplexity int) int
+		AdminSignup                 func(childComplexity int, params model.AdminSignupRequest) int
+		CreateClient                func(childComplexity int, params model.CreateClientRequest) int
+		CreateOrgOidcConnection     func(childComplexity int, params model.CreateOrgOIDCConnectionRequest) int
+		CreateOrgSamlConnection     func(childComplexity int, params model.CreateOrgSAMLConnectionRequest) int
+		CreateOrganization          func(childComplexity int, params model.CreateOrganizationRequest) int
+		CreateScimEndpoint          func(childComplexity int, params model.CreateScimEndpointRequest) int
+		DeactivateAccount           func(childComplexity int) int
+		DeleteClient                func(childComplexity int, params model.ClientRequest) int
+		DeleteEmailTemplate         func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteOrgDomain             func(childComplexity int, params model.DeleteOrgDomainRequest) int
+		DeleteOrgOidcConnection     func(childComplexity int, params model.OrgOIDCConnectionRequest) int
+		DeleteOrgSamlConnection     func(childComplexity int, params model.OrgSAMLConnectionRequest) int
+		DeleteOrganization          func(childComplexity int, params model.OrganizationRequest) int
+		DeleteScimEndpoint          func(childComplexity int, params model.ScimEndpointRequest) int
+		DeleteTrustedIssuer         func(childComplexity int, params model.TrustedIssuerRequest) int
+		DeleteUser                  func(childComplexity int, params model.DeleteUserRequest) int
+		DeleteWebhook               func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess                func(childComplexity int, param model.UpdateAccessRequest) int
+		FgaDeleteTuples             func(childComplexity int, params model.FgaWriteTuplesInput) int
+		FgaReset                    func(childComplexity int) int
+		FgaWriteModel               func(childComplexity int, params model.FgaWriteModelInput) int
+		FgaWriteTuples              func(childComplexity int, params model.FgaWriteTuplesInput) int
+		ForgotPassword              func(childComplexity int, params model.ForgotPasswordRequest) int
+		GenerateJwtKeys             func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		InviteMembers               func(childComplexity int, params model.InviteMemberRequest) int
+		Login                       func(childComplexity int, params model.LoginRequest) int
+		Logout                      func(childComplexity int) int
+		MagicLinkLogin              func(childComplexity int, params model.MagicLinkLoginRequest) int
+		MobileLogin                 func(childComplexity int, params model.MobileLoginRequest) int
+		MobileSignup                func(childComplexity int, params *model.MobileSignUpRequest) int
+		RemoveOrgMember             func(childComplexity int, params model.RemoveOrgMemberRequest) int
+		RequestOrgDomain            func(childComplexity int, params model.RequestOrgDomainRequest) int
+		ResendOtp                   func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail           func(childComplexity int, params model.ResendVerifyEmailRequest) int
+		ResetPassword               func(childComplexity int, params model.ResetPasswordRequest) int
+		Revoke                      func(childComplexity int, params model.OAuthRevokeRequest) int
+		RevokeAccess                func(childComplexity int, param model.UpdateAccessRequest) int
+		RotateClientSecret          func(childComplexity int, params model.ClientRequest) int
+		RotateScimToken             func(childComplexity int, params model.ScimEndpointRequest) int
+		Signup                      func(childComplexity int, params model.SignUpRequest) int
+		TestEndpoint                func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateClient                func(childComplexity int, params model.UpdateClientRequest) int
+		UpdateEmailTemplate         func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv                   func(childComplexity int, params model.UpdateEnvRequest) int
+		UpdateOrgOidcConnection     func(childComplexity int, params model.UpdateOrgOIDCConnectionRequest) int
+		UpdateOrgSamlConnection     func(childComplexity int, params model.UpdateOrgSAMLConnectionRequest) int
+		UpdateOrganization          func(childComplexity int, params model.UpdateOrganizationRequest) int
+		UpdateProfile               func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateTrustedIssuer         func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
+		UpdateUser                  func(childComplexity int, params model.UpdateUserRequest) int
+		UpdateWebhook               func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail                 func(childComplexity int, params model.VerifyEmailRequest) int
+		VerifyOrgDomain             func(childComplexity int, params model.VerifyOrgDomainRequest) int
+		VerifyOtp                   func(childComplexity int, params model.VerifyOTPRequest) int
+		WebauthnDeleteCredential    func(childComplexity int, id string) int
+		WebauthnLoginOptions        func(childComplexity int, email *string) int
+		WebauthnLoginVerify         func(childComplexity int, params model.WebauthnLoginVerifyRequest) int
+		WebauthnRegistrationOptions func(childComplexity int, email *string) int
+		WebauthnRegistrationVerify  func(childComplexity int, params model.WebauthnRegistrationVerifyRequest) int
 	}
 
 	OrgDomain struct {
@@ -469,6 +474,7 @@ type ComplexityRoot struct {
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
 		ValidateSession      func(childComplexity int, params *model.ValidateSessionRequest) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedRequest) int
+		WebauthnCredentials  func(childComplexity int) int
 		Webhook              func(childComplexity int, params model.WebhookRequest) int
 		WebhookLogs          func(childComplexity int, params *model.ListWebhookLogRequest) int
 		Webhooks             func(childComplexity int, params *model.PaginatedRequest) int
@@ -570,6 +576,23 @@ type ComplexityRoot struct {
 		VerificationRequests func(childComplexity int) int
 	}
 
+	WebauthnCredentialInfo struct {
+		CreatedAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		LastUsedAt func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Transports func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+	}
+
+	WebauthnLoginOptionsResponse struct {
+		Options func(childComplexity int) int
+	}
+
+	WebauthnRegistrationOptionsResponse struct {
+		Options func(childComplexity int) int
+	}
+
 	Webhook struct {
 		CreatedAt        func(childComplexity int) int
 		Enabled          func(childComplexity int) int
@@ -617,6 +640,11 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeRequest) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
+	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
+	WebauthnLoginVerify(ctx context.Context, params model.WebauthnLoginVerifyRequest) (*model.AuthResponse, error)
+	WebauthnDeleteCredential(ctx context.Context, id string) (*model.Response, error)
 	DeactivateAccount(ctx context.Context) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserRequest) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserRequest) (*model.User, error)
@@ -671,6 +699,7 @@ type QueryResolver interface {
 	Profile(ctx context.Context) (*model.User, error)
 	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)
 	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
+	WebauthnCredentials(ctx context.Context) ([]*model.WebauthnCredentialInfo, error)
 	Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
@@ -2587,6 +2616,66 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.VerifyOtp(childComplexity, args["params"].(model.VerifyOTPRequest)), true
 
+	case "Mutation.webauthn_delete_credential":
+		if e.complexity.Mutation.WebauthnDeleteCredential == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_webauthn_delete_credential_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WebauthnDeleteCredential(childComplexity, args["id"].(string)), true
+
+	case "Mutation.webauthn_login_options":
+		if e.complexity.Mutation.WebauthnLoginOptions == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_webauthn_login_options_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WebauthnLoginOptions(childComplexity, args["email"].(*string)), true
+
+	case "Mutation.webauthn_login_verify":
+		if e.complexity.Mutation.WebauthnLoginVerify == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_webauthn_login_verify_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WebauthnLoginVerify(childComplexity, args["params"].(model.WebauthnLoginVerifyRequest)), true
+
+	case "Mutation.webauthn_registration_options":
+		if e.complexity.Mutation.WebauthnRegistrationOptions == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_webauthn_registration_options_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WebauthnRegistrationOptions(childComplexity, args["email"].(*string)), true
+
+	case "Mutation.webauthn_registration_verify":
+		if e.complexity.Mutation.WebauthnRegistrationVerify == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_webauthn_registration_verify_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.WebauthnRegistrationVerify(childComplexity, args["params"].(model.WebauthnRegistrationVerifyRequest)), true
+
 	case "OrgDomain.created_at":
 		if e.complexity.OrgDomain.CreatedAt == nil {
 			break
@@ -3323,6 +3412,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
+	case "Query.webauthn_credentials":
+		if e.complexity.Query.WebauthnCredentials == nil {
+			break
+		}
+
+		return e.complexity.Query.WebauthnCredentials(childComplexity), true
+
 	case "Query._webhook":
 		if e.complexity.Query.Webhook == nil {
 			break
@@ -3800,6 +3896,62 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.VerificationRequests.VerificationRequests(childComplexity), true
 
+	case "WebauthnCredentialInfo.created_at":
+		if e.complexity.WebauthnCredentialInfo.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.CreatedAt(childComplexity), true
+
+	case "WebauthnCredentialInfo.id":
+		if e.complexity.WebauthnCredentialInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.ID(childComplexity), true
+
+	case "WebauthnCredentialInfo.last_used_at":
+		if e.complexity.WebauthnCredentialInfo.LastUsedAt == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.LastUsedAt(childComplexity), true
+
+	case "WebauthnCredentialInfo.name":
+		if e.complexity.WebauthnCredentialInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.Name(childComplexity), true
+
+	case "WebauthnCredentialInfo.transports":
+		if e.complexity.WebauthnCredentialInfo.Transports == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.Transports(childComplexity), true
+
+	case "WebauthnCredentialInfo.updated_at":
+		if e.complexity.WebauthnCredentialInfo.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.WebauthnCredentialInfo.UpdatedAt(childComplexity), true
+
+	case "WebauthnLoginOptionsResponse.options":
+		if e.complexity.WebauthnLoginOptionsResponse.Options == nil {
+			break
+		}
+
+		return e.complexity.WebauthnLoginOptionsResponse.Options(childComplexity), true
+
+	case "WebauthnRegistrationOptionsResponse.options":
+		if e.complexity.WebauthnRegistrationOptionsResponse.Options == nil {
+			break
+		}
+
+		return e.complexity.WebauthnRegistrationOptionsResponse.Options(childComplexity), true
+
 	case "Webhook.created_at":
 		if e.complexity.Webhook.CreatedAt == nil {
 			break
@@ -4014,6 +4166,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputVerifyEmailRequest,
 		ec.unmarshalInputVerifyOTPRequest,
 		ec.unmarshalInputVerifyOrgDomainRequest,
+		ec.unmarshalInputWebauthnLoginVerifyRequest,
+		ec.unmarshalInputWebauthnRegistrationVerifyRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
 	first := true
@@ -4232,6 +4386,47 @@ type AuthResponse {
 
 type Response {
   message: String!
+}
+
+# WebAuthn / passkey ceremony payloads. ` + "`" + `options` + "`" + ` and ` + "`" + `credential` + "`" + ` are opaque
+# JSON strings carrying the WebAuthn PublicKeyCredential* structures; the SDK
+# performs the base64url <-> ArrayBuffer conversion between these strings and
+# the browser's navigator.credentials API.
+type WebauthnRegistrationOptionsResponse {
+  # JSON-encoded PublicKeyCredentialCreationOptions to pass to
+  # navigator.credentials.create().
+  options: String!
+}
+
+type WebauthnLoginOptionsResponse {
+  # JSON-encoded PublicKeyCredentialRequestOptions to pass to
+  # navigator.credentials.get().
+  options: String!
+}
+
+type WebauthnCredentialInfo {
+  id: ID!
+  name: String!
+  transports: [String!]
+  created_at: Int64
+  updated_at: Int64
+  last_used_at: Int64
+}
+
+input WebauthnRegistrationVerifyRequest {
+  # Optional human label for the passkey (e.g. "MacBook Touch ID").
+  name: String
+  # JSON-encoded PublicKeyCredential attestation response from
+  # navigator.credentials.create().
+  credential: String!
+}
+
+input WebauthnLoginVerifyRequest {
+  # OAuth authorize state to continue an in-progress authorization, if any.
+  state: String
+  # JSON-encoded PublicKeyCredential assertion response from
+  # navigator.credentials.get().
+  credential: String!
 }
 
 # ---- Fine-grained authorization (FGA) types ----
@@ -5345,6 +5540,16 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
+  webauthn_registration_options(
+    email: String
+  ): WebauthnRegistrationOptionsResponse!
+  webauthn_registration_verify(
+    params: WebauthnRegistrationVerifyRequest!
+  ): Response!
+  webauthn_login_options(email: String): WebauthnLoginOptionsResponse!
+  webauthn_login_verify(params: WebauthnLoginVerifyRequest!): AuthResponse!
+  webauthn_delete_credential(id: ID!): Response!
   deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserRequest!): Response!
@@ -5413,6 +5618,8 @@ type Query {
   profile: User!
   validate_jwt_token(params: ValidateJWTTokenRequest!): ValidateJWTTokenResponse!
   validate_session(params: ValidateSessionRequest): ValidateSessionResponse!
+  # List the authenticated caller's own registered passkeys.
+  webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
   _users(params: PaginatedRequest): Users!
   _user(params: GetUserRequest!): User!
@@ -7054,6 +7261,146 @@ func (ec *executionContext) field_Mutation_verify_otp_argsParams(
 	}
 
 	var zeroVal model.VerifyOTPRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_delete_credential_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_webauthn_delete_credential_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_webauthn_delete_credential_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_login_options_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_webauthn_login_options_argsEmail(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_webauthn_login_options_argsEmail(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["email"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+	if tmp, ok := rawArgs["email"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_login_verify_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_webauthn_login_verify_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_webauthn_login_verify_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.WebauthnLoginVerifyRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.WebauthnLoginVerifyRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNWebauthnLoginVerifyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnLoginVerifyRequest(ctx, tmp)
+	}
+
+	var zeroVal model.WebauthnLoginVerifyRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_registration_options_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_webauthn_registration_options_argsEmail(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_webauthn_registration_options_argsEmail(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["email"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+	if tmp, ok := rawArgs["email"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_registration_verify_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_webauthn_registration_verify_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_webauthn_registration_verify_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.WebauthnRegistrationVerifyRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.WebauthnRegistrationVerifyRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNWebauthnRegistrationVerifyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnRegistrationVerifyRequest(ctx, tmp)
+	}
+
+	var zeroVal model.WebauthnRegistrationVerifyRequest
 	return zeroVal, nil
 }
 
@@ -16139,6 +16486,323 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_webauthn_registration_options(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_webauthn_registration_options(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WebauthnRegistrationOptions(rctx, fc.Args["email"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.WebauthnRegistrationOptionsResponse)
+	fc.Result = res
+	return ec.marshalNWebauthnRegistrationOptionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnRegistrationOptionsResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_webauthn_registration_options(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "options":
+				return ec.fieldContext_WebauthnRegistrationOptionsResponse_options(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WebauthnRegistrationOptionsResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_webauthn_registration_options_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_webauthn_registration_verify(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_webauthn_registration_verify(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WebauthnRegistrationVerify(rctx, fc.Args["params"].(model.WebauthnRegistrationVerifyRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_webauthn_registration_verify(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_webauthn_registration_verify_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_webauthn_login_options(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_webauthn_login_options(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WebauthnLoginOptions(rctx, fc.Args["email"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.WebauthnLoginOptionsResponse)
+	fc.Result = res
+	return ec.marshalNWebauthnLoginOptionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnLoginOptionsResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_webauthn_login_options(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "options":
+				return ec.fieldContext_WebauthnLoginOptionsResponse_options(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WebauthnLoginOptionsResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_webauthn_login_options_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_webauthn_login_verify(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_webauthn_login_verify(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WebauthnLoginVerify(rctx, fc.Args["params"].(model.WebauthnLoginVerifyRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResponse)
+	fc.Result = res
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_webauthn_login_verify(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_AuthResponse_message(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "access_token":
+				return ec.fieldContext_AuthResponse_access_token(ctx, field)
+			case "id_token":
+				return ec.fieldContext_AuthResponse_id_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
+			case "expires_in":
+				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_webauthn_login_verify_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_webauthn_delete_credential(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_webauthn_delete_credential(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().WebauthnDeleteCredential(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_webauthn_delete_credential(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_webauthn_delete_credential_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_deactivate_account(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_deactivate_account(ctx, field)
 	if err != nil {
@@ -22086,6 +22750,64 @@ func (ec *executionContext) fieldContext_Query_validate_session(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_webauthn_credentials(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_webauthn_credentials(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().WebauthnCredentials(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.WebauthnCredentialInfo)
+	fc.Result = res
+	return ec.marshalNWebauthnCredentialInfo2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnCredentialInfoᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_webauthn_credentials(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_WebauthnCredentialInfo_id(ctx, field)
+			case "name":
+				return ec.fieldContext_WebauthnCredentialInfo_name(ctx, field)
+			case "transports":
+				return ec.fieldContext_WebauthnCredentialInfo_transports(ctx, field)
+			case "created_at":
+				return ec.fieldContext_WebauthnCredentialInfo_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_WebauthnCredentialInfo_updated_at(ctx, field)
+			case "last_used_at":
+				return ec.fieldContext_WebauthnCredentialInfo_last_used_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WebauthnCredentialInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__users(ctx, field)
 	if err != nil {
@@ -26986,6 +27708,346 @@ func (ec *executionContext) fieldContext_VerificationRequests_verification_reque
 				return ec.fieldContext_VerificationRequest_redirect_uri(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VerificationRequest", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_transports(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_transports(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Transports, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_transports(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_created_at(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnCredentialInfo_last_used_at(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnCredentialInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnCredentialInfo_last_used_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastUsedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnCredentialInfo_last_used_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnCredentialInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnLoginOptionsResponse_options(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnLoginOptionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnLoginOptionsResponse_options(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Options, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnLoginOptionsResponse_options(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnLoginOptionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebauthnRegistrationOptionsResponse_options(ctx context.Context, field graphql.CollectedField, obj *model.WebauthnRegistrationOptionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WebauthnRegistrationOptionsResponse_options(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Options, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_WebauthnRegistrationOptionsResponse_options(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebauthnRegistrationOptionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -33661,6 +34723,74 @@ func (ec *executionContext) unmarshalInputVerifyOrgDomainRequest(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputWebauthnLoginVerifyRequest(ctx context.Context, obj any) (model.WebauthnLoginVerifyRequest, error) {
+	var it model.WebauthnLoginVerifyRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"state", "credential"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "credential":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("credential"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Credential = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputWebauthnRegistrationVerifyRequest(ctx context.Context, obj any) (model.WebauthnRegistrationVerifyRequest, error) {
+	var it model.WebauthnRegistrationVerifyRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "credential"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "credential":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("credential"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Credential = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, obj any) (model.WebhookRequest, error) {
 	var it model.WebhookRequest
 	asMap := map[string]any{}
@@ -35165,6 +36295,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "webauthn_registration_options":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_webauthn_registration_options(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "webauthn_registration_verify":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_webauthn_registration_verify(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "webauthn_login_options":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_webauthn_login_options(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "webauthn_login_verify":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_webauthn_login_verify(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "webauthn_delete_credential":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_webauthn_delete_credential(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deactivate_account":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deactivate_account(ctx, field)
@@ -36278,6 +37443,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_validate_session(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "webauthn_credentials":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_webauthn_credentials(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -37498,6 +38685,136 @@ func (ec *executionContext) _VerificationRequests(ctx context.Context, sel ast.S
 			}
 		case "verification_requests":
 			out.Values[i] = ec._VerificationRequests_verification_requests(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var webauthnCredentialInfoImplementors = []string{"WebauthnCredentialInfo"}
+
+func (ec *executionContext) _WebauthnCredentialInfo(ctx context.Context, sel ast.SelectionSet, obj *model.WebauthnCredentialInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webauthnCredentialInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebauthnCredentialInfo")
+		case "id":
+			out.Values[i] = ec._WebauthnCredentialInfo_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._WebauthnCredentialInfo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "transports":
+			out.Values[i] = ec._WebauthnCredentialInfo_transports(ctx, field, obj)
+		case "created_at":
+			out.Values[i] = ec._WebauthnCredentialInfo_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._WebauthnCredentialInfo_updated_at(ctx, field, obj)
+		case "last_used_at":
+			out.Values[i] = ec._WebauthnCredentialInfo_last_used_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var webauthnLoginOptionsResponseImplementors = []string{"WebauthnLoginOptionsResponse"}
+
+func (ec *executionContext) _WebauthnLoginOptionsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.WebauthnLoginOptionsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webauthnLoginOptionsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebauthnLoginOptionsResponse")
+		case "options":
+			out.Values[i] = ec._WebauthnLoginOptionsResponse_options(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var webauthnRegistrationOptionsResponseImplementors = []string{"WebauthnRegistrationOptionsResponse"}
+
+func (ec *executionContext) _WebauthnRegistrationOptionsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.WebauthnRegistrationOptionsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webauthnRegistrationOptionsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebauthnRegistrationOptionsResponse")
+		case "options":
+			out.Values[i] = ec._WebauthnRegistrationOptionsResponse_options(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -39617,6 +40934,98 @@ func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizer
 
 func (ec *executionContext) unmarshalNVerifyOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOrgDomainRequest(ctx context.Context, v any) (model.VerifyOrgDomainRequest, error) {
 	res, err := ec.unmarshalInputVerifyOrgDomainRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWebauthnCredentialInfo2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnCredentialInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WebauthnCredentialInfo) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWebauthnCredentialInfo2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnCredentialInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWebauthnCredentialInfo2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnCredentialInfo(ctx context.Context, sel ast.SelectionSet, v *model.WebauthnCredentialInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WebauthnCredentialInfo(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWebauthnLoginOptionsResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnLoginOptionsResponse(ctx context.Context, sel ast.SelectionSet, v model.WebauthnLoginOptionsResponse) graphql.Marshaler {
+	return ec._WebauthnLoginOptionsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWebauthnLoginOptionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnLoginOptionsResponse(ctx context.Context, sel ast.SelectionSet, v *model.WebauthnLoginOptionsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WebauthnLoginOptionsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNWebauthnLoginVerifyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnLoginVerifyRequest(ctx context.Context, v any) (model.WebauthnLoginVerifyRequest, error) {
+	res, err := ec.unmarshalInputWebauthnLoginVerifyRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWebauthnRegistrationOptionsResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnRegistrationOptionsResponse(ctx context.Context, sel ast.SelectionSet, v model.WebauthnRegistrationOptionsResponse) graphql.Marshaler {
+	return ec._WebauthnRegistrationOptionsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWebauthnRegistrationOptionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnRegistrationOptionsResponse(ctx context.Context, sel ast.SelectionSet, v *model.WebauthnRegistrationOptionsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WebauthnRegistrationOptionsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNWebauthnRegistrationVerifyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebauthnRegistrationVerifyRequest(ctx context.Context, v any) (model.WebauthnRegistrationVerifyRequest, error) {
+	res, err := ec.unmarshalInputWebauthnRegistrationVerifyRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

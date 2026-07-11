@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -28,6 +29,8 @@ type Dependencies struct {
 	// AuthenticatorProvider registers and validates TOTP authenticators
 	// (Google Authenticator) and recovery codes for MFA flows.
 	AuthenticatorProvider authenticators.Provider
+	// WebAuthnProvider runs WebAuthn/passkey registration and login ceremonies.
+	WebAuthnProvider webauthn.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
 	// It is nil unless an FGA store is configured (--fga-store);
 	// FGA-gated operations MUST fail closed (return an error) when it is nil.
@@ -134,6 +137,25 @@ type Provider interface {
 	// VerifyOTP validates an email/SMS OTP or TOTP/recovery code and logs the
 	// user in. Browser callers get a session cookie via side-effects. Public.
 	VerifyOTP(ctx context.Context, meta RequestMetadata, params *model.VerifyOTPRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// WebauthnRegistrationOptions begins a passkey registration ceremony for the
+	// authenticated caller. Requires a session. Public (self-service).
+	WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	// WebauthnRegistrationVerify verifies the attestation and stores the passkey
+	// for the authenticated caller. Requires a session. Public (self-service).
+	WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	// WebauthnLoginOptions begins a passkey login ceremony — usernameless when
+	// email is nil, else scoped to that user's credentials. Public.
+	WebauthnLoginOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnLoginOptionsResponse, error)
+	// WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+	// Browser callers get a session cookie via side-effects. Public.
+	WebauthnLoginVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnLoginVerifyRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+	// WebauthnCredentials lists the authenticated caller's own passkeys. Requires
+	// a session. Public (self-service).
+	WebauthnCredentials(ctx context.Context, meta RequestMetadata) ([]*model.WebauthnCredentialInfo, error)
+	// WebauthnDeleteCredential deletes one of the authenticated caller's own
+	// passkeys. Requires a session. Public (self-service).
+	WebauthnDeleteCredential(ctx context.Context, meta RequestMetadata, id string) (*model.Response, error)
 }
 
 // New constructs a new service provider.

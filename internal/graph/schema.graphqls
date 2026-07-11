@@ -120,6 +120,47 @@ type Response {
   message: String!
 }
 
+# WebAuthn / passkey ceremony payloads. `options` and `credential` are opaque
+# JSON strings carrying the WebAuthn PublicKeyCredential* structures; the SDK
+# performs the base64url <-> ArrayBuffer conversion between these strings and
+# the browser's navigator.credentials API.
+type WebauthnRegistrationOptionsResponse {
+  # JSON-encoded PublicKeyCredentialCreationOptions to pass to
+  # navigator.credentials.create().
+  options: String!
+}
+
+type WebauthnLoginOptionsResponse {
+  # JSON-encoded PublicKeyCredentialRequestOptions to pass to
+  # navigator.credentials.get().
+  options: String!
+}
+
+type WebauthnCredentialInfo {
+  id: ID!
+  name: String!
+  transports: [String!]
+  created_at: Int64
+  updated_at: Int64
+  last_used_at: Int64
+}
+
+input WebauthnRegistrationVerifyRequest {
+  # Optional human label for the passkey (e.g. "MacBook Touch ID").
+  name: String
+  # JSON-encoded PublicKeyCredential attestation response from
+  # navigator.credentials.create().
+  credential: String!
+}
+
+input WebauthnLoginVerifyRequest {
+  # OAuth authorize state to continue an in-progress authorization, if any.
+  state: String
+  # JSON-encoded PublicKeyCredential assertion response from
+  # navigator.credentials.get().
+  credential: String!
+}
+
 # ---- Fine-grained authorization (FGA) types ----
 
 # FgaTuple is a single relationship: user is related to object via relation.
@@ -1231,6 +1272,16 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
+  webauthn_registration_options(
+    email: String
+  ): WebauthnRegistrationOptionsResponse!
+  webauthn_registration_verify(
+    params: WebauthnRegistrationVerifyRequest!
+  ): Response!
+  webauthn_login_options(email: String): WebauthnLoginOptionsResponse!
+  webauthn_login_verify(params: WebauthnLoginVerifyRequest!): AuthResponse!
+  webauthn_delete_credential(id: ID!): Response!
   deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserRequest!): Response!
@@ -1299,6 +1350,8 @@ type Query {
   profile: User!
   validate_jwt_token(params: ValidateJWTTokenRequest!): ValidateJWTTokenResponse!
   validate_session(params: ValidateSessionRequest): ValidateSessionResponse!
+  # List the authenticated caller's own registered passkeys.
+  webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
   _users(params: PaginatedRequest): Users!
   _user(params: GetUserRequest!): User!

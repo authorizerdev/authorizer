@@ -194,6 +194,24 @@ type Provider interface {
 	// VerifyOTP is the method to verify OTP.
 	// Permissions: authorized otp request
 	VerifyOTP(ctx context.Context, params *model.VerifyOTPRequest) (*model.AuthResponse, error)
+	// WebauthnRegistrationOptions begins a passkey registration ceremony.
+	// Permissions: authenticated:user
+	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	// WebauthnRegistrationVerify stores a newly registered passkey.
+	// Permissions: authenticated:user
+	WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	// WebauthnLoginOptions begins a passkey login ceremony.
+	// Permissions: none
+	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
+	// WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+	// Permissions: none
+	WebauthnLoginVerify(ctx context.Context, params *model.WebauthnLoginVerifyRequest) (*model.AuthResponse, error)
+	// WebauthnCredentials lists the caller's own passkeys.
+	// Permissions: authenticated:user
+	WebauthnCredentials(ctx context.Context) ([]*model.WebauthnCredentialInfo, error)
+	// WebauthnDeleteCredential deletes one of the caller's own passkeys.
+	// Permissions: authenticated:user
+	WebauthnDeleteCredential(ctx context.Context, id string) (*model.Response, error)
 	// AuditLogs is the method to list audit logs.
 	// Permissions: authorizer:admin
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
