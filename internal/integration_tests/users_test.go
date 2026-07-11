@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -33,7 +34,7 @@ func TestUsers(t *testing.T) {
 
 	t.Run("should fail without admin auth", func(t *testing.T) {
 		req.Header.Set("Cookie", "")
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{})
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
 		assert.Error(t, err)
 		assert.Nil(t, users)
 	})
@@ -43,7 +44,7 @@ func TestUsers(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{})
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, users)
 		assert.GreaterOrEqual(t, len(users.Users), 3)
@@ -57,7 +58,7 @@ func TestUsers(t *testing.T) {
 
 		limit := int64(2)
 		page := int64(1)
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{
 			Pagination: &model.PaginationRequest{
 				Limit: &limit,
 				Page:  &page,
@@ -66,5 +67,39 @@ func TestUsers(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, users)
 		assert.LessOrEqual(t, int64(len(users.Users)), limit)
+	})
+
+	t.Run("should filter users by case-insensitive search query", func(t *testing.T) {
+		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		require.NoError(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
+
+		// Create a user with a unique token so the search matches exactly one.
+		token := "srch" + uuid.New().String()[:8]
+		email := fmt.Sprintf("%s@authorizer.dev", token)
+		password := "Password@123"
+		_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email:           &email,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+
+		// Search is case-insensitive: query the uppercased token.
+		query := strings.ToUpper(token)
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{Query: &query})
+		require.NoError(t, err)
+		require.NotNil(t, users)
+		assert.Equal(t, int64(1), users.Pagination.Total)
+		require.Len(t, users.Users, 1)
+		assert.Equal(t, email, *users.Users[0].Email)
+
+		// A query matching nothing returns an empty list.
+		noMatch := "no-such-user-" + uuid.New().String()
+		empty, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{Query: &noMatch})
+		require.NoError(t, err)
+		require.NotNil(t, empty)
+		assert.Equal(t, int64(0), empty.Pagination.Total)
+		assert.Len(t, empty.Users, 0)
 	})
 }

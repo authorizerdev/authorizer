@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -77,20 +78,31 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	var users []*schemas.User
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
 	paginationClone := pagination
+	filter := bson.M{}
+	if q := strings.TrimSpace(query); q != "" {
+		// QuoteMeta so user input is treated as a literal substring, not a regex.
+		rx := bson.M{"$regex": regexp.QuoteMeta(q), "$options": "i"}
+		filter = bson.M{"$or": []bson.M{
+			{"email": rx},
+			{"given_name": rx},
+			{"family_name": rx},
+			{"nickname": rx},
+		}}
+	}
 	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
-	count, err := userCollection.CountDocuments(ctx, bson.M{}, options.Count())
+	count, err := userCollection.CountDocuments(ctx, filter, options.Count())
 	if err != nil {
 		return nil, nil, err
 	}
 	paginationClone.Total = count
-	cursor, err := userCollection.Find(ctx, bson.M{}, opts)
+	cursor, err := userCollection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, nil, err
 	}

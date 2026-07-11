@@ -417,6 +417,11 @@ type ListTrustedIssuersRequest struct {
 	Pagination       *PaginatedRequest `json:"pagination,omitempty"`
 }
 
+type ListUsersRequest struct {
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
+	Query      *string            `json:"query,omitempty"`
+}
+
 type ListWebhookLogRequest struct {
 	Pagination *PaginationRequest `json:"pagination,omitempty"`
 	WebhookID  *string            `json:"webhook_id,omitempty"`

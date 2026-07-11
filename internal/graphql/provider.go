@@ -178,7 +178,7 @@ type Provider interface {
 	User(ctx context.Context, params *model.GetUserRequest) (*model.User, error)
 	// Users is the method to list users.
 	// Permissions: authorizer:admin
-	Users(ctx context.Context, in *model.PaginatedRequest) (*model.Users, error)
+	Users(ctx context.Context, in *model.ListUsersRequest) (*model.Users, error)
 	// ValidateJWTToken is the method to validate JWT token.
 	// Permissions: none
 	ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)

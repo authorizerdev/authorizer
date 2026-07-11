@@ -86,19 +86,52 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+// countUsers returns the total user count, honouring the optional WHERE filter
+// used by ListUsers search. When whereClause is empty it delegates to the
+// unfiltered GetTotalDocs; otherwise it runs a filtered COUNT with the same
+// positional parameters.
+func (p *provider) countUsers(ctx context.Context, whereClause string, params []interface{}) (int64, error) {
+	if whereClause == "" {
+		return p.GetTotalDocs(ctx, schemas.Collections.User)
+	}
+	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM %s.%s%s", p.scopeName, schemas.Collections.User, whereClause)
+	res, err := p.db.Query(countQuery, &gocb.QueryOptions{
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
+		PositionalParameters: params,
+	})
+	if err != nil {
+		return 0, err
+	}
+	totalDocs := TotalDocs{}
+	_ = res.One(&totalDocs)
+	return totalDocs.Total, nil
+}
+
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	users := []*schemas.User{}
 	paginationClone := pagination
-	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.User)
+
+	// Build an optional case-insensitive substring filter. Positional
+	// parameter indices are computed dynamically so offset/limit shift when the
+	// search pattern occupies $1.
+	whereClause := ""
+	params := []interface{}{}
+	if q := strings.TrimSpace(query); q != "" {
+		whereClause = " WHERE LOWER(email) LIKE $1 OR LOWER(given_name) LIKE $1 OR LOWER(family_name) LIKE $1 OR LOWER(nickname) LIKE $1"
+		params = append(params, "%"+strings.ToLower(q)+"%")
+	}
+
+	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, app_data, is_active, external_id, created_at, updated_at FROM %s.%s%s ORDER BY id OFFSET $%d LIMIT $%d", p.scopeName, schemas.Collections.User, whereClause, len(params)+1, len(params)+2)
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
-		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
+		PositionalParameters: append(append([]interface{}{}, params...), paginationClone.Offset, paginationClone.Limit),
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	total, err := p.GetTotalDocs(ctx, schemas.Collections.User)
+	total, err := p.countUsers(ctx, whereClause, params)
 	if err != nil {
 		return nil, nil, err
 	}

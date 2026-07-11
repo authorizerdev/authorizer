@@ -821,6 +821,14 @@ input PaginatedRequest {
   pagination: PaginationRequest
 }
 
+# ListUsersRequest is the admin _users query input. query is an optional
+# case-insensitive substring filter matched against email, given_name,
+# family_name and nickname. Empty/absent means no filter (full list).
+input ListUsersRequest {
+  pagination: PaginationRequest
+  query: String
+}
+
 input OAuthRevokeRequest {
   refresh_token: String!
 }
@@ -1353,7 +1361,7 @@ type Query {
   # List the authenticated caller's own registered passkeys.
   webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
-  _users(params: PaginatedRequest): Users!
+  _users(params: ListUsersRequest): Users!
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!

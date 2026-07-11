@@ -30,7 +30,7 @@ type AdminProvider interface {
 	AdminMeta(ctx context.Context, meta RequestMetadata) (*model.AdminMeta, *ResponseSideEffects, error)
 
 	// Users.
-	Users(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Users, *ResponseSideEffects, error)
+	Users(ctx context.Context, meta RequestMetadata, params *model.ListUsersRequest) (*model.Users, *ResponseSideEffects, error)
 	User(ctx context.Context, meta RequestMetadata, params *model.GetUserRequest) (*model.User, *ResponseSideEffects, error)
 	UpdateUser(ctx context.Context, meta RequestMetadata, params *model.UpdateUserRequest) (*model.User, *ResponseSideEffects, error)
 	DeleteUser(ctx context.Context, meta RequestMetadata, params *model.DeleteUserRequest) (*model.Response, *ResponseSideEffects, error)

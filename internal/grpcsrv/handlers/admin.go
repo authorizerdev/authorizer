@@ -72,7 +72,11 @@ func (h *AdminHandler) AdminMeta(ctx context.Context, _ *authorizerv1.AdminMetaR
 // Users delegates to service.Users and projects the paginated result. Requires
 // super-admin auth.
 func (h *AdminHandler) Users(ctx context.Context, req *authorizerv1.UsersRequest) (*authorizerv1.UsersResponse, error) {
-	res, _, err := h.Service.Users(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	query := req.GetQuery()
+	res, _, err := h.Service.Users(ctx, transport.MetaFromGRPC(ctx), &model.ListUsersRequest{
+		Pagination: modelPaginationRequest(req.GetPagination()),
+		Query:      &query,
+	})
 	if err != nil {
 		return nil, err
 	}

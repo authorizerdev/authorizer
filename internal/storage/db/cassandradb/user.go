@@ -150,9 +150,51 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	responseUsers := []*schemas.User{}
 	paginationClone := pagination
+	const columns = "id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at"
+	scanUser := func(scanner gocql.Scanner) (*schemas.User, error) {
+		var user schemas.User
+		err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods,
+			&user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber,
+			&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
+			&user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+		return &user, err
+	}
+
+	if search := strings.TrimSpace(query); search != "" {
+		// ponytail: Cassandra/ScyllaDB has no substring index on non-key
+		// columns, so search does a full-table scan and filters in application
+		// code — O(n). Acceptable for an admin search surface; upgrade path is a
+		// SASI/secondary index or an external search service at scale.
+		q := fmt.Sprintf("SELECT %s FROM %s", columns, KeySpace+"."+schemas.Collections.User)
+		scanner := p.db.Query(q).Iter().Scanner()
+		matched := []*schemas.User{}
+		for scanner.Next() {
+			user, err := scanUser(scanner)
+			if err != nil {
+				return nil, nil, err
+			}
+			if user.MatchesSearch(search) {
+				matched = append(matched, user)
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, nil, err
+		}
+		paginationClone.Total = int64(len(matched))
+		start := pagination.Offset
+		if start > int64(len(matched)) {
+			start = int64(len(matched))
+		}
+		end := start + pagination.Limit
+		if end > int64(len(matched)) {
+			end = int64(len(matched))
+		}
+		return matched[start:end], paginationClone, nil
+	}
+
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.User)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
@@ -162,21 +204,17 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.User,
+	q := fmt.Sprintf("SELECT %s FROM %s LIMIT %d", columns, KeySpace+"."+schemas.Collections.User,
 		pagination.Limit+pagination.Offset)
-	scanner := p.db.Query(query).Iter().Scanner()
+	scanner := p.db.Query(q).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var user schemas.User
-			err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods,
-				&user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber,
-				&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
-				&user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+			user, err := scanUser(scanner)
 			if err != nil {
 				return nil, nil, err
 			}
-			responseUsers = append(responseUsers, &user)
+			responseUsers = append(responseUsers, user)
 		}
 		counter++
 	}

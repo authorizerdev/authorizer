@@ -470,7 +470,7 @@ type ComplexityRoot struct {
 		TrustedIssuer        func(childComplexity int, params model.TrustedIssuerRequest) int
 		TrustedIssuers       func(childComplexity int, params *model.ListTrustedIssuersRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
-		Users                func(childComplexity int, params *model.PaginatedRequest) int
+		Users                func(childComplexity int, params *model.ListUsersRequest) int
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
 		ValidateSession      func(childComplexity int, params *model.ValidateSessionRequest) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedRequest) int
@@ -700,7 +700,7 @@ type QueryResolver interface {
 	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)
 	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
 	WebauthnCredentials(ctx context.Context) ([]*model.WebauthnCredentialInfo, error)
-	Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error)
+	Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
@@ -3374,7 +3374,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.Users(childComplexity, args["params"].(*model.ListUsersRequest)), true
 
 	case "Query.validate_jwt_token":
 		if e.complexity.Query.ValidateJwtToken == nil {
@@ -4128,6 +4128,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListOrganizationsRequest,
 		ec.unmarshalInputListPermissionsInput,
 		ec.unmarshalInputListTrustedIssuersRequest,
+		ec.unmarshalInputListUsersRequest,
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginRequest,
 		ec.unmarshalInputMagicLinkLoginRequest,
@@ -5089,6 +5090,14 @@ input PaginatedRequest {
   pagination: PaginationRequest
 }
 
+# ListUsersRequest is the admin _users query input. query is an optional
+# case-insensitive substring filter matched against email, given_name,
+# family_name and nickname. Empty/absent means no filter (full list).
+input ListUsersRequest {
+  pagination: PaginationRequest
+  query: String
+}
+
 input OAuthRevokeRequest {
   refresh_token: String!
 }
@@ -5621,7 +5630,7 @@ type Query {
   # List the authenticated caller's own registered passkeys.
   webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
-  _users(params: PaginatedRequest): Users!
+  _users(params: ListUsersRequest): Users!
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
@@ -7921,18 +7930,18 @@ func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query__users_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
+) (*model.ListUsersRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
+		var zeroVal *model.ListUsersRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+		return ec.unmarshalOListUsersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListUsersRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedRequest
+	var zeroVal *model.ListUsersRequest
 	return zeroVal, nil
 }
 
@@ -22822,7 +22831,7 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.ListUsersRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -32255,6 +32264,40 @@ func (ec *executionContext) unmarshalInputListTrustedIssuersRequest(ctx context.
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputListUsersRequest(ctx context.Context, obj any) (model.ListUsersRequest, error) {
+	var it model.ListUsersRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"pagination", "query"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
+		case "query":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Query = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Context, obj any) (model.ListWebhookLogRequest, error) {
 	var it model.ListWebhookLogRequest
 	asMap := map[string]any{}
@@ -41558,6 +41601,14 @@ func (ec *executionContext) unmarshalOListTrustedIssuersRequest2ᚖgithubᚗcom�
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputListTrustedIssuersRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOListUsersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListUsersRequest(ctx context.Context, v any) (*model.ListUsersRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListUsersRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

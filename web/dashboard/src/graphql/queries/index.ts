@@ -16,7 +16,7 @@ export const AdminSessionQuery = `
 `;
 
 export const UserDetailsQuery = `
-  query($params: PaginatedRequest) {
+  query($params: ListUsersRequest) {
     _users(params: $params) {
       pagination {
         limit

@@ -13,7 +13,7 @@ import (
 // transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error) {
+func (g *graphqlProvider) Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")

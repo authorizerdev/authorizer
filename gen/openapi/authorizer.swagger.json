@@ -3960,6 +3960,10 @@
       "properties": {
         "pagination": {
           "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "query": {
+          "type": "string",
+          "description": "query is an optional case-insensitive substring filter matched against\nemail, given_name, family_name and nickname. Empty means no filter."
         }
       }
     },

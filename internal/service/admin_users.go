@@ -21,16 +21,25 @@ import (
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
-// Users returns a paginated list of all users. Requires super-admin auth.
-// Logic migrated from internal/graphql/users.go.
-func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Users, *ResponseSideEffects, error) {
+// Users returns a paginated list of all users, optionally filtered by a
+// case-insensitive substring search (params.Query) over email/given_name/
+// family_name/nickname. Requires super-admin auth. Logic migrated from
+// internal/graphql/users.go.
+func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *model.ListUsersRequest) (*model.Users, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Users").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
 	}
 
-	pagination := utils.GetPagination(params)
-	res, pagination, err := p.StorageProvider.ListUsers(ctx, pagination)
+	var query string
+	var pagination *model.Pagination
+	if params != nil {
+		pagination = utils.GetPagination(&model.PaginatedRequest{Pagination: params.Pagination})
+		query = refs.StringValue(params.Query)
+	} else {
+		pagination = utils.GetPagination(nil)
+	}
+	res, pagination, err := p.StorageProvider.ListUsers(ctx, pagination, query)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed ListUsers")
 		return nil, nil, err

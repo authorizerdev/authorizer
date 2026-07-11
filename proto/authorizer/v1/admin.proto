@@ -463,6 +463,9 @@ message AdminMeta {
 
 message UsersRequest {
   PaginationRequest pagination = 1;
+  // query is an optional case-insensitive substring filter matched against
+  // email, given_name, family_name and nickname. Empty means no filter.
+  string query = 2;
 }
 message UsersResponse {
   repeated User users = 1;

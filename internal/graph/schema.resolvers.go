@@ -373,7 +373,7 @@ func (r *queryResolver) WebauthnCredentials(ctx context.Context) ([]*model.Webau
 }
 
 // Users is the resolver for the _users field.
-func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error) {
+func (r *queryResolver) Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error) {
 	return r.GraphQLProvider.Users(ctx, params)
 }
 
