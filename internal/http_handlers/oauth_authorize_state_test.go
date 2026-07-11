@@ -241,3 +241,6 @@ func (f *fakeMemoryStore) SetCache(key string, value string, ttlSeconds int64) e
 }
 func (f *fakeMemoryStore) GetCache(key string) (string, error)     { return "", nil }
 func (f *fakeMemoryStore) DeleteCacheByPrefix(prefix string) error { return nil }
+func (f *fakeMemoryStore) IncrementCache(key string, ttlSeconds int64) (int64, error) {
+	return 1, nil
+}

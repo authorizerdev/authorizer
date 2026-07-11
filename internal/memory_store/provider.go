@@ -76,6 +76,13 @@ type Provider interface {
 	// DeleteCacheByPrefix removes all cache entries whose keys start with the given prefix.
 	// Used for cache invalidation when permissions/policies change.
 	DeleteCacheByPrefix(prefix string) error
+	// IncrementCache atomically increments the integer counter at key (creating
+	// it at 1 if absent or expired) and (re)sets its TTL, returning the new
+	// value. Unlike a GetCache/SetCache pair, this is safe under concurrent
+	// callers - required for any use as a rate-limit/lockout counter, where a
+	// non-atomic read-modify-write lets concurrent requests all observe the
+	// same pre-increment count and bypass the limit.
+	IncrementCache(key string, ttlSeconds int64) (int64, error)
 
 	// GetAllData returns all the data from the session store
 	// This is used for testing purposes only

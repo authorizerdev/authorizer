@@ -17,6 +17,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
+const (
+	// totpMaxFailedAttempts is the number of failed TOTP/recovery-code
+	// verifications tolerated for a single user before verification is
+	// locked. The global per-IP rate limiter does not stop an attacker
+	// spreading brute-force guesses for one account across many IPs, so we
+	// additionally cap failures per user.
+	totpMaxFailedAttempts = 5
+	// totpLockoutWindowSeconds is both the sliding window over which
+	// failures accumulate and the duration verification stays locked once
+	// the threshold is hit (15 minutes).
+	totpLockoutWindowSeconds = 15 * 60
+	// totpLockoutCachePrefix namespaces the per-user failed-attempt counter
+	// in the memory store. This is transient state, deliberately kept out
+	// of the DB schema so no storage provider needs a new column.
+	totpLockoutCachePrefix = "totp_failed_attempts:"
+)
+
 // VerifyOTP verifies a one-time passcode (email/SMS OTP, TOTP, or recovery
 // code) for a pending MFA session and, on success, issues an auth token.
 // Transport-agnostic port of graphqlProvider.VerifyOTP.
@@ -68,26 +85,68 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		return nil, nil, FailedPrecondition("invalid verification request")
 	}
 
+	// Validate the MFA session before doing ANY code/lockout-counter work.
+	// This must run first: the TOTP lockout counter below is keyed by
+	// user.ID alone, resolvable from a bare email with no proof the caller
+	// ever completed the password step. Checking the session first means an
+	// attacker who only knows a victim's email - with no valid session - is
+	// rejected before they can touch (and so exhaust) the victim's lockout
+	// counter, closing an unauthenticated account-lockout DoS.
+	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+		log.Debug().Err(err).Msg("Failed to get mfa session")
+		return nil, nil, Unauthenticated(`invalid session`)
+	}
+
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.IsTotp) {
-		status, err := p.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
+		// Per-user lockout: atomically reserve this attempt's slot BEFORE
+		// validating, then check whether it exceeded the budget. This is
+		// deliberately increment-then-check rather than check-then-increment:
+		// under concurrent requests, IncrementCache still hands out strictly
+		// increasing, unique counts (1,2,3,...), so at most
+		// totpMaxFailedAttempts requests can ever reach validation in a
+		// window no matter how many arrive simultaneously. A
+		// check-then-increment design (read count, compare, validate, then
+		// write count+1) lets arbitrarily many concurrent requests all read
+		// the same pre-increment count and all pass the check, defeating the
+		// lockout entirely - parallelizing the exact brute-force attack this
+		// exists to stop.
+		lockKey := totpLockoutCachePrefix + user.ID
+		attempts, incErr := p.MemoryStoreProvider.IncrementCache(lockKey, totpLockoutWindowSeconds)
+		if incErr != nil {
+			// A memory-store fault must not be counted as a user failure or
+			// block a legitimate user (avoids self-lockout on outage) - same
+			// fail-open philosophy already used below for
+			// ValidateRecoveryCode's storage-fault case.
+			log.Debug().Err(incErr).Msg("Failed to increment totp failed-attempt counter")
+		} else if attempts > totpMaxFailedAttempts {
+			log.Debug().Int64("attempts", attempts).Msg("TOTP verification locked: too many failed attempts")
+			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
+		}
+
+		verified, err := p.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to validate passcode")
 			return nil, nil, errors.New("error while validating passcode")
 		}
-		if !status {
-			log.Debug().Msg("Failed to verify otp request: Incorrect value")
-			log.Info().Msg("Checking if otp is recovery code")
-			// Check if otp is recovery code
-			isValidRecoveryCode, err := p.AuthenticatorProvider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
+		if !verified {
+			log.Info().Msg("TOTP passcode invalid, checking if it is a recovery code")
+			// ValidateRecoveryCode returns (false, nil) for an invalid or
+			// already-used code; a non-nil error is a storage fault and must
+			// not be counted as a user failure (avoids self-lockout on outage).
+			verified, err = p.AuthenticatorProvider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to validate recovery code")
 				return nil, nil, errors.New("error while validating recovery code")
 			}
-			if !isValidRecoveryCode {
-				log.Debug().Msg("Failed to verify otp request: Incorrect value")
-				return nil, nil, InvalidArgument(`invalid otp`)
-			}
+		}
+		if !verified {
+			log.Debug().Msg("Failed to verify otp request: Incorrect value")
+			return nil, nil, InvalidArgument(`invalid otp`)
+		}
+		// Successful verification clears the failed-attempt counter for this user.
+		if cErr := p.MemoryStoreProvider.DeleteCacheByPrefix(lockKey); cErr != nil {
+			log.Debug().Err(cErr).Msg("Failed to reset totp failed-attempt counter")
 		}
 	} else {
 		var otp *schemas.OTP
@@ -122,11 +181,6 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 			log.Debug().Err(err).Msg("Failed to delete otp")
 		}
-	}
-
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
-		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, nil, Unauthenticated(`invalid session`)
 	}
 
 	isSignUp := false

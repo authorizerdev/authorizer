@@ -1,6 +1,8 @@
 package crypto
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strings"
 )
@@ -54,4 +56,28 @@ func DecryptTOTPSecret(stored, key string) (string, error) {
 // successful validation.
 func IsEncryptedTOTPSecret(stored string) bool {
 	return strings.HasPrefix(stored, TOTPCipherPrefix)
+}
+
+// HashRecoveryCode returns the hex-encoded SHA-256 digest of a TOTP
+// recovery code. Recovery codes are generated as random UUIDs — already
+// high-entropy — so a fast one-way hash is sufficient: there is nothing
+// to brute-force offline the way there is with a user-chosen password, so
+// the slow-hash cost of bcrypt/argon2 would be wasted. Storing only the
+// digest means an offline DB dump no longer reveals usable recovery codes.
+func HashRecoveryCode(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:])
+}
+
+// IsHashedRecoveryCode reports whether a stored recovery-code map key is a
+// SHA-256 digest (64 hex chars) written by HashRecoveryCode, as opposed to
+// a legacy plaintext UUID (36 chars, contains dashes) written by a
+// pre-hashing release. Used by the totp authenticator's lazy migration to
+// decide whether an incoming code must be hashed before comparison.
+func IsHashedRecoveryCode(stored string) bool {
+	if len(stored) != hex.EncodedLen(sha256.Size) {
+		return false
+	}
+	_, err := hex.DecodeString(stored)
+	return err == nil
 }

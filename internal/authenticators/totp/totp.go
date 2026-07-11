@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"image/png"
 	"time"
 
@@ -48,13 +47,18 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 	for i := 0; i < 10; i++ {
 		recoveryCodes = append(recoveryCodes, uuid.NewString())
 	}
-	// Converting recoveryCodes to string
+	// recoverCodesMap is the plaintext map returned to the caller once (the
+	// frontend shows these codes to the user at enrollment). storedCodesMap
+	// keys on the SHA-256 hash of each code — only the hashed form is
+	// persisted, so an offline DB dump never reveals usable recovery codes.
 	recoverCodesMap := map[string]bool{}
+	storedCodesMap := map[string]bool{}
 	for i := 0; i < len(recoveryCodes); i++ {
 		recoverCodesMap[recoveryCodes[i]] = false
+		storedCodesMap[crypto.HashRecoveryCode(recoveryCodes[i])] = false
 	}
-	// Converting recoveryCodesMap to string
-	jsonData, err := json.Marshal(recoverCodesMap)
+	// Converting storedCodesMap (hashed) to string for persistence
+	jsonData, err := json.Marshal(storedCodesMap)
 	if err != nil {
 		return nil, err
 	}
@@ -221,14 +225,26 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 	if err != nil {
 		return false, err
 	}
-	// check if recovery code is valid
-	if val, ok := recoveryCodesMap[recoveryCode]; !ok {
-		return false, fmt.Errorf("invalid recovery code")
-	} else if val {
-		return false, fmt.Errorf("recovery code already used")
+	// Recovery codes are stored as SHA-256 hashes. Look up the hash of the
+	// supplied code; if it isn't present, fall back to a direct plaintext
+	// lookup for rows written by a pre-hashing release (lazy backward
+	// compatibility, mirroring the TOTP secret migration in Validate). The
+	// matched key is marked consumed either way, preserving one-time use.
+	matchKey := crypto.HashRecoveryCode(recoveryCode)
+	val, ok := recoveryCodesMap[matchKey]
+	if !ok {
+		// Legacy plaintext row: the code itself is the stored key.
+		matchKey = recoveryCode
+		val, ok = recoveryCodesMap[matchKey]
 	}
-	// update recovery code map
-	recoveryCodesMap[recoveryCode] = true
+	if !ok || val {
+		// Not a known code, or one that has already been consumed: this is
+		// a verification failure, not a server fault. Return (false, nil) so
+		// the caller counts it as a failed attempt rather than an error.
+		return false, nil
+	}
+	// mark the matched recovery code consumed
+	recoveryCodesMap[matchKey] = true
 	// convert recoveryCodesMap to string
 	jsonData, err := json.Marshal(recoveryCodesMap)
 	if err != nil {
