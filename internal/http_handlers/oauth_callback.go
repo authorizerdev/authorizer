@@ -417,10 +417,10 @@ func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*sc
 	}
 
 	oidcProvider, err := getOIDCProvider(ctx, "https://accounts.google.com")
-	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.GoogleClientID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
+	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.GoogleClientID})
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
@@ -965,6 +965,9 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
 	oidcProvider, err := getOIDCProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+	}
 	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
 	verifier := oidcProvider.Verifier(&oidc.Config{
 		ClientID:        h.MicrosoftClientID,
