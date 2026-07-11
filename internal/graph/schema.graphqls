@@ -448,6 +448,38 @@ type OrgMembers {
   org_members: [OrgMember!]!
 }
 
+# OrgDomain is a VERIFIED mapping from a DNS domain to exactly one organization,
+# used for home-realm discovery (routing a login to the correct tenant IdP). A
+# row exists ONLY once the domain is verified — a pending challenge is not
+# returned here.
+type OrgDomain {
+  domain: String!
+  org_id: String!
+  verified_at: Int64
+  created_at: Int64
+  updated_at: Int64
+}
+
+type OrgDomains {
+  pagination: Pagination!
+  org_domains: [OrgDomain!]!
+}
+
+# OrgDomainChallenge is the DNS TXT record a tenant must publish to prove control
+# of a domain. Returned by _request_org_domain; no durable row exists until the
+# domain is verified. The token lives only in the ephemeral challenge, never in
+# the routing table.
+type OrgDomainChallenge {
+  domain: String!
+  # record_type is always "TXT".
+  record_type: String!
+  # record_name is the DNS name to create, e.g. _authorizer-challenge.acme.com
+  record_name: String!
+  # record_value is the exact TXT value to publish,
+  # e.g. authorizer-domain-verification=<token>
+  record_value: String!
+}
+
 type WebhookLog {
   id: ID!
   http_status: Int64
@@ -997,6 +1029,33 @@ input ScimEndpointRequest {
   org_id: String!
 }
 
+# Verified-domain admin ops. request/verify/list/add are keyed by org_id (the
+# org being written); delete is keyed by domain alone (the owning org is loaded
+# from the row, then authorized).
+input RequestOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input VerifyOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input AddVerifiedOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input ListOrgDomainsRequest {
+  org_id: String!
+  pagination: PaginatedRequest
+}
+
+input DeleteOrgDomainRequest {
+  domain: String!
+}
+
 input AddOrgMemberRequest {
   org_id: String!
   user_id: String!
@@ -1216,6 +1275,12 @@ type Mutation {
   _create_scim_endpoint(params: CreateScimEndpointRequest!): CreateScimEndpointResponse!
   _rotate_scim_token(params: ScimEndpointRequest!): CreateScimEndpointResponse!
   _delete_scim_endpoint(params: ScimEndpointRequest!): Response!
+  # Per-org verified domains for home-realm discovery. request/verify/delete are
+  # org-admin gated; _add_verified_org_domain is super-admin only (trusted-assert).
+  _request_org_domain(params: RequestOrgDomainRequest!): OrgDomainChallenge!
+  _verify_org_domain(params: VerifyOrgDomainRequest!): OrgDomain!
+  _add_verified_org_domain(params: AddVerifiedOrgDomainRequest!): OrgDomain!
+  _delete_org_domain(params: DeleteOrgDomainRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -1260,6 +1325,8 @@ type Query {
   _org_members(params: ListOrgMembersRequest!): OrgMembers!
   # Per-org inbound SCIM 2.0 endpoint metadata (token never returned here).
   _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
+  # An org's verified domains (org-admin gated; never leaks another org's rows).
+  _org_domains(params: ListOrgDomainsRequest!): OrgDomains!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)

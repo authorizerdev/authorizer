@@ -69,6 +69,11 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 			return err
 		}
 	}
+	// Cascade verified domains — otherwise the domain becomes permanently
+	// unclaimable (it is the unique partition key of org_domains).
+	if err := p.DeleteOrgDomainsByOrg(ctx, org.ID); err != nil {
+		return err
+	}
 	return p.deleteItemByHash(ctx, schemas.Collections.Organization, "id", org.ID)
 }
 

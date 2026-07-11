@@ -278,6 +278,16 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// OrgDomain collection and indexes. Uniqueness is enforced by _id being the
+	// normalized domain (no unique index needed); org_id is indexed for listing.
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.OrgDomain, options.CreateCollection())
+	orgDomainCollection := mongodb.Collection(schemas.Collections.OrgDomain, options.Collection())
+	_, _ = orgDomainCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.M{"org_id": 1},
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

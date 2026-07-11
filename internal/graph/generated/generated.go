@@ -283,6 +283,7 @@ type ComplexityRoot struct {
 		AddEmailTemplate        func(childComplexity int, params model.AddEmailTemplateRequest) int
 		AddOrgMember            func(childComplexity int, params model.AddOrgMemberRequest) int
 		AddTrustedIssuer        func(childComplexity int, params model.AddTrustedIssuerRequest) int
+		AddVerifiedOrgDomain    func(childComplexity int, params model.AddVerifiedOrgDomainRequest) int
 		AddWebhook              func(childComplexity int, params model.AddWebhookRequest) int
 		AdminLogin              func(childComplexity int, params model.AdminLoginRequest) int
 		AdminLogout             func(childComplexity int) int
@@ -295,6 +296,7 @@ type ComplexityRoot struct {
 		DeactivateAccount       func(childComplexity int) int
 		DeleteClient            func(childComplexity int, params model.ClientRequest) int
 		DeleteEmailTemplate     func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteOrgDomain         func(childComplexity int, params model.DeleteOrgDomainRequest) int
 		DeleteOrgOidcConnection func(childComplexity int, params model.OrgOIDCConnectionRequest) int
 		DeleteOrgSamlConnection func(childComplexity int, params model.OrgSAMLConnectionRequest) int
 		DeleteOrganization      func(childComplexity int, params model.OrganizationRequest) int
@@ -316,6 +318,7 @@ type ComplexityRoot struct {
 		MobileLogin             func(childComplexity int, params model.MobileLoginRequest) int
 		MobileSignup            func(childComplexity int, params *model.MobileSignUpRequest) int
 		RemoveOrgMember         func(childComplexity int, params model.RemoveOrgMemberRequest) int
+		RequestOrgDomain        func(childComplexity int, params model.RequestOrgDomainRequest) int
 		ResendOtp               func(childComplexity int, params model.ResendOTPRequest) int
 		ResendVerifyEmail       func(childComplexity int, params model.ResendVerifyEmailRequest) int
 		ResetPassword           func(childComplexity int, params model.ResetPasswordRequest) int
@@ -336,7 +339,28 @@ type ComplexityRoot struct {
 		UpdateUser              func(childComplexity int, params model.UpdateUserRequest) int
 		UpdateWebhook           func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail             func(childComplexity int, params model.VerifyEmailRequest) int
+		VerifyOrgDomain         func(childComplexity int, params model.VerifyOrgDomainRequest) int
 		VerifyOtp               func(childComplexity int, params model.VerifyOTPRequest) int
+	}
+
+	OrgDomain struct {
+		CreatedAt  func(childComplexity int) int
+		Domain     func(childComplexity int) int
+		OrgID      func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		VerifiedAt func(childComplexity int) int
+	}
+
+	OrgDomainChallenge struct {
+		Domain      func(childComplexity int) int
+		RecordName  func(childComplexity int) int
+		RecordType  func(childComplexity int) int
+		RecordValue func(childComplexity int) int
+	}
+
+	OrgDomains struct {
+		OrgDomains func(childComplexity int) int
+		Pagination func(childComplexity int) int
 	}
 
 	OrgMember struct {
@@ -428,6 +452,7 @@ type ComplexityRoot struct {
 		FgaReadTuples        func(childComplexity int, params model.FgaReadTuplesInput) int
 		ListPermissions      func(childComplexity int, params model.ListPermissionsInput) int
 		Meta                 func(childComplexity int) int
+		OrgDomains           func(childComplexity int, params model.ListOrgDomainsRequest) int
 		OrgMembers           func(childComplexity int, params model.ListOrgMembersRequest) int
 		OrgOidcConnection    func(childComplexity int, params model.OrgOIDCConnectionRequest) int
 		OrgSamlConnection    func(childComplexity int, params model.OrgSAMLConnectionRequest) int
@@ -626,6 +651,10 @@ type MutationResolver interface {
 	CreateScimEndpoint(ctx context.Context, params model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
 	RotateScimToken(ctx context.Context, params model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, error)
 	DeleteScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.Response, error)
+	RequestOrgDomain(ctx context.Context, params model.RequestOrgDomainRequest) (*model.OrgDomainChallenge, error)
+	VerifyOrgDomain(ctx context.Context, params model.VerifyOrgDomainRequest) (*model.OrgDomain, error)
+	AddVerifiedOrgDomain(ctx context.Context, params model.AddVerifiedOrgDomainRequest) (*model.OrgDomain, error)
+	DeleteOrgDomain(ctx context.Context, params model.DeleteOrgDomainRequest) (*model.Response, error)
 	TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error)
 	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
 	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
@@ -660,6 +689,7 @@ type QueryResolver interface {
 	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
 	ScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.ScimEndpoint, error)
+	OrgDomains(ctx context.Context, params model.ListOrgDomainsRequest) (*model.OrgDomains, error)
 	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
@@ -1873,6 +1903,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AddTrustedIssuer(childComplexity, args["params"].(model.AddTrustedIssuerRequest)), true
 
+	case "Mutation._add_verified_org_domain":
+		if e.complexity.Mutation.AddVerifiedOrgDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__add_verified_org_domain_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddVerifiedOrgDomain(childComplexity, args["params"].(model.AddVerifiedOrgDomainRequest)), true
+
 	case "Mutation._add_webhook":
 		if e.complexity.Mutation.AddWebhook == nil {
 			break
@@ -2006,6 +2048,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEmailTemplate(childComplexity, args["params"].(model.DeleteEmailTemplateRequest)), true
+
+	case "Mutation._delete_org_domain":
+		if e.complexity.Mutation.DeleteOrgDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_org_domain_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteOrgDomain(childComplexity, args["params"].(model.DeleteOrgDomainRequest)), true
 
 	case "Mutation._delete_org_oidc_connection":
 		if e.complexity.Mutation.DeleteOrgOidcConnection == nil {
@@ -2249,6 +2303,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.RemoveOrgMember(childComplexity, args["params"].(model.RemoveOrgMemberRequest)), true
 
+	case "Mutation._request_org_domain":
+		if e.complexity.Mutation.RequestOrgDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__request_org_domain_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestOrgDomain(childComplexity, args["params"].(model.RequestOrgDomainRequest)), true
+
 	case "Mutation.resend_otp":
 		if e.complexity.Mutation.ResendOtp == nil {
 			break
@@ -2489,6 +2555,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailRequest)), true
 
+	case "Mutation._verify_org_domain":
+		if e.complexity.Mutation.VerifyOrgDomain == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__verify_org_domain_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.VerifyOrgDomain(childComplexity, args["params"].(model.VerifyOrgDomainRequest)), true
+
 	case "Mutation.verify_otp":
 		if e.complexity.Mutation.VerifyOtp == nil {
 			break
@@ -2500,6 +2578,83 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.VerifyOtp(childComplexity, args["params"].(model.VerifyOTPRequest)), true
+
+	case "OrgDomain.created_at":
+		if e.complexity.OrgDomain.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgDomain.CreatedAt(childComplexity), true
+
+	case "OrgDomain.domain":
+		if e.complexity.OrgDomain.Domain == nil {
+			break
+		}
+
+		return e.complexity.OrgDomain.Domain(childComplexity), true
+
+	case "OrgDomain.org_id":
+		if e.complexity.OrgDomain.OrgID == nil {
+			break
+		}
+
+		return e.complexity.OrgDomain.OrgID(childComplexity), true
+
+	case "OrgDomain.updated_at":
+		if e.complexity.OrgDomain.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgDomain.UpdatedAt(childComplexity), true
+
+	case "OrgDomain.verified_at":
+		if e.complexity.OrgDomain.VerifiedAt == nil {
+			break
+		}
+
+		return e.complexity.OrgDomain.VerifiedAt(childComplexity), true
+
+	case "OrgDomainChallenge.domain":
+		if e.complexity.OrgDomainChallenge.Domain == nil {
+			break
+		}
+
+		return e.complexity.OrgDomainChallenge.Domain(childComplexity), true
+
+	case "OrgDomainChallenge.record_name":
+		if e.complexity.OrgDomainChallenge.RecordName == nil {
+			break
+		}
+
+		return e.complexity.OrgDomainChallenge.RecordName(childComplexity), true
+
+	case "OrgDomainChallenge.record_type":
+		if e.complexity.OrgDomainChallenge.RecordType == nil {
+			break
+		}
+
+		return e.complexity.OrgDomainChallenge.RecordType(childComplexity), true
+
+	case "OrgDomainChallenge.record_value":
+		if e.complexity.OrgDomainChallenge.RecordValue == nil {
+			break
+		}
+
+		return e.complexity.OrgDomainChallenge.RecordValue(childComplexity), true
+
+	case "OrgDomains.org_domains":
+		if e.complexity.OrgDomains.OrgDomains == nil {
+			break
+		}
+
+		return e.complexity.OrgDomains.OrgDomains(childComplexity), true
+
+	case "OrgDomains.pagination":
+		if e.complexity.OrgDomains.Pagination == nil {
+			break
+		}
+
+		return e.complexity.OrgDomains.Pagination(childComplexity), true
 
 	case "OrgMember.created_at":
 		if e.complexity.OrgMember.CreatedAt == nil {
@@ -2972,6 +3127,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Meta(childComplexity), true
+
+	case "Query._org_domains":
+		if e.complexity.Query.OrgDomains == nil {
+			break
+		}
+
+		args, err := ec.field_Query__org_domains_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OrgDomains(childComplexity, args["params"].(model.ListOrgDomainsRequest)), true
 
 	case "Query._org_members":
 		if e.complexity.Query.OrgMembers == nil {
@@ -3769,6 +3936,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAddEmailTemplateRequest,
 		ec.unmarshalInputAddOrgMemberRequest,
 		ec.unmarshalInputAddTrustedIssuerRequest,
+		ec.unmarshalInputAddVerifiedOrgDomainRequest,
 		ec.unmarshalInputAddWebhookRequest,
 		ec.unmarshalInputAdminLoginRequest,
 		ec.unmarshalInputAdminSignupRequest,
@@ -3780,6 +3948,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateOrganizationRequest,
 		ec.unmarshalInputCreateScimEndpointRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
+		ec.unmarshalInputDeleteOrgDomainRequest,
 		ec.unmarshalInputDeleteUserRequest,
 		ec.unmarshalInputFgaExpandInput,
 		ec.unmarshalInputFgaListUsersInput,
@@ -3794,6 +3963,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputInviteMemberRequest,
 		ec.unmarshalInputListAuditLogRequest,
 		ec.unmarshalInputListClientsRequest,
+		ec.unmarshalInputListOrgDomainsRequest,
 		ec.unmarshalInputListOrgMembersRequest,
 		ec.unmarshalInputListOrganizationsRequest,
 		ec.unmarshalInputListPermissionsInput,
@@ -3811,6 +3981,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputPaginationRequest,
 		ec.unmarshalInputPermissionCheckInput,
 		ec.unmarshalInputRemoveOrgMemberRequest,
+		ec.unmarshalInputRequestOrgDomainRequest,
 		ec.unmarshalInputResendOTPRequest,
 		ec.unmarshalInputResendVerifyEmailRequest,
 		ec.unmarshalInputResetPasswordRequest,
@@ -3834,6 +4005,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputValidateSessionRequest,
 		ec.unmarshalInputVerifyEmailRequest,
 		ec.unmarshalInputVerifyOTPRequest,
+		ec.unmarshalInputVerifyOrgDomainRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
 	first := true
@@ -4380,6 +4552,38 @@ type OrgMember {
 type OrgMembers {
   pagination: Pagination!
   org_members: [OrgMember!]!
+}
+
+# OrgDomain is a VERIFIED mapping from a DNS domain to exactly one organization,
+# used for home-realm discovery (routing a login to the correct tenant IdP). A
+# row exists ONLY once the domain is verified — a pending challenge is not
+# returned here.
+type OrgDomain {
+  domain: String!
+  org_id: String!
+  verified_at: Int64
+  created_at: Int64
+  updated_at: Int64
+}
+
+type OrgDomains {
+  pagination: Pagination!
+  org_domains: [OrgDomain!]!
+}
+
+# OrgDomainChallenge is the DNS TXT record a tenant must publish to prove control
+# of a domain. Returned by _request_org_domain; no durable row exists until the
+# domain is verified. The token lives only in the ephemeral challenge, never in
+# the routing table.
+type OrgDomainChallenge {
+  domain: String!
+  # record_type is always "TXT".
+  record_type: String!
+  # record_name is the DNS name to create, e.g. _authorizer-challenge.acme.com
+  record_name: String!
+  # record_value is the exact TXT value to publish,
+  # e.g. authorizer-domain-verification=<token>
+  record_value: String!
 }
 
 type WebhookLog {
@@ -4931,6 +5135,33 @@ input ScimEndpointRequest {
   org_id: String!
 }
 
+# Verified-domain admin ops. request/verify/list/add are keyed by org_id (the
+# org being written); delete is keyed by domain alone (the owning org is loaded
+# from the row, then authorized).
+input RequestOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input VerifyOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input AddVerifiedOrgDomainRequest {
+  org_id: String!
+  domain: String!
+}
+
+input ListOrgDomainsRequest {
+  org_id: String!
+  pagination: PaginatedRequest
+}
+
+input DeleteOrgDomainRequest {
+  domain: String!
+}
+
 input AddOrgMemberRequest {
   org_id: String!
   user_id: String!
@@ -5150,6 +5381,12 @@ type Mutation {
   _create_scim_endpoint(params: CreateScimEndpointRequest!): CreateScimEndpointResponse!
   _rotate_scim_token(params: ScimEndpointRequest!): CreateScimEndpointResponse!
   _delete_scim_endpoint(params: ScimEndpointRequest!): Response!
+  # Per-org verified domains for home-realm discovery. request/verify/delete are
+  # org-admin gated; _add_verified_org_domain is super-admin only (trusted-assert).
+  _request_org_domain(params: RequestOrgDomainRequest!): OrgDomainChallenge!
+  _verify_org_domain(params: VerifyOrgDomainRequest!): OrgDomain!
+  _add_verified_org_domain(params: AddVerifiedOrgDomainRequest!): OrgDomain!
+  _delete_org_domain(params: DeleteOrgDomainRequest!): Response!
   _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
@@ -5194,6 +5431,8 @@ type Query {
   _org_members(params: ListOrgMembersRequest!): OrgMembers!
   # Per-org inbound SCIM 2.0 endpoint metadata (token never returned here).
   _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
+  # An org's verified domains (org-admin gated; never leaks another org's rows).
+  _org_domains(params: ListOrgDomainsRequest!): OrgDomains!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
@@ -5294,6 +5533,34 @@ func (ec *executionContext) field_Mutation__add_trusted_issuer_argsParams(
 	}
 
 	var zeroVal model.AddTrustedIssuerRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__add_verified_org_domain_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__add_verified_org_domain_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__add_verified_org_domain_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddVerifiedOrgDomainRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddVerifiedOrgDomainRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddVerifiedOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddVerifiedOrgDomainRequest(ctx, tmp)
+	}
+
+	var zeroVal model.AddVerifiedOrgDomainRequest
 	return zeroVal, nil
 }
 
@@ -5574,6 +5841,34 @@ func (ec *executionContext) field_Mutation__delete_email_template_argsParams(
 	}
 
 	var zeroVal model.DeleteEmailTemplateRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_org_domain_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_org_domain_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_org_domain_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.DeleteOrgDomainRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.DeleteOrgDomainRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNDeleteOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteOrgDomainRequest(ctx, tmp)
+	}
+
+	var zeroVal model.DeleteOrgDomainRequest
 	return zeroVal, nil
 }
 
@@ -5969,6 +6264,34 @@ func (ec *executionContext) field_Mutation__remove_org_member_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__request_org_domain_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__request_org_domain_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__request_org_domain_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.RequestOrgDomainRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.RequestOrgDomainRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNRequestOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRequestOrgDomainRequest(ctx, tmp)
+	}
+
+	var zeroVal model.RequestOrgDomainRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__revoke_access_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6330,6 +6653,34 @@ func (ec *executionContext) field_Mutation__update_webhook_argsParams(
 	}
 
 	var zeroVal model.UpdateWebhookRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__verify_org_domain_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__verify_org_domain_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__verify_org_domain_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.VerifyOrgDomainRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.VerifyOrgDomainRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNVerifyOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOrgDomainRequest(ctx, tmp)
+	}
+
+	var zeroVal model.VerifyOrgDomainRequest
 	return zeroVal, nil
 }
 
@@ -6918,6 +7269,34 @@ func (ec *executionContext) field_Query__fga_read_tuples_argsParams(
 	}
 
 	var zeroVal model.FgaReadTuplesInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__org_domains_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__org_domains_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__org_domains_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ListOrgDomainsRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ListOrgDomainsRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNListOrgDomainsRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListOrgDomainsRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ListOrgDomainsRequest
 	return zeroVal, nil
 }
 
@@ -17986,6 +18365,264 @@ func (ec *executionContext) fieldContext_Mutation__delete_scim_endpoint(ctx cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__request_org_domain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__request_org_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RequestOrgDomain(rctx, fc.Args["params"].(model.RequestOrgDomainRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgDomainChallenge)
+	fc.Result = res
+	return ec.marshalNOrgDomainChallenge2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomainChallenge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__request_org_domain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "domain":
+				return ec.fieldContext_OrgDomainChallenge_domain(ctx, field)
+			case "record_type":
+				return ec.fieldContext_OrgDomainChallenge_record_type(ctx, field)
+			case "record_name":
+				return ec.fieldContext_OrgDomainChallenge_record_name(ctx, field)
+			case "record_value":
+				return ec.fieldContext_OrgDomainChallenge_record_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgDomainChallenge", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__request_org_domain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__verify_org_domain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__verify_org_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().VerifyOrgDomain(rctx, fc.Args["params"].(model.VerifyOrgDomainRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgDomain)
+	fc.Result = res
+	return ec.marshalNOrgDomain2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomain(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__verify_org_domain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "domain":
+				return ec.fieldContext_OrgDomain_domain(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgDomain_org_id(ctx, field)
+			case "verified_at":
+				return ec.fieldContext_OrgDomain_verified_at(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgDomain_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgDomain_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgDomain", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__verify_org_domain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__add_verified_org_domain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__add_verified_org_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddVerifiedOrgDomain(rctx, fc.Args["params"].(model.AddVerifiedOrgDomainRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgDomain)
+	fc.Result = res
+	return ec.marshalNOrgDomain2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomain(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__add_verified_org_domain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "domain":
+				return ec.fieldContext_OrgDomain_domain(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgDomain_org_id(ctx, field)
+			case "verified_at":
+				return ec.fieldContext_OrgDomain_verified_at(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgDomain_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgDomain_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgDomain", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__add_verified_org_domain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_org_domain(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_org_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteOrgDomain(rctx, fc.Args["params"].(model.DeleteOrgDomainRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_org_domain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_org_domain_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__test_endpoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__test_endpoint(ctx, field)
 	if err != nil {
@@ -18446,6 +19083,503 @@ func (ec *executionContext) fieldContext_Mutation__fga_reset(_ context.Context, 
 				return ec.fieldContext_Response_message(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomain_domain(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomain_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Domain, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomain_domain(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomain_org_id(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomain_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomain_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomain_verified_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomain_verified_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.VerifiedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomain_verified_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomain_created_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomain_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomain_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomain_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomain) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomain_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomain_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomain",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomainChallenge_domain(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomainChallenge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomainChallenge_domain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Domain, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomainChallenge_domain(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomainChallenge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomainChallenge_record_type(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomainChallenge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomainChallenge_record_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RecordType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomainChallenge_record_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomainChallenge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomainChallenge_record_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomainChallenge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomainChallenge_record_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RecordName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomainChallenge_record_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomainChallenge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomainChallenge_record_value(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomainChallenge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomainChallenge_record_value(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RecordValue, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomainChallenge_record_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomainChallenge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomains_pagination(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomains) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomains_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomains_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomains",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			case "page":
+				return ec.fieldContext_Pagination_page(ctx, field)
+			case "offset":
+				return ec.fieldContext_Pagination_offset(ctx, field)
+			case "total":
+				return ec.fieldContext_Pagination_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgDomains_org_domains(ctx context.Context, field graphql.CollectedField, obj *model.OrgDomains) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgDomains_org_domains(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgDomains, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.OrgDomain)
+	fc.Result = res
+	return ec.marshalNOrgDomain2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomainᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgDomains_org_domains(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgDomains",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "domain":
+				return ec.fieldContext_OrgDomain_domain(ctx, field)
+			case "org_id":
+				return ec.fieldContext_OrgDomain_org_id(ctx, field)
+			case "verified_at":
+				return ec.fieldContext_OrgDomain_verified_at(ctx, field)
+			case "created_at":
+				return ec.fieldContext_OrgDomain_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_OrgDomain_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgDomain", field.Name)
 		},
 	}
 	return fc, nil
@@ -22293,6 +23427,67 @@ func (ec *executionContext) fieldContext_Query__scim_endpoint(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query__scim_endpoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__org_domains(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__org_domains(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().OrgDomains(rctx, fc.Args["params"].(model.ListOrgDomainsRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.OrgDomains)
+	fc.Result = res
+	return ec.marshalNOrgDomains2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomains(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__org_domains(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pagination":
+				return ec.fieldContext_OrgDomains_pagination(ctx, field)
+			case "org_domains":
+				return ec.fieldContext_OrgDomains_org_domains(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OrgDomains", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__org_domains_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -28736,6 +29931,40 @@ func (ec *executionContext) unmarshalInputAddTrustedIssuerRequest(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAddVerifiedOrgDomainRequest(ctx context.Context, obj any) (model.AddVerifiedOrgDomainRequest, error) {
+	var it model.AddVerifiedOrgDomainRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "domain"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "domain":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("domain"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Domain = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context, obj any) (model.AddWebhookRequest, error) {
 	var it model.AddWebhookRequest
 	asMap := map[string]any{}
@@ -29181,6 +30410,33 @@ func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context
 				return it, err
 			}
 			it.ID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDeleteOrgDomainRequest(ctx context.Context, obj any) (model.DeleteOrgDomainRequest, error) {
+	var it model.DeleteOrgDomainRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"domain"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "domain":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("domain"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Domain = data
 		}
 	}
 
@@ -29699,6 +30955,40 @@ func (ec *executionContext) unmarshalInputListClientsRequest(ctx context.Context
 			continue
 		}
 		switch k {
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListOrgDomainsRequest(ctx context.Context, obj any) (model.ListOrgDomainsRequest, error) {
+	var it model.ListOrgDomainsRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "pagination"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
 			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
@@ -30445,6 +31735,40 @@ func (ec *executionContext) unmarshalInputRemoveOrgMemberRequest(ctx context.Con
 				return it, err
 			}
 			it.UserID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRequestOrgDomainRequest(ctx context.Context, obj any) (model.RequestOrgDomainRequest, error) {
+	var it model.RequestOrgDomainRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "domain"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "domain":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("domain"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Domain = data
 		}
 	}
 
@@ -32248,6 +33572,40 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVerifyOrgDomainRequest(ctx context.Context, obj any) (model.VerifyOrgDomainRequest, error) {
+	var it model.VerifyOrgDomainRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "domain"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "domain":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("domain"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Domain = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, obj any) (model.WebhookRequest, error) {
 	var it model.WebhookRequest
 	asMap := map[string]any{}
@@ -33992,6 +35350,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_request_org_domain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__request_org_domain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_verify_org_domain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__verify_org_domain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_add_verified_org_domain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__add_verified_org_domain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_org_domain":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_org_domain(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_test_endpoint":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__test_endpoint(ctx, field)
@@ -34045,6 +35431,154 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__fga_reset(ctx, field)
 			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var orgDomainImplementors = []string{"OrgDomain"}
+
+func (ec *executionContext) _OrgDomain(ctx context.Context, sel ast.SelectionSet, obj *model.OrgDomain) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, orgDomainImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OrgDomain")
+		case "domain":
+			out.Values[i] = ec._OrgDomain_domain(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._OrgDomain_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "verified_at":
+			out.Values[i] = ec._OrgDomain_verified_at(ctx, field, obj)
+		case "created_at":
+			out.Values[i] = ec._OrgDomain_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._OrgDomain_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var orgDomainChallengeImplementors = []string{"OrgDomainChallenge"}
+
+func (ec *executionContext) _OrgDomainChallenge(ctx context.Context, sel ast.SelectionSet, obj *model.OrgDomainChallenge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, orgDomainChallengeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OrgDomainChallenge")
+		case "domain":
+			out.Values[i] = ec._OrgDomainChallenge_domain(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "record_type":
+			out.Values[i] = ec._OrgDomainChallenge_record_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "record_name":
+			out.Values[i] = ec._OrgDomainChallenge_record_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "record_value":
+			out.Values[i] = ec._OrgDomainChallenge_record_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var orgDomainsImplementors = []string{"OrgDomains"}
+
+func (ec *executionContext) _OrgDomains(ctx context.Context, sel ast.SelectionSet, obj *model.OrgDomains) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, orgDomainsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OrgDomains")
+		case "pagination":
+			out.Values[i] = ec._OrgDomains_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_domains":
+			out.Values[i] = ec._OrgDomains_org_domains(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -35102,6 +36636,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__scim_endpoint(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_org_domains":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__org_domains(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -36450,6 +38006,11 @@ func (ec *executionContext) unmarshalNAddTrustedIssuerRequest2githubᚗcomᚋaut
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNAddVerifiedOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddVerifiedOrgDomainRequest(ctx context.Context, v any) (model.AddVerifiedOrgDomainRequest, error) {
+	res, err := ec.unmarshalInputAddVerifiedOrgDomainRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v any) (model.AddWebhookRequest, error) {
 	res, err := ec.unmarshalInputAddWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -36728,6 +38289,11 @@ func (ec *executionContext) marshalNCreateScimEndpointResponse2ᚖgithubᚗcom�
 
 func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v any) (model.DeleteEmailTemplateRequest, error) {
 	res, err := ec.unmarshalInputDeleteEmailTemplateRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNDeleteOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteOrgDomainRequest(ctx context.Context, v any) (model.DeleteOrgDomainRequest, error) {
+	res, err := ec.unmarshalInputDeleteOrgDomainRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -37072,6 +38638,11 @@ func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauth
 	return ec._InviteMembersResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNListOrgDomainsRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListOrgDomainsRequest(ctx context.Context, v any) (model.ListOrgDomainsRequest, error) {
+	res, err := ec.unmarshalInputListOrgDomainsRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNListOrgMembersRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListOrgMembersRequest(ctx context.Context, v any) (model.ListOrgMembersRequest, error) {
 	res, err := ec.unmarshalInputListOrgMembersRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -37128,6 +38699,92 @@ func (ec *executionContext) unmarshalNMobileLoginRequest2githubᚗcomᚋauthoriz
 func (ec *executionContext) unmarshalNOAuthRevokeRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeRequest(ctx context.Context, v any) (model.OAuthRevokeRequest, error) {
 	res, err := ec.unmarshalInputOAuthRevokeRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOrgDomain2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomain(ctx context.Context, sel ast.SelectionSet, v model.OrgDomain) graphql.Marshaler {
+	return ec._OrgDomain(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOrgDomain2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomainᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.OrgDomain) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNOrgDomain2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomain(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNOrgDomain2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomain(ctx context.Context, sel ast.SelectionSet, v *model.OrgDomain) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrgDomain(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNOrgDomainChallenge2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomainChallenge(ctx context.Context, sel ast.SelectionSet, v model.OrgDomainChallenge) graphql.Marshaler {
+	return ec._OrgDomainChallenge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOrgDomainChallenge2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomainChallenge(ctx context.Context, sel ast.SelectionSet, v *model.OrgDomainChallenge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrgDomainChallenge(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNOrgDomains2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomains(ctx context.Context, sel ast.SelectionSet, v model.OrgDomains) graphql.Marshaler {
+	return ec._OrgDomains(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOrgDomains2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgDomains(ctx context.Context, sel ast.SelectionSet, v *model.OrgDomains) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrgDomains(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNOrgMember2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrgMember(ctx context.Context, sel ast.SelectionSet, v model.OrgMember) graphql.Marshaler {
@@ -37457,6 +39114,11 @@ func (ec *executionContext) marshalNPermissionCheckResult2ᚖgithubᚗcomᚋauth
 
 func (ec *executionContext) unmarshalNRemoveOrgMemberRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRemoveOrgMemberRequest(ctx context.Context, v any) (model.RemoveOrgMemberRequest, error) {
 	res, err := ec.unmarshalInputRemoveOrgMemberRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRequestOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRequestOrgDomainRequest(ctx context.Context, v any) (model.RequestOrgDomainRequest, error) {
+	res, err := ec.unmarshalInputRequestOrgDomainRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -37890,6 +39552,11 @@ func (ec *executionContext) unmarshalNVerifyEmailRequest2githubᚗcomᚋauthoriz
 
 func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOTPRequest(ctx context.Context, v any) (model.VerifyOTPRequest, error) {
 	res, err := ec.unmarshalInputVerifyOTPRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVerifyOrgDomainRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOrgDomainRequest(ctx context.Context, v any) (model.VerifyOrgDomainRequest, error) {
+	res, err := ec.unmarshalInputVerifyOrgDomainRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

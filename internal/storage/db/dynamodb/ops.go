@@ -23,6 +23,23 @@ func (p *provider) putItem(ctx context.Context, table string, v interface{}) err
 	return err
 }
 
+// putItemIfAbsent writes an item only when no item with the same partition key
+// (hashKey) already exists. The condition is evaluated atomically by DynamoDB,
+// so it is a race-free first-writer-wins insert. On a lost race it returns a
+// *types.ConditionalCheckFailedException (detect with errors.As).
+func (p *provider) putItemIfAbsent(ctx context.Context, table, hashKey string, v interface{}) error {
+	item, err := marshalStruct(v)
+	if err != nil {
+		return err
+	}
+	_, err = p.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName:           aws.String(table),
+		Item:                item,
+		ConditionExpression: aws.String(fmt.Sprintf("attribute_not_exists(%s)", hashKey)),
+	})
+	return err
+}
+
 func (p *provider) getItemByHash(ctx context.Context, table, hashKey, hashValue string, out interface{}) error {
 	res, err := p.client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(table),

@@ -91,6 +91,14 @@ type AdminProvider interface {
 	DeleteScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.Response, *ResponseSideEffects, error)
 	ScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.ScimEndpoint, *ResponseSideEffects, error)
 
+	// Per-org verified domains for home-realm discovery. request/verify/list/
+	// delete are org-admin gated; AddVerifiedOrgDomain is super-admin only.
+	RequestOrgDomain(ctx context.Context, meta RequestMetadata, params *model.RequestOrgDomainRequest) (*model.OrgDomainChallenge, *ResponseSideEffects, error)
+	VerifyOrgDomain(ctx context.Context, meta RequestMetadata, params *model.VerifyOrgDomainRequest) (*model.OrgDomain, *ResponseSideEffects, error)
+	AddVerifiedOrgDomain(ctx context.Context, meta RequestMetadata, params *model.AddVerifiedOrgDomainRequest) (*model.OrgDomain, *ResponseSideEffects, error)
+	OrgDomains(ctx context.Context, meta RequestMetadata, params *model.ListOrgDomainsRequest) (*model.OrgDomains, *ResponseSideEffects, error)
+	DeleteOrgDomain(ctx context.Context, meta RequestMetadata, params *model.DeleteOrgDomainRequest) (*model.Response, *ResponseSideEffects, error)
+
 	// Email templates.
 	AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
 	UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)

@@ -30,6 +30,11 @@ type AddTrustedIssuerRequest struct {
 	KubernetesAPIServerURL   *string `json:"kubernetes_api_server_url,omitempty"`
 }
 
+type AddVerifiedOrgDomainRequest struct {
+	OrgID  string `json:"org_id"`
+	Domain string `json:"domain"`
+}
+
 type AddWebhookRequest struct {
 	EventName        string         `json:"event_name"`
 	EventDescription *string        `json:"event_description,omitempty"`
@@ -164,6 +169,10 @@ type CreateScimEndpointResponse struct {
 
 type DeleteEmailTemplateRequest struct {
 	ID string `json:"id"`
+}
+
+type DeleteOrgDomainRequest struct {
+	Domain string `json:"domain"`
 }
 
 type DeleteUserRequest struct {
@@ -377,6 +386,11 @@ type ListClientsRequest struct {
 	Pagination *PaginatedRequest `json:"pagination,omitempty"`
 }
 
+type ListOrgDomainsRequest struct {
+	OrgID      string            `json:"org_id"`
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+}
+
 type ListOrgMembersRequest struct {
 	OrgID      string            `json:"org_id"`
 	Pagination *PaginatedRequest `json:"pagination,omitempty"`
@@ -481,6 +495,26 @@ type Mutation struct {
 
 type OAuthRevokeRequest struct {
 	RefreshToken string `json:"refresh_token"`
+}
+
+type OrgDomain struct {
+	Domain     string `json:"domain"`
+	OrgID      string `json:"org_id"`
+	VerifiedAt *int64 `json:"verified_at,omitempty"`
+	CreatedAt  *int64 `json:"created_at,omitempty"`
+	UpdatedAt  *int64 `json:"updated_at,omitempty"`
+}
+
+type OrgDomainChallenge struct {
+	Domain      string `json:"domain"`
+	RecordType  string `json:"record_type"`
+	RecordName  string `json:"record_name"`
+	RecordValue string `json:"record_value"`
+}
+
+type OrgDomains struct {
+	Pagination *Pagination  `json:"pagination"`
+	OrgDomains []*OrgDomain `json:"org_domains"`
 }
 
 type OrgMember struct {
@@ -592,6 +626,11 @@ type Query struct {
 type RemoveOrgMemberRequest struct {
 	OrgID  string `json:"org_id"`
 	UserID string `json:"user_id"`
+}
+
+type RequestOrgDomainRequest struct {
+	OrgID  string `json:"org_id"`
+	Domain string `json:"domain"`
 }
 
 type ResendOTPRequest struct {
@@ -948,6 +987,11 @@ type VerifyOTPRequest struct {
 	Otp         string  `json:"otp"`
 	IsTotp      *bool   `json:"is_totp,omitempty"`
 	State       *string `json:"state,omitempty"`
+}
+
+type VerifyOrgDomainRequest struct {
+	OrgID  string `json:"org_id"`
+	Domain string `json:"domain"`
 }
 
 type Webhook struct {

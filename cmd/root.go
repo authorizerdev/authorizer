@@ -561,6 +561,7 @@ func runRoot(c *cobra.Command, args []string) {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		RateLimitProvider:     rateLimitProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

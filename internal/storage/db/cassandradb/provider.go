@@ -511,6 +511,20 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// GetScimEndpointByOrgID and the uniqueness guard) to become queryable.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.ScimEndpoint, "org_id", 30*time.Second)
 
+	// OrgDomain table and index. The normalized domain is the partition key, so
+	// INSERT ... IF NOT EXISTS enforces first-writer-wins atomically (LWT).
+	orgDomainCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, domain text, verified_at bigint, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgDomain)
+	if err = session.Query(orgDomainCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	orgDomainOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_org_domain_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.OrgDomain)
+	if err = session.Query(orgDomainOrgIndex).Exec(); err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for org_id (used by
+	// ListOrgDomainsByOrg and the cascade) to become queryable.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgDomain, "org_id", 30*time.Second)
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
