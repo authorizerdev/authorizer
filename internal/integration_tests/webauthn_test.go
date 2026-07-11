@@ -1,14 +1,17 @@
 package integration_tests
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/descope/virtualwebauthn"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
@@ -99,6 +102,12 @@ func TestWebauthnPasskeyRegistrationAndLogin(t *testing.T) {
 	})
 
 	t.Run("scoped (MFA-alternative) login with email succeeds", func(t *testing.T) {
+		require.NotNil(t, signupRes.User, "test needs the signed-up user's id to arm a real MFA session")
+		mfaSession := uuid.New().String()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(signupRes.User.ID, mfaSession,
+			time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
 		optRes, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &email)
 		require.NoError(t, err)
 		assertOpts, err := virtualwebauthn.ParseAssertionOptions(optRes.Options)
@@ -189,4 +198,76 @@ func TestWebauthnLoginRequiresVerifiedEmail(t *testing.T) {
 	if err != nil {
 		assert.Contains(t, err.Error(), "verif", "error should be the distinct, actionable email-verification message, not a generic invalid-credential error")
 	}
+}
+
+// TestWebauthnLoginOptionsScopedRequiresMfaSession guards against passkey/user
+// enumeration via the scoped (email-provided) webauthn_login_options: without
+// proof of password authentication (the same MFA session cookie verify_otp
+// requires for its own MFA-alternative flow), a caller must not be able to
+// distinguish "this account has a passkey" from "it doesn't" - the real
+// PublicKeyCredentialRequestOptions returned on success (including that
+// account's own credential IDs) is itself the leak.
+func TestWebauthnLoginOptionsScopedRequiresMfaSession(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	rp := testRelyingParty(t, ts)
+	credential := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+
+	emailWithPasskey := "webauthn_enum_haspasskey_" + uuid.New().String() + "@authorizer.dev"
+	emailNoAccount := "webauthn_enum_noaccount_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &emailWithPasskey,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, signupRes.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+*signupRes.AccessToken)
+
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	require.NoError(t, err)
+	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
+	require.NoError(t, err)
+	authenticator := virtualwebauthn.NewAuthenticatorWithOptions(virtualwebauthn.AuthenticatorOptions{
+		UserHandle: []byte(attOpts.UserID),
+	})
+	authenticator.AddCredential(credential)
+	attResp := virtualwebauthn.CreateAttestationResponse(rp, authenticator, credential, *attOpts)
+	_, err = ts.GraphQLProvider.WebauthnRegistrationVerify(ctx, &model.WebauthnRegistrationVerifyRequest{Credential: attResp})
+	require.NoError(t, err)
+
+	// No MFA session armed at all from here on - simulating an
+	// unauthenticated caller who never completed password login.
+	req.Header.Del("Authorization")
+	req.Header.Del("Cookie")
+
+	t.Run("account with a passkey - refused the same way as one without", func(t *testing.T) {
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &emailWithPasskey)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid session")
+	})
+
+	t.Run("account that doesn't exist - refused identically, not a different error", func(t *testing.T) {
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &emailNoAccount)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid session",
+			"a nonexistent account must fail at the same session gate as a real one - not a distinguishable error")
+	})
+
+	t.Run("a stale MFA session for a DIFFERENT user cannot be reused to probe this account", func(t *testing.T) {
+		otherUserID := uuid.New().String()
+		mfaSession := uuid.New().String()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(otherUserID, mfaSession,
+			time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &emailWithPasskey)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid session",
+			"a valid session for one user must not unlock scoped options for a different user")
+	})
 }

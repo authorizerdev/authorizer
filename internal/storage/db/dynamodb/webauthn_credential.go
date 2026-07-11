@@ -13,7 +13,22 @@ import (
 )
 
 // AddWebauthnCredential persists a newly registered passkey.
+//
+// credential_id uniqueness is enforced check-then-insert, matching this
+// backend's existing convention for other unique fields (see AddUser's email/
+// phone number check) - DynamoDB has no native unique-index primitive for a
+// non-primary-key attribute short of a multi-item transaction, which nothing
+// else in this provider uses either. Real WebAuthn credential IDs are ≥16
+// bytes of random/key-wrapped data from the authenticator, so a genuine
+// collision here is cryptographically negligible; this check exists for
+// defense-in-depth and data-integrity, not because a collision is a realistic
+// attack path.
 func (p *provider) AddWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) (*schemas.WebauthnCredential, error) {
+	if cred.CredentialID != "" {
+		if existing, _ := p.GetWebauthnCredentialByCredentialID(ctx, cred.CredentialID); existing != nil {
+			return nil, fmt.Errorf("a passkey with this credential id already exists")
+		}
+	}
 	if cred.ID == "" {
 		cred.ID = uuid.New().String()
 	}

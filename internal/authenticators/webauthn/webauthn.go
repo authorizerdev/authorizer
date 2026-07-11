@@ -215,6 +215,14 @@ func (p *provider) FinishLogin(ctx context.Context, host, responseJSON string) (
 			log.Debug().Err(err).Msg("Failed to verify scoped assertion")
 			return nil, nil, fmt.Errorf("failed to verify passkey")
 		}
+		if credential.Authenticator.CloneWarning {
+			// go-webauthn does NOT error on a sign-count regression - it only
+			// sets CloneWarning and still reports success. We must check it
+			// ourselves or cloned-authenticator detection (the entire reason
+			// sign_count is tracked) silently never rejects anything.
+			log.Warn().Str("user_id", user.ID).Msg("WebAuthn clone warning: sign count regressed, refusing login")
+			return nil, nil, fmt.Errorf("failed to verify passkey")
+		}
 		stored, err := p.persistLoginResult(ctx, credential)
 		if err != nil {
 			return nil, nil, err
@@ -242,6 +250,17 @@ func (p *provider) FinishLogin(ctx context.Context, host, responseJSON string) (
 	_, credential, err := rp.ValidatePasskeyLogin(handler, *session, parsed)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to verify discoverable assertion")
+		return nil, nil, fmt.Errorf("failed to verify passkey")
+	}
+	if credential.Authenticator.CloneWarning {
+		// See the scoped-login branch above: go-webauthn only flags a
+		// sign-count regression via CloneWarning, it does not error - the RP
+		// must reject the login itself.
+		userID := ""
+		if resolvedUser != nil {
+			userID = resolvedUser.ID
+		}
+		log.Warn().Str("user_id", userID).Msg("WebAuthn clone warning: sign count regressed, refusing login")
 		return nil, nil, fmt.Errorf("failed to verify passkey")
 	}
 	stored, err := p.persistLoginResult(ctx, credential)

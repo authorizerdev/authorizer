@@ -6,8 +6,10 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/gin-gonic/gin"
 )
 
 // WebauthnRegistrationOptions begins a passkey registration ceremony for the
@@ -89,11 +91,29 @@ func (p *provider) WebauthnLoginOptions(ctx context.Context, meta RequestMetadat
 		}
 		return &model.WebauthnLoginOptionsResponse{Options: options}, nil
 	}
-	// Scoped (MFA-alternative) flow.
+	// Scoped (MFA-alternative) flow. This must only ever run for a caller who
+	// already completed password authentication for THIS SPECIFIC account -
+	// otherwise a client-supplied email lets an unauthenticated caller probe
+	// "does this account have a passkey?" one-shot (the real
+	// PublicKeyCredentialRequestOptions returned on success, including that
+	// account's own credential IDs in allowCredentials, is itself the leak).
+	// The MFA session cookie is exactly the proof-of-password-auth verify_otp
+	// already requires for the equivalent TOTP-alternative flow, so we gate
+	// on it the same way here.
+	gc := &gin.Context{Request: meta.Request}
+	mfaSession, mfaErr := cookie.GetMfaSession(gc)
+	if mfaErr != nil {
+		log.Debug().Err(mfaErr).Msg("Failed to get mfa session")
+		return nil, Unauthenticated(`invalid session`)
+	}
 	user, err := p.StorageProvider.GetUserByEmail(ctx, emailStr)
 	if err != nil || user == nil {
 		log.Debug().Err(err).Msg("User not found for scoped webauthn login")
 		return nil, NotFound("no passkey found for this account")
+	}
+	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+		log.Debug().Err(err).Msg("Failed to get mfa session")
+		return nil, Unauthenticated(`invalid session`)
 	}
 	options, err := p.WebAuthnProvider.BeginLogin(ctx, meta.HostURL, user)
 	if err != nil {

@@ -15,7 +15,21 @@ import (
 const webauthnCredentialColumns = "_id, user_id, credential_id, public_key, sign_count, flags, transports, aaguid, name, created_at, updated_at, last_used_at"
 
 // AddWebauthnCredential persists a newly registered passkey.
+//
+// ponytail: check-then-insert has no atomic uniqueness guard on credential_id
+// - Collection.Insert only enforces uniqueness on the document key (cred.ID),
+// so two concurrent AddWebauthnCredential calls can both pass this pre-check.
+// Matches the same accepted trade-off as AddUser's email/phone_number check
+// on this backend; a real fix needs a Couchbase unique secondary index plus a
+// conditional/index-backed insert. Real WebAuthn credential IDs are ≥16 bytes
+// of random/key-wrapped authenticator data, so an actual collision here is
+// cryptographically negligible - this exists for defense-in-depth.
 func (p *provider) AddWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) (*schemas.WebauthnCredential, error) {
+	if cred.CredentialID != "" {
+		if existing, _ := p.GetWebauthnCredentialByCredentialID(ctx, cred.CredentialID); existing != nil {
+			return nil, fmt.Errorf("a passkey with this credential id already exists")
+		}
+	}
 	if cred.ID == "" {
 		cred.ID = uuid.New().String()
 	}
