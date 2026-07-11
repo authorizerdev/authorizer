@@ -317,6 +317,21 @@ type Provider interface {
 	// ScimEndpoint returns an org's SCIM endpoint metadata (token never returned).
 	// Permissions: authorizer:admin
 	ScimEndpoint(ctx context.Context, params *model.ScimEndpointRequest) (*model.ScimEndpoint, error)
+	// RequestOrgDomain mints a DNS TXT challenge to prove control of a domain.
+	// Permissions: org-admin of params.org_id (or super-admin)
+	RequestOrgDomain(ctx context.Context, params *model.RequestOrgDomainRequest) (*model.OrgDomainChallenge, error)
+	// VerifyOrgDomain verifies a domain via DNS TXT and inserts the verified row.
+	// Permissions: org-admin of params.org_id (or super-admin)
+	VerifyOrgDomain(ctx context.Context, params *model.VerifyOrgDomainRequest) (*model.OrgDomain, error)
+	// AddVerifiedOrgDomain trusted-asserts a verified domain with no proof.
+	// Permissions: super-admin only
+	AddVerifiedOrgDomain(ctx context.Context, params *model.AddVerifiedOrgDomainRequest) (*model.OrgDomain, error)
+	// OrgDomains lists an org's verified domains.
+	// Permissions: org-admin of params.org_id (or super-admin)
+	OrgDomains(ctx context.Context, params *model.ListOrgDomainsRequest) (*model.OrgDomains, error)
+	// DeleteOrgDomain removes a verified domain (gated on the loaded row's org).
+	// Permissions: org-admin of the domain's org (or super-admin)
+	DeleteOrgDomain(ctx context.Context, params *model.DeleteOrgDomainRequest) (*model.Response, error)
 	// FgaWriteModel installs a new fine-grained authorization model.
 	// Permissions: authorizer:admin
 	FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error)

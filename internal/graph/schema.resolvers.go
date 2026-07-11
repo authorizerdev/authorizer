@@ -282,6 +282,26 @@ func (r *mutationResolver) DeleteScimEndpoint(ctx context.Context, params model.
 	return r.GraphQLProvider.DeleteScimEndpoint(ctx, &params)
 }
 
+// RequestOrgDomain is the resolver for the _request_org_domain field.
+func (r *mutationResolver) RequestOrgDomain(ctx context.Context, params model.RequestOrgDomainRequest) (*model.OrgDomainChallenge, error) {
+	return r.GraphQLProvider.RequestOrgDomain(ctx, &params)
+}
+
+// VerifyOrgDomain is the resolver for the _verify_org_domain field.
+func (r *mutationResolver) VerifyOrgDomain(ctx context.Context, params model.VerifyOrgDomainRequest) (*model.OrgDomain, error) {
+	return r.GraphQLProvider.VerifyOrgDomain(ctx, &params)
+}
+
+// AddVerifiedOrgDomain is the resolver for the _add_verified_org_domain field.
+func (r *mutationResolver) AddVerifiedOrgDomain(ctx context.Context, params model.AddVerifiedOrgDomainRequest) (*model.OrgDomain, error) {
+	return r.GraphQLProvider.AddVerifiedOrgDomain(ctx, &params)
+}
+
+// DeleteOrgDomain is the resolver for the _delete_org_domain field.
+func (r *mutationResolver) DeleteOrgDomain(ctx context.Context, params model.DeleteOrgDomainRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteOrgDomain(ctx, &params)
+}
+
 // TestEndpoint is the resolver for the _test_endpoint field.
 func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
 	return r.GraphQLProvider.TestEndpoint(ctx, &params)
@@ -445,6 +465,11 @@ func (r *queryResolver) OrgMembers(ctx context.Context, params model.ListOrgMemb
 // ScimEndpoint is the resolver for the _scim_endpoint field.
 func (r *queryResolver) ScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.ScimEndpoint, error) {
 	return r.GraphQLProvider.ScimEndpoint(ctx, &params)
+}
+
+// OrgDomains is the resolver for the _org_domains field.
+func (r *queryResolver) OrgDomains(ctx context.Context, params model.ListOrgDomainsRequest) (*model.OrgDomains, error) {
+	return r.GraphQLProvider.OrgDomains(ctx, &params)
 }
 
 // EmailTemplates is the resolver for the _email_templates field.

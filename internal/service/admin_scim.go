@@ -16,10 +16,11 @@ import (
 
 // CreateScimEndpoint provisions the per-org inbound SCIM connection and returns
 // its bearer token exactly once (bcrypt-hashed at rest, crypto/rand entropy).
-// One endpoint per org. Requires super-admin auth.
+// One endpoint per org. Gated on params.OrgID: super-admin or that org's
+// org-admin (see constants.OrgRoleAdmin).
 func (p *provider) CreateScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.CreateScimEndpointRequest) (*model.CreateScimEndpointResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "CreateScimEndpoint").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 	orgID := strings.TrimSpace(params.OrgID)
@@ -75,10 +76,12 @@ func (p *provider) CreateScimEndpoint(ctx context.Context, meta RequestMetadata,
 }
 
 // RotateScimToken mints a fresh bearer token for an org's endpoint, invalidating
-// the previous one, and returns it once. Requires super-admin auth.
+// the previous one, and returns it once. The endpoint is keyed solely by
+// org_id, so gating on params.OrgID (super-admin or that org's org-admin) is the
+// resource's real OrgID — no id-vs-org confused-deputy vector here.
 func (p *provider) RotateScimToken(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.CreateScimEndpointResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "RotateScimToken").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 	orgID := strings.TrimSpace(params.OrgID)
@@ -116,10 +119,11 @@ func (p *provider) RotateScimToken(ctx context.Context, meta RequestMetadata, pa
 	}, nil, nil
 }
 
-// DeleteScimEndpoint removes an org's SCIM connection. Requires super-admin auth.
+// DeleteScimEndpoint removes an org's SCIM connection. Gated on params.OrgID
+// (super-admin or that org's org-admin); org_id is the resource's sole key.
 func (p *provider) DeleteScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "DeleteScimEndpoint").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 	orgID := strings.TrimSpace(params.OrgID)
@@ -147,10 +151,10 @@ func (p *provider) DeleteScimEndpoint(ctx context.Context, meta RequestMetadata,
 }
 
 // ScimEndpoint returns an org's SCIM endpoint metadata (never the token).
-// Requires super-admin auth.
+// Gated on params.OrgID (super-admin or that org's org-admin).
 func (p *provider) ScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.ScimEndpoint, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "ScimEndpoint").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	if err := p.requireOrgAdmin(ctx, meta, params.OrgID); err != nil {
 		return nil, nil, err
 	}
 	endpoint, err := p.StorageProvider.GetScimEndpointByOrgID(ctx, strings.TrimSpace(params.OrgID))

@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/authctx"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -89,6 +91,14 @@ type AdminProvider interface {
 	DeleteScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.Response, *ResponseSideEffects, error)
 	ScimEndpoint(ctx context.Context, meta RequestMetadata, params *model.ScimEndpointRequest) (*model.ScimEndpoint, *ResponseSideEffects, error)
 
+	// Per-org verified domains for home-realm discovery. request/verify/list/
+	// delete are org-admin gated; AddVerifiedOrgDomain is super-admin only.
+	RequestOrgDomain(ctx context.Context, meta RequestMetadata, params *model.RequestOrgDomainRequest) (*model.OrgDomainChallenge, *ResponseSideEffects, error)
+	VerifyOrgDomain(ctx context.Context, meta RequestMetadata, params *model.VerifyOrgDomainRequest) (*model.OrgDomain, *ResponseSideEffects, error)
+	AddVerifiedOrgDomain(ctx context.Context, meta RequestMetadata, params *model.AddVerifiedOrgDomainRequest) (*model.OrgDomain, *ResponseSideEffects, error)
+	OrgDomains(ctx context.Context, meta RequestMetadata, params *model.ListOrgDomainsRequest) (*model.OrgDomains, *ResponseSideEffects, error)
+	DeleteOrgDomain(ctx context.Context, meta RequestMetadata, params *model.DeleteOrgDomainRequest) (*model.Response, *ResponseSideEffects, error)
+
 	// Email templates.
 	AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
 	UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error)
@@ -128,6 +138,85 @@ func (p *provider) requireSuperAdmin(ctx context.Context, meta RequestMetadata) 
 	gc := &gin.Context{Request: meta.Request}
 	if !p.TokenProvider.IsSuperAdmin(gc) {
 		return Unauthenticated("unauthorized")
+	}
+	return nil
+}
+
+// requireOrgAdmin enforces org-scoped admin auth for a single organization. It
+// passes when EITHER the caller is a platform super-admin (the unchanged escape
+// hatch, reusing requireSuperAdmin's exact positive path), OR the caller is an
+// authenticated user who holds the reserved namespaced role
+// constants.OrgRoleAdmin ("authorizer:org_admin") in an OrgMembership of orgID.
+//
+// It FAILS CLOSED: any error resolving the caller or their membership, a missing
+// membership, or a membership lacking the reserved role all deny. The bare
+// "admin" role is NOT accepted (see constants.OrgRoleAdmin) — only the
+// namespaced role grants org-scoped admin rights.
+//
+// orgID is the tenant-isolation boundary and MUST be sourced correctly by the
+// caller (design H2): for create/list ops it is the org being written
+// (params.OrgID); for update/delete/get ops it is the OrgID of the target
+// resource AFTER it has been loaded by id — never a caller-supplied org id
+// checked before the load. Returns Unauthenticated to match requireSuperAdmin's
+// error shape and to avoid leaking whether the target resource exists.
+func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, orgID string) error {
+	// Super-admin escape hatch — identical positive path to requireSuperAdmin.
+	if p.requireSuperAdmin(ctx, meta) == nil {
+		return nil
+	}
+
+	orgID = strings.TrimSpace(orgID)
+	if orgID == "" {
+		return Unauthenticated("unauthorized")
+	}
+
+	tokenData, err := p.callerTokenData(ctx, meta)
+	if err != nil || tokenData == nil || tokenData.UserID == "" {
+		return Unauthenticated("unauthorized")
+	}
+
+	// Defense in depth: machine (client_credentials) tokens are never org
+	// members. They are already rejected implicitly by the membership lookup
+	// (their sub is a client id, not a user id), but reject them explicitly so
+	// the intent survives any future change to how memberships are minted.
+	if tokenData.LoginMethod == constants.AuthRecipeMethodServiceAccount {
+		return Unauthenticated("unauthorized")
+	}
+
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, tokenData.UserID)
+	if err != nil || membership == nil {
+		return Unauthenticated("unauthorized")
+	}
+	for _, role := range membership.ParsedRoles() {
+		if role == constants.OrgRoleAdmin {
+			return nil
+		}
+	}
+	return Unauthenticated("unauthorized")
+}
+
+// rejectOrgIDMismatch is the confused-deputy guard for the id-or-org_id
+// resolvers (design H2). Once a resource has been loaded by id, if the caller
+// ALSO supplied an org_id that names a different org, deny: they are trying to
+// act on another org's resource under their own org's authority. A nil/empty
+// org_id (the common id-only call) is fine.
+// maskNonSuperAdminError collapses a resource-resolution error (not-found,
+// wrong-kind) into a uniform Unauthenticated for non-super-admin callers, so a
+// tenant admin cannot use these ops as a cross-org existence/kind oracle
+// (CWE-204): probing an arbitrary id must not reveal whether it exists or its
+// kind in another org. Super-admins still get the precise error.
+func (p *provider) maskNonSuperAdminError(ctx context.Context, meta RequestMetadata, err error) error {
+	if p.requireSuperAdmin(ctx, meta) == nil {
+		return err
+	}
+	return Unauthenticated("unauthorized")
+}
+
+func rejectOrgIDMismatch(paramOrgID *string, resourceOrgID string) error {
+	if paramOrgID != nil {
+		if v := strings.TrimSpace(*paramOrgID); v != "" && v != resourceOrgID {
+			return Unauthenticated("unauthorized")
+		}
 	}
 	return nil
 }

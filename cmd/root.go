@@ -101,6 +101,7 @@ func init() {
 
 	// Http routes
 	f.BoolVar(&rootArgs.config.EnableLoginPage, "enable-login-page", true, "Enable login page")
+	f.BoolVar(&rootArgs.config.EnableOrgDiscovery, "enable-org-discovery", false, "Enable public organization (home-realm) discovery endpoint and the /app email-first SSO routing step (opt-in; off keeps the login page unchanged)")
 	f.BoolVar(&rootArgs.config.EnablePlayground, "enable-playground", true, "Enable playground")
 	f.BoolVar(&rootArgs.config.EnableGraphQLIntrospection, "enable-graphql-introspection", true, "Enable GraphQL introspection for the /graphql endpoint")
 	f.BoolVar(&rootArgs.config.EnableHSTS, "enable-hsts", false, "Enable Strict-Transport-Security response header (only enable behind TLS)")
@@ -573,6 +574,7 @@ func runRoot(c *cobra.Command, args []string) {
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
 		WebAuthnProvider:      webAuthnProvider,
+		RateLimitProvider:     rateLimitProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

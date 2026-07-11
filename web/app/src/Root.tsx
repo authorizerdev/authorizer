@@ -57,9 +57,16 @@ export default function Root({
 	};
 
 	const rawRedirectURL = getParam('redirect_uri') || getParam('redirectURL');
-	urlProps.redirectURL = rawRedirectURL || (hasWindow() ? window.location.origin : '/app');
+	urlProps.redirectURL =
+		rawRedirectURL || (hasWindow() ? window.location.origin : '/app');
 
 	urlProps.redirect_uri = urlProps.redirectURL;
+
+	// Server-injected flag (window.__authorizer__) mirroring
+	// Config.EnableOrgDiscovery / Meta.is_org_discovery_enabled. When false the
+	// login page skips the email-first SSO step entirely (unchanged behavior).
+	urlProps.isOrgDiscoveryEnabled =
+		(globalState as Record<string, unknown>).isOrgDiscoveryEnabled === true;
 
 	const isAuthorizeContext =
 		rawRedirectURL !== '' &&

@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -40,6 +41,12 @@ type Dependencies struct {
 	SMSProvider         sms.Provider
 	StorageProvider     storage.Provider
 	TokenProvider       token.Provider
+	// RateLimitProvider throttles abuse-prone admin ops (e.g. per-org domain
+	// verification, which drives an outbound DNS lookup). Nil disables the limit.
+	RateLimitProvider rate_limit.Provider
+	// DNSResolver resolves TXT records for domain verification. Nil uses
+	// net.DefaultResolver; tests inject a mock so no real DNS is hit.
+	DNSResolver DNSResolver
 }
 
 // Provider is the transport-agnostic API for Authorizer public operations.

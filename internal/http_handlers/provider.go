@@ -87,6 +87,9 @@ var _ Provider = &httpProvider{}
 type Provider interface {
 	// AppHandler is the main handler that handels all the app requests
 	AppHandler() gin.HandlerFunc
+	// OrgDiscoveryHandler serves the public home-realm-discovery endpoint that
+	// maps a login email's verified domain to the owning org's SSO login URL.
+	OrgDiscoveryHandler() gin.HandlerFunc
 	// AuthorizeHandler is the main handler that handels all the authorize requests
 	AuthorizeHandler() gin.HandlerFunc
 	// DashboardHandler is the main handler that handels all the dashboard requests

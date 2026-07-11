@@ -207,6 +207,9 @@ func TestStorageProvider(t *testing.T) {
 			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
 				testScimEndpointOperations(t, ctx, provider)
 			})
+			t.Run("Org Domain Operations", func(t *testing.T) {
+				testOrgDomainOperations(t, ctx, provider)
+			})
 
 			t.Run("User SCIM Fields", func(t *testing.T) {
 				testUserScimFields(t, ctx, provider)
@@ -1852,6 +1855,110 @@ func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Prov
 	assert.Error(t, err, "endpoint should be gone after delete")
 
 	require.NoError(t, provider.DeleteOrganization(ctx, org))
+}
+
+// testOrgDomainOperations exercises the verified-domain table: atomic
+// first-writer-wins on the domain primary key, same-org idempotency, listing,
+// delete, and the org-delete cascade (which frees the domain for re-claim).
+func testOrgDomainOperations(t *testing.T, ctx context.Context, provider Provider) {
+	orgA, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "domain-org-a-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgAID := orgA.AsAPIOrganization().ID
+	orgB, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "domain-org-b-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgBID := orgB.AsAPIOrganization().ID
+
+	// unique per run so parallel DBs / reruns don't collide on the shared PK.
+	domain := "acme-" + strings.ToLower(uuid.New().String()[:8]) + ".com"
+
+	// Insert a verified domain for org A.
+	created, err := provider.AddOrgDomain(ctx, &schemas.OrgDomain{
+		ID:         domain,
+		Domain:     domain,
+		OrgID:      orgAID,
+		VerifiedAt: time.Now().Unix(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	assert.Equal(t, domain, created.Domain)
+
+	// Reverse lookup (the HRD path) resolves the owning org.
+	byDomain, err := provider.GetOrgDomainByDomain(ctx, domain)
+	require.NoError(t, err)
+	assert.Equal(t, orgAID, byDomain.OrgID)
+	assert.Equal(t, domain, byDomain.Domain)
+	assert.NotZero(t, byDomain.VerifiedAt)
+
+	// Same-org re-add is idempotent: no error, no duplicate.
+	again, err := provider.AddOrgDomain(ctx, &schemas.OrgDomain{
+		ID:         domain,
+		Domain:     domain,
+		OrgID:      orgAID,
+		VerifiedAt: time.Now().Unix(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, orgAID, again.OrgID)
+
+	// First-writer-wins: org B claiming the SAME domain must be rejected
+	// distinctly (this is the ATO invariant — one verified domain, one org).
+	_, err = provider.AddOrgDomain(ctx, &schemas.OrgDomain{
+		ID:         domain,
+		Domain:     domain,
+		OrgID:      orgBID,
+		VerifiedAt: time.Now().Unix(),
+	})
+	require.ErrorIs(t, err, schemas.ErrOrgDomainConflict)
+
+	// The row still points to org A after the losing write.
+	stillA, err := provider.GetOrgDomainByDomain(ctx, domain)
+	require.NoError(t, err)
+	assert.Equal(t, orgAID, stillA.OrgID)
+
+	// A second distinct domain for org A, to prove listing + cascade cover many.
+	domain2 := "beta-" + strings.ToLower(uuid.New().String()[:8]) + ".com"
+	_, err = provider.AddOrgDomain(ctx, &schemas.OrgDomain{
+		ID:         domain2,
+		Domain:     domain2,
+		OrgID:      orgAID,
+		VerifiedAt: time.Now().Unix(),
+	})
+	require.NoError(t, err)
+
+	list, _, err := provider.ListOrgDomainsByOrg(ctx, orgAID, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	assert.Len(t, list, 2)
+
+	// Delete one domain; it disappears, the other remains.
+	require.NoError(t, provider.DeleteOrgDomain(ctx, domain2))
+	_, err = provider.GetOrgDomainByDomain(ctx, domain2)
+	assert.Error(t, err)
+	remaining, _, err := provider.ListOrgDomainsByOrg(ctx, orgAID, &model.Pagination{Limit: 50, Offset: 0})
+	require.NoError(t, err)
+	assert.Len(t, remaining, 1)
+
+	// Cascade: deleting org A must free its remaining verified domain (M1) —
+	// otherwise the unique PK makes it permanently unclaimable.
+	require.NoError(t, provider.DeleteOrganization(ctx, orgA))
+	_, err = provider.GetOrgDomainByDomain(ctx, domain)
+	assert.Error(t, err, "domain must be gone after its org is deleted")
+
+	// The freed domain is now re-claimable by org B.
+	reclaimed, err := provider.AddOrgDomain(ctx, &schemas.OrgDomain{
+		ID:         domain,
+		Domain:     domain,
+		OrgID:      orgBID,
+		VerifiedAt: time.Now().Unix(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, orgBID, reclaimed.OrgID)
+
+	require.NoError(t, provider.DeleteOrganization(ctx, orgB))
 }
 
 // testUserScimFields verifies the additive User fields (ExternalID, IsActive)

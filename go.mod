@@ -18,6 +18,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/couchbase/gocb/v2 v2.6.4
 	github.com/crewjam/saml v0.5.1
+	github.com/descope/virtualwebauthn v1.0.5
 	github.com/ekristen/gorm-libsql v0.0.0-20231101204708-6e113112bcc2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-jose/go-jose/v4 v4.1.4
@@ -42,6 +43,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.26
 	go.mongodb.org/mongo-driver v1.17.9
 	golang.org/x/crypto v0.52.0
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.21.0
 	golang.org/x/time v0.15.0
@@ -88,7 +90,6 @@ require (
 	github.com/couchbase/gocbcore/v10 v10.2.8 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/descope/virtualwebauthn v1.0.5 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -200,7 +201,6 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.35.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect

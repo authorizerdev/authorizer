@@ -43,6 +43,8 @@ const (
 	AuditResourceTypeOrgMembership = "org_membership"
 	// AuditResourceTypeScimEndpoint represents a per-org SCIM endpoint.
 	AuditResourceTypeScimEndpoint = "scim_endpoint"
+	// AuditResourceTypeOrgDomain represents a per-org verified domain.
+	AuditResourceTypeOrgDomain = "org_domain"
 )
 
 // Audit event type constants used for structured audit logging.
@@ -231,6 +233,21 @@ const (
 	AuditScimEndpointDeletedEvent = "admin.scim_endpoint_deleted"
 	// AuditScimEndpointDeleteFailedEvent is logged when a SCIM endpoint delete fails.
 	AuditScimEndpointDeleteFailedEvent = "admin.scim_endpoint_delete_failed"
+
+	// AuditOrgDomainRequestedEvent is logged when an org admin requests a domain
+	// verification challenge (a DNS TXT proof is minted; no durable row yet).
+	AuditOrgDomainRequestedEvent = "admin.org_domain_requested"
+	// AuditOrgDomainRequestFailedEvent is logged when a domain request fails.
+	AuditOrgDomainRequestFailedEvent = "admin.org_domain_request_failed"
+	// AuditOrgDomainVerifiedEvent is logged when a domain is verified (DNS TXT or
+	// super-admin trusted-assert) and the verified row is inserted.
+	AuditOrgDomainVerifiedEvent = "admin.org_domain_verified"
+	// AuditOrgDomainVerifyFailedEvent is logged when a domain verification fails.
+	AuditOrgDomainVerifyFailedEvent = "admin.org_domain_verify_failed"
+	// AuditOrgDomainDeletedEvent is logged when a verified domain is deleted.
+	AuditOrgDomainDeletedEvent = "admin.org_domain_deleted"
+	// AuditOrgDomainDeleteFailedEvent is logged when a verified domain delete fails.
+	AuditOrgDomainDeleteFailedEvent = "admin.org_domain_delete_failed"
 
 	// AuditTokenClientCredentialsEvent is logged when a service account obtains a token
 	// via the client_credentials grant (RFC 6749 §4.4).

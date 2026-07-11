@@ -31,5 +31,6 @@ func (p *provider) Meta(ctx context.Context, meta RequestMetadata) (*model.Meta,
 		IsMultiFactorAuthEnabled:           c.EnableMFA,
 		IsMobileBasicAuthenticationEnabled: c.EnableMobileBasicAuthentication,
 		IsPhoneVerificationEnabled:         c.EnablePhoneVerification,
+		IsOrgDiscoveryEnabled:              c.EnableOrgDiscovery,
 	}, nil, nil
 }

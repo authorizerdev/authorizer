@@ -498,6 +498,25 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Unique: true,
 	})
 
+	// OrgDomain collection and indexes. Uniqueness is enforced by the document
+	// _key being the normalized domain (atomic first-writer-wins); org_id is
+	// indexed (non-unique) for listing an org's domains.
+	orgDomainCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.OrgDomain)
+	if err != nil {
+		return nil, err
+	}
+	if !orgDomainCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.OrgDomain, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	orgDomainCollection, err := arangodb.Collection(ctx, schemas.Collections.OrgDomain)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = orgDomainCollection.EnsurePersistentIndex(ctx, []string{"org_id"}, &arangoDriver.EnsurePersistentIndexOptions{})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

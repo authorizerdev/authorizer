@@ -179,6 +179,17 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, err
 		}
 	}
+	// A password reset must terminate every pre-existing session and refresh
+	// token before the caller is told it succeeded: the whole point is to
+	// lock out anyone who held the old credential. Synchronous (not
+	// fire-and-forget like UpdateProfile/DeactivateAccount) to close the
+	// window where an attacker's pre-existing token could still be used
+	// between the response going out and the goroutine actually running.
+	// Logged rather than silently ignored: a memory-store fault here means
+	// old sessions may still be live even though the reset "succeeded".
+	if err := p.MemoryStoreProvider.DeleteAllUserSessions(user.ID); err != nil {
+		log.Debug().Err(err).Msg("Failed to revoke existing sessions after password reset")
+	}
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditPasswordResetEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,

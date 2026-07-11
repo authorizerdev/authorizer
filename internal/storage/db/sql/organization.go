@@ -49,6 +49,11 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 	if err := p.db.Where("org_id = ?", org.ID).Delete(&schemas.OrgMembership{}).Error; err != nil {
 		return err
 	}
+	// Cascade verified domains — otherwise the domain becomes permanently
+	// unclaimable (it is the unique PK of org_domains).
+	if err := p.DeleteOrgDomainsByOrg(ctx, org.ID); err != nil {
+		return err
+	}
 	return p.db.Delete(org).Error
 }
 

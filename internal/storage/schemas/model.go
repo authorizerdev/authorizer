@@ -23,6 +23,7 @@ type CollectionList struct {
 	FederatedIdentity      string
 	ScimEndpoint           string
 	WebauthnCredential     string
+	OrgDomain              string
 }
 
 var (
@@ -51,5 +52,6 @@ var (
 		FederatedIdentity:      Prefix + "federated_identities",
 		ScimEndpoint:           Prefix + "scim_endpoints",
 		WebauthnCredential:     Prefix + "webauthn_credentials",
+		OrgDomain:              Prefix + "org_domains",
 	}
 )
