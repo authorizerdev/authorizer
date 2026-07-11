@@ -179,6 +179,10 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, err
 		}
 	}
+	// A password reset must terminate every pre-existing session and refresh
+	// token: the whole point is to lock out anyone who held the old
+	// credential. Fire-and-forget, matching UpdateProfile/DeactivateAccount.
+	go func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditPasswordResetEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,

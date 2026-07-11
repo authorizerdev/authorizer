@@ -2,6 +2,9 @@ package integration_tests
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -129,6 +133,87 @@ func TestResetPassword(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 		assert.Contains(t, err.Error(), "expired")
+	})
+
+	t.Run("should revoke existing sessions after reset", func(t *testing.T) {
+		// A password reset must lock out anyone holding a pre-existing
+		// session/refresh token. Log in to mint a session + refresh token,
+		// reset the password, then assert the session is gone from the store
+		// and the old refresh token is no longer honoured by /oauth/token.
+		//
+		// NOTE: refresh tokens are single-use (rotated on a successful
+		// refresh), so we must NOT poll the refresh endpoint to detect
+		// revocation — one successful refresh would itself invalidate the
+		// original token and mask the bug. We poll the (non-mutating) memory
+		// store instead, then hit /oauth/token exactly once.
+		revokeEmail := "reset_revoke_" + uuid.New().String() + "@authorizer.dev"
+		signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email:           &revokeEmail,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		userID := signupRes.User.ID
+
+		loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+			Email:    &revokeEmail,
+			Password: password,
+			Scope:    []string{"openid", "email", "profile", "offline_access"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, loginRes.RefreshToken)
+
+		hasUserSession := func() bool {
+			allData, err := ts.MemoryStoreProvider.GetAllData()
+			require.NoError(t, err)
+			for k := range allData {
+				if strings.Contains(k, userID) {
+					return true
+				}
+			}
+			return false
+		}
+		// Baseline: login created a live session for the user.
+		require.True(t, hasUserSession(), "login should create a session before reset")
+
+		// Reset the password via the forgot-password verification token.
+		forgotRes, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+			Email: refs.NewStringRef(revokeEmail),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, forgotRes)
+		request, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, revokeEmail, constants.VerificationTypeForgotPassword)
+		require.NoError(t, err)
+		resetRes, err := ts.GraphQLProvider.ResetPassword(ctx, &model.ResetPasswordRequest{
+			Token:           refs.NewStringRef(request.Token),
+			Password:        "NewPassword@123",
+			ConfirmPassword: "NewPassword@123",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resetRes)
+
+		// Session revocation is fire-and-forget; wait for the store to clear.
+		// This is the discriminating assertion: without the fix the session
+		// is never removed and this times out.
+		require.Eventually(t, func() bool { return !hasUserSession() },
+			2*time.Second, 20*time.Millisecond,
+			"all user sessions must be revoked after password reset")
+
+		// End-to-end: the pre-existing refresh token is now rejected.
+		issuer := "http://" + ts.HttpServer.Listener.Addr().String()
+		router := gin.New()
+		router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+		form := url.Values{}
+		form.Set("grant_type", "refresh_token")
+		form.Set("refresh_token", *loginRes.RefreshToken)
+		form.Set("client_id", cfg.ClientID)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("X-Authorizer-URL", issuer)
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusUnauthorized, w.Code,
+			"pre-existing refresh token must be rejected after password reset")
 	})
 
 	t.Run("should reset password with verification token", func(t *testing.T) {
