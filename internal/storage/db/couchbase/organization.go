@@ -90,7 +90,9 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 	if err != nil {
 		return err
 	}
-	return nil
+	// Cascade verified domains — otherwise the domain becomes permanently
+	// unclaimable (it is the unique document key of org_domains).
+	return p.DeleteOrgDomainsByOrg(ctx, org.ID)
 }
 
 // GetOrganizationByID fetches an organization by primary key.

@@ -291,6 +291,26 @@ type Provider interface {
 	UpdateScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) (*schemas.ScimEndpoint, error)
 	// DeleteScimEndpoint removes an endpoint.
 	DeleteScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) error
+
+	// OrgDomain methods (verified domain → org mapping for home-realm discovery).
+
+	// AddOrgDomain atomically inserts a verified domain row, keyed by the
+	// normalized domain (the primary/partition key). First-writer-wins:
+	//   - domain unclaimed → inserts and returns the new row.
+	//   - domain already held by the SAME org → returns the existing row (idempotent).
+	//   - domain already held by a DIFFERENT org → returns schemas.ErrOrgDomainConflict.
+	// ID and Domain MUST both be set to the normalized domain by the caller.
+	AddOrgDomain(ctx context.Context, domain *schemas.OrgDomain) (*schemas.OrgDomain, error)
+	// GetOrgDomainByDomain fetches the verified row for a normalized domain
+	// (the home-realm-discovery reverse lookup — a primary-key GET).
+	GetOrgDomainByDomain(ctx context.Context, domain string) (*schemas.OrgDomain, error)
+	// ListOrgDomainsByOrg returns an org's verified domains, paginated.
+	ListOrgDomainsByOrg(ctx context.Context, orgID string, pagination *model.Pagination) ([]*schemas.OrgDomain, *model.Pagination, error)
+	// DeleteOrgDomain removes a verified domain mapping by normalized domain.
+	DeleteOrgDomain(ctx context.Context, domain string) error
+	// DeleteOrgDomainsByOrg removes all of an org's verified domains (cascade on
+	// org delete — otherwise the domain becomes permanently unclaimable).
+	DeleteOrgDomainsByOrg(ctx context.Context, orgID string) error
 }
 
 // New creates a new database provider based on the configuration

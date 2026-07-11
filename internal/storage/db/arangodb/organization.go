@@ -78,6 +78,12 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 		return err
 	}
 	defer func() { _ = cursor.Close() }()
+	// Cascade verified domains — otherwise the domain becomes permanently
+	// unclaimable (it is the unique _key of org_domains). OrgID is stored as the
+	// bare key, matching org.Key.
+	if err := p.DeleteOrgDomainsByOrg(ctx, org.Key); err != nil {
+		return err
+	}
 	return nil
 }
 

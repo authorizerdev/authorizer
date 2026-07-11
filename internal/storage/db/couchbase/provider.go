@@ -312,5 +312,10 @@ func getIndex(scopeName string) map[string][]string {
 	scimEndpointIndex1 := fmt.Sprintf("CREATE INDEX ScimEndpointOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.ScimEndpoint)
 	indices[schemas.Collections.ScimEndpoint] = []string{scimEndpointIndex1}
 
+	// OrgDomain index (uniqueness is enforced by the document key = domain;
+	// org_id is indexed for listing).
+	orgDomainIndex1 := fmt.Sprintf("CREATE INDEX OrgDomainOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.OrgDomain)
+	indices[schemas.Collections.OrgDomain] = []string{orgDomainIndex1}
+
 	return indices
 }
