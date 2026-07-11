@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/authctx"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -128,6 +130,65 @@ func (p *provider) requireSuperAdmin(ctx context.Context, meta RequestMetadata) 
 	gc := &gin.Context{Request: meta.Request}
 	if !p.TokenProvider.IsSuperAdmin(gc) {
 		return Unauthenticated("unauthorized")
+	}
+	return nil
+}
+
+// requireOrgAdmin enforces org-scoped admin auth for a single organization. It
+// passes when EITHER the caller is a platform super-admin (the unchanged escape
+// hatch, reusing requireSuperAdmin's exact positive path), OR the caller is an
+// authenticated user who holds the reserved namespaced role
+// constants.OrgRoleAdmin ("authorizer:org_admin") in an OrgMembership of orgID.
+//
+// It FAILS CLOSED: any error resolving the caller or their membership, a missing
+// membership, or a membership lacking the reserved role all deny. The bare
+// "admin" role is NOT accepted (see constants.OrgRoleAdmin) — only the
+// namespaced role grants org-scoped admin rights.
+//
+// orgID is the tenant-isolation boundary and MUST be sourced correctly by the
+// caller (design H2): for create/list ops it is the org being written
+// (params.OrgID); for update/delete/get ops it is the OrgID of the target
+// resource AFTER it has been loaded by id — never a caller-supplied org id
+// checked before the load. Returns Unauthenticated to match requireSuperAdmin's
+// error shape and to avoid leaking whether the target resource exists.
+func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, orgID string) error {
+	// Super-admin escape hatch — identical positive path to requireSuperAdmin.
+	if p.requireSuperAdmin(ctx, meta) == nil {
+		return nil
+	}
+
+	orgID = strings.TrimSpace(orgID)
+	if orgID == "" {
+		return Unauthenticated("unauthorized")
+	}
+
+	tokenData, err := p.callerTokenData(ctx, meta)
+	if err != nil || tokenData == nil || tokenData.UserID == "" {
+		return Unauthenticated("unauthorized")
+	}
+
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, tokenData.UserID)
+	if err != nil || membership == nil {
+		return Unauthenticated("unauthorized")
+	}
+	for _, role := range membership.ParsedRoles() {
+		if role == constants.OrgRoleAdmin {
+			return nil
+		}
+	}
+	return Unauthenticated("unauthorized")
+}
+
+// rejectOrgIDMismatch is the confused-deputy guard for the id-or-org_id
+// resolvers (design H2). Once a resource has been loaded by id, if the caller
+// ALSO supplied an org_id that names a different org, deny: they are trying to
+// act on another org's resource under their own org's authority. A nil/empty
+// org_id (the common id-only call) is fine.
+func rejectOrgIDMismatch(paramOrgID *string, resourceOrgID string) error {
+	if paramOrgID != nil {
+		if v := strings.TrimSpace(*paramOrgID); v != "" && v != resourceOrgID {
+			return Unauthenticated("unauthorized")
+		}
 	}
 	return nil
 }
