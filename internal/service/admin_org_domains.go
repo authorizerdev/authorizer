@@ -42,6 +42,15 @@ func (p *provider) RequestOrgDomain(ctx context.Context, meta RequestMetadata, p
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainRequestFailedEvent, orgID)
 		return nil, nil, err
 	}
+	// Rate-limit challenge minting per org, mirroring VerifyOrgDomain — bounds
+	// memory-store churn from an authenticated tenant admin.
+	if p.RateLimitProvider != nil {
+		allowed, rlErr := p.RateLimitProvider.Allow(ctx, "org_domain_request:"+orgID)
+		if rlErr == nil && !allowed {
+			log.Debug().Msg("domain request rate limit exceeded")
+			return nil, nil, fmt.Errorf("too many domain requests, please retry later")
+		}
+	}
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Msg("organization not found")
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainRequestFailedEvent, orgID)
