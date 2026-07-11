@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -216,7 +217,24 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	}
 
 	if cfg.DatabaseType == constants.DbTypeSqlite || cfg.DatabaseType == constants.DbTypeLibSQL {
-		cfg.DatabaseURL = filepath.Join(t.TempDir(), "authorizer_integration.db")
+		// Not t.TempDir(): its RemoveAll fails the test if the dir is non-empty.
+		// The SQLite DB uses WAL, and the fire-and-forget goroutines from
+		// LogEvent/AddSession (see the storage-close cleanup below) can create a
+		// -wal/-shm sidecar file mid-teardown — a benign race that would
+		// otherwise fail an already-passed test. Manage the dir ourselves and
+		// remove it best-effort. Registered here so it runs AFTER the storage
+		// Close cleanup (t.Cleanup is LIFO; the closer is registered later).
+		dbDir, mkErr := os.MkdirTemp("", "authorizer-it-*")
+		require.NoError(t, mkErr)
+		t.Cleanup(func() {
+			for i := 0; i < 3; i++ {
+				if err := os.RemoveAll(dbDir); err == nil {
+					return
+				}
+				time.Sleep(50 * time.Millisecond)
+			}
+		})
+		cfg.DatabaseURL = filepath.Join(dbDir, "authorizer_integration.db")
 	}
 
 	// Initialize storage provider first as it's required by other providers
