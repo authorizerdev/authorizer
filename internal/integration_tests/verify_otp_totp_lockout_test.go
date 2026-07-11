@@ -2,6 +2,10 @@ package integration_tests
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -111,5 +115,65 @@ func TestVerifyOTPTOTPLockout(t *testing.T) {
 		counter, err = ts.MemoryStoreProvider.GetCache(lockKey)
 		require.NoError(t, err)
 		assert.Empty(t, counter, "a successful verification must reset the failed-attempt counter")
+	})
+
+	t.Run("concurrent failed attempts cannot bypass the lockout via a check-then-increment race", func(t *testing.T) {
+		// Guards against a non-atomic read-modify-write counter: if the
+		// implementation reads the count, compares it, THEN writes count+1,
+		// concurrent requests can all read the same pre-increment value and
+		// all pass the check, so the counter only ever advances by 1 per
+		// concurrent burst regardless of how many requests race - the lockout
+		// never engages no matter how many guesses are fired. With an atomic
+		// increment-then-check, IncrementCache must instead hand out strictly
+		// increasing, unique values, so at most maxFailedAttempts requests
+		// can ever reach validation and the counter must land exactly at the
+		// number of concurrent attempts - not less.
+		user, email, _ := mkVerifiedTOTPUser(t)
+		lockKey := lockoutCachePrefix + user.ID
+
+		// One MFA session shared by every concurrent request, matching a real
+		// client re-submitting several attempts within one login flow. Set
+		// once before firing concurrently: only reads happen after this, so
+		// there's no header-mutation race in the test itself.
+		armMfaSession(user.ID)
+
+		const concurrency = 20
+		var wg sync.WaitGroup
+		var lockedCount, rejectedCount int64
+		for i := 0; i < concurrency; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := verify(email, "000000")
+				// assert (not require) inside a goroutine: require's FailNow
+				// is only safe to call from the test's own goroutine.
+				if !assert.Error(t, err) {
+					return
+				}
+				if strings.Contains(err.Error(), "too many failed attempts") {
+					atomic.AddInt64(&lockedCount, 1)
+				} else {
+					atomic.AddInt64(&rejectedCount, 1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		// Every one of the `concurrency` requests must have actually
+		// incremented the counter - a check-then-increment race would leave
+		// this well short of `concurrency`.
+		counter, err := ts.MemoryStoreProvider.GetCache(lockKey)
+		require.NoError(t, err)
+		counterVal, convErr := strconv.Atoi(counter)
+		require.NoError(t, convErr)
+		assert.Equal(t, concurrency, counterVal,
+			"the counter must reflect every concurrent attempt - a lost update here is exactly the race this test guards against")
+
+		// At most maxFailedAttempts requests may ever reach real validation
+		// (and so get the generic invalid-otp rejection); everything beyond
+		// that must be turned away by the lockout before validating.
+		assert.LessOrEqual(t, int(rejectedCount), maxFailedAttempts,
+			"no more than maxFailedAttempts requests may bypass the lockout and reach validation")
+		assert.Equal(t, int64(concurrency)-rejectedCount, lockedCount)
 	})
 }

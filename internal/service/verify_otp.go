@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -88,18 +87,42 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		return nil, nil, FailedPrecondition("invalid verification request")
 	}
 
+	// Validate the MFA session before doing ANY code/lockout-counter work.
+	// This must run first: the TOTP lockout counter below is keyed by
+	// user.ID alone, resolvable from a bare email with no proof the caller
+	// ever completed the password step. Checking the session first means an
+	// attacker who only knows a victim's email - with no valid session - is
+	// rejected before they can touch (and so exhaust) the victim's lockout
+	// counter, closing an unauthenticated account-lockout DoS.
+	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+		log.Debug().Err(err).Msg("Failed to get mfa session")
+		return nil, nil, Unauthenticated(`invalid session`)
+	}
+
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.IsTotp) {
-		// Per-user lockout: reject before validating once too many recent
-		// attempts have failed, so a correct code offered during the lock
-		// window is still refused. GetCache returns ("", nil) when absent.
+		// Per-user lockout: atomically reserve this attempt's slot BEFORE
+		// validating, then check whether it exceeded the budget. This is
+		// deliberately increment-then-check rather than check-then-increment:
+		// under concurrent requests, IncrementCache still hands out strictly
+		// increasing, unique counts (1,2,3,...), so at most
+		// totpMaxFailedAttempts requests can ever reach validation in a
+		// window no matter how many arrive simultaneously. A
+		// check-then-increment design (read count, compare, validate, then
+		// write count+1) lets arbitrarily many concurrent requests all read
+		// the same pre-increment count and all pass the check, defeating the
+		// lockout entirely - parallelizing the exact brute-force attack this
+		// exists to stop.
 		lockKey := totpLockoutCachePrefix + user.ID
-		attempts := 0
-		if v, cErr := p.MemoryStoreProvider.GetCache(lockKey); cErr == nil && v != "" {
-			attempts, _ = strconv.Atoi(v)
-		}
-		if attempts >= totpMaxFailedAttempts {
-			log.Debug().Int("attempts", attempts).Msg("TOTP verification locked: too many failed attempts")
+		attempts, incErr := p.MemoryStoreProvider.IncrementCache(lockKey, totpLockoutWindowSeconds)
+		if incErr != nil {
+			// A memory-store fault must not be counted as a user failure or
+			// block a legitimate user (avoids self-lockout on outage) - same
+			// fail-open philosophy already used below for
+			// ValidateRecoveryCode's storage-fault case.
+			log.Debug().Err(incErr).Msg("Failed to increment totp failed-attempt counter")
+		} else if attempts > totpMaxFailedAttempts {
+			log.Debug().Int64("attempts", attempts).Msg("TOTP verification locked: too many failed attempts")
 			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
 		}
 
@@ -120,11 +143,6 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			}
 		}
 		if !verified {
-			// Record the failed attempt. SetCache resets the TTL each time,
-			// so the window slides with activity; once the threshold is hit
-			// the early return above stops further increments, fixing the
-			// lock at one full window.
-			_ = p.MemoryStoreProvider.SetCache(lockKey, strconv.Itoa(attempts+1), totpLockoutWindowSeconds)
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
 			return nil, nil, InvalidArgument(`invalid otp`)
 		}
@@ -165,11 +183,6 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 			log.Debug().Err(err).Msg("Failed to delete otp")
 		}
-	}
-
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
-		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, nil, Unauthenticated(`invalid session`)
 	}
 
 	isSignUp := false

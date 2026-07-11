@@ -1,10 +1,40 @@
 package in_memory
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+// IncrementCache atomically increments the integer counter at key (creating it
+// at 1 if absent or expired) and refreshes its TTL, returning the new value.
+// Implemented as an optimistic CompareAndSwap retry loop over the same
+// sync.Map SetCache/GetCache already use, so a concurrent increment can never
+// observe a stale pre-increment value the way a GetCache+SetCache pair would.
+func (c *provider) IncrementCache(key string, ttlSeconds int64) (int64, error) {
+	for {
+		now := time.Now().Unix()
+		old, loaded := cacheStore.Load(key)
+		if !loaded {
+			entry := &cacheEntry{Value: "1", ExpiresAt: now + ttlSeconds}
+			if _, alreadyStored := cacheStore.LoadOrStore(key, entry); !alreadyStored {
+				return 1, nil
+			}
+			continue
+		}
+		entry := old.(*cacheEntry)
+		var current int64
+		if entry.ExpiresAt >= now {
+			current, _ = strconv.ParseInt(entry.Value, 10, 64)
+		}
+		next := current + 1
+		newEntry := &cacheEntry{Value: strconv.FormatInt(next, 10), ExpiresAt: now + ttlSeconds}
+		if cacheStore.CompareAndSwap(key, old, newEntry) {
+			return next, nil
+		}
+	}
+}
 
 // cacheEntry holds a cached value with its expiration time.
 type cacheEntry struct {

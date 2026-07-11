@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -31,6 +32,28 @@ func (p *provider) GetCache(key string) (string, error) {
 		return "", err
 	}
 	return data, nil
+}
+
+// IncrementCache atomically increments the integer counter at key (creating it
+// at 1 if absent) and refreshes its TTL, returning the new value. INCR+EXPIRE
+// run as a single Lua script (matching the GetAndRemoveState pattern below) so
+// concurrent callers can never observe the same pre-increment value the way a
+// GET+SET pair would.
+func (p *provider) IncrementCache(key string, ttlSeconds int64) (int64, error) {
+	fullKey := cachePrefix + key
+	script := `local v = redis.call('INCR', KEYS[1])
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+return v`
+	result, err := p.store.Eval(p.ctx, script, []string{fullKey}, ttlSeconds).Result()
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("Error incrementing cache in redis")
+		return 0, err
+	}
+	next, ok := result.(int64)
+	if !ok {
+		return 0, fmt.Errorf("unexpected redis reply type for IncrementCache")
+	}
+	return next, nil
 }
 
 // DeleteCacheByPrefix removes all cache entries whose keys start with the given prefix.

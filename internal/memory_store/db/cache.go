@@ -1,6 +1,7 @@
 package db
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +55,24 @@ func (p *provider) GetCache(key string) (string, error) {
 		return "", nil
 	}
 	return entry.Value, nil
+}
+
+// IncrementCache atomically increments the integer counter at key (creating it
+// at 1 if absent or expired) and refreshes its TTL under the same mutex
+// SetCache/GetCache use, returning the new value. Safe under concurrent
+// callers, unlike a GetCache+SetCache pair which would let them all observe
+// the same pre-increment value.
+func (p *provider) IncrementCache(key string, ttlSeconds int64) (int64, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+	now := time.Now().Unix()
+	var current int64
+	if entry, ok := cache[key]; ok && entry.ExpiresAt >= now {
+		current, _ = strconv.ParseInt(entry.Value, 10, 64)
+	}
+	next := current + 1
+	cache[key] = &cacheEntry{Value: strconv.FormatInt(next, 10), ExpiresAt: now + ttlSeconds}
+	return next, nil
 }
 
 // DeleteCacheByPrefix removes all cache entries whose keys start with the given prefix.

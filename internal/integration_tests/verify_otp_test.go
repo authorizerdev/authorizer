@@ -189,8 +189,15 @@ func TestVerifyOTPNoRecord(t *testing.T) {
 	require.NotNil(t, signupRes)
 	require.NotNil(t, signupRes.User)
 
-	// Set an MFA session cookie so we get past the cookie check
-	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", "test"))
+	// Arm a genuine MFA session (not just a cookie-shaped placeholder): the
+	// service layer now validates the session against the store before doing
+	// any OTP/lockout work (closes an unauthenticated lockout-DoS elsewhere),
+	// so a fake, unregistered token would now fail at the session check
+	// itself rather than reaching the no-OTP-record path this test guards.
+	mfaSession := uuid.New().String()
+	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(signupRes.User.ID, mfaSession,
+		time.Now().Add(5*time.Minute).Unix()))
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
 	t.Run("should return error not panic when no OTP record exists", func(t *testing.T) {
 		verificationReq := &model.VerifyOTPRequest{
