@@ -470,7 +470,8 @@ type ComplexityRoot struct {
 		TrustedIssuer        func(childComplexity int, params model.TrustedIssuerRequest) int
 		TrustedIssuers       func(childComplexity int, params *model.ListTrustedIssuersRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
-		Users                func(childComplexity int, params *model.PaginatedRequest) int
+		UserOrganizations    func(childComplexity int, params model.UserOrganizationsRequest) int
+		Users                func(childComplexity int, params *model.ListUsersRequest) int
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
 		ValidateSession      func(childComplexity int, params *model.ValidateSessionRequest) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedRequest) int
@@ -542,6 +543,16 @@ type ComplexityRoot struct {
 		Roles                    func(childComplexity int) int
 		SignupMethods            func(childComplexity int) int
 		UpdatedAt                func(childComplexity int) int
+	}
+
+	UserOrganization struct {
+		Organization func(childComplexity int) int
+		Roles        func(childComplexity int) int
+	}
+
+	UserOrganizations struct {
+		Pagination        func(childComplexity int) int
+		UserOrganizations func(childComplexity int) int
 	}
 
 	Users struct {
@@ -700,8 +711,9 @@ type QueryResolver interface {
 	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)
 	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
 	WebauthnCredentials(ctx context.Context) ([]*model.WebauthnCredentialInfo, error)
-	Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error)
+	Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
+	UserOrganizations(ctx context.Context, params model.UserOrganizationsRequest) (*model.UserOrganizations, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
 	AdminMeta(ctx context.Context) (*model.AdminMeta, error)
@@ -3364,6 +3376,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.User(childComplexity, args["params"].(model.GetUserRequest)), true
 
+	case "Query._user_organizations":
+		if e.complexity.Query.UserOrganizations == nil {
+			break
+		}
+
+		args, err := ec.field_Query__user_organizations_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserOrganizations(childComplexity, args["params"].(model.UserOrganizationsRequest)), true
+
 	case "Query._users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -3374,7 +3398,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.Users(childComplexity, args["params"].(*model.ListUsersRequest)), true
 
 	case "Query.validate_jwt_token":
 		if e.complexity.Query.ValidateJwtToken == nil {
@@ -3777,6 +3801,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.UpdatedAt(childComplexity), true
 
+	case "UserOrganization.organization":
+		if e.complexity.UserOrganization.Organization == nil {
+			break
+		}
+
+		return e.complexity.UserOrganization.Organization(childComplexity), true
+
+	case "UserOrganization.roles":
+		if e.complexity.UserOrganization.Roles == nil {
+			break
+		}
+
+		return e.complexity.UserOrganization.Roles(childComplexity), true
+
+	case "UserOrganizations.pagination":
+		if e.complexity.UserOrganizations.Pagination == nil {
+			break
+		}
+
+		return e.complexity.UserOrganizations.Pagination(childComplexity), true
+
+	case "UserOrganizations.user_organizations":
+		if e.complexity.UserOrganizations.UserOrganizations == nil {
+			break
+		}
+
+		return e.complexity.UserOrganizations.UserOrganizations(childComplexity), true
+
 	case "Users.pagination":
 		if e.complexity.Users.Pagination == nil {
 			break
@@ -4128,6 +4180,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListOrganizationsRequest,
 		ec.unmarshalInputListPermissionsInput,
 		ec.unmarshalInputListTrustedIssuersRequest,
+		ec.unmarshalInputListUsersRequest,
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginRequest,
 		ec.unmarshalInputMagicLinkLoginRequest,
@@ -4161,6 +4214,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateTrustedIssuerRequest,
 		ec.unmarshalInputUpdateUserRequest,
 		ec.unmarshalInputUpdateWebhookRequest,
+		ec.unmarshalInputUserOrganizationsRequest,
 		ec.unmarshalInputValidateJWTTokenRequest,
 		ec.unmarshalInputValidateSessionRequest,
 		ec.unmarshalInputVerifyEmailRequest,
@@ -4724,6 +4778,18 @@ type Organizations {
   organizations: [Organization!]!
 }
 
+# UserOrganization pairs an organization with the roles a specific user holds
+# in it. Returned by the admin _user_organizations query.
+type UserOrganization {
+  organization: Organization!
+  roles: [String!]!
+}
+
+type UserOrganizations {
+  pagination: Pagination!
+  user_organizations: [UserOrganization!]!
+}
+
 # ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The bearer
 # token is NEVER returned here; it is returned exactly once in
 # CreateScimEndpointResponse (creation and rotation) and never again.
@@ -5086,6 +5152,21 @@ input PaginationRequest {
 }
 
 input PaginatedRequest {
+  pagination: PaginationRequest
+}
+
+# ListUsersRequest is the admin _users query input. query is an optional
+# case-insensitive substring filter matched against email, given_name,
+# family_name and nickname. Empty/absent means no filter (full list).
+input ListUsersRequest {
+  pagination: PaginationRequest
+  query: String
+}
+
+# UserOrganizationsRequest is the admin _user_organizations query input. It
+# returns the organizations a user belongs to, with the roles held per org.
+input UserOrganizationsRequest {
+  user_id: String!
   pagination: PaginationRequest
 }
 
@@ -5621,8 +5702,12 @@ type Query {
   # List the authenticated caller's own registered passkeys.
   webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
-  _users(params: PaginatedRequest): Users!
+  _users(params: ListUsersRequest): Users!
   _user(params: GetUserRequest!): User!
+  # _user_organizations returns the organizations a user belongs to along with
+  # the roles held in each. Super-admin only. Called lazily by the dashboard
+  # user detail view — not exposed on the User type to keep user lists cheap.
+  _user_organizations(params: UserOrganizationsRequest!): UserOrganizations!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
   # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
@@ -7908,6 +7993,34 @@ func (ec *executionContext) field_Query__user_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query__user_organizations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__user_organizations_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__user_organizations_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UserOrganizationsRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UserOrganizationsRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUserOrganizationsRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizationsRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UserOrganizationsRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7921,18 +8034,18 @@ func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query__users_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
+) (*model.ListUsersRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
+		var zeroVal *model.ListUsersRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+		return ec.unmarshalOListUsersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListUsersRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedRequest
+	var zeroVal *model.ListUsersRequest
 	return zeroVal, nil
 }
 
@@ -22822,7 +22935,7 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.ListUsersRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -22960,6 +23073,67 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query__user_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__user_organizations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__user_organizations(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserOrganizations(rctx, fc.Args["params"].(model.UserOrganizationsRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserOrganizations)
+	fc.Result = res
+	return ec.marshalNUserOrganizations2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizations(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__user_organizations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pagination":
+				return ec.fieldContext_UserOrganizations_pagination(ctx, field)
+			case "user_organizations":
+				return ec.fieldContext_UserOrganizations_user_organizations(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UserOrganizations", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__user_organizations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -26863,6 +27037,212 @@ func (ec *executionContext) fieldContext_User_app_data(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserOrganization_organization(ctx context.Context, field graphql.CollectedField, obj *model.UserOrganization) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserOrganization_organization(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Organization, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Organization)
+	fc.Result = res
+	return ec.marshalNOrganization2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOrganization(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserOrganization_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserOrganization",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Organization_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Organization_name(ctx, field)
+			case "display_name":
+				return ec.fieldContext_Organization_display_name(ctx, field)
+			case "enabled":
+				return ec.fieldContext_Organization_enabled(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Organization_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Organization_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserOrganization_roles(ctx context.Context, field graphql.CollectedField, obj *model.UserOrganization) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserOrganization_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserOrganization_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserOrganization",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserOrganizations_pagination(ctx context.Context, field graphql.CollectedField, obj *model.UserOrganizations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserOrganizations_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserOrganizations_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserOrganizations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			case "page":
+				return ec.fieldContext_Pagination_page(ctx, field)
+			case "offset":
+				return ec.fieldContext_Pagination_offset(ctx, field)
+			case "total":
+				return ec.fieldContext_Pagination_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserOrganizations_user_organizations(ctx context.Context, field graphql.CollectedField, obj *model.UserOrganizations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserOrganizations_user_organizations(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserOrganizations, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.UserOrganization)
+	fc.Result = res
+	return ec.marshalNUserOrganization2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizationᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserOrganizations_user_organizations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserOrganizations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "organization":
+				return ec.fieldContext_UserOrganization_organization(ctx, field)
+			case "roles":
+				return ec.fieldContext_UserOrganization_roles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UserOrganization", field.Name)
 		},
 	}
 	return fc, nil
@@ -32255,6 +32635,40 @@ func (ec *executionContext) unmarshalInputListTrustedIssuersRequest(ctx context.
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputListUsersRequest(ctx context.Context, obj any) (model.ListUsersRequest, error) {
+	var it model.ListUsersRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"pagination", "query"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
+		case "query":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Query = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Context, obj any) (model.ListWebhookLogRequest, error) {
 	var it model.ListWebhookLogRequest
 	asMap := map[string]any{}
@@ -34505,6 +34919,40 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 				return it, err
 			}
 			it.Headers = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUserOrganizationsRequest(ctx context.Context, obj any) (model.UserOrganizationsRequest, error) {
+	var it model.UserOrganizationsRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"user_id", "pagination"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "user_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
 		}
 	}
 
@@ -37521,6 +37969,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_user_organizations":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__user_organizations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_verification_requests":
 			field := field
 
@@ -38460,6 +38930,94 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
 		case "app_data":
 			out.Values[i] = ec._User_app_data(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var userOrganizationImplementors = []string{"UserOrganization"}
+
+func (ec *executionContext) _UserOrganization(ctx context.Context, sel ast.SelectionSet, obj *model.UserOrganization) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userOrganizationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserOrganization")
+		case "organization":
+			out.Values[i] = ec._UserOrganization_organization(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "roles":
+			out.Values[i] = ec._UserOrganization_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var userOrganizationsImplementors = []string{"UserOrganizations"}
+
+func (ec *executionContext) _UserOrganizations(ctx context.Context, sel ast.SelectionSet, obj *model.UserOrganizations) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userOrganizationsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserOrganizations")
+		case "pagination":
+			out.Values[i] = ec._UserOrganizations_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "user_organizations":
+			out.Values[i] = ec._UserOrganizations_user_organizations(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -40807,6 +41365,79 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._User(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNUserOrganization2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserOrganization) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUserOrganization2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganization(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNUserOrganization2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganization(ctx context.Context, sel ast.SelectionSet, v *model.UserOrganization) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UserOrganization(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserOrganizations2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizations(ctx context.Context, sel ast.SelectionSet, v model.UserOrganizations) graphql.Marshaler {
+	return ec._UserOrganizations(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserOrganizations2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizations(ctx context.Context, sel ast.SelectionSet, v *model.UserOrganizations) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UserOrganizations(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserOrganizationsRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserOrganizationsRequest(ctx context.Context, v any) (model.UserOrganizationsRequest, error) {
+	res, err := ec.unmarshalInputUserOrganizationsRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNUsers2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v model.Users) graphql.Marshaler {
 	return ec._Users(ctx, sel, &v)
 }
@@ -41558,6 +42189,14 @@ func (ec *executionContext) unmarshalOListTrustedIssuersRequest2ᚖgithubᚗcom�
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputListTrustedIssuersRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOListUsersRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListUsersRequest(ctx context.Context, v any) (*model.ListUsersRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListUsersRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

@@ -373,13 +373,18 @@ func (r *queryResolver) WebauthnCredentials(ctx context.Context) ([]*model.Webau
 }
 
 // Users is the resolver for the _users field.
-func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error) {
+func (r *queryResolver) Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error) {
 	return r.GraphQLProvider.Users(ctx, params)
 }
 
 // User is the resolver for the _user field.
 func (r *queryResolver) User(ctx context.Context, params model.GetUserRequest) (*model.User, error) {
 	return r.GraphQLProvider.User(ctx, &params)
+}
+
+// UserOrganizations is the resolver for the _user_organizations field.
+func (r *queryResolver) UserOrganizations(ctx context.Context, params model.UserOrganizationsRequest) (*model.UserOrganizations, error) {
+	return r.GraphQLProvider.UserOrganizations(ctx, &params)
 }
 
 // VerificationRequests is the resolver for the _verification_requests field.

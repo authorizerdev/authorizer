@@ -155,11 +155,44 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	var lastKey map[string]types.AttributeValue
 	var iteration int64
 	paginationClone := pagination
 	var users []*schemas.User
+
+	if search := strings.TrimSpace(query); search != "" {
+		// ponytail: DynamoDB has no substring index and contains() is
+		// case-sensitive, so search scans the whole table and filters in
+		// application code — O(n). Acceptable for an admin search surface;
+		// upgrade path is a GSI on lowercased fields or an external search
+		// service at scale.
+		items, err := p.scanAllRaw(ctx, schemas.Collections.User, nil, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		matched := []*schemas.User{}
+		for _, it := range items {
+			var u schemas.User
+			if err := unmarshalItem(it, &u); err != nil {
+				return nil, nil, err
+			}
+			normalizeUserOptionalPtrs(&u)
+			if u.MatchesSearch(search) {
+				matched = append(matched, &u)
+			}
+		}
+		paginationClone.Total = int64(len(matched))
+		start := pagination.Offset
+		if start > int64(len(matched)) {
+			start = int64(len(matched))
+		}
+		end := start + pagination.Limit
+		if end > int64(len(matched)) {
+			end = int64(len(matched))
+		}
+		return matched[start:end], paginationClone, nil
+	}
 
 	count, err := p.scanCount(ctx, schemas.Collections.User, nil)
 	if err != nil {

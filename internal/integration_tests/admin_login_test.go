@@ -16,7 +16,7 @@ func TestAdminSecretHeaderAuth(t *testing.T) {
 		req, ctx := createContext(ts)
 
 		req.Header.Set("x-authorizer-admin-secret", cfg.AdminSecret)
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{})
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, users)
 	})
@@ -27,7 +27,7 @@ func TestAdminSecretHeaderAuth(t *testing.T) {
 		req, ctx := createContext(ts)
 
 		req.Header.Set("x-authorizer-admin-secret", "wrong-secret")
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{})
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
 		assert.Error(t, err)
 		assert.Nil(t, users)
 	})
@@ -39,7 +39,7 @@ func TestAdminSecretHeaderAuth(t *testing.T) {
 		req, ctx := createContext(ts)
 
 		req.Header.Set("x-authorizer-admin-secret", cfg.AdminSecret)
-		users, err := ts.GraphQLProvider.Users(ctx, &model.PaginatedRequest{})
+		users, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
 		assert.Error(t, err)
 		assert.Nil(t, users)
 	})

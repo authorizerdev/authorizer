@@ -84,6 +84,9 @@ export default function Users() {
 	const [userList, setUserList] = React.useState<User[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
 	const [searchQuery, setSearchQuery] = React.useState('');
+	// debouncedSearch is what actually drives the server query — the raw input
+	// is debounced (~300ms) so we don't fire a request on every keystroke.
+	const [debouncedSearch, setDebouncedSearch] = React.useState('');
 	const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 	// User whose FGA permissions are being inspected (Users table → dropdown).
 	const [permissionsUser, setPermissionsUser] = React.useState<User | null>(
@@ -99,6 +102,7 @@ export default function Users() {
 						limit: paginationProps.limit,
 						page: paginationProps.page,
 					},
+					query: debouncedSearch || undefined,
 				},
 			})
 			.toPromise();
@@ -122,13 +126,21 @@ export default function Users() {
 		setLoading(false);
 	};
 
+	// Debounce the raw search input, and reset to the first page whenever the
+	// effective search term changes so results always start from page 1.
 	React.useEffect(() => {
-		updateUserList();
-	}, []);
+		const timer = setTimeout(() => {
+			setDebouncedSearch(searchQuery.trim());
+			setPaginationProps((prev) =>
+				prev.page === 1 ? prev : { ...prev, page: 1 },
+			);
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [searchQuery]);
 
 	React.useEffect(() => {
 		updateUserList();
-	}, [paginationProps.page, paginationProps.limit]);
+	}, [paginationProps.page, paginationProps.limit, debouncedSearch]);
 
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
@@ -226,12 +238,6 @@ export default function Users() {
 		}
 	};
 
-	const filteredUsers = userList.filter(
-		(user) =>
-			searchQuery === '' ||
-			(user.email || '').toLowerCase().includes(searchQuery.toLowerCase()),
-	);
-
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<div className="flex items-center justify-between my-4">
@@ -247,7 +253,7 @@ export default function Users() {
 				<div className="relative flex-1 max-w-sm">
 					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 					<Input
-						placeholder="Search by email..."
+						placeholder="Search by email or name..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						className="pl-9"
@@ -260,7 +266,7 @@ export default function Users() {
 						<Skeleton key={i} className="h-10 w-full" />
 					))}
 				</div>
-			) : filteredUsers.length > 0 ? (
+			) : userList.length > 0 ? (
 				<>
 					<Table>
 						<TableHeader>
@@ -283,7 +289,7 @@ export default function Users() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{filteredUsers.map((user) => {
+							{userList.map((user) => {
 								const {
 									email_verified,
 									phone_number_verified,

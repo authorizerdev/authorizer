@@ -156,6 +156,10 @@ func TestStorageProvider(t *testing.T) {
 				testUserOperations(t, ctx, provider, dbType)
 			})
 
+			t.Run("User Search Operations", func(t *testing.T) {
+				testUserSearchOperations(t, ctx, provider)
+			})
+
 			t.Run("Verification Request Operations", func(t *testing.T) {
 				testVerificationRequestOperations(t, ctx, provider)
 			})
@@ -333,6 +337,63 @@ func testSQLCRUDCorrectnessFixes(t *testing.T, ctx context.Context, provider Pro
 	require.NoError(t, provider.DeleteUser(ctx, refetched))
 }
 
+// testUserSearchOperations verifies ListUsers' optional case-insensitive
+// substring filter across email/given_name/family_name/nickname, and that
+// pagination + total reflect the filtered set. Every backend must honour it,
+// including the O(n)-scan DynamoDB/Cassandra paths.
+func testUserSearchOperations(t *testing.T, ctx context.Context, provider Provider) {
+	// A unique token shared by the users we create isolates this test from any
+	// users already stored by earlier subtests.
+	token := "zz" + strings.ReplaceAll(uuid.New().String(), "-", "")
+	makeUser := func(email string, given, nick *string) {
+		u := &schemas.User{
+			ID:            uuid.New().String(),
+			Email:         refs.NewStringRef(email),
+			Password:      refs.NewStringRef("hashedPassword"),
+			SignupMethods: "basic_auth",
+			GivenName:     given,
+			Nickname:      nick,
+		}
+		_, err := provider.AddUser(ctx, u)
+		require.NoError(t, err)
+	}
+
+	// Matches on email.
+	makeUser("alice_"+token+"@test.com", nil, nil)
+	// Matches on given_name, stored uppercased to prove case-insensitivity.
+	makeUser("bob_"+uuid.New().String()+"@test.com", refs.NewStringRef(strings.ToUpper(token)+"Given"), nil)
+	// Matches on nickname.
+	makeUser("carol_"+uuid.New().String()+"@test.com", nil, refs.NewStringRef("nick"+token))
+	// Must NOT match the token.
+	makeUser("dave_"+uuid.New().String()+"@test.com", refs.NewStringRef("unrelated"), nil)
+
+	// Case-insensitive search on the shared token returns exactly the 3 matches.
+	res, pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, strings.ToUpper(token))
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), pagination.Total, "search total must count only matching users")
+	assert.Len(t, res, 3)
+
+	// Empty query is unfiltered: total must include at least the 4 created here.
+	_, allPagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 1, Offset: 0}, "")
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, allPagination.Total, int64(4))
+
+	// Pagination applies to the filtered set: limit 2 returns 2 of 3, total 3.
+	page1, page1Pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 0}, token)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), page1Pagination.Total)
+	assert.Len(t, page1, 2)
+	page2, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 2}, token)
+	require.NoError(t, err)
+	assert.Len(t, page2, 1)
+
+	// A non-matching query returns nothing.
+	none, nonePagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, "no-such-user-"+uuid.New().String())
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), nonePagination.Total)
+	assert.Len(t, none, 0)
+}
+
 func testUserOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	// Create test user
 	user := &schemas.User{
@@ -417,7 +478,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	users, pagination, err := provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	})
+	}, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)
@@ -453,7 +514,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	users, _, err = provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	})
+	}, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)

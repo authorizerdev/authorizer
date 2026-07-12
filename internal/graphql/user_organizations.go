@@ -9,17 +9,17 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// Users delegates to the transport-agnostic service layer. Resolver is a thin
-// transport adapter.
+// UserOrganizations delegates to the transport-agnostic service layer. Resolver
+// is a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error) {
+func (g *graphqlProvider) UserOrganizations(ctx context.Context, params *model.UserOrganizationsRequest) (*model.UserOrganizations, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, _, err := g.adminService().Users(ctx, service.MetaFromGin(gc), params)
+	res, _, err := g.adminService().UserOrganizations(ctx, service.MetaFromGin(gc), params)
 	return res, err
 }

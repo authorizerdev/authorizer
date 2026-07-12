@@ -16,7 +16,7 @@ export const AdminSessionQuery = `
 `;
 
 export const UserDetailsQuery = `
-  query($params: PaginatedRequest) {
+  query($params: ListUsersRequest) {
     _users(params: $params) {
       pagination {
         limit
@@ -268,6 +268,28 @@ export const OrganizationQuery = `
       enabled
       created_at
       updated_at
+    }
+  }
+`;
+
+export const UserOrganizationsQuery = `
+  query getUserOrganizations($params: UserOrganizationsRequest!) {
+    _user_organizations(params: $params) {
+      user_organizations {
+        organization {
+          id
+          name
+          display_name
+          enabled
+        }
+        roles
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
     }
   }
 `;

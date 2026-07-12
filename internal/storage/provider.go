@@ -35,8 +35,10 @@ type Provider interface {
 	UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error)
 	// DeleteUser to delete user information from database
 	DeleteUser(ctx context.Context, user *schemas.User) error
-	// ListUsers to get list of users from database
-	ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error)
+	// ListUsers to get list of users from database. query is an optional
+	// case-insensitive substring filter matched against email, given_name,
+	// family_name and nickname; empty means no filter.
+	ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error)
 	// GetUserByEmail to get user information from database using email address
 	GetUserByEmail(ctx context.Context, email string) (*schemas.User, error)
 	// GetUserByPhoneNumber to get user information from database using phone number

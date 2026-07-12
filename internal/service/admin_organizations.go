@@ -356,6 +356,54 @@ func (p *provider) OrgMembers(ctx context.Context, meta RequestMetadata, params 
 	}, nil, nil
 }
 
+// UserOrganizations returns the organizations a user belongs to along with the
+// roles held in each. Requires super-admin auth (same gating as other _user/
+// _users admin ops). Backs the admin _user_organizations query, called lazily
+// by the dashboard user detail view.
+func (p *provider) UserOrganizations(ctx context.Context, meta RequestMetadata, params *model.UserOrganizationsRequest) (*model.UserOrganizations, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "UserOrganizations").Logger()
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+		return nil, nil, err
+	}
+	if params == nil || strings.TrimSpace(params.UserID) == "" {
+		log.Debug().Msg("user_id is required")
+		return nil, nil, fmt.Errorf("user_id is required")
+	}
+
+	var pagination *model.Pagination
+	if params.Pagination != nil {
+		pagination = utils.GetPagination(&model.PaginatedRequest{Pagination: params.Pagination})
+	} else {
+		pagination = utils.GetPagination(nil)
+	}
+
+	memberships, pagination, err := p.StorageProvider.ListOrgMembershipsByUser(ctx, params.UserID, pagination)
+	if err != nil {
+		log.Debug().Err(err).Msg("failed ListOrgMembershipsByUser")
+		return nil, nil, err
+	}
+
+	res := make([]*model.UserOrganization, 0, len(memberships))
+	for _, m := range memberships {
+		org, err := p.StorageProvider.GetOrganizationByID(ctx, m.OrgID)
+		if err != nil {
+			// A membership referencing a missing org is inconsistent but must
+			// not break the whole listing; skip it.
+			log.Debug().Err(err).Str("org_id", m.OrgID).Msg("failed GetOrganizationByID; skipping membership")
+			continue
+		}
+		res = append(res, &model.UserOrganization{
+			Organization: org.AsAPIOrganization(),
+			Roles:        m.ParsedRoles(),
+		})
+	}
+
+	return &model.UserOrganizations{
+		Pagination:        pagination,
+		UserOrganizations: res,
+	}, nil, nil
+}
+
 // orgMembershipHasRole reports whether the membership carries role.
 func orgMembershipHasRole(m *schemas.OrgMembership, role string) bool {
 	for _, r := range m.ParsedRoles() {

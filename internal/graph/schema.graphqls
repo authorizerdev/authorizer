@@ -456,6 +456,18 @@ type Organizations {
   organizations: [Organization!]!
 }
 
+# UserOrganization pairs an organization with the roles a specific user holds
+# in it. Returned by the admin _user_organizations query.
+type UserOrganization {
+  organization: Organization!
+  roles: [String!]!
+}
+
+type UserOrganizations {
+  pagination: Pagination!
+  user_organizations: [UserOrganization!]!
+}
+
 # ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The bearer
 # token is NEVER returned here; it is returned exactly once in
 # CreateScimEndpointResponse (creation and rotation) and never again.
@@ -818,6 +830,21 @@ input PaginationRequest {
 }
 
 input PaginatedRequest {
+  pagination: PaginationRequest
+}
+
+# ListUsersRequest is the admin _users query input. query is an optional
+# case-insensitive substring filter matched against email, given_name,
+# family_name and nickname. Empty/absent means no filter (full list).
+input ListUsersRequest {
+  pagination: PaginationRequest
+  query: String
+}
+
+# UserOrganizationsRequest is the admin _user_organizations query input. It
+# returns the organizations a user belongs to, with the roles held per org.
+input UserOrganizationsRequest {
+  user_id: String!
   pagination: PaginationRequest
 }
 
@@ -1353,8 +1380,12 @@ type Query {
   # List the authenticated caller's own registered passkeys.
   webauthn_credentials: [WebauthnCredentialInfo!]!
   # admin only apis
-  _users(params: PaginatedRequest): Users!
+  _users(params: ListUsersRequest): Users!
   _user(params: GetUserRequest!): User!
+  # _user_organizations returns the organizations a user belongs to along with
+  # the roles held in each. Super-admin only. Called lazily by the dashboard
+  # user detail view — not exposed on the User type to keep user lists cheap.
+  _user_organizations(params: UserOrganizationsRequest!): UserOrganizations!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
   # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
