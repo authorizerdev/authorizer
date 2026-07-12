@@ -466,6 +466,10 @@ type Meta struct {
 	IsMobileBasicAuthenticationEnabled bool   `json:"is_mobile_basic_authentication_enabled"`
 	IsPhoneVerificationEnabled         bool   `json:"is_phone_verification_enabled"`
 	IsOrgDiscoveryEnabled              bool   `json:"is_org_discovery_enabled"`
+	IsTotpMfaEnabled                   bool   `json:"is_totp_mfa_enabled"`
+	IsEmailOtpMfaEnabled               bool   `json:"is_email_otp_mfa_enabled"`
+	IsSmsOtpMfaEnabled                 bool   `json:"is_sms_otp_mfa_enabled"`
+	IsWebauthnEnabled                  bool   `json:"is_webauthn_enabled"`
 }
 
 type MobileLoginRequest struct {

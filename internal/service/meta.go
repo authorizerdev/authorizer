@@ -32,5 +32,10 @@ func (p *provider) Meta(ctx context.Context, meta RequestMetadata) (*model.Meta,
 		IsMobileBasicAuthenticationEnabled: c.EnableMobileBasicAuthentication,
 		IsPhoneVerificationEnabled:         c.EnablePhoneVerification,
 		IsOrgDiscoveryEnabled:              c.EnableOrgDiscovery,
+		IsTotpMfaEnabled:                   c.EnableMFA && c.EnableTOTPLogin,
+		IsEmailOtpMfaEnabled:               c.EnableMFA && c.EnableEmailOTP && c.IsEmailServiceEnabled,
+		IsSmsOtpMfaEnabled:                 c.EnableMFA && c.EnableSMSOTP && c.IsSMSServiceEnabled,
+		// WebAuthn/passkey ships always-on with no operator flag.
+		IsWebauthnEnabled: true,
 	}, nil, nil
 }

@@ -34,6 +34,14 @@ type Meta {
   is_mobile_basic_authentication_enabled: Boolean!
   is_phone_verification_enabled: Boolean!
   is_org_discovery_enabled: Boolean!
+  # is_totp_mfa_enabled indicates TOTP authenticator MFA is available (EnableMFA && EnableTOTPLogin).
+  is_totp_mfa_enabled: Boolean!
+  # is_email_otp_mfa_enabled indicates email OTP MFA is available (EnableMFA && EnableEmailOTP && email service configured).
+  is_email_otp_mfa_enabled: Boolean!
+  # is_sms_otp_mfa_enabled indicates SMS OTP MFA is available (EnableMFA && EnableSMSOTP && SMS service configured).
+  is_sms_otp_mfa_enabled: Boolean!
+  # is_webauthn_enabled indicates WebAuthn/passkey enrollment is available (always on; no operator flag).
+  is_webauthn_enabled: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
