@@ -370,12 +370,15 @@ type ComplexityRoot struct {
 	}
 
 	OrgMember struct {
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		OrgID     func(childComplexity int) int
-		Roles     func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		UserID    func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		Email      func(childComplexity int) int
+		FamilyName func(childComplexity int) int
+		GivenName  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		OrgID      func(childComplexity int) int
+		Roles      func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		UserID     func(childComplexity int) int
 	}
 
 	OrgMembers struct {
@@ -2772,6 +2775,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.OrgMember.CreatedAt(childComplexity), true
 
+	case "OrgMember.email":
+		if e.complexity.OrgMember.Email == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.Email(childComplexity), true
+
+	case "OrgMember.family_name":
+		if e.complexity.OrgMember.FamilyName == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.FamilyName(childComplexity), true
+
+	case "OrgMember.given_name":
+		if e.complexity.OrgMember.GivenName == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.GivenName(childComplexity), true
+
 	case "OrgMember.id":
 		if e.complexity.OrgMember.ID == nil {
 			break
@@ -4813,6 +4837,11 @@ type OrgMember {
   id: ID!
   org_id: String!
   user_id: String!
+  # Resolved user identity for display. Populated by resolving user_id against
+  # the user store; blank when the referenced user no longer exists.
+  email: String
+  given_name: String
+  family_name: String
   # roles is the set of per-organization roles granted to this member.
   roles: [String!]!
   created_at: Int64
@@ -18931,6 +18960,12 @@ func (ec *executionContext) fieldContext_Mutation__add_org_member(ctx context.Co
 				return ec.fieldContext_OrgMember_org_id(ctx, field)
 			case "user_id":
 				return ec.fieldContext_OrgMember_user_id(ctx, field)
+			case "email":
+				return ec.fieldContext_OrgMember_email(ctx, field)
+			case "given_name":
+				return ec.fieldContext_OrgMember_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_OrgMember_family_name(ctx, field)
 			case "roles":
 				return ec.fieldContext_OrgMember_roles(ctx, field)
 			case "created_at":
@@ -20547,6 +20582,129 @@ func (ec *executionContext) fieldContext_OrgMember_user_id(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _OrgMember_email(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_email(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgMember_given_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_given_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GivenName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_given_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgMember_family_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_family_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FamilyName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_family_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _OrgMember_roles(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_OrgMember_roles(ctx, field)
 	if err != nil {
@@ -20772,6 +20930,12 @@ func (ec *executionContext) fieldContext_OrgMembers_org_members(_ context.Contex
 				return ec.fieldContext_OrgMember_org_id(ctx, field)
 			case "user_id":
 				return ec.fieldContext_OrgMember_user_id(ctx, field)
+			case "email":
+				return ec.fieldContext_OrgMember_email(ctx, field)
+			case "given_name":
+				return ec.fieldContext_OrgMember_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_OrgMember_family_name(ctx, field)
 			case "roles":
 				return ec.fieldContext_OrgMember_roles(ctx, field)
 			case "created_at":
@@ -37304,6 +37468,12 @@ func (ec *executionContext) _OrgMember(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "email":
+			out.Values[i] = ec._OrgMember_email(ctx, field, obj)
+		case "given_name":
+			out.Values[i] = ec._OrgMember_given_name(ctx, field, obj)
+		case "family_name":
+			out.Values[i] = ec._OrgMember_family_name(ctx, field, obj)
 		case "roles":
 			out.Values[i] = ec._OrgMember_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

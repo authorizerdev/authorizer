@@ -491,6 +491,11 @@ type OrgMember {
   id: ID!
   org_id: String!
   user_id: String!
+  # Resolved user identity for display. Populated by resolving user_id against
+  # the user store; blank when the referenced user no longer exists.
+  email: String
+  given_name: String
+  family_name: String
   # roles is the set of per-organization roles granted to this member.
   roles: [String!]!
   created_at: Int64

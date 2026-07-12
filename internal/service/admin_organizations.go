@@ -348,7 +348,18 @@ func (p *provider) OrgMembers(ctx context.Context, meta RequestMetadata, params 
 	}
 	res := make([]*model.OrgMember, len(memberships))
 	for i, m := range memberships {
-		res[i] = m.AsAPIOrgMember()
+		member := m.AsAPIOrgMember()
+		// Resolve the member's user identity for display. One lookup per member
+		// per page; acceptable since the list is paginated. A dangling user
+		// reference must not break the listing, so leave the identity blank.
+		if user, uErr := p.StorageProvider.GetUserByID(ctx, m.UserID); uErr == nil {
+			member.Email = user.Email
+			member.GivenName = user.GivenName
+			member.FamilyName = user.FamilyName
+		} else {
+			log.Debug().Err(uErr).Str("user_id", m.UserID).Msg("failed GetUserByID; leaving member identity blank")
+		}
+		res[i] = member
 	}
 	return &model.OrgMembers{
 		Pagination: pagination,
