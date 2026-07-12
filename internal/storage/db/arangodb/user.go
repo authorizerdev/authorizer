@@ -106,7 +106,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 	filter := ""
 	if q := strings.TrimSpace(query); q != "" {
 		// LIKE(..., true) is case-insensitive; %term% matches substrings.
-		filter = "FILTER LIKE(d.email, @q, true) OR LIKE(d.given_name, @q, true) OR LIKE(d.family_name, @q, true) OR LIKE(d.nickname, @q, true) "
+		filter = "FILTER LIKE(d._id, @q, true) OR LIKE(d.email, @q, true) OR LIKE(d.given_name, @q, true) OR LIKE(d.family_name, @q, true) OR LIKE(d.nickname, @q, true) "
 		bindVars["q"] = "%" + q + "%"
 	}
 	aql := fmt.Sprintf("FOR d in %s %sSORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.User, filter)

@@ -262,6 +262,7 @@ type ComplexityRoot struct {
 		IsAppleLoginEnabled                func(childComplexity int) int
 		IsBasicAuthenticationEnabled       func(childComplexity int) int
 		IsDiscordLoginEnabled              func(childComplexity int) int
+		IsEmailOtpMfaEnabled               func(childComplexity int) int
 		IsEmailVerificationEnabled         func(childComplexity int) int
 		IsFacebookLoginEnabled             func(childComplexity int) int
 		IsGithubLoginEnabled               func(childComplexity int) int
@@ -275,9 +276,12 @@ type ComplexityRoot struct {
 		IsPhoneVerificationEnabled         func(childComplexity int) int
 		IsRobloxLoginEnabled               func(childComplexity int) int
 		IsSignUpEnabled                    func(childComplexity int) int
+		IsSmsOtpMfaEnabled                 func(childComplexity int) int
 		IsStrongPasswordEnabled            func(childComplexity int) int
+		IsTotpMfaEnabled                   func(childComplexity int) int
 		IsTwitchLoginEnabled               func(childComplexity int) int
 		IsTwitterLoginEnabled              func(childComplexity int) int
+		IsWebauthnEnabled                  func(childComplexity int) int
 		Version                            func(childComplexity int) int
 	}
 
@@ -371,12 +375,15 @@ type ComplexityRoot struct {
 	}
 
 	OrgMember struct {
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		OrgID     func(childComplexity int) int
-		Roles     func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		UserID    func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		Email      func(childComplexity int) int
+		FamilyName func(childComplexity int) int
+		GivenName  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		OrgID      func(childComplexity int) int
+		Roles      func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		UserID     func(childComplexity int) int
 	}
 
 	OrgMembers struct {
@@ -1805,6 +1812,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Meta.IsDiscordLoginEnabled(childComplexity), true
 
+	case "Meta.is_email_otp_mfa_enabled":
+		if e.complexity.Meta.IsEmailOtpMfaEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsEmailOtpMfaEnabled(childComplexity), true
+
 	case "Meta.is_email_verification_enabled":
 		if e.complexity.Meta.IsEmailVerificationEnabled == nil {
 			break
@@ -1896,12 +1910,26 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Meta.IsSignUpEnabled(childComplexity), true
 
+	case "Meta.is_sms_otp_mfa_enabled":
+		if e.complexity.Meta.IsSmsOtpMfaEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsSmsOtpMfaEnabled(childComplexity), true
+
 	case "Meta.is_strong_password_enabled":
 		if e.complexity.Meta.IsStrongPasswordEnabled == nil {
 			break
 		}
 
 		return e.complexity.Meta.IsStrongPasswordEnabled(childComplexity), true
+
+	case "Meta.is_totp_mfa_enabled":
+		if e.complexity.Meta.IsTotpMfaEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsTotpMfaEnabled(childComplexity), true
 
 	case "Meta.is_twitch_login_enabled":
 		if e.complexity.Meta.IsTwitchLoginEnabled == nil {
@@ -1916,6 +1944,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Meta.IsTwitterLoginEnabled(childComplexity), true
+
+	case "Meta.is_webauthn_enabled":
+		if e.complexity.Meta.IsWebauthnEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsWebauthnEnabled(childComplexity), true
 
 	case "Meta.version":
 		if e.complexity.Meta.Version == nil {
@@ -2779,6 +2814,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.OrgMember.CreatedAt(childComplexity), true
+
+	case "OrgMember.email":
+		if e.complexity.OrgMember.Email == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.Email(childComplexity), true
+
+	case "OrgMember.family_name":
+		if e.complexity.OrgMember.FamilyName == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.FamilyName(childComplexity), true
+
+	case "OrgMember.given_name":
+		if e.complexity.OrgMember.GivenName == nil {
+			break
+		}
+
+		return e.complexity.OrgMember.GivenName(childComplexity), true
 
 	case "OrgMember.id":
 		if e.complexity.OrgMember.ID == nil {
@@ -4364,6 +4420,14 @@ type Meta {
   is_mobile_basic_authentication_enabled: Boolean!
   is_phone_verification_enabled: Boolean!
   is_org_discovery_enabled: Boolean!
+  # is_totp_mfa_enabled indicates TOTP authenticator MFA is available (EnableMFA && EnableTOTPLogin).
+  is_totp_mfa_enabled: Boolean!
+  # is_email_otp_mfa_enabled indicates email OTP MFA is available (EnableMFA && EnableEmailOTP && email service configured).
+  is_email_otp_mfa_enabled: Boolean!
+  # is_sms_otp_mfa_enabled indicates SMS OTP MFA is available (EnableMFA && EnableSMSOTP && SMS service configured).
+  is_sms_otp_mfa_enabled: Boolean!
+  # is_webauthn_enabled indicates WebAuthn/passkey enrollment is available (always on; no operator flag).
+  is_webauthn_enabled: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
@@ -4825,6 +4889,11 @@ type OrgMember {
   id: ID!
   org_id: String!
   user_id: String!
+  # Resolved user identity for display. Populated by resolving user_id against
+  # the user store; blank when the referenced user no longer exists.
+  email: String
+  given_name: String
+  family_name: String
   # roles is the set of per-organization roles granted to this member.
   roles: [String!]!
   created_at: Int64
@@ -15706,6 +15775,182 @@ func (ec *executionContext) fieldContext_Meta_is_org_discovery_enabled(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _Meta_is_totp_mfa_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_totp_mfa_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsTotpMfaEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_totp_mfa_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_email_otp_mfa_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_email_otp_mfa_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsEmailOtpMfaEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_email_otp_mfa_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_sms_otp_mfa_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_sms_otp_mfa_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsSmsOtpMfaEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_sms_otp_mfa_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_webauthn_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_webauthn_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsWebauthnEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_webauthn_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_signup(ctx, field)
 	if err != nil {
@@ -18987,6 +19232,12 @@ func (ec *executionContext) fieldContext_Mutation__add_org_member(ctx context.Co
 				return ec.fieldContext_OrgMember_org_id(ctx, field)
 			case "user_id":
 				return ec.fieldContext_OrgMember_user_id(ctx, field)
+			case "email":
+				return ec.fieldContext_OrgMember_email(ctx, field)
+			case "given_name":
+				return ec.fieldContext_OrgMember_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_OrgMember_family_name(ctx, field)
 			case "roles":
 				return ec.fieldContext_OrgMember_roles(ctx, field)
 			case "created_at":
@@ -20603,6 +20854,129 @@ func (ec *executionContext) fieldContext_OrgMember_user_id(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _OrgMember_email(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_email(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgMember_given_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_given_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GivenName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_given_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrgMember_family_name(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrgMember_family_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FamilyName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrgMember_family_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrgMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _OrgMember_roles(ctx context.Context, field graphql.CollectedField, obj *model.OrgMember) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_OrgMember_roles(ctx, field)
 	if err != nil {
@@ -20828,6 +21202,12 @@ func (ec *executionContext) fieldContext_OrgMembers_org_members(_ context.Contex
 				return ec.fieldContext_OrgMember_org_id(ctx, field)
 			case "user_id":
 				return ec.fieldContext_OrgMember_user_id(ctx, field)
+			case "email":
+				return ec.fieldContext_OrgMember_email(ctx, field)
+			case "given_name":
+				return ec.fieldContext_OrgMember_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_OrgMember_family_name(ctx, field)
 			case "roles":
 				return ec.fieldContext_OrgMember_roles(ctx, field)
 			case "created_at":
@@ -22623,6 +23003,14 @@ func (ec *executionContext) fieldContext_Query_meta(_ context.Context, field gra
 				return ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
 			case "is_org_discovery_enabled":
 				return ec.fieldContext_Meta_is_org_discovery_enabled(ctx, field)
+			case "is_totp_mfa_enabled":
+				return ec.fieldContext_Meta_is_totp_mfa_enabled(ctx, field)
+			case "is_email_otp_mfa_enabled":
+				return ec.fieldContext_Meta_is_email_otp_mfa_enabled(ctx, field)
+			case "is_sms_otp_mfa_enabled":
+				return ec.fieldContext_Meta_is_sms_otp_mfa_enabled(ctx, field)
+			case "is_webauthn_enabled":
+				return ec.fieldContext_Meta_is_webauthn_enabled(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 		},
@@ -36666,6 +37054,26 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "is_totp_mfa_enabled":
+			out.Values[i] = ec._Meta_is_totp_mfa_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_email_otp_mfa_enabled":
+			out.Values[i] = ec._Meta_is_email_otp_mfa_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_sms_otp_mfa_enabled":
+			out.Values[i] = ec._Meta_is_sms_otp_mfa_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_webauthn_enabled":
+			out.Values[i] = ec._Meta_is_webauthn_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -37367,6 +37775,12 @@ func (ec *executionContext) _OrgMember(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "email":
+			out.Values[i] = ec._OrgMember_email(ctx, field, obj)
+		case "given_name":
+			out.Values[i] = ec._OrgMember_given_name(ctx, field, obj)
+		case "family_name":
+			out.Values[i] = ec._OrgMember_family_name(ctx, field, obj)
 		case "roles":
 			out.Values[i] = ec._OrgMember_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

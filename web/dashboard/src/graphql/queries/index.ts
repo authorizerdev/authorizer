@@ -302,6 +302,9 @@ export const OrgMembersQuery = `
         id
         org_id
         user_id
+        email
+        given_name
+        family_name
         roles
         created_at
       }

@@ -392,6 +392,28 @@ func testUserSearchOperations(t *testing.T, ctx context.Context, provider Provid
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), nonePagination.Total)
 	assert.Len(t, none, 0)
+
+	// Search also matches on the user id: a prefix of a user's id returns that
+	// user even when no other field contains the query. A uuid prefix is unique
+	// enough to identify exactly one user.
+	idUser := &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef("erin_" + uuid.New().String() + "@test.com"),
+		Password:      refs.NewStringRef("hashedPassword"),
+		SignupMethods: "basic_auth",
+	}
+	_, err = provider.AddUser(ctx, idUser)
+	require.NoError(t, err)
+	byID, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, idUser.ID[:13])
+	require.NoError(t, err)
+	foundByID := false
+	for _, u := range byID {
+		if u.ID == idUser.ID {
+			foundByID = true
+			break
+		}
+	}
+	assert.True(t, foundByID, "search by id prefix must return the user")
 }
 
 func testUserOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {

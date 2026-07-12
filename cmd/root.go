@@ -72,6 +72,11 @@ var (
 var (
 	RootCmd = cobra.Command{
 		Use: "authorizer",
+		// Derive runtime config (service availability, MFA defaults) before any
+		// subcommand runs so `authorizer` and `authorizer mcp` stay consistent.
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+			rootArgs.config.Finalize()
+		},
 		Run: runRoot,
 	}
 	rootArgs struct {
@@ -172,16 +177,19 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.Roles, "roles", defaultRoles, "Roles to assign")
 	f.StringSliceVar(&rootArgs.config.ProtectedRoles, "protected-roles", []string{}, "Roles that cannot be deleted")
 	f.BoolVar(&rootArgs.config.EnableStrongPassword, "enable-strong-password", true, "Enable strong password requirement")
-	f.BoolVar(&rootArgs.config.EnableTOTPLogin, "enable-totp-login", false, "Enable TOTP login")
 	f.BoolVar(&rootArgs.config.EnableBasicAuthentication, "enable-basic-authentication", true, "Enable basic authentication")
 	f.BoolVar(&rootArgs.config.EnableEmailVerification, "enable-email-verification", false, "Enable email verification")
 	f.BoolVar(&rootArgs.config.EnableMobileBasicAuthentication, "enable-mobile-basic-authentication", true, "Enable mobile basic authentication")
 	f.BoolVar(&rootArgs.config.EnablePhoneVerification, "enable-phone-verification", false, "Enable phone verification")
 	f.BoolVar(&rootArgs.config.EnableMagicLinkLogin, "enable-magic-link-login", false, "Enable magic link login")
-	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", true, "Enforce MFA for all users")
-	f.BoolVar(&rootArgs.config.EnableMFA, "enable-mfa", false, "Enable MFA for all users")
-	f.BoolVar(&rootArgs.config.EnableEmailOTP, "enable-email-otp", false, "Enable email OTP")
-	f.BoolVar(&rootArgs.config.EnableSMSOTP, "enable-sms-otp", false, "Enable SMS OTP")
+	// MFA is optional by default; set --enforce-mfa to require it. MFA methods
+	// are enabled by default and opted out via --disable-* (email/SMS OTP only
+	// take effect when their provider is configured). Config.Finalize() derives
+	// the effective Enable* / EnableMFA values from these flags.
+	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", false, "Enforce MFA for all users")
+	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP-based MFA (enabled by default)")
+	f.BoolVar(&rootArgs.config.DisableEmailOTP, "disable-email-otp", false, "Disable email OTP MFA (enabled by default when email service is configured)")
+	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP MFA (enabled by default when SMS service is configured)")
 	f.BoolVar(&rootArgs.config.EnableSignup, "enable-signup", true, "Enable signup")
 
 	// Cookies flags
@@ -411,16 +419,8 @@ func runRoot(c *cobra.Command, args []string) {
 	// Initialize prometheus metrics
 	metrics.Init()
 
-	// Derive IsEmailServiceEnabled from SMTP config
-	rootArgs.config.IsEmailServiceEnabled = strings.TrimSpace(rootArgs.config.SMTPHost) != "" &&
-		rootArgs.config.SMTPPort > 0 &&
-		strings.TrimSpace(rootArgs.config.SMTPSenderEmail) != ""
-
-	// Derive IsSMSServiceEnabled from Twilio config
-	rootArgs.config.IsSMSServiceEnabled = strings.TrimSpace(rootArgs.config.TwilioAPIKey) != "" &&
-		strings.TrimSpace(rootArgs.config.TwilioAPISecret) != "" &&
-		strings.TrimSpace(rootArgs.config.TwilioAccountSID) != "" &&
-		strings.TrimSpace(rootArgs.config.TwilioSender) != ""
+	// Service availability and MFA defaults are derived in Config.Finalize(),
+	// invoked from the root command's PersistentPreRun.
 
 	// Canonicalize Config.ClientID once at load so the seeded registry client_id
 	// (which is trimmed) is byte-identical to every remaining raw Config.ClientID

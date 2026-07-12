@@ -87,12 +87,15 @@ func (user *User) AsAPIUser() *model.User {
 }
 
 // MatchesSearch reports whether the user matches a case-insensitive substring
-// query across email, given_name, family_name and nickname. An empty query
+// query across id, email, given_name, family_name and nickname. An empty query
 // matches everything. Used by storage backends without a native substring
 // index (DynamoDB, Cassandra/ScyllaDB) to filter in application code.
 func (user *User) MatchesSearch(query string) bool {
 	q := strings.ToLower(strings.TrimSpace(query))
 	if q == "" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(user.ID), q) {
 		return true
 	}
 	for _, f := range []*string{user.Email, user.GivenName, user.FamilyName, user.Nickname} {

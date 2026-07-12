@@ -467,6 +467,10 @@ type Meta struct {
 	IsMobileBasicAuthenticationEnabled bool   `json:"is_mobile_basic_authentication_enabled"`
 	IsPhoneVerificationEnabled         bool   `json:"is_phone_verification_enabled"`
 	IsOrgDiscoveryEnabled              bool   `json:"is_org_discovery_enabled"`
+	IsTotpMfaEnabled                   bool   `json:"is_totp_mfa_enabled"`
+	IsEmailOtpMfaEnabled               bool   `json:"is_email_otp_mfa_enabled"`
+	IsSmsOtpMfaEnabled                 bool   `json:"is_sms_otp_mfa_enabled"`
+	IsWebauthnEnabled                  bool   `json:"is_webauthn_enabled"`
 }
 
 type MobileLoginRequest struct {
@@ -525,12 +529,15 @@ type OrgDomains struct {
 }
 
 type OrgMember struct {
-	ID        string   `json:"id"`
-	OrgID     string   `json:"org_id"`
-	UserID    string   `json:"user_id"`
-	Roles     []string `json:"roles"`
-	CreatedAt *int64   `json:"created_at,omitempty"`
-	UpdatedAt *int64   `json:"updated_at,omitempty"`
+	ID         string   `json:"id"`
+	OrgID      string   `json:"org_id"`
+	UserID     string   `json:"user_id"`
+	Email      *string  `json:"email,omitempty"`
+	GivenName  *string  `json:"given_name,omitempty"`
+	FamilyName *string  `json:"family_name,omitempty"`
+	Roles      []string `json:"roles"`
+	CreatedAt  *int64   `json:"created_at,omitempty"`
+	UpdatedAt  *int64   `json:"updated_at,omitempty"`
 }
 
 type OrgMembers struct {
