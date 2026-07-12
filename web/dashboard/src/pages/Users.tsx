@@ -478,7 +478,7 @@ export default function Users() {
 													) : (
 														<DropdownMenuItem
 															disabled
-															title="MFA is disabled on this server. Enable a method in server config (--enable-mfa plus --enable-totp-login, --enable-email-otp with SMTP, or --enable-sms-otp with Twilio)."
+															title="MFA is unavailable on this server. Enable a method: keep TOTP on (do not set --disable-totp-login), or configure SMTP for email OTP or Twilio for SMS OTP."
 														>
 															Enable MFA (unavailable)
 														</DropdownMenuItem>

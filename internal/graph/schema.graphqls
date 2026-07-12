@@ -52,8 +52,9 @@ type AdminMeta {
   default_roles: [String!]!
   protected_roles: [String!]!
   # is_multi_factor_auth_service_enabled reports whether MFA can actually be used
-  # on this instance (master switch on plus at least one usable method). The
-  # dashboard uses it to gate the per-user MFA enable control.
+  # on this instance (at least one usable method: TOTP, or email/SMS OTP with its
+  # provider configured). The dashboard uses it to gate the per-user MFA enable
+  # control.
   is_multi_factor_auth_service_enabled: Boolean!
 }
 

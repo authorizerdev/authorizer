@@ -105,7 +105,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 		// enforce check below). Uses the same availability rule as login-time gating.
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
 			log.Debug().Msg("Cannot enable mfa as no mfa method is available")
-			return nil, nil, FailedPrecondition("cannot enable MFA: enable it on the server with --enable-mfa plus at least one method — --enable-totp-login, --enable-email-otp (requires SMTP configured), or --enable-sms-otp (requires Twilio configured)")
+			return nil, nil, FailedPrecondition("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
 		}
 
 		isMFAEnforced := p.Config.EnforceMFA

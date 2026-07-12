@@ -22,11 +22,12 @@ import (
 )
 
 // isMFAServiceAvailable reports whether multi-factor auth can actually be used
-// on this instance. It mirrors the login-time gating exactly (see login.go): the
-// master MFA switch must be on AND at least one method must be fully configured —
-// email OTP needs SMTP, SMS OTP needs Twilio, TOTP needs nothing extra. The admin
-// UpdateUser and self-service update_profile MFA-enable paths use this so they
-// never accept an MFA state that login would be unable to honor.
+// on this instance. It mirrors the login-time gating exactly (see login.go): at
+// least one method must be usable — email OTP needs SMTP, SMS OTP needs Twilio,
+// TOTP needs nothing extra. This is precisely config.EnableMFA, which is derived
+// (config.Finalize) as the OR of those usable methods. The admin UpdateUser and
+// self-service update_profile MFA-enable paths use this so they never accept an
+// MFA state that login would be unable to honor.
 func (p *provider) isMFAServiceAvailable() bool {
 	c := p.Config
 	return c.EnableMFA && ((c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
@@ -177,7 +178,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		// can still turn it off after the server has stopped offering any method.
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
 			log.Debug().Msg("cannot enable multi factor authentication as no mfa method is available")
-			return nil, nil, errors.New("cannot enable MFA: enable it on the server with --enable-mfa plus at least one method — --enable-totp-login, --enable-email-otp (requires SMTP configured), or --enable-sms-otp (requires Twilio configured)")
+			return nil, nil, errors.New("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
 		}
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
