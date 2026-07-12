@@ -263,3 +263,23 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 		})
 	}
 }
+
+// TestOAuthStateTableName asserts the SQL OAuthState table is named
+// authorizer_oauth_states, not the authorizer_o_auth_states GORM's naming
+// strategy would otherwise derive from the struct name (it splits "OAuth"
+// into "O"+"Auth"). Every other storage provider already uses
+// authorizer_oauth_states; schemas.OAuthState.TableName() keeps SQL in sync.
+func TestOAuthStateTableName(t *testing.T) {
+	for _, dbType := range sqlMigrationTestDBTypes() {
+		t.Run(dbType, func(t *testing.T) {
+			cfg := sqlMigrationTestConfig(t, dbType)
+			p, err := NewProvider(cfg, sqlTestDeps(t))
+			require.NoError(t, err)
+
+			assert.True(t, p.db.Migrator().HasTable(schemas.Collections.OAuthState),
+				"authorizer_oauth_states should exist")
+			assert.False(t, p.db.Migrator().HasTable(schemas.Prefix+"o_auth_states"),
+				"mangled authorizer_o_auth_states should not exist")
+		})
+	}
+}
