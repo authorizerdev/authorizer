@@ -1,5 +1,7 @@
 package config
 
+import "strings"
+
 // Config defines the configuration for the authorizer instance
 type Config struct {
 	// Env is the environment of the authorizer instance
@@ -146,7 +148,7 @@ type Config struct {
 	ProtectedRoles []string
 	// EnableStrongPassword is the flag to enable strong password
 	EnableStrongPassword bool
-	// EnableTOTPLogin boolean to enable TOTP login
+	// EnableTOTPLogin boolean to enable TOTP login. Derived from DisableTOTPLogin.
 	EnableTOTPLogin bool
 	// EnableBasicAuthentication boolean to enable basic authentication
 	EnableBasicAuthentication bool
@@ -158,12 +160,21 @@ type Config struct {
 	EnableMobileBasicAuthentication bool
 	// EnablePhoneVerification boolean to enable phone verification
 	EnablePhoneVerification bool
-	// EnableMFA boolean to enable MFA
+	// EnableMFA is derived (see Finalize): true when at least one MFA method is
+	// usable. Not set from a flag.
 	EnableMFA bool
-	// EnableEmailOTP boolean to enable email OTP
+	// EnableEmailOTP boolean to enable email OTP. Derived from DisableEmailOTP.
 	EnableEmailOTP bool
-	// EnableSMSOTP boolean to enable SMS OTP
+	// EnableSMSOTP boolean to enable SMS OTP. Derived from DisableSMSOTP.
 	EnableSMSOTP bool
+	// DisableTOTPLogin opts out of TOTP MFA (enabled by default).
+	DisableTOTPLogin bool
+	// DisableEmailOTP opts out of email OTP MFA (enabled by default when the
+	// email service is configured).
+	DisableEmailOTP bool
+	// DisableSMSOTP opts out of SMS OTP MFA (enabled by default when the SMS
+	// service is configured).
+	DisableSMSOTP bool
 	// EnableSignup boolean to enable signup
 	EnableSignup bool
 	// IsEmailServiceEnabled is derived from SMTP configurations
@@ -353,4 +364,32 @@ type Config struct {
 	// for sqlite, or a DSN for postgres/mysql. Ignored when FGA reuses the main
 	// database or for the memory store.
 	FGAStoreURL string
+}
+
+// Finalize derives runtime config from raw flag values. It must run after flags
+// are parsed and before any provider is built (wired via the root command's
+// PersistentPreRun so every subcommand, including `mcp`, is consistent). It is
+// idempotent.
+func (c *Config) Finalize() {
+	// Provider availability is derived from credentials being present.
+	c.IsEmailServiceEnabled = strings.TrimSpace(c.SMTPHost) != "" &&
+		c.SMTPPort > 0 &&
+		strings.TrimSpace(c.SMTPSenderEmail) != ""
+	c.IsSMSServiceEnabled = strings.TrimSpace(c.TwilioAPIKey) != "" &&
+		strings.TrimSpace(c.TwilioAPISecret) != "" &&
+		strings.TrimSpace(c.TwilioAccountSID) != "" &&
+		strings.TrimSpace(c.TwilioSender) != ""
+
+	// MFA methods are on by default; operators opt out via --disable-*.
+	c.EnableTOTPLogin = !c.DisableTOTPLogin
+	c.EnableEmailOTP = !c.DisableEmailOTP
+	c.EnableSMSOTP = !c.DisableSMSOTP
+
+	// MFA is available when at least one method is usable. Email/SMS OTP need
+	// their provider configured; TOTP has no external dependency. Deriving this
+	// (rather than a standalone --enable-mfa flag) prevents the state where MFA
+	// is "enabled" while every method is unavailable.
+	c.EnableMFA = c.EnableTOTPLogin ||
+		(c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
+		(c.EnableSMSOTP && c.IsSMSServiceEnabled)
 }
