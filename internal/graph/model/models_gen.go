@@ -48,9 +48,10 @@ type AdminLoginRequest struct {
 }
 
 type AdminMeta struct {
-	Roles          []string `json:"roles"`
-	DefaultRoles   []string `json:"default_roles"`
-	ProtectedRoles []string `json:"protected_roles"`
+	Roles                           []string `json:"roles"`
+	DefaultRoles                    []string `json:"default_roles"`
+	ProtectedRoles                  []string `json:"protected_roles"`
+	IsMultiFactorAuthServiceEnabled bool     `json:"is_multi_factor_auth_service_enabled"`
 }
 
 type AdminSignupRequest struct {

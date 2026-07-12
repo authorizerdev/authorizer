@@ -47,9 +47,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AdminMeta struct {
-		DefaultRoles   func(childComplexity int) int
-		ProtectedRoles func(childComplexity int) int
-		Roles          func(childComplexity int) int
+		DefaultRoles                    func(childComplexity int) int
+		IsMultiFactorAuthServiceEnabled func(childComplexity int) int
+		ProtectedRoles                  func(childComplexity int) int
+		Roles                           func(childComplexity int) int
 	}
 
 	AuditLog struct {
@@ -767,6 +768,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AdminMeta.DefaultRoles(childComplexity), true
+
+	case "AdminMeta.is_multi_factor_auth_service_enabled":
+		if e.complexity.AdminMeta.IsMultiFactorAuthServiceEnabled == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.IsMultiFactorAuthServiceEnabled(childComplexity), true
 
 	case "AdminMeta.protected_roles":
 		if e.complexity.AdminMeta.ProtectedRoles == nil {
@@ -4365,6 +4373,10 @@ type AdminMeta {
   roles: [String!]!
   default_roles: [String!]!
   protected_roles: [String!]!
+  # is_multi_factor_auth_service_enabled reports whether MFA can actually be used
+  # on this instance (master switch on plus at least one usable method). The
+  # dashboard uses it to gate the per-user MFA enable control.
+  is_multi_factor_auth_service_enabled: Boolean!
 }
 
 type User {
@@ -8548,6 +8560,50 @@ func (ec *executionContext) fieldContext_AdminMeta_protected_roles(_ context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdminMeta_is_multi_factor_auth_service_enabled(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_is_multi_factor_auth_service_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMultiFactorAuthServiceEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_is_multi_factor_auth_service_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -23294,6 +23350,8 @@ func (ec *executionContext) fieldContext_Query__admin_meta(_ context.Context, fi
 				return ec.fieldContext_AdminMeta_default_roles(ctx, field)
 			case "protected_roles":
 				return ec.fieldContext_AdminMeta_protected_roles(ctx, field)
+			case "is_multi_factor_auth_service_enabled":
+				return ec.fieldContext_AdminMeta_is_multi_factor_auth_service_enabled(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AdminMeta", field.Name)
 		},
@@ -35297,6 +35355,11 @@ func (ec *executionContext) _AdminMeta(ctx context.Context, sel ast.SelectionSet
 			}
 		case "protected_roles":
 			out.Values[i] = ec._AdminMeta_protected_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_multi_factor_auth_service_enabled":
+			out.Values[i] = ec._AdminMeta_is_multi_factor_auth_service_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

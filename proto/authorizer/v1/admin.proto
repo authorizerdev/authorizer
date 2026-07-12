@@ -457,6 +457,7 @@ message AdminMeta {
   repeated string roles = 1;
   repeated string default_roles = 2;
   repeated string protected_roles = 3;
+  bool is_multi_factor_auth_service_enabled = 4;
 }
 
 // === Users ===

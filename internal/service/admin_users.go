@@ -21,6 +21,19 @@ import (
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
+// isMFAServiceAvailable reports whether multi-factor auth can actually be used
+// on this instance. It mirrors the login-time gating exactly (see login.go): the
+// master MFA switch must be on AND at least one method must be fully configured —
+// email OTP needs SMTP, SMS OTP needs Twilio, TOTP needs nothing extra. The admin
+// UpdateUser and self-service update_profile MFA-enable paths use this so they
+// never accept an MFA state that login would be unable to honor.
+func (p *provider) isMFAServiceAvailable() bool {
+	c := p.Config
+	return c.EnableMFA && ((c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
+		(c.EnableSMSOTP && c.IsSMSServiceEnabled) ||
+		c.EnableTOTPLogin)
+}
+
 // Users returns a paginated list of all users, optionally filtered by a
 // case-insensitive substring search (params.Query) over email/given_name/
 // family_name/nickname. Requires super-admin auth. Logic migrated from
@@ -160,18 +173,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 	}
 
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
-		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-			// Check if totp, email or sms is enabled.
-			isMailOTPEnvServiceEnabled := p.Config.EnableEmailOTP
-			isTOTPEnvServiceEnabled := p.Config.EnableTOTPLogin
-			isSMSOTPEnvServiceEnabled := p.Config.EnableSMSOTP
-			// Initialize a flag to check if enabling Mail OTP is required.
-			if !isMailOTPEnvServiceEnabled && !isTOTPEnvServiceEnabled && !isSMSOTPEnvServiceEnabled {
-				log.Debug().Msg("cannot enable multi factor authentication as all mfa services are disabled")
-				return nil, nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
-			}
+		// Only gate the enable action; disabling MFA is always allowed so an admin
+		// can still turn it off after the server has stopped offering any method.
+		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
+			log.Debug().Msg("cannot enable multi factor authentication as no mfa method is available")
+			return nil, nil, errors.New("cannot enable MFA: enable it on the server with --enable-mfa plus at least one method — --enable-totp-login, --enable-email-otp (requires SMTP configured), or --enable-sms-otp (requires Twilio configured)")
 		}
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 
 	if params.EmailVerified != nil {
