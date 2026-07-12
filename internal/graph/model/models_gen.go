@@ -528,12 +528,15 @@ type OrgDomains struct {
 }
 
 type OrgMember struct {
-	ID        string   `json:"id"`
-	OrgID     string   `json:"org_id"`
-	UserID    string   `json:"user_id"`
-	Roles     []string `json:"roles"`
-	CreatedAt *int64   `json:"created_at,omitempty"`
-	UpdatedAt *int64   `json:"updated_at,omitempty"`
+	ID         string   `json:"id"`
+	OrgID      string   `json:"org_id"`
+	UserID     string   `json:"user_id"`
+	Email      *string  `json:"email,omitempty"`
+	GivenName  *string  `json:"given_name,omitempty"`
+	FamilyName *string  `json:"family_name,omitempty"`
+	Roles      []string `json:"roles"`
+	CreatedAt  *int64   `json:"created_at,omitempty"`
+	UpdatedAt  *int64   `json:"updated_at,omitempty"`
 }
 
 type OrgMembers struct {

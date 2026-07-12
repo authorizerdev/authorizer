@@ -94,6 +94,21 @@ func TestUsers(t *testing.T) {
 		require.Len(t, users.Users, 1)
 		assert.Equal(t, email, *users.Users[0].Email)
 
+		// Search also matches the user id: a prefix of the id returns the user.
+		userID := users.Users[0].ID
+		idQuery := userID[:13]
+		byID, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{Query: &idQuery})
+		require.NoError(t, err)
+		require.NotNil(t, byID)
+		foundByID := false
+		for _, u := range byID.Users {
+			if u.ID == userID {
+				foundByID = true
+				break
+			}
+		}
+		assert.True(t, foundByID, "search by id prefix must return the user")
+
 		// A query matching nothing returns an empty list.
 		noMatch := "no-such-user-" + uuid.New().String()
 		empty, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{Query: &noMatch})

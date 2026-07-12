@@ -118,7 +118,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 	whereClause := ""
 	params := []interface{}{}
 	if q := strings.TrimSpace(query); q != "" {
-		whereClause = " WHERE LOWER(email) LIKE $1 OR LOWER(given_name) LIKE $1 OR LOWER(family_name) LIKE $1 OR LOWER(nickname) LIKE $1"
+		whereClause = " WHERE LOWER(_id) LIKE $1 OR LOWER(email) LIKE $1 OR LOWER(given_name) LIKE $1 OR LOWER(family_name) LIKE $1 OR LOWER(nickname) LIKE $1"
 		params = append(params, "%"+strings.ToLower(q)+"%")
 	}
 

@@ -122,6 +122,9 @@ func TestOrganizationAdmin(t *testing.T) {
 		require.NotNil(t, members)
 		require.Len(t, members.OrgMembers, 1)
 		assert.Equal(t, userID, members.OrgMembers[0].UserID)
+		// The member's user identity is resolved for display.
+		require.NotNil(t, members.OrgMembers[0].Email)
+		assert.Equal(t, "org-member-"+userID+"@authorizer.test", *members.OrgMembers[0].Email)
 
 		removed, err := ts.GraphQLProvider.RemoveOrgMember(ctx, &model.RemoveOrgMemberRequest{
 			OrgID:  org.ID,

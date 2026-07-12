@@ -477,7 +477,7 @@ const OrganizationDetail = () => {
 							<Table>
 								<TableHeader>
 									<TableRow>
-										<TableHead>User ID</TableHead>
+										<TableHead>User</TableHead>
 										<TableHead>Roles</TableHead>
 										<TableHead>Added</TableHead>
 										<TableHead>Actions</TableHead>
@@ -487,9 +487,14 @@ const OrganizationDetail = () => {
 									{members.map((member) => (
 										<TableRow key={member.id}>
 											<TableCell className="max-w-[300px] text-sm">
-												<span className="truncate font-mono text-xs">
-													{member.user_id}
+												<span className="block truncate">
+													{member.email || member.user_id}
 												</span>
+												{member.email && (
+													<span className="block truncate font-mono text-xs text-gray-500">
+														{member.user_id}
+													</span>
+												)}
 											</TableCell>
 											<TableCell className="max-w-[300px]">
 												<div className="flex flex-wrap gap-1">
