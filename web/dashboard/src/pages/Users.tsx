@@ -12,7 +12,7 @@ import {
 	Copy,
 	Search,
 } from 'lucide-react';
-import { UserDetailsQuery } from '../graphql/queries';
+import { UserDetailsQuery, AdminRolesQuery } from '../graphql/queries';
 import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
 import { copyTextToClipboard, getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
@@ -92,6 +92,25 @@ export default function Users() {
 	const [permissionsUser, setPermissionsUser] = React.useState<User | null>(
 		null,
 	);
+	// Whether the server can actually do MFA (master flag + a usable method).
+	// Default true so the Enable-MFA action isn't disabled before the meta loads;
+	// the server enforces the real check regardless.
+	const [mfaServiceEnabled, setMfaServiceEnabled] =
+		React.useState<boolean>(true);
+
+	React.useEffect(() => {
+		client
+			.query<{
+				_admin_meta?: { is_multi_factor_auth_service_enabled?: boolean };
+			}>(AdminRolesQuery, {})
+			.toPromise()
+			.then(({ data }) => {
+				setMfaServiceEnabled(
+					data?._admin_meta?.is_multi_factor_auth_service_enabled ?? true,
+				);
+			});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const updateUserList = async () => {
 		setLoading(true);
@@ -450,11 +469,18 @@ export default function Users() {
 														>
 															Disable MFA
 														</DropdownMenuItem>
-													) : (
+													) : mfaServiceEnabled ? (
 														<DropdownMenuItem
 															onClick={() => multiFactorAuthUpdateHandler(user)}
 														>
 															Enable MFA
+														</DropdownMenuItem>
+													) : (
+														<DropdownMenuItem
+															disabled
+															title="MFA is unavailable on this server. Enable a method: keep TOTP on (do not set --disable-totp-login), or configure SMTP for email OTP or Twilio for SMS OTP."
+														>
+															Enable MFA (unavailable)
 														</DropdownMenuItem>
 													)}
 												</DropdownMenuContent>

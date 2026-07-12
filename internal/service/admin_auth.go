@@ -106,8 +106,9 @@ func (p *provider) AdminMeta(ctx context.Context, meta RequestMetadata) (*model.
 		protectedRoles = []string{}
 	}
 	return &model.AdminMeta{
-		Roles:          roles,
-		DefaultRoles:   defaultRoles,
-		ProtectedRoles: protectedRoles,
+		Roles:                           roles,
+		DefaultRoles:                    defaultRoles,
+		ProtectedRoles:                  protectedRoles,
+		IsMultiFactorAuthServiceEnabled: p.isMFAServiceAvailable(),
 	}, nil, nil
 }

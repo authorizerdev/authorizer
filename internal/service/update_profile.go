@@ -101,14 +101,11 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 	}
 	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-		// Check if totp, email or sms is enabled
-		isMailOTPEnvServiceEnabled := p.Config.EnableEmailOTP
-		isTOTPEnvServiceEnabled := p.Config.EnableTOTPLogin
-		isSMSOTPEnvServiceEnabled := p.Config.EnableSMSOTP
-		// Initialize a flag to check if enabling Mail OTP is required
-		if !isMailOTPEnvServiceEnabled && !isTOTPEnvServiceEnabled && !isSMSOTPEnvServiceEnabled {
-			log.Debug().Msg("Cannot enable mfa service as all mfa services are disabled")
-			return nil, nil, FailedPrecondition("cannot enable multi factor authentication as all mfa services are disabled")
+		// Only gate the enable action; disabling is always allowed (subject to the
+		// enforce check below). Uses the same availability rule as login-time gating.
+		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
+			log.Debug().Msg("Cannot enable mfa as no mfa method is available")
+			return nil, nil, FailedPrecondition("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
 		}
 
 		isMFAEnforced := p.Config.EnforceMFA

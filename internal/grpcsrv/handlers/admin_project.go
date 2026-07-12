@@ -19,9 +19,10 @@ func projectAdminMeta(m *model.AdminMeta) *authorizerv1.AdminMeta {
 		return nil
 	}
 	return &authorizerv1.AdminMeta{
-		Roles:          m.Roles,
-		DefaultRoles:   m.DefaultRoles,
-		ProtectedRoles: m.ProtectedRoles,
+		Roles:                           m.Roles,
+		DefaultRoles:                    m.DefaultRoles,
+		ProtectedRoles:                  m.ProtectedRoles,
+		IsMultiFactorAuthServiceEnabled: m.IsMultiFactorAuthServiceEnabled,
 	}
 }
 

@@ -182,6 +182,7 @@ export const AdminRolesQuery = `
   query adminMeta {
     _admin_meta {
       roles
+      is_multi_factor_auth_service_enabled
     }
   }
 `;
