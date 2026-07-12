@@ -2141,6 +2141,18 @@
         },
         "is_org_discovery_enabled": {
           "type": "boolean"
+        },
+        "is_totp_mfa_enabled": {
+          "type": "boolean"
+        },
+        "is_email_otp_mfa_enabled": {
+          "type": "boolean"
+        },
+        "is_sms_otp_mfa_enabled": {
+          "type": "boolean"
+        },
+        "is_webauthn_enabled": {
+          "type": "boolean"
         }
       },
       "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."

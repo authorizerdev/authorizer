@@ -119,4 +119,8 @@ message Meta {
   bool is_mobile_basic_authentication_enabled = 19;
   bool is_phone_verification_enabled = 20;
   bool is_org_discovery_enabled = 21;
+  bool is_totp_mfa_enabled = 22;
+  bool is_email_otp_mfa_enabled = 23;
+  bool is_sms_otp_mfa_enabled = 24;
+  bool is_webauthn_enabled = 25;
 }
