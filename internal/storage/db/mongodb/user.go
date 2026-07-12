@@ -90,6 +90,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 		// QuoteMeta so user input is treated as a literal substring, not a regex.
 		rx := bson.M{"$regex": regexp.QuoteMeta(q), "$options": "i"}
 		filter = bson.M{"$or": []bson.M{
+			{"_id": rx},
 			{"email": rx},
 			{"given_name": rx},
 			{"family_name": rx},
