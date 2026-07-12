@@ -75,6 +75,18 @@ func TestFinalizeMFADerivation(t *testing.T) {
 			wantSMS:   false,
 			wantMFA:   false,
 		},
+		{
+			name: "DisableMFA kill switch forces MFA off despite usable methods",
+			setup: func(c *Config) {
+				c.DisableMFA = true
+				withSMTP(c)
+				withTwilio(c)
+			},
+			wantTOTP:  true, // per-method flags still derive true...
+			wantEmail: true,
+			wantSMS:   true,
+			wantMFA:   false, // ...but the kill switch forces overall MFA off
+		},
 	}
 
 	for _, tt := range tests {

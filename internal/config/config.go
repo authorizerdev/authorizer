@@ -175,6 +175,12 @@ type Config struct {
 	// DisableSMSOTP opts out of SMS OTP MFA (enabled by default when the SMS
 	// service is configured).
 	DisableSMSOTP bool
+	// DisableMFA is a one-way global kill switch: when set, Finalize forces
+	// EnableMFA and EnforceMFA off regardless of the per-method flags. It can
+	// only ever turn MFA off, so unlike the removed --enable-mfa it cannot
+	// contradict the per-method flags. Does not affect WebAuthn/passkey, which
+	// is a separate login recipe.
+	DisableMFA bool
 	// EnableSignup boolean to enable signup
 	EnableSignup bool
 	// IsEmailServiceEnabled is derived from SMTP configurations
@@ -392,4 +398,12 @@ func (c *Config) Finalize() {
 	c.EnableMFA = c.EnableTOTPLogin ||
 		(c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
 		(c.EnableSMSOTP && c.IsSMSServiceEnabled)
+
+	// One-way global kill switch. Wins over everything: no MFA challenge is
+	// possible and enforcement is neutralized so signup cannot flag users for
+	// an MFA they can never complete. WebAuthn/passkey is unaffected.
+	if c.DisableMFA {
+		c.EnableMFA = false
+		c.EnforceMFA = false
+	}
 }
