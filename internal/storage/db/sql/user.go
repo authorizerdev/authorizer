@@ -90,16 +90,16 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 
 // ListUsers to get list of users from database. When query is non-empty it is
 // applied as a case-insensitive substring filter (indexed columns use plain
-// LIKE; email/given_name/family_name/nickname are matched with LOWER(...) LIKE).
+// LIKE; id/email/given_name/family_name/nickname are matched with LOWER(...) LIKE).
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	var users []*schemas.User
 	listQuery := p.db.Model(&schemas.User{})
 	countQuery := p.db.Model(&schemas.User{})
 	if q := strings.TrimSpace(query); q != "" {
 		pattern := "%" + strings.ToLower(q) + "%"
-		const where = "LOWER(email) LIKE ? OR LOWER(given_name) LIKE ? OR LOWER(family_name) LIKE ? OR LOWER(nickname) LIKE ?"
-		listQuery = listQuery.Where(where, pattern, pattern, pattern, pattern)
-		countQuery = countQuery.Where(where, pattern, pattern, pattern, pattern)
+		const where = "LOWER(id) LIKE ? OR LOWER(email) LIKE ? OR LOWER(given_name) LIKE ? OR LOWER(family_name) LIKE ? OR LOWER(nickname) LIKE ?"
+		listQuery = listQuery.Where(where, pattern, pattern, pattern, pattern, pattern)
+		countQuery = countQuery.Where(where, pattern, pattern, pattern, pattern, pattern)
 	}
 
 	result := listQuery.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)

@@ -255,6 +255,9 @@ export interface OrgMember {
 	id: string;
 	org_id: string;
 	user_id: string;
+	email?: string | null;
+	given_name?: string | null;
+	family_name?: string | null;
 	roles: string[];
 	created_at?: number | null;
 	updated_at?: number | null;
