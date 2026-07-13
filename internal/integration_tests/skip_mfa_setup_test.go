@@ -18,7 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// TestSkipMFASetup covers the two security-relevant behaviors of the
+// TestSkipMFASetup covers the security-relevant behaviors of the
 // skip_mfa_setup mutation:
 //   - with a valid token and MFA optional, it records HasSkippedMFASetupAt
 //     and a subsequent login no longer offers setup (should_offer_mfa_setup
@@ -27,6 +27,10 @@ import (
 //     though the caller is authenticated — enforcement is never skippable,
 //     and this must be re-checked server-side regardless of what the
 //     client believes the gate state to be.
+//   - with no credentials at all, it is rejected with KindUnauthenticated in
+//     both EnforceMFA states — proving authentication is checked before
+//     EnforceMFA, so the response code never leaks org-wide MFA enforcement
+//     to an anonymous caller.
 func TestSkipMFASetup(t *testing.T) {
 	const password = "Password@123"
 
@@ -124,4 +128,31 @@ func TestSkipMFASetup(t *testing.T) {
 		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
 		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "EnforceMFA must reject with FailedPrecondition, not Unauthenticated or any other kind")
 	})
+
+	// An unauthenticated caller (no Authorization header, no session cookie)
+	// must get Unauthenticated regardless of EnforceMFA. Authentication is
+	// checked before EnforceMFA in SkipMFASetup precisely so the response
+	// code never leaks whether MFA is org-enforced to a caller who hasn't
+	// proven who they are. Covering both EnforceMFA states proves the
+	// enforced case no longer leaks FailedPrecondition to an anonymous caller.
+	for _, enforceMFA := range []bool{false, true} {
+		t.Run(fmt.Sprintf("rejects with Unauthenticated when caller has no credentials (EnforceMFA=%v)", enforceMFA), func(t *testing.T) {
+			cfg := getTestConfig()
+			cfg.EnableMFA = true
+			cfg.EnableTOTPLogin = true
+			cfg.EnforceMFA = enforceMFA
+			ts := initTestSetup(t, cfg)
+			// createContext builds a fresh request with no Authorization
+			// header and no cookies set — a genuinely credential-less caller.
+			_, ctx := createContext(ts)
+
+			skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx)
+			require.Error(t, err)
+			assert.Nil(t, skipRes)
+
+			var svcErr *service.Error
+			require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+			assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a caller with no credentials must get Unauthenticated regardless of EnforceMFA")
+		})
+	}
 }

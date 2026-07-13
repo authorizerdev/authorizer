@@ -19,16 +19,22 @@ import (
 func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "SkipMFASetup").Logger()
 
-	if p.Config.EnforceMFA {
-		log.Debug().Msg("Cannot skip MFA setup as it is enforced")
-		return nil, nil, FailedPrecondition("cannot skip multi factor authentication setup as it is enforced by organization")
-	}
-
+	// Authentication is checked before EnforceMFA so the response code never
+	// leaks org-wide MFA enforcement to a caller with no valid token/session
+	// (an unauthenticated caller always gets Unauthenticated, regardless of
+	// EnforceMFA). EnforceMFA is still re-checked below, before any state
+	// mutation, so HasSkippedMFASetupAt is never set while it is true.
 	tokenData, err := p.callerTokenData(ctx, meta)
 	if err != nil || tokenData == nil || tokenData.UserID == "" {
 		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
 		return nil, nil, Unauthenticated("unauthorized")
 	}
+
+	if p.Config.EnforceMFA {
+		log.Debug().Msg("Cannot skip MFA setup as it is enforced")
+		return nil, nil, FailedPrecondition("cannot skip multi factor authentication setup as it is enforced by organization")
+	}
+
 	user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user by id")
