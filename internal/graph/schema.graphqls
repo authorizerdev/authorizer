@@ -118,6 +118,12 @@ type AuthResponse {
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
   should_show_totp_screen: Boolean
+  # should_offer_mfa_setup is true when MFA is available but not enforced,
+  # the user hasn't enrolled, and they haven't skipped setup before. Unlike
+  # should_show_totp_screen, access_token is ALREADY populated alongside
+  # this flag — the frontend should log the user in and separately offer
+  # (not force) MFA setup, e.g. via a dismissible hub with a Skip action.
+  should_offer_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String

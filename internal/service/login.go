@@ -52,6 +52,34 @@ func loginPerformDummyPasswordCheck(password string) {
 	_ = bcrypt.CompareHashAndPassword(loginDummyBcryptHash, []byte(password))
 }
 
+// totpEnrollment is a freshly generated (unverified) TOTP enrollment
+// payload, shared by both the mfaGateBlockEnroll (forced) and
+// mfaGateOfferSetup (optional) paths of the TOTP MFA branch below.
+type totpEnrollment struct {
+	ScannerImage  string
+	Secret        string
+	RecoveryCodes []*string
+}
+
+// generateTOTPEnrollment generates a new TOTP secret/QR/recovery-codes for
+// userID. Extracted so the TOTP MFA branch doesn't duplicate this call across
+// its "block until enrolled" and "offer setup" cases.
+func (p *provider) generateTOTPEnrollment(ctx context.Context, userID string) (*totpEnrollment, error) {
+	authConfig, err := p.AuthenticatorProvider.Generate(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	recoveryCodes := []*string{}
+	for _, code := range authConfig.RecoveryCodes {
+		recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+	}
+	return &totpEnrollment{
+		ScannerImage:  authConfig.ScannerImage,
+		Secret:        authConfig.Secret,
+		RecoveryCodes: recoveryCodes,
+	}, nil
+}
+
 // Login authenticates a user with email or phone number (not both).
 // Transport-agnostic port of graphqlProvider.Login.
 //
@@ -347,41 +375,57 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		}, side, nil
 	}
 	// If mfa enabled and also totp enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isTOTPLoginEnabled {
-		expiresAt := time.Now().Add(3 * time.Minute).Unix()
-		if err := setOTPMFaSession(expiresAt); err != nil {
-			log.Debug().Msg("Failed to set mfa session")
-			return nil, nil, err
-		}
-		authenticator, err := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		if err != nil || authenticator == nil || authenticator.VerifiedAt == nil {
-			// generate totp
-			// Generate a base64 URL and initiate the registration for TOTP
-			authConfig, err := p.AuthenticatorProvider.Generate(ctx, user.ID)
+	if isMFAEnabled && isTOTPLoginEnabled {
+		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+		authenticatorVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
+		gate := resolveMFAGate(
+			refs.BoolValue(user.IsMultiFactorAuthEnabled),
+			p.Config.EnforceMFA,
+			authenticatorVerified,
+			user.HasSkippedMFASetupAt != nil,
+		)
+		switch gate {
+		case mfaGateBlockVerify:
+			expiresAt := time.Now().Add(3 * time.Minute).Unix()
+			if err := setOTPMFaSession(expiresAt); err != nil {
+				log.Debug().Msg("Failed to set mfa session")
+				return nil, nil, err
+			}
+			return &model.AuthResponse{
+				Message:              `Proceed to totp screen`,
+				ShouldShowTotpScreen: refs.NewBoolRef(true),
+			}, side, nil
+		case mfaGateBlockEnroll:
+			expiresAt := time.Now().Add(3 * time.Minute).Unix()
+			if err := setOTPMFaSession(expiresAt); err != nil {
+				log.Debug().Msg("Failed to set mfa session")
+				return nil, nil, err
+			}
+			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
 			if err != nil {
 				log.Debug().Msg("Failed to generate totp")
 				return nil, nil, err
 			}
-			recoveryCodes := []*string{}
-			for _, code := range authConfig.RecoveryCodes {
-				recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
-			}
-			// when user is first time registering for totp
-			res := &model.AuthResponse{
+			return &model.AuthResponse{
 				Message:                    `Proceed to totp verification screen`,
 				ShouldShowTotpScreen:       refs.NewBoolRef(true),
-				AuthenticatorScannerImage:  refs.NewStringRef(authConfig.ScannerImage),
-				AuthenticatorSecret:        refs.NewStringRef(authConfig.Secret),
-				AuthenticatorRecoveryCodes: recoveryCodes,
+				AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
+				AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
+				AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
+			}, side, nil
+		case mfaGateOfferSetup:
+			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+			if err != nil {
+				log.Debug().Msg("Failed to generate totp for optional setup")
+				return nil, nil, err
 			}
-			return res, side, nil
-		} else {
-			//when user is already register for totp
-			res := &model.AuthResponse{
-				Message:              `Proceed to totp screen`,
-				ShouldShowTotpScreen: refs.NewBoolRef(true),
-			}
-			return res, side, nil
+			// Falls through to normal token issuance below, with the offer
+			// flag and enrollment payload attached after CreateAuthToken.
+			side.PendingTOTPOffer = enrollment
+		case mfaGateSkippedSetup:
+			side.OfferMFASetupQuiet = true
+		case mfaGateNone:
+			// fall through, nothing to do
 		}
 	}
 
@@ -456,6 +500,12 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		IDToken:     &authToken.IDToken.Token,
 		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
+	}
+	if side.PendingTOTPOffer != nil {
+		res.ShouldOfferMfaSetup = refs.NewBoolRef(true)
+		res.AuthenticatorScannerImage = refs.NewStringRef(side.PendingTOTPOffer.ScannerImage)
+		res.AuthenticatorSecret = refs.NewStringRef(side.PendingTOTPOffer.Secret)
+		res.AuthenticatorRecoveryCodes = side.PendingTOTPOffer.RecoveryCodes
 	}
 
 	for _, c := range cookie.BuildSessionCookies(meta.HostURL, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {

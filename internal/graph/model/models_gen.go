@@ -82,6 +82,7 @@ type AuthResponse struct {
 	ShouldShowEmailOtpScreen   *bool     `json:"should_show_email_otp_screen,omitempty"`
 	ShouldShowMobileOtpScreen  *bool     `json:"should_show_mobile_otp_screen,omitempty"`
 	ShouldShowTotpScreen       *bool     `json:"should_show_totp_screen,omitempty"`
+	ShouldOfferMfaSetup        *bool     `json:"should_offer_mfa_setup,omitempty"`
 	AccessToken                *string   `json:"access_token,omitempty"`
 	IDToken                    *string   `json:"id_token,omitempty"`
 	RefreshToken               *string   `json:"refresh_token,omitempty"`
