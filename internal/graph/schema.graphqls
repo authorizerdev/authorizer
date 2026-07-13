@@ -1326,6 +1326,10 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  # skip_mfa_setup records that the authenticated caller explicitly declined
+  # the optional MFA setup prompt. Fails with FAILED_PRECONDITION if MFA is
+  # organization-enforced (enforce-mfa) — enforcement is never skippable.
+  skip_mfa_setup: Response!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

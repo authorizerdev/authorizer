@@ -334,6 +334,7 @@ type ComplexityRoot struct {
 		RotateClientSecret          func(childComplexity int, params model.ClientRequest) int
 		RotateScimToken             func(childComplexity int, params model.ScimEndpointRequest) int
 		Signup                      func(childComplexity int, params model.SignUpRequest) int
+		SkipMfaSetup                func(childComplexity int) int
 		TestEndpoint                func(childComplexity int, params model.TestEndpointRequest) int
 		UpdateClient                func(childComplexity int, params model.UpdateClientRequest) int
 		UpdateEmailTemplate         func(childComplexity int, params model.UpdateEmailTemplateRequest) int
@@ -661,6 +662,7 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeRequest) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
+	SkipMfaSetup(ctx context.Context) (*model.Response, error)
 	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
@@ -2511,6 +2513,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Signup(childComplexity, args["params"].(model.SignUpRequest)), true
+
+	case "Mutation.skip_mfa_setup":
+		if e.complexity.Mutation.SkipMfaSetup == nil {
+			break
+		}
+
+		return e.complexity.Mutation.SkipMfaSetup(childComplexity), true
 
 	case "Mutation._test_endpoint":
 		if e.complexity.Mutation.TestEndpoint == nil {
@@ -5728,6 +5737,10 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  # skip_mfa_setup records that the authenticated caller explicitly declined
+  # the optional MFA setup prompt. Fails with FAILED_PRECONDITION if MFA is
+  # organization-enforced (enforce-mfa) — enforcement is never skippable.
+  skip_mfa_setup: Response!
   # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
   webauthn_registration_options(
     email: String
@@ -16979,6 +16992,54 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	if fc.Args, err = ec.field_Mutation_resend_otp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_skip_mfa_setup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_skip_mfa_setup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SkipMfaSetup(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_skip_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -37350,6 +37411,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "resend_otp":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resend_otp(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "skip_mfa_setup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_skip_mfa_setup(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

@@ -82,6 +82,11 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return r.GraphQLProvider.ResendOTP(ctx, &params)
 }
 
+// SkipMfaSetup is the resolver for the skip_mfa_setup field.
+func (r *mutationResolver) SkipMfaSetup(ctx context.Context) (*model.Response, error) {
+	return r.GraphQLProvider.SkipMFASetup(ctx)
+}
+
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
 func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
 	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email)

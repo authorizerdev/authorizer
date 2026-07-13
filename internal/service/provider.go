@@ -100,6 +100,10 @@ type Provider interface {
 	// and drops all of their sessions. Requires auth.
 	DeactivateAccount(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
 
+	// SkipMFASetup records that the authenticated caller declined optional
+	// MFA setup. Fails if MFA is org-enforced.
+	SkipMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.
 	ResendVerifyEmail(ctx context.Context, meta RequestMetadata, params *model.ResendVerifyEmailRequest) (*model.Response, *ResponseSideEffects, error)
