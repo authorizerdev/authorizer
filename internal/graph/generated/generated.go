@@ -539,6 +539,7 @@ type ComplexityRoot struct {
 		FamilyName               func(childComplexity int) int
 		Gender                   func(childComplexity int) int
 		GivenName                func(childComplexity int) int
+		HasSkippedMfaSetupAt     func(childComplexity int) int
 		ID                       func(childComplexity int) int
 		IsMultiFactorAuthEnabled func(childComplexity int) int
 		MiddleName               func(childComplexity int) int
@@ -3781,6 +3782,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.GivenName(childComplexity), true
 
+	case "User.has_skipped_mfa_setup_at":
+		if e.complexity.User.HasSkippedMfaSetupAt == nil {
+			break
+		}
+
+		return e.complexity.User.HasSkippedMfaSetupAt(childComplexity), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -4466,6 +4474,9 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  # has_skipped_mfa_setup_at is set once the user explicitly skips the
+  # optional MFA setup prompt shown at login. Null means never skipped.
+  has_skipped_mfa_setup_at: Int64
   app_data: Map
 }
 
@@ -9660,6 +9671,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -14705,6 +14718,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(_ context.C
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -17402,6 +17417,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -23177,6 +23194,8 @@ func (ec *executionContext) fieldContext_Query_profile(_ context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -23504,6 +23523,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -27448,6 +27469,47 @@ func (ec *executionContext) fieldContext_User_is_multi_factor_auth_enabled(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _User_has_skipped_mfa_setup_at(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasSkippedMfaSetupAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_has_skipped_mfa_setup_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_app_data(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_app_data(ctx, field)
 	if err != nil {
@@ -27826,6 +27888,8 @@ func (ec *executionContext) fieldContext_Users_users(_ context.Context, field gr
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -28041,6 +28105,8 @@ func (ec *executionContext) fieldContext_ValidateSessionResponse_user(_ context.
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "has_skipped_mfa_setup_at":
+				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -39406,6 +39472,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_revoked_timestamp(ctx, field, obj)
 		case "is_multi_factor_auth_enabled":
 			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
+		case "has_skipped_mfa_setup_at":
+			out.Values[i] = ec._User_has_skipped_mfa_setup_at(ctx, field, obj)
 		case "app_data":
 			out.Values[i] = ec._User_app_data(ctx, field, obj)
 		default:

@@ -80,6 +80,9 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  # has_skipped_mfa_setup_at is set once the user explicitly skips the
+  # optional MFA setup prompt shown at login. Null means never skipped.
+  has_skipped_mfa_setup_at: Int64
   app_data: Map
 }
 

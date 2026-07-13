@@ -153,13 +153,13 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	responseUsers := []*schemas.User{}
 	paginationClone := pagination
-	const columns = "id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at"
+	const columns = "id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, app_data, external_id, is_active, created_at, updated_at"
 	scanUser := func(scanner gocql.Scanner) (*schemas.User, error) {
 		var user schemas.User
 		err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods,
 			&user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber,
 			&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
-			&user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+			&user.HasSkippedMFASetupAt, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 		return &user, err
 	}
 
@@ -224,8 +224,8 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
 	var user schemas.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE email = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(query, email).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE email = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
+	err := p.db.Query(query, email).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.HasSkippedMFASetupAt, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -235,8 +235,8 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	var user schemas.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE id = ? LIMIT 1", KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(query, id).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE id = ? LIMIT 1", KeySpace+"."+schemas.Collections.User)
+	err := p.db.Query(query, id).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.HasSkippedMFASetupAt, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -313,8 +313,8 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
 	var user schemas.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE phone_number = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(query, phoneNumber).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE phone_number = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
+	err := p.db.Query(query, phoneNumber).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.HasSkippedMFASetupAt, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -325,8 +325,8 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 // external ID. The lookup key is the composite "<orgID>:<externalID>".
 func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
 	var user schemas.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE external_id = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(query, orgID+":"+externalID).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, app_data, external_id, is_active, created_at, updated_at FROM %s WHERE external_id = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User)
+	err := p.db.Query(query, orgID+":"+externalID).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.HasSkippedMFASetupAt, &user.AppData, &user.ExternalID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

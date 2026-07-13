@@ -942,6 +942,7 @@ type User struct {
 	UpdatedAt                *int64         `json:"updated_at,omitempty"`
 	RevokedTimestamp         *int64         `json:"revoked_timestamp,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
+	HasSkippedMfaSetupAt     *int64         `json:"has_skipped_mfa_setup_at,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
