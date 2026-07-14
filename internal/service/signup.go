@@ -157,6 +157,13 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 
 	if params.IsMultiFactorAuthEnabled != nil {
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
+	} else if p.Config.EnableMFA {
+		// MFA is available on this server and the caller didn't explicitly
+		// opt in or out - default new users into it so the optional-setup-
+		// with-skip flow (resolveMFAGate) has something to offer instead of
+		// silently never triggering. EnforceMFA below still applies on top
+		// of this regardless.
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
 
 	isMFAEnforced := p.Config.EnforceMFA

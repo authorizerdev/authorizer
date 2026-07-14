@@ -215,7 +215,13 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		_, ctx := createContext(ts)
 
 		user := signUpUser(t, ts, ctx)
-		// IsMultiFactorAuthEnabled left false/unset: the gate is a no-op.
+		// Signup now defaults IsMultiFactorAuthEnabled to true whenever MFA
+		// is available server-wide (see signup.go), so this test's actual
+		// target state - a user for whom MFA is individually off - must be
+		// set explicitly rather than relying on signup to leave it unset.
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(false)
+		user, err := ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
 
 		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
 		require.NoError(t, err)
