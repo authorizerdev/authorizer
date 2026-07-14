@@ -7,7 +7,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -186,93 +185,5 @@ func TestSignup(t *testing.T) {
 			assert.Error(t, err)
 			assert.Nil(t, res)
 		})
-	})
-}
-
-// TestSignupDefaultsMultiFactorAuthEnabled guards the regression where a new
-// user's IsMultiFactorAuthEnabled stayed false by default even when MFA is
-// available server-wide (EnableMFA) and not explicitly disabled - meaning the
-// optional-MFA-with-skip offer flow (resolveMFAGate) never had anything to
-// offer for the common, non-enforced case.
-func TestSignupDefaultsMultiFactorAuthEnabled(t *testing.T) {
-	t.Run("MFA available, not enforced, no explicit param - defaults to enabled", func(t *testing.T) {
-		cfg := getTestConfig()
-		cfg.EnableMFA = true
-		cfg.EnableTOTPLogin = true
-		cfg.EnforceMFA = false
-		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
-
-		email := "signup_mfa_default_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email: &email, Password: password, ConfirmPassword: password,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, res)
-
-		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
-		require.NoError(t, err)
-		assert.True(t, refs.BoolValue(user.IsMultiFactorAuthEnabled), "a new user must default into MFA when it's available and not disabled, so the optional-setup-with-skip flow has something to offer")
-	})
-
-	t.Run("MFA not available server-wide - new user does not default to enabled", func(t *testing.T) {
-		// signup.go reads the single already-derived EnableMFA flag, not
-		// DisableMFA directly - in production, Finalize() forces EnableMFA
-		// false whenever DisableMFA is set, before signup.go ever runs.
-		cfg := getTestConfig()
-		cfg.EnableMFA = false
-		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
-
-		email := "signup_mfa_killswitch_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email: &email, Password: password, ConfirmPassword: password,
-		})
-		require.NoError(t, err)
-
-		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
-		require.NoError(t, err)
-		assert.False(t, refs.BoolValue(user.IsMultiFactorAuthEnabled))
-	})
-
-	t.Run("explicit opt-out is respected over the new default", func(t *testing.T) {
-		cfg := getTestConfig()
-		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
-
-		email := "signup_mfa_explicit_opt_out_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		explicit := false
-		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email: &email, Password: password, ConfirmPassword: password,
-			IsMultiFactorAuthEnabled: &explicit,
-		})
-		require.NoError(t, err)
-
-		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
-		require.NoError(t, err)
-		assert.False(t, refs.BoolValue(user.IsMultiFactorAuthEnabled), "explicit opt-out must still be respected")
-	})
-
-	t.Run("EnforceMFA still forces enabled regardless of an explicit opt-out", func(t *testing.T) {
-		cfg := getTestConfig()
-		cfg.EnforceMFA = true
-		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
-
-		email := "signup_mfa_enforced_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		explicit := false
-		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email: &email, Password: password, ConfirmPassword: password,
-			IsMultiFactorAuthEnabled: &explicit,
-		})
-		require.NoError(t, err)
-
-		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
-		require.NoError(t, err)
-		assert.True(t, refs.BoolValue(user.IsMultiFactorAuthEnabled), "EnforceMFA must override even an explicit opt-out")
 	})
 }

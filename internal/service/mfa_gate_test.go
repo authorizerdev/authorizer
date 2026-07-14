@@ -1,7 +1,12 @@
 // internal/service/mfa_gate_test.go
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+)
 
 func TestResolveMFAGate(t *testing.T) {
 	cases := []struct {
@@ -31,3 +36,29 @@ func TestResolveMFAGate(t *testing.T) {
 		})
 	}
 }
+
+func TestEffectiveMFAEnabled(t *testing.T) {
+	cases := []struct {
+		name         string
+		cfgEnableMFA bool
+		userOptIn    *bool // nil = never explicitly set
+		want         bool
+	}{
+		{"MFA available server-wide, user never set it explicitly -> follows config", true, nil, true},
+		{"MFA unavailable server-wide, user never set it explicitly -> follows config", false, nil, false},
+		{"MFA available server-wide, user explicitly opted out -> respects opt-out", true, boolPtr(false), false},
+		{"MFA unavailable server-wide, user explicitly opted in -> respects opt-in", false, boolPtr(true), true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := &config.Config{EnableMFA: c.cfgEnableMFA}
+			user := &schemas.User{IsMultiFactorAuthEnabled: c.userOptIn}
+			got := effectiveMFAEnabled(cfg, user)
+			if got != c.want {
+				t.Errorf("effectiveMFAEnabled(EnableMFA=%v, opt-in=%v) = %v, want %v", c.cfgEnableMFA, c.userOptIn, got, c.want)
+			}
+		})
+	}
+}
+
+func boolPtr(b bool) *bool { return &b }

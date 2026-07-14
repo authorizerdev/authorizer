@@ -155,15 +155,6 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		return nil, nil, FailedPrecondition("email is not verified. please verify your email before signing in with a passkey")
 	}
 
-	// Backfill accounts that predate the MFA-default-on-signup behavior (or
-	// predate MFA being configured at all) before the EnforceMFA gate below
-	// reads IsMultiFactorAuthEnabled - same lazy migration login.go applies.
-	user, err = p.ensureMFADefaultSet(ctx, user)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to backfill MFA default")
-		return nil, nil, err
-	}
-
 	// EnforceMFA is absolute and applies to passkey primary login exactly
 	// like it applies to password login: a passkey may not silently satisfy
 	// an org's two-factor requirement. This does not claim a passkey is

@@ -47,21 +47,6 @@ func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects
 	return nil
 }
 
-// ensureMFADefaultSet lazily backfills IsMultiFactorAuthEnabled for users who
-// authenticated before this default existed (or before MFA was available on
-// this server): when the flag was never explicitly set and MFA is available
-// server-wide, default it to true and persist it on this login/verification,
-// so existing accounts converge to the same MFA-available -> offered
-// behavior new signups already get (see signup.go). No-op - returns the user
-// unchanged - if the flag is already set either way, or MFA isn't available.
-func (p *provider) ensureMFADefaultSet(ctx context.Context, user *schemas.User) (*schemas.User, error) {
-	if user.IsMultiFactorAuthEnabled != nil || !p.Config.EnableMFA {
-		return user, nil
-	}
-	user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
-	return p.StorageProvider.UpdateUser(ctx, user)
-}
-
 // loginDummyBcryptHash is a precomputed bcrypt hash used to equalise the
 // response time of the user-not-found path with the real password verification
 // path. Without this, an attacker can distinguish "no such user" from "wrong
@@ -330,15 +315,6 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	scope := []string{"openid", "email", "profile"}
 	if len(params.Scope) > 0 {
 		scope = params.Scope
-	}
-
-	// Backfill accounts that predate the MFA-default-on-signup behavior (or
-	// predate MFA being configured at all on this server) before any branch
-	// below reads IsMultiFactorAuthEnabled.
-	user, err = p.ensureMFADefaultSet(ctx, user)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to backfill MFA default")
-		return nil, nil, err
 	}
 
 	isMFAEnabled := p.Config.EnableMFA

@@ -1,6 +1,12 @@
 // internal/service/mfa_gate.go
 package service
 
+import (
+	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+)
+
 // mfaGateDecision is what login.go should do once it knows a user has MFA
 // available. See resolveMFAGate for the truth table.
 type mfaGateDecision int
@@ -54,4 +60,17 @@ func resolveMFAGate(userMFAEnabled, enforceMFA, authenticatorVerified, hasSkippe
 		return mfaGateSkippedSetup
 	}
 	return mfaGateOfferSetup
+}
+
+// effectiveMFAEnabled reports whether MFA applies to this user right now.
+// Never persisted — recomputed from current config plus the user's own
+// explicit choice, if any. Replaces the old signup-time default-write and
+// login-time backfill: IsMultiFactorAuthEnabled is non-nil ONLY when a
+// caller explicitly set it (SignUp params, _update_user params) — everyone
+// else follows whatever cfg.EnableMFA currently is, live, every call.
+func effectiveMFAEnabled(cfg *config.Config, user *schemas.User) bool {
+	if user.IsMultiFactorAuthEnabled != nil {
+		return refs.BoolValue(user.IsMultiFactorAuthEnabled)
+	}
+	return cfg.EnableMFA
 }
