@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -175,6 +176,15 @@ type Provider interface {
 	// WebauthnDeleteCredential deletes one of the authenticated caller's own
 	// passkeys. Requires a session. Public (self-service).
 	WebauthnDeleteCredential(ctx context.Context, meta RequestMetadata, id string) (*model.Response, error)
+
+	// EvaluateMFAGateForOAuth runs the same MFA gate Login/SignUp/
+	// WebauthnLoginVerify use, for a user who just completed an OAuth/
+	// social-provider callback. On a withhold-group outcome it sets the MFA
+	// session cookie via side and returns (true, redirectSuffix) where
+	// redirectSuffix is the query string to append instead of the normal
+	// state/code params. On mfaGateNone/mfaGateSkippedSetup it returns
+	// (false, "") and the caller proceeds with cookie.SetSession as today.
+	EvaluateMFAGateForOAuth(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User) (withheld bool, redirectSuffix string, err error)
 }
 
 // New constructs a new service provider.

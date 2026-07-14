@@ -24,6 +24,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -349,6 +350,34 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		params := "state=" + stateValue + "&nonce=" + nonce
 		if code != "" {
 			params += "&code=" + code
+		}
+
+		// MFA gate: matches password/passkey login (resolveMFAGate) before the
+		// browser session cookie is established. A withheld-group outcome sets
+		// the MFA session cookie (via `side`) instead and redirects with
+		// mfa_required=1 rather than the normal state/code params.
+		side := &service.ResponseSideEffects{}
+		meta := service.RequestMetadata{
+			HostURL:   hostname,
+			IPAddress: utils.GetIP(ctx.Request),
+			UserAgent: utils.GetUserAgent(ctx.Request),
+			Request:   ctx.Request,
+		}
+		withheld, redirectSuffix, gateErr := h.ServiceProvider.EvaluateMFAGateForOAuth(ctx, meta, side, user)
+		if gateErr != nil {
+			log.Debug().Err(gateErr).Msg("MFA gate rejected OAuth callback")
+			ctx.JSON(400, gin.H{"error": gateErr.Error()})
+			return
+		}
+		if withheld {
+			service.ApplyToGin(ctx, side)
+			if strings.Contains(redirectURL, "?") {
+				redirectURL = redirectURL + "&" + redirectSuffix
+			} else {
+				redirectURL = redirectURL + "?" + strings.TrimPrefix(redirectSuffix, "&")
+			}
+			ctx.Redirect(http.StatusFound, redirectURL)
+			return
 		}
 
 		sessionKey := provider + ":" + user.ID
