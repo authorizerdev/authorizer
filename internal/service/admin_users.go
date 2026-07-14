@@ -30,7 +30,8 @@ import (
 // MFA state that login would be unable to honor.
 func (p *provider) isMFAServiceAvailable() bool {
 	c := p.Config
-	return c.EnableMFA && ((c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
+	return c.EnableMFA && (c.EnableWebauthnMFA ||
+		(c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
 		(c.EnableSMSOTP && c.IsSMSServiceEnabled) ||
 		c.EnableTOTPLogin)
 }

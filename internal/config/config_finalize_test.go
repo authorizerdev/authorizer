@@ -22,58 +22,79 @@ func withTwilio(c *Config) {
 // EnableMFA is the OR of the usable methods.
 func TestFinalizeMFADerivation(t *testing.T) {
 	tests := []struct {
-		name      string
-		setup     func(*Config)
-		wantTOTP  bool
-		wantEmail bool
-		wantSMS   bool
-		wantMFA   bool
+		name         string
+		setup        func(*Config)
+		wantTOTP     bool
+		wantWebauthn bool
+		wantEmail    bool
+		wantSMS      bool
+		wantMFA      bool
 	}{
 		{
-			name:      "defaults: TOTP on, no providers -> MFA available via TOTP",
-			setup:     func(c *Config) {},
-			wantTOTP:  true,
-			wantEmail: true, // flag on, but email service unavailable
-			wantSMS:   true, // flag on, but SMS service unavailable
-			wantMFA:   true, // TOTP alone makes MFA available
+			name:         "defaults: TOTP+WebAuthn on, no providers -> MFA available",
+			setup:        func(c *Config) {},
+			wantTOTP:     true,
+			wantWebauthn: true,
+			wantEmail:    true, // flag on, but email service unavailable
+			wantSMS:      true, // flag on, but SMS service unavailable
+			wantMFA:      true, // TOTP/WebAuthn alone make MFA available
 		},
 		{
-			name:      "TOTP disabled, no providers -> no MFA available",
-			setup:     func(c *Config) { c.DisableTOTPLogin = true },
-			wantTOTP:  false,
-			wantEmail: true,
-			wantSMS:   true,
-			wantMFA:   false, // email/SMS on but neither provider configured
+			name:         "TOTP+WebAuthn disabled, no providers -> no MFA available",
+			setup:        func(c *Config) { c.DisableTOTPLogin = true; c.DisableWebauthnMFA = true },
+			wantTOTP:     false,
+			wantWebauthn: false,
+			wantEmail:    true,
+			wantSMS:      true,
+			wantMFA:      false, // email/SMS on but neither provider configured
 		},
 		{
-			name:      "TOTP disabled, email service configured -> MFA via email OTP",
-			setup:     func(c *Config) { c.DisableTOTPLogin = true; withSMTP(c) },
-			wantTOTP:  false,
-			wantEmail: true,
-			wantSMS:   true,
-			wantMFA:   true,
+			name:         "TOTP disabled but WebAuthn on -> MFA still available",
+			setup:        func(c *Config) { c.DisableTOTPLogin = true },
+			wantTOTP:     false,
+			wantWebauthn: true,
+			wantEmail:    true,
+			wantSMS:      true,
+			wantMFA:      true,
 		},
 		{
-			name:      "TOTP+email disabled, SMS service configured -> MFA via SMS OTP",
-			setup:     func(c *Config) { c.DisableTOTPLogin = true; c.DisableEmailOTP = true; withTwilio(c) },
-			wantTOTP:  false,
-			wantEmail: false,
-			wantSMS:   true,
-			wantMFA:   true,
+			name:         "TOTP+WebAuthn disabled, email service configured -> MFA via email OTP",
+			setup:        func(c *Config) { c.DisableTOTPLogin = true; c.DisableWebauthnMFA = true; withSMTP(c) },
+			wantTOTP:     false,
+			wantWebauthn: false,
+			wantEmail:    true,
+			wantSMS:      true,
+			wantMFA:      true,
+		},
+		{
+			name: "TOTP+WebAuthn+email disabled, SMS service configured -> MFA via SMS OTP",
+			setup: func(c *Config) {
+				c.DisableTOTPLogin = true
+				c.DisableWebauthnMFA = true
+				c.DisableEmailOTP = true
+				withTwilio(c)
+			},
+			wantTOTP:     false,
+			wantWebauthn: false,
+			wantEmail:    false,
+			wantSMS:      true,
+			wantMFA:      true,
 		},
 		{
 			name: "all methods disabled -> no MFA even with providers configured",
 			setup: func(c *Config) {
 				c.DisableTOTPLogin = true
+				c.DisableWebauthnMFA = true
 				c.DisableEmailOTP = true
 				c.DisableSMSOTP = true
 				withSMTP(c)
 				withTwilio(c)
 			},
-			wantTOTP:  false,
-			wantEmail: false,
-			wantSMS:   false,
-			wantMFA:   false,
+			wantTOTP:     false,
+			wantWebauthn: false,
+			wantEmail:    false,
+			wantSMS:      false,
+			wantMFA:      false,
 		},
 		{
 			name: "DisableMFA kill switch forces MFA off despite usable methods",
@@ -82,10 +103,11 @@ func TestFinalizeMFADerivation(t *testing.T) {
 				withSMTP(c)
 				withTwilio(c)
 			},
-			wantTOTP:  true, // per-method flags still derive true...
-			wantEmail: true,
-			wantSMS:   true,
-			wantMFA:   false, // ...but the kill switch forces overall MFA off
+			wantTOTP:     true, // per-method flags still derive true...
+			wantWebauthn: true,
+			wantEmail:    true,
+			wantSMS:      true,
+			wantMFA:      false, // ...but the kill switch forces overall MFA off
 		},
 	}
 
@@ -97,6 +119,9 @@ func TestFinalizeMFADerivation(t *testing.T) {
 
 			if c.EnableTOTPLogin != tt.wantTOTP {
 				t.Errorf("EnableTOTPLogin = %v, want %v", c.EnableTOTPLogin, tt.wantTOTP)
+			}
+			if c.EnableWebauthnMFA != tt.wantWebauthn {
+				t.Errorf("EnableWebauthnMFA = %v, want %v", c.EnableWebauthnMFA, tt.wantWebauthn)
 			}
 			if c.EnableEmailOTP != tt.wantEmail {
 				t.Errorf("EnableEmailOTP = %v, want %v", c.EnableEmailOTP, tt.wantEmail)
