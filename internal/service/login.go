@@ -331,7 +331,9 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	}
 
 	// If multi factor authentication is enabled and is email based login and email otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin {
+	emailOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyEmailOTPAuthenticator)
+	emailOTPEnrolled := emailOTPAuthenticator != nil && emailOTPAuthenticator.VerifiedAt != nil
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin && emailOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
 		if err != nil {
@@ -360,7 +362,9 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		}, side, nil
 	}
 	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && isMobileLogin {
+	smsOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
+	smsOTPEnrolled := smsOTPAuthenticator != nil && smsOTPAuthenticator.VerifiedAt != nil
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && isMobileLogin && smsOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
 		if err != nil {
@@ -452,6 +456,8 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				Message:                     `Proceed to mfa setup`,
 				ShouldShowTotpScreen:        refs.NewBoolRef(true),
 				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
 				AuthenticatorScannerImage:   refs.NewStringRef(enrollment.ScannerImage),
 				AuthenticatorSecret:         refs.NewStringRef(enrollment.Secret),
 				AuthenticatorRecoveryCodes:  enrollment.RecoveryCodes,

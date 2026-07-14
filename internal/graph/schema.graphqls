@@ -148,6 +148,11 @@ type AuthResponse {
   # populated alongside this flag — unlike the old should_offer_mfa_setup,
   # the token is withheld until the user completes a method or skips.
   should_offer_webauthn_mfa_setup: Boolean
+  # should_offer_email_otp_mfa_setup / should_offer_sms_otp_mfa_setup: same
+  # shape, for email/SMS OTP — true only when that method's provider is
+  # configured AND the user has no verified enrollment for it yet.
+  should_offer_email_otp_mfa_setup: Boolean
+  should_offer_sms_otp_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -1384,6 +1389,17 @@ type Mutation {
   # fallback enrolled — if one exists, use it instead of locking. Does not
   # issue a token; the account requires admin recovery afterward.
   lock_mfa(params: LockMfaRequest!): Response!
+  # email_otp_mfa_setup sends a one-time code to the caller's own email and
+  # creates an unverified email-OTP MFA enrollment. Requires an
+  # authenticated caller (bearer token) — this is a settings-screen action
+  # for an ALREADY-logged-in user adding a second factor, distinct from the
+  # withheld-token first-time-setup screen (which reuses the same
+  # underlying Authenticator row once verify_otp marks it verified).
+  email_otp_mfa_setup: Response!
+  # sms_otp_mfa_setup sends a one-time code to the caller's own phone number
+  # and creates an unverified SMS-OTP MFA enrollment. Same permissions and
+  # relationship to verify_otp as email_otp_mfa_setup.
+  sms_otp_mfa_setup: Response!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

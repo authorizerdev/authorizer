@@ -223,6 +223,8 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		res := &model.AuthResponse{
 			Message:                     `Proceed to mfa setup`,
 			ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+			ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+			ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
 		}
 		// Unlike login.go's TOTP branch (only reachable when EnableTOTPLogin is
 		// already true), passkey-primary login reaches this gate regardless of

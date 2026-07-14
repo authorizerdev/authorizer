@@ -81,7 +81,9 @@ type ComplexityRoot struct {
 		IDToken                      func(childComplexity int) int
 		Message                      func(childComplexity int) int
 		RefreshToken                 func(childComplexity int) int
+		ShouldOfferEmailOtpMfaSetup  func(childComplexity int) int
 		ShouldOfferMfaSetup          func(childComplexity int) int
+		ShouldOfferSmsOtpMfaSetup    func(childComplexity int) int
 		ShouldOfferWebauthnMfaSetup  func(childComplexity int) int
 		ShouldOfferWebauthnMfaVerify func(childComplexity int) int
 		ShouldShowEmailOtpScreen     func(childComplexity int) int
@@ -314,6 +316,7 @@ type ComplexityRoot struct {
 		DeleteTrustedIssuer         func(childComplexity int, params model.TrustedIssuerRequest) int
 		DeleteUser                  func(childComplexity int, params model.DeleteUserRequest) int
 		DeleteWebhook               func(childComplexity int, params model.WebhookRequest) int
+		EmailOtpMfaSetup            func(childComplexity int) int
 		EnableAccess                func(childComplexity int, param model.UpdateAccessRequest) int
 		FgaDeleteTuples             func(childComplexity int, params model.FgaWriteTuplesInput) int
 		FgaReset                    func(childComplexity int) int
@@ -339,6 +342,7 @@ type ComplexityRoot struct {
 		RotateScimToken             func(childComplexity int, params model.ScimEndpointRequest) int
 		Signup                      func(childComplexity int, params model.SignUpRequest) int
 		SkipMfaSetup                func(childComplexity int, params model.SkipMfaSetupRequest) int
+		SmsOtpMfaSetup              func(childComplexity int) int
 		TestEndpoint                func(childComplexity int, params model.TestEndpointRequest) int
 		UpdateClient                func(childComplexity int, params model.UpdateClientRequest) int
 		UpdateEmailTemplate         func(childComplexity int, params model.UpdateEmailTemplateRequest) int
@@ -669,6 +673,8 @@ type MutationResolver interface {
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
 	SkipMfaSetup(ctx context.Context, params model.SkipMfaSetupRequest) (*model.AuthResponse, error)
 	LockMfa(ctx context.Context, params model.LockMfaRequest) (*model.Response, error)
+	EmailOtpMfaSetup(ctx context.Context) (*model.Response, error)
+	SmsOtpMfaSetup(ctx context.Context) (*model.Response, error)
 	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
@@ -954,12 +960,26 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
 
+	case "AuthResponse.should_offer_email_otp_mfa_setup":
+		if e.complexity.AuthResponse.ShouldOfferEmailOtpMfaSetup == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldOfferEmailOtpMfaSetup(childComplexity), true
+
 	case "AuthResponse.should_offer_mfa_setup":
 		if e.complexity.AuthResponse.ShouldOfferMfaSetup == nil {
 			break
 		}
 
 		return e.complexity.AuthResponse.ShouldOfferMfaSetup(childComplexity), true
+
+	case "AuthResponse.should_offer_sms_otp_mfa_setup":
+		if e.complexity.AuthResponse.ShouldOfferSmsOtpMfaSetup == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldOfferSmsOtpMfaSetup(childComplexity), true
 
 	case "AuthResponse.should_offer_webauthn_mfa_setup":
 		if e.complexity.AuthResponse.ShouldOfferWebauthnMfaSetup == nil {
@@ -2275,6 +2295,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.DeleteWebhook(childComplexity, args["params"].(model.WebhookRequest)), true
 
+	case "Mutation.email_otp_mfa_setup":
+		if e.complexity.Mutation.EmailOtpMfaSetup == nil {
+			break
+		}
+
+		return e.complexity.Mutation.EmailOtpMfaSetup(childComplexity), true
+
 	case "Mutation._enable_access":
 		if e.complexity.Mutation.EnableAccess == nil {
 			break
@@ -2564,6 +2591,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SkipMfaSetup(childComplexity, args["params"].(model.SkipMfaSetupRequest)), true
+
+	case "Mutation.sms_otp_mfa_setup":
+		if e.complexity.Mutation.SmsOtpMfaSetup == nil {
+			break
+		}
+
+		return e.complexity.Mutation.SmsOtpMfaSetup(childComplexity), true
 
 	case "Mutation._test_endpoint":
 		if e.complexity.Mutation.TestEndpoint == nil {
@@ -4612,6 +4646,11 @@ type AuthResponse {
   # populated alongside this flag — unlike the old should_offer_mfa_setup,
   # the token is withheld until the user completes a method or skips.
   should_offer_webauthn_mfa_setup: Boolean
+  # should_offer_email_otp_mfa_setup / should_offer_sms_otp_mfa_setup: same
+  # shape, for email/SMS OTP — true only when that method's provider is
+  # configured AND the user has no verified enrollment for it yet.
+  should_offer_email_otp_mfa_setup: Boolean
+  should_offer_sms_otp_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -5848,6 +5887,17 @@ type Mutation {
   # fallback enrolled — if one exists, use it instead of locking. Does not
   # issue a token; the account requires admin recovery afterward.
   lock_mfa(params: LockMfaRequest!): Response!
+  # email_otp_mfa_setup sends a one-time code to the caller's own email and
+  # creates an unverified email-OTP MFA enrollment. Requires an
+  # authenticated caller (bearer token) — this is a settings-screen action
+  # for an ALREADY-logged-in user adding a second factor, distinct from the
+  # withheld-token first-time-setup screen (which reuses the same
+  # underlying Authenticator row once verify_otp marks it verified).
+  email_otp_mfa_setup: Response!
+  # sms_otp_mfa_setup sends a one-time code to the caller's own phone number
+  # and creates an unverified SMS-OTP MFA enrollment. Same permissions and
+  # relationship to verify_otp as email_otp_mfa_setup.
+  sms_otp_mfa_setup: Response!
   # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
   webauthn_registration_options(
     email: String
@@ -9734,6 +9784,88 @@ func (ec *executionContext) _AuthResponse_should_offer_webauthn_mfa_setup(ctx co
 }
 
 func (ec *executionContext) fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_should_offer_email_otp_mfa_setup(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldOfferEmailOtpMfaSetup, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_should_offer_sms_otp_mfa_setup(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldOfferSmsOtpMfaSetup, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -16381,6 +16513,10 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -16468,6 +16604,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -16555,6 +16695,10 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -16642,6 +16786,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -16895,6 +17043,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -17220,6 +17372,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -17366,6 +17522,10 @@ func (ec *executionContext) fieldContext_Mutation_skip_mfa_setup(ctx context.Con
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -17455,6 +17615,102 @@ func (ec *executionContext) fieldContext_Mutation_lock_mfa(ctx context.Context, 
 	if fc.Args, err = ec.field_Mutation_lock_mfa_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_email_otp_mfa_setup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_email_otp_mfa_setup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EmailOtpMfaSetup(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_email_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_sms_otp_mfa_setup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_sms_otp_mfa_setup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SmsOtpMfaSetup(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_sms_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -17689,6 +17945,10 @@ func (ec *executionContext) fieldContext_Mutation_webauthn_login_verify(ctx cont
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -23642,6 +23902,10 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "should_offer_webauthn_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -36662,6 +36926,10 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._AuthResponse_should_offer_mfa_setup(ctx, field, obj)
 		case "should_offer_webauthn_mfa_setup":
 			out.Values[i] = ec._AuthResponse_should_offer_webauthn_mfa_setup(ctx, field, obj)
+		case "should_offer_email_otp_mfa_setup":
+			out.Values[i] = ec._AuthResponse_should_offer_email_otp_mfa_setup(ctx, field, obj)
+		case "should_offer_sms_otp_mfa_setup":
+			out.Values[i] = ec._AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field, obj)
 		case "access_token":
 			out.Values[i] = ec._AuthResponse_access_token(ctx, field, obj)
 		case "id_token":
@@ -37992,6 +38260,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "lock_mfa":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_lock_mfa(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email_otp_mfa_setup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_email_otp_mfa_setup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sms_otp_mfa_setup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_sms_otp_mfa_setup(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

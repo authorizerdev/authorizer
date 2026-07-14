@@ -181,6 +181,26 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 			log.Debug().Err(err).Msg("Failed to delete otp")
 		}
+
+		// Mark the corresponding email/SMS-OTP MFA enrollment verified, but
+		// ONLY when a pending (unverified) Authenticator row already exists
+		// for this method — i.e. the caller went through
+		// EmailOTPMFASetup/SMSOTPMFASetup first. A plain login-time OTP
+		// send/verify (login.go's pre-enrollment challenge, or a signup
+		// email/phone verification) never created that row, so this is a
+		// no-op for those: routine login-time OTP must not silently
+		// "enroll" anyone as MFA.
+		method := constants.EnvKeyEmailOTPAuthenticator
+		if isMobileVerification {
+			method = constants.EnvKeySMSOTPAuthenticator
+		}
+		if authenticator, aErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, method); aErr == nil && authenticator != nil && authenticator.VerifiedAt == nil {
+			now := time.Now().Unix()
+			authenticator.VerifiedAt = &now
+			if _, err := p.StorageProvider.UpdateAuthenticator(ctx, authenticator); err != nil {
+				log.Debug().Err(err).Msg("Failed to mark otp authenticator verified")
+			}
+		}
 	}
 
 	isSignUp := false

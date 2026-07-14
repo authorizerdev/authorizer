@@ -112,6 +112,13 @@ type Provider interface {
 	// Does not issue a token.
 	LockMFA(ctx context.Context, meta RequestMetadata, params *model.LockMfaRequest) (*model.Response, *ResponseSideEffects, error)
 
+	// EmailOTPMFASetup sends a one-time code to the caller's own email and
+	// begins an email-OTP MFA enrollment. Verified via VerifyOTP. Requires
+	// an authenticated caller (bearer token) — a settings-screen action.
+	EmailOTPMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
+	SMSOTPMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.
 	ResendVerifyEmail(ctx context.Context, meta RequestMetadata, params *model.ResendVerifyEmailRequest) (*model.Response, *ResponseSideEffects, error)

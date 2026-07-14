@@ -107,6 +107,13 @@ type Provider interface {
 	// Permissions: none — identified via the MFA session cookie, not a
 	// bearer token.
 	LockMFA(ctx context.Context, params *model.LockMfaRequest) (*model.Response, error)
+	// EmailOTPMFASetup sends a one-time code to the caller's own email and
+	// begins an email-OTP MFA enrollment. Verified via VerifyOtp.
+	// Permissions: authorized user (bearer token).
+	EmailOTPMFASetup(ctx context.Context) (*model.Response, error)
+	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
+	// Permissions: authorized user (bearer token).
+	SMSOTPMFASetup(ctx context.Context) (*model.Response, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)

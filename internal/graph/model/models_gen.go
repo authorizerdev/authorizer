@@ -85,6 +85,8 @@ type AuthResponse struct {
 	ShouldOfferWebauthnMfaVerify *bool     `json:"should_offer_webauthn_mfa_verify,omitempty"`
 	ShouldOfferMfaSetup          *bool     `json:"should_offer_mfa_setup,omitempty"`
 	ShouldOfferWebauthnMfaSetup  *bool     `json:"should_offer_webauthn_mfa_setup,omitempty"`
+	ShouldOfferEmailOtpMfaSetup  *bool     `json:"should_offer_email_otp_mfa_setup,omitempty"`
+	ShouldOfferSmsOtpMfaSetup    *bool     `json:"should_offer_sms_otp_mfa_setup,omitempty"`
 	AccessToken                  *string   `json:"access_token,omitempty"`
 	IDToken                      *string   `json:"id_token,omitempty"`
 	RefreshToken                 *string   `json:"refresh_token,omitempty"`
