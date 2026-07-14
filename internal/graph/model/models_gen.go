@@ -78,19 +78,20 @@ type AuditLogs struct {
 }
 
 type AuthResponse struct {
-	Message                    string    `json:"message"`
-	ShouldShowEmailOtpScreen   *bool     `json:"should_show_email_otp_screen,omitempty"`
-	ShouldShowMobileOtpScreen  *bool     `json:"should_show_mobile_otp_screen,omitempty"`
-	ShouldShowTotpScreen       *bool     `json:"should_show_totp_screen,omitempty"`
-	ShouldOfferMfaSetup        *bool     `json:"should_offer_mfa_setup,omitempty"`
-	AccessToken                *string   `json:"access_token,omitempty"`
-	IDToken                    *string   `json:"id_token,omitempty"`
-	RefreshToken               *string   `json:"refresh_token,omitempty"`
-	ExpiresIn                  *int64    `json:"expires_in,omitempty"`
-	User                       *User     `json:"user,omitempty"`
-	AuthenticatorScannerImage  *string   `json:"authenticator_scanner_image,omitempty"`
-	AuthenticatorSecret        *string   `json:"authenticator_secret,omitempty"`
-	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
+	Message                      string    `json:"message"`
+	ShouldShowEmailOtpScreen     *bool     `json:"should_show_email_otp_screen,omitempty"`
+	ShouldShowMobileOtpScreen    *bool     `json:"should_show_mobile_otp_screen,omitempty"`
+	ShouldShowTotpScreen         *bool     `json:"should_show_totp_screen,omitempty"`
+	ShouldOfferWebauthnMfaVerify *bool     `json:"should_offer_webauthn_mfa_verify,omitempty"`
+	ShouldOfferMfaSetup          *bool     `json:"should_offer_mfa_setup,omitempty"`
+	AccessToken                  *string   `json:"access_token,omitempty"`
+	IDToken                      *string   `json:"id_token,omitempty"`
+	RefreshToken                 *string   `json:"refresh_token,omitempty"`
+	ExpiresIn                    *int64    `json:"expires_in,omitempty"`
+	User                         *User     `json:"user,omitempty"`
+	AuthenticatorScannerImage    *string   `json:"authenticator_scanner_image,omitempty"`
+	AuthenticatorSecret          *string   `json:"authenticator_secret,omitempty"`
+	AuthenticatorRecoveryCodes   []*string `json:"authenticator_recovery_codes,omitempty"`
 }
 
 type CheckPermissionsInput struct {

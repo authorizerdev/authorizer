@@ -63,6 +63,19 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// addWebauthnCredential gives the user a registered passkey, the
+	// condition login.go reads (via ListWebauthnCredentialsByUserID) as an
+	// alternative authenticatorVerified=true source alongside TOTP.
+	addWebauthnCredential := func(t *testing.T, ts *testSetup, ctx context.Context, userID string) {
+		t.Helper()
+		_, err := ts.StorageProvider.AddWebauthnCredential(ctx, &schemas.WebauthnCredential{
+			UserID:       userID,
+			CredentialID: uuid.NewString(),
+			PublicKey:    "dummy-public-key-for-gate-test",
+		})
+		require.NoError(t, err)
+	}
+
 	t.Run("mfaGateBlockVerify withholds the token", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
@@ -81,6 +94,51 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		require.NotNil(t, res)
 		assert.Nil(t, res.AccessToken, "a user with a verified authenticator must not receive a token before verifying it")
 		assert.True(t, refs.BoolValue(res.ShouldShowTotpScreen))
+		assert.False(t, refs.BoolValue(res.ShouldOfferWebauthnMfaVerify), "a TOTP-only user must not be offered a passkey verify option they never registered")
+	})
+
+	t.Run("mfaGateBlockVerify offers passkey verify for a passkey-only user", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		user := signUpUser(t, ts, ctx)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		user, err := ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+		addWebauthnCredential(t, ts, ctx, user.ID)
+		// No TOTP authenticator enrolled — passkey is this user's only factor.
+
+		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken, "a user with a registered passkey must not receive a token before verifying it")
+		assert.False(t, refs.BoolValue(res.ShouldShowTotpScreen), "must not force a TOTP screen on a user who never enrolled TOTP")
+		assert.True(t, refs.BoolValue(res.ShouldOfferWebauthnMfaVerify))
+	})
+
+	t.Run("mfaGateBlockVerify offers both methods for a dual-enrolled user", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		user := signUpUser(t, ts, ctx)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		user, err := ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+		addVerifiedAuthenticator(t, ts, ctx, user.ID)
+		addWebauthnCredential(t, ts, ctx, user.ID)
+
+		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken)
+		assert.True(t, refs.BoolValue(res.ShouldShowTotpScreen))
+		assert.True(t, refs.BoolValue(res.ShouldOfferWebauthnMfaVerify))
 	})
 
 	t.Run("mfaGateBlockEnroll withholds the token", func(t *testing.T) {

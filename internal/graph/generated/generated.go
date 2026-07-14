@@ -73,19 +73,20 @@ type ComplexityRoot struct {
 	}
 
 	AuthResponse struct {
-		AccessToken                func(childComplexity int) int
-		AuthenticatorRecoveryCodes func(childComplexity int) int
-		AuthenticatorScannerImage  func(childComplexity int) int
-		AuthenticatorSecret        func(childComplexity int) int
-		ExpiresIn                  func(childComplexity int) int
-		IDToken                    func(childComplexity int) int
-		Message                    func(childComplexity int) int
-		RefreshToken               func(childComplexity int) int
-		ShouldOfferMfaSetup        func(childComplexity int) int
-		ShouldShowEmailOtpScreen   func(childComplexity int) int
-		ShouldShowMobileOtpScreen  func(childComplexity int) int
-		ShouldShowTotpScreen       func(childComplexity int) int
-		User                       func(childComplexity int) int
+		AccessToken                  func(childComplexity int) int
+		AuthenticatorRecoveryCodes   func(childComplexity int) int
+		AuthenticatorScannerImage    func(childComplexity int) int
+		AuthenticatorSecret          func(childComplexity int) int
+		ExpiresIn                    func(childComplexity int) int
+		IDToken                      func(childComplexity int) int
+		Message                      func(childComplexity int) int
+		RefreshToken                 func(childComplexity int) int
+		ShouldOfferMfaSetup          func(childComplexity int) int
+		ShouldOfferWebauthnMfaVerify func(childComplexity int) int
+		ShouldShowEmailOtpScreen     func(childComplexity int) int
+		ShouldShowMobileOtpScreen    func(childComplexity int) int
+		ShouldShowTotpScreen         func(childComplexity int) int
+		User                         func(childComplexity int) int
 	}
 
 	CheckPermissionsResponse struct {
@@ -954,6 +955,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthResponse.ShouldOfferMfaSetup(childComplexity), true
+
+	case "AuthResponse.should_offer_webauthn_mfa_verify":
+		if e.complexity.AuthResponse.ShouldOfferWebauthnMfaVerify == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldOfferWebauthnMfaVerify(childComplexity), true
 
 	case "AuthResponse.should_show_email_otp_screen":
 		if e.complexity.AuthResponse.ShouldShowEmailOtpScreen == nil {
@@ -4529,6 +4537,13 @@ type AuthResponse {
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
   should_show_totp_screen: Boolean
+  # should_offer_webauthn_mfa_verify is true when the authenticated-with-
+  # password user has a registered passkey and MFA verification (not
+  # enrollment) is required before a token is issued. The frontend should
+  # offer a "verify with your passkey" action — calling the existing scoped
+  # webauthn_login_options(email)/webauthn_login_verify mutations — in
+  # addition to (or instead of) should_show_totp_screen's code-entry form.
+  should_offer_webauthn_mfa_verify: Boolean
   # should_offer_mfa_setup is true when MFA is available but not enforced,
   # the user hasn't enrolled, and they haven't skipped setup before. Unlike
   # should_show_totp_screen, access_token is ALREADY populated alongside
@@ -9448,6 +9463,47 @@ func (ec *executionContext) _AuthResponse_should_show_totp_screen(ctx context.Co
 }
 
 func (ec *executionContext) fieldContext_AuthResponse_should_show_totp_screen(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_should_offer_webauthn_mfa_verify(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldOfferWebauthnMfaVerify, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -16082,6 +16138,8 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -16165,6 +16223,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -16248,6 +16308,8 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -16331,6 +16393,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -16580,6 +16644,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -16901,6 +16967,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -17268,6 +17336,8 @@ func (ec *executionContext) fieldContext_Mutation_webauthn_login_verify(ctx cont
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -23213,6 +23283,8 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "should_show_totp_screen":
 				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
 			case "should_offer_mfa_setup":
 				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
 			case "access_token":
@@ -36098,6 +36170,8 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._AuthResponse_should_show_mobile_otp_screen(ctx, field, obj)
 		case "should_show_totp_screen":
 			out.Values[i] = ec._AuthResponse_should_show_totp_screen(ctx, field, obj)
+		case "should_offer_webauthn_mfa_verify":
+			out.Values[i] = ec._AuthResponse_should_offer_webauthn_mfa_verify(ctx, field, obj)
 		case "should_offer_mfa_setup":
 			out.Values[i] = ec._AuthResponse_should_offer_mfa_setup(ctx, field, obj)
 		case "access_token":

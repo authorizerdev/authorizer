@@ -377,7 +377,15 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	// If mfa enabled and also totp enabled
 	if isMFAEnabled && isTOTPLoginEnabled {
 		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		authenticatorVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
+		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
+		// A WebAuthn credential registered for ANY purpose (passwordless
+		// primary login or explicit MFA setup — there is no `purpose` field)
+		// counts as a verified second factor. Ignore a list error rather than
+		// failing login on it: treat "couldn't check" the same as "found
+		// none," matching how a missing TOTP authenticator row is handled.
+		webauthnCreds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+		hasWebauthnCredential := len(webauthnCreds) > 0
+		authenticatorVerified := totpVerified || hasWebauthnCredential
 		gate := resolveMFAGate(
 			refs.BoolValue(user.IsMultiFactorAuthEnabled),
 			p.Config.EnforceMFA,
@@ -391,10 +399,14 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			return &model.AuthResponse{
-				Message:              `Proceed to totp screen`,
-				ShouldShowTotpScreen: refs.NewBoolRef(true),
-			}, side, nil
+			res := &model.AuthResponse{Message: `Proceed to mfa verification`}
+			if totpVerified {
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+			}
+			if hasWebauthnCredential {
+				res.ShouldOfferWebauthnMfaVerify = refs.NewBoolRef(true)
+			}
+			return res, side, nil
 		case mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
 			if err := setOTPMFaSession(expiresAt); err != nil {

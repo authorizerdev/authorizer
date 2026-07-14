@@ -118,6 +118,13 @@ type AuthResponse {
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
   should_show_totp_screen: Boolean
+  # should_offer_webauthn_mfa_verify is true when the authenticated-with-
+  # password user has a registered passkey and MFA verification (not
+  # enrollment) is required before a token is issued. The frontend should
+  # offer a "verify with your passkey" action — calling the existing scoped
+  # webauthn_login_options(email)/webauthn_login_verify mutations — in
+  # addition to (or instead of) should_show_totp_screen's code-entry form.
+  should_offer_webauthn_mfa_verify: Boolean
   # should_offer_mfa_setup is true when MFA is available but not enforced,
   # the user hasn't enrolled, and they haven't skipped setup before. Unlike
   # should_show_totp_screen, access_token is ALREADY populated alongside
