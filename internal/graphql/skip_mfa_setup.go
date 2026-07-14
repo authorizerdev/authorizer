@@ -10,14 +10,16 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-func (g *graphqlProvider) SkipMFASetup(ctx context.Context) (*model.Response, error) {
+// SkipMFASetup delegates to the transport-agnostic service layer.
+// Permissions: none.
+func (g *graphqlProvider) SkipMFASetup(ctx context.Context, params *model.SkipMfaSetupRequest) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, side, err := g.ServiceProvider.SkipMFASetup(ctx, service.MetaFromGin(gc))
+	res, side, err := g.ServiceProvider.SkipMFASetup(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err
 	}

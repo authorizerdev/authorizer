@@ -1231,6 +1231,15 @@ input VerifyOTPRequest {
   state: String
 }
 
+input SkipMfaSetupRequest {
+  # either email or phone_number is required, whichever the pending login
+  # used, to resolve which user's MFA session cookie this is.
+  email: String
+  phone_number: String
+  # state is used for authorization code grant flow, same as VerifyOTPRequest.
+  state: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -1346,10 +1355,14 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  # skip_mfa_setup records that the authenticated caller explicitly declined
-  # the optional MFA setup prompt. Fails with FAILED_PRECONDITION if MFA is
-  # organization-enforced (enforce-mfa) — enforcement is never skippable.
-  skip_mfa_setup: Response!
+  # skip_mfa_setup completes an in-progress, token-withheld MFA offer by
+  # recording that the caller explicitly declined it, then issues the
+  # access token that was withheld. Identified by the MFA session cookie
+  # (set when the offer screen was returned) plus email/phone_number to
+  # resolve the pending user — same identification pattern as verify_otp.
+  # Fails with FAILED_PRECONDITION if MFA is organization-enforced
+  # (enforce-mfa) — enforcement is never skippable.
+  skip_mfa_setup(params: SkipMfaSetupRequest!): AuthResponse!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

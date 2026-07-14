@@ -714,6 +714,12 @@ type SignUpRequest struct {
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
+type SkipMfaSetupRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	State       *string `json:"state,omitempty"`
+}
+
 type TestEndpointRequest struct {
 	Endpoint         string         `json:"endpoint"`
 	EventName        string         `json:"event_name"`

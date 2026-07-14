@@ -100,9 +100,11 @@ type Provider interface {
 	// and drops all of their sessions. Requires auth.
 	DeactivateAccount(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
 
-	// SkipMFASetup records that the authenticated caller declined optional
-	// MFA setup. Fails if MFA is org-enforced.
-	SkipMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+	// SkipMFASetup completes a token-withheld first-time MFA offer by
+	// recording the decline and issuing the previously-withheld token.
+	// Identified via the MFA session cookie, not a bearer token — none
+	// exists yet at this point in the flow.
+	SkipMFASetup(ctx context.Context, meta RequestMetadata, params *model.SkipMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.
