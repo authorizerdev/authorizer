@@ -101,6 +101,12 @@ type Provider interface {
 	// Permissions: none — identified via the MFA session cookie, not a
 	// bearer token.
 	SkipMFASetup(ctx context.Context, params *model.SkipMfaSetupRequest) (*model.AuthResponse, error)
+	// LockMFA records that the caller lost access to their only MFA
+	// factor(s), refusing when a verified OTP fallback exists. Does not
+	// issue a token.
+	// Permissions: none — identified via the MFA session cookie, not a
+	// bearer token.
+	LockMFA(ctx context.Context, params *model.LockMfaRequest) (*model.Response, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)

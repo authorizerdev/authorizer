@@ -130,6 +130,9 @@ type Provider interface {
 	// GetAuthenticatorDetailsByUserId retrieves details of an authenticator document based on user ID and authenticator type.
 	// If found, the authenticator document is returned, or an error if not found or an error occurs during the retrieval.
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error)
+	// DeleteAuthenticatorsByUserID removes every authenticator row (TOTP,
+	// email OTP, SMS OTP) for a user. Used by admin MFA reset.
+	DeleteAuthenticatorsByUserID(ctx context.Context, userID string) error
 
 	// Session Token methods (for database-backed memory store)
 	// AddSessionToken adds a session token to the database

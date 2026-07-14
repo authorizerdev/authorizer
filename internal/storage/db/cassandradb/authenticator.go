@@ -106,3 +106,31 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	}
 	return &authenticators, nil
 }
+
+// DeleteAuthenticatorsByUserID removes every authenticator row for a user.
+// user_id is not the partition key (id is), so DELETE cannot filter on it
+// directly — mirrors DeleteUser's session cleanup: look up matching ids via
+// ALLOW FILTERING, then delete each by its partition key. Used by admin MFA
+// reset.
+func (p *provider) DeleteAuthenticatorsByUserID(ctx context.Context, userID string) error {
+	getIDsQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.Authenticators)
+	scanner := p.db.Query(getIDsQuery, userID).Iter().Scanner()
+	var ids []string
+	for scanner.Next() {
+		var id string
+		if err := scanner.Scan(&id); err != nil {
+			return err
+		}
+		ids = append(ids, id)
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	for _, id := range ids {
+		deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.Authenticators)
+		if err := p.db.Query(deleteQuery, id).Exec(); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -155,6 +155,11 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		return nil, nil, FailedPrecondition("email is not verified. please verify your email before signing in with a passkey")
 	}
 
+	if user.MFALockedAt != nil {
+		log.Debug().Msg("User's MFA is locked, refusing passkey login")
+		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
+	}
+
 	// A passkey used for PRIMARY login is only one factor (something you
 	// have) — it does not itself satisfy an MFA requirement, so it goes
 	// through the exact same 5-way gate password login does. A WebAuthn

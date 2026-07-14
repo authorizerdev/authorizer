@@ -431,6 +431,11 @@ type ListWebhookLogRequest struct {
 	WebhookID  *string            `json:"webhook_id,omitempty"`
 }
 
+type LockMfaRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+}
+
 type LoginRequest struct {
 	Email       *string  `json:"email,omitempty"`
 	PhoneNumber *string  `json:"phone_number,omitempty"`
@@ -920,6 +925,7 @@ type UpdateUserRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	Roles                    []*string      `json:"roles,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
+	ResetMfa                 *bool          `json:"reset_mfa,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
@@ -953,6 +959,7 @@ type User struct {
 	RevokedTimestamp         *int64         `json:"revoked_timestamp,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	HasSkippedMfaSetupAt     *int64         `json:"has_skipped_mfa_setup_at,omitempty"`
+	MfaLockedAt              *int64         `json:"mfa_locked_at,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 

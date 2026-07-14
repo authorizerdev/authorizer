@@ -49,6 +49,21 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// DeleteAuthenticatorsByUserID removes every authenticator row for a user.
+// Used by admin MFA reset.
+func (p *provider) DeleteAuthenticatorsByUserID(ctx context.Context, userID string) error {
+	query := fmt.Sprintf("FOR d IN %s FILTER d.user_id == @user_id REMOVE d IN %s", schemas.Collections.Authenticators, schemas.Collections.Authenticators)
+	bindVars := map[string]interface{}{
+		"user_id": userID,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = cursor.Close() }()
+	return nil
+}
+
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators *schemas.Authenticator
 	query := fmt.Sprintf("FOR d in %s FILTER d.user_id == @user_id AND d.method == @method LIMIT 1 RETURN d", schemas.Collections.Authenticators)

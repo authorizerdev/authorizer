@@ -89,3 +89,18 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	}
 	return authenticators, nil
 }
+
+// DeleteAuthenticatorsByUserID removes every authenticator row for a user.
+// Used by admin MFA reset.
+func (p *provider) DeleteAuthenticatorsByUserID(ctx context.Context, userID string) error {
+	query := fmt.Sprintf("DELETE FROM %s.%s WHERE user_id = $1", p.scopeName, schemas.Collections.Authenticators)
+	_, err := p.db.Query(query, &gocb.QueryOptions{
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
+		PositionalParameters: []interface{}{userID},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}

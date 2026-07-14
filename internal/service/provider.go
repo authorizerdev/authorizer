@@ -106,6 +106,12 @@ type Provider interface {
 	// exists yet at this point in the flow.
 	SkipMFASetup(ctx context.Context, meta RequestMetadata, params *model.SkipMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
+	// LockMFA records that the authenticated-in-progress caller lost access
+	// to their only MFA factor(s). Requires no verified Email/SMS OTP
+	// fallback exists for the user — otherwise that should be used instead.
+	// Does not issue a token.
+	LockMFA(ctx context.Context, meta RequestMetadata, params *model.LockMfaRequest) (*model.Response, *ResponseSideEffects, error)
+
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.
 	ResendVerifyEmail(ctx context.Context, meta RequestMetadata, params *model.ResendVerifyEmailRequest) (*model.Response, *ResponseSideEffects, error)

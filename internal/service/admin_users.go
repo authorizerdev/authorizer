@@ -125,6 +125,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		params.PhoneNumber == nil &&
 		params.Roles == nil &&
 		params.IsMultiFactorAuthEnabled == nil &&
+		params.ResetMfa == nil &&
 		params.AppData == nil {
 		log.Debug().Msg("please enter atleast one param to update")
 		return nil, nil, fmt.Errorf("please enter atleast one param to update")
@@ -309,6 +310,28 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 	if rolesToSave != "" {
 		user.Roles = rolesToSave
 	}
+
+	if refs.BoolValue(params.ResetMfa) {
+		user.MFALockedAt = nil
+		user.IsMultiFactorAuthEnabled = nil
+		user.HasSkippedMFASetupAt = nil
+		if err := p.StorageProvider.DeleteAuthenticatorsByUserID(ctx, user.ID); err != nil {
+			log.Debug().Err(err).Msg("failed to delete authenticators during MFA reset")
+			return nil, nil, err
+		}
+		creds, err := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+		if err != nil {
+			log.Debug().Err(err).Msg("failed to list webauthn credentials during MFA reset")
+			return nil, nil, err
+		}
+		for _, c := range creds {
+			if err := p.StorageProvider.DeleteWebauthnCredential(ctx, c); err != nil {
+				log.Debug().Err(err).Msg("failed to delete webauthn credential during MFA reset")
+				return nil, nil, err
+			}
+		}
+	}
+
 	user, err = p.StorageProvider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed UpdateUser")

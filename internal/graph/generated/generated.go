@@ -322,6 +322,7 @@ type ComplexityRoot struct {
 		ForgotPassword              func(childComplexity int, params model.ForgotPasswordRequest) int
 		GenerateJwtKeys             func(childComplexity int, params model.GenerateJWTKeysRequest) int
 		InviteMembers               func(childComplexity int, params model.InviteMemberRequest) int
+		LockMfa                     func(childComplexity int, params model.LockMfaRequest) int
 		Login                       func(childComplexity int, params model.LoginRequest) int
 		Logout                      func(childComplexity int) int
 		MagicLinkLogin              func(childComplexity int, params model.MagicLinkLoginRequest) int
@@ -547,6 +548,7 @@ type ComplexityRoot struct {
 		HasSkippedMfaSetupAt     func(childComplexity int) int
 		ID                       func(childComplexity int) int
 		IsMultiFactorAuthEnabled func(childComplexity int) int
+		MfaLockedAt              func(childComplexity int) int
 		MiddleName               func(childComplexity int) int
 		Nickname                 func(childComplexity int) int
 		PhoneNumber              func(childComplexity int) int
@@ -666,6 +668,7 @@ type MutationResolver interface {
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
 	SkipMfaSetup(ctx context.Context, params model.SkipMfaSetupRequest) (*model.AuthResponse, error)
+	LockMfa(ctx context.Context, params model.LockMfaRequest) (*model.Response, error)
 	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
@@ -2363,6 +2366,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.InviteMembers(childComplexity, args["params"].(model.InviteMemberRequest)), true
 
+	case "Mutation.lock_mfa":
+		if e.complexity.Mutation.LockMfa == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_lock_mfa_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.LockMfa(childComplexity, args["params"].(model.LockMfaRequest)), true
+
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -3849,6 +3864,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.IsMultiFactorAuthEnabled(childComplexity), true
 
+	case "User.mfa_locked_at":
+		if e.complexity.User.MfaLockedAt == nil {
+			break
+		}
+
+		return e.complexity.User.MfaLockedAt(childComplexity), true
+
 	case "User.middle_name":
 		if e.complexity.User.MiddleName == nil {
 			break
@@ -4300,6 +4322,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListTrustedIssuersRequest,
 		ec.unmarshalInputListUsersRequest,
 		ec.unmarshalInputListWebhookLogRequest,
+		ec.unmarshalInputLockMfaRequest,
 		ec.unmarshalInputLoginRequest,
 		ec.unmarshalInputMagicLinkLoginRequest,
 		ec.unmarshalInputMobileLoginRequest,
@@ -4531,6 +4554,10 @@ type User {
   # has_skipped_mfa_setup_at is set once the user explicitly skips the
   # optional MFA setup prompt shown at login. Null means never skipped.
   has_skipped_mfa_setup_at: Int64
+  # mfa_locked_at is set once the user reports losing access to their only
+  # MFA factor(s) with no OTP fallback enrolled. Null means not locked. Only
+  # an admin can clear it (_update_user with reset_mfa: true).
+  mfa_locked_at: Int64
   app_data: Map
 }
 
@@ -5269,6 +5296,11 @@ input UpdateUserRequest {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  # reset_mfa, when true, clears the user's entire MFA state: mfa_locked_at,
+  # is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, and deletes all
+  # enrolled authenticators/passkeys. The user's next login lands back on
+  # the first-time setup screen, same as a brand-new account.
+  reset_mfa: Boolean
   app_data: Map
 }
 
@@ -5681,6 +5713,13 @@ input SkipMfaSetupRequest {
   state: String
 }
 
+input LockMfaRequest {
+  # either email or phone_number is required, to resolve which user's MFA
+  # session cookie this is — same pattern as SkipMfaSetupRequest.
+  email: String
+  phone_number: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -5804,6 +5843,11 @@ type Mutation {
   # Fails with FAILED_PRECONDITION if MFA is organization-enforced
   # (enforce-mfa) — enforcement is never skippable.
   skip_mfa_setup(params: SkipMfaSetupRequest!): AuthResponse!
+  # lock_mfa records that the caller lost access to their only MFA
+  # factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+  # fallback enrolled — if one exists, use it instead of locking. Does not
+  # issue a token; the account requires admin recovery afterward.
+  lock_mfa(params: LockMfaRequest!): Response!
   # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
   webauthn_registration_options(
     email: String
@@ -7193,6 +7237,34 @@ func (ec *executionContext) field_Mutation_forgot_password_argsParams(
 	}
 
 	var zeroVal model.ForgotPasswordRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_lock_mfa_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_lock_mfa_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_lock_mfa_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.LockMfaRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.LockMfaRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNLockMfaRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLockMfaRequest(ctx, tmp)
+	}
+
+	var zeroVal model.LockMfaRequest
 	return zeroVal, nil
 }
 
@@ -9914,6 +9986,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -14961,6 +15035,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(_ context.C
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -17324,6 +17400,65 @@ func (ec *executionContext) fieldContext_Mutation_skip_mfa_setup(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_lock_mfa(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_lock_mfa(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().LockMfa(rctx, fc.Args["params"].(model.LockMfaRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_lock_mfa(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_lock_mfa_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_webauthn_registration_options(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_webauthn_registration_options(ctx, field)
 	if err != nil {
@@ -17833,6 +17968,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -23618,6 +23755,8 @@ func (ec *executionContext) fieldContext_Query_profile(_ context.Context, field 
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -23947,6 +24086,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -27932,6 +28073,47 @@ func (ec *executionContext) fieldContext_User_has_skipped_mfa_setup_at(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _User_mfa_locked_at(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_mfa_locked_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MfaLockedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_mfa_locked_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_app_data(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_app_data(ctx, field)
 	if err != nil {
@@ -28312,6 +28494,8 @@ func (ec *executionContext) fieldContext_Users_users(_ context.Context, field gr
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -28529,6 +28713,8 @@ func (ec *executionContext) fieldContext_ValidateSessionResponse_user(_ context.
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "has_skipped_mfa_setup_at":
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
+			case "mfa_locked_at":
+				return ec.fieldContext_User_mfa_locked_at(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -33638,6 +33824,40 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputLockMfaRequest(ctx context.Context, obj any) (model.LockMfaRequest, error) {
+	var it model.LockMfaRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "phone_number"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone_number":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLoginRequest(ctx context.Context, obj any) (model.LoginRequest, error) {
 	var it model.LoginRequest
 	asMap := map[string]any{}
@@ -35721,7 +35941,7 @@ func (ec *executionContext) unmarshalInputUpdateUserRequest(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "phone_number_verified", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
+	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "phone_number_verified", "picture", "roles", "is_multi_factor_auth_enabled", "reset_mfa", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -35826,6 +36046,13 @@ func (ec *executionContext) unmarshalInputUpdateUserRequest(ctx context.Context,
 				return it, err
 			}
 			it.IsMultiFactorAuthEnabled = data
+		case "reset_mfa":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reset_mfa"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ResetMfa = data
 		case "app_data":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
@@ -37758,6 +37985,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "skip_mfa_setup":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_skip_mfa_setup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lock_mfa":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_lock_mfa(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -39955,6 +40189,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
 		case "has_skipped_mfa_setup_at":
 			out.Values[i] = ec._User_has_skipped_mfa_setup_at(ctx, field, obj)
+		case "mfa_locked_at":
+			out.Values[i] = ec._User_mfa_locked_at(ctx, field, obj)
 		case "app_data":
 			out.Values[i] = ec._User_app_data(ctx, field, obj)
 		default:
@@ -41627,6 +41863,11 @@ func (ec *executionContext) marshalNListPermissionsResponse2ᚖgithubᚗcomᚋau
 		return graphql.Null
 	}
 	return ec._ListPermissionsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNLockMfaRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLockMfaRequest(ctx context.Context, v any) (model.LockMfaRequest, error) {
+	res, err := ec.unmarshalInputLockMfaRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginRequest(ctx context.Context, v any) (model.LoginRequest, error) {

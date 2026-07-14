@@ -90,6 +90,10 @@ type User {
   # has_skipped_mfa_setup_at is set once the user explicitly skips the
   # optional MFA setup prompt shown at login. Null means never skipped.
   has_skipped_mfa_setup_at: Int64
+  # mfa_locked_at is set once the user reports losing access to their only
+  # MFA factor(s) with no OTP fallback enrolled. Null means not locked. Only
+  # an admin can clear it (_update_user with reset_mfa: true).
+  mfa_locked_at: Int64
   app_data: Map
 }
 
@@ -828,6 +832,11 @@ input UpdateUserRequest {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  # reset_mfa, when true, clears the user's entire MFA state: mfa_locked_at,
+  # is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, and deletes all
+  # enrolled authenticators/passkeys. The user's next login lands back on
+  # the first-time setup screen, same as a brand-new account.
+  reset_mfa: Boolean
   app_data: Map
 }
 
@@ -1240,6 +1249,13 @@ input SkipMfaSetupRequest {
   state: String
 }
 
+input LockMfaRequest {
+  # either email or phone_number is required, to resolve which user's MFA
+  # session cookie this is — same pattern as SkipMfaSetupRequest.
+  email: String
+  phone_number: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -1363,6 +1379,11 @@ type Mutation {
   # Fails with FAILED_PRECONDITION if MFA is organization-enforced
   # (enforce-mfa) — enforcement is never skippable.
   skip_mfa_setup(params: SkipMfaSetupRequest!): AuthResponse!
+  # lock_mfa records that the caller lost access to their only MFA
+  # factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+  # fallback enrolled — if one exists, use it instead of locking. Does not
+  # issue a token; the account requires admin recovery afterward.
+  lock_mfa(params: LockMfaRequest!): Response!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

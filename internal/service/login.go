@@ -322,6 +322,14 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	isMailOTPEnabled := p.Config.EnableEmailOTP
 	isSMSOTPEnabled := p.Config.EnableSMSOTP
 
+	// A single check protecting all three MFA branches below (email-OTP,
+	// SMS-OTP, TOTP/resolveMFAGate) — not one check per branch. Lockout is
+	// set only by explicit user action (lock_mfa), never inferred here.
+	if user.MFALockedAt != nil {
+		log.Debug().Msg("User's MFA is locked, refusing login")
+		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
+	}
+
 	// If multi factor authentication is enabled and is email based login and email otp is enabled
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()

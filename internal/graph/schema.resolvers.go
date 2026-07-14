@@ -87,6 +87,11 @@ func (r *mutationResolver) SkipMfaSetup(ctx context.Context, params model.SkipMf
 	return r.GraphQLProvider.SkipMFASetup(ctx, &params)
 }
 
+// LockMfa is the resolver for the lock_mfa field.
+func (r *mutationResolver) LockMfa(ctx context.Context, params model.LockMfaRequest) (*model.Response, error) {
+	return r.GraphQLProvider.LockMFA(ctx, &params)
+}
+
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
 func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
 	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email)
