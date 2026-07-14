@@ -271,6 +271,7 @@ type ComplexityRoot struct {
 		IsGoogleLoginEnabled               func(childComplexity int) int
 		IsLinkedinLoginEnabled             func(childComplexity int) int
 		IsMagicLinkLoginEnabled            func(childComplexity int) int
+		IsMfaEnforced                      func(childComplexity int) int
 		IsMicrosoftLoginEnabled            func(childComplexity int) int
 		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
 		IsMultiFactorAuthEnabled           func(childComplexity int) int
@@ -1879,6 +1880,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Meta.IsMagicLinkLoginEnabled(childComplexity), true
+
+	case "Meta.is_mfa_enforced":
+		if e.complexity.Meta.IsMfaEnforced == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMfaEnforced(childComplexity), true
 
 	case "Meta.is_microsoft_login_enabled":
 		if e.complexity.Meta.IsMicrosoftLoginEnabled == nil {
@@ -4461,6 +4469,13 @@ type Meta {
   is_sms_otp_mfa_enabled: Boolean!
   # is_webauthn_enabled indicates WebAuthn/passkey enrollment is available (always on; no operator flag).
   is_webauthn_enabled: Boolean!
+  # is_mfa_enforced mirrors EnforceMFA — when true, the frontend must not
+  # offer a standalone passkey primary-login path (it would bypass the org's
+  # two-factor requirement); passkey should only be offered as a second
+  # factor after password/social login. The server enforces this
+  # independently in webauthn_login_verify regardless of what the frontend
+  # shows.
+  is_mfa_enforced: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
@@ -16091,6 +16106,50 @@ func (ec *executionContext) fieldContext_Meta_is_webauthn_enabled(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Meta_is_mfa_enforced(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_mfa_enforced(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMfaEnforced, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_mfa_enforced(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_signup(ctx, field)
 	if err != nil {
@@ -23229,6 +23288,8 @@ func (ec *executionContext) fieldContext_Query_meta(_ context.Context, field gra
 				return ec.fieldContext_Meta_is_sms_otp_mfa_enabled(ctx, field)
 			case "is_webauthn_enabled":
 				return ec.fieldContext_Meta_is_webauthn_enabled(ctx, field)
+			case "is_mfa_enforced":
+				return ec.fieldContext_Meta_is_mfa_enforced(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 		},
@@ -37346,6 +37407,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_webauthn_enabled":
 			out.Values[i] = ec._Meta_is_webauthn_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_mfa_enforced":
+			out.Values[i] = ec._Meta_is_mfa_enforced(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

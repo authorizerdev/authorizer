@@ -42,6 +42,13 @@ type Meta {
   is_sms_otp_mfa_enabled: Boolean!
   # is_webauthn_enabled indicates WebAuthn/passkey enrollment is available (always on; no operator flag).
   is_webauthn_enabled: Boolean!
+  # is_mfa_enforced mirrors EnforceMFA — when true, the frontend must not
+  # offer a standalone passkey primary-login path (it would bypass the org's
+  # two-factor requirement); passkey should only be offered as a second
+  # factor after password/social login. The server enforces this
+  # independently in webauthn_login_verify regardless of what the frontend
+  # shows.
+  is_mfa_enforced: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta

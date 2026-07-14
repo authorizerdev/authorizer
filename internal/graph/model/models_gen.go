@@ -473,6 +473,7 @@ type Meta struct {
 	IsEmailOtpMfaEnabled               bool   `json:"is_email_otp_mfa_enabled"`
 	IsSmsOtpMfaEnabled                 bool   `json:"is_sms_otp_mfa_enabled"`
 	IsWebauthnEnabled                  bool   `json:"is_webauthn_enabled"`
+	IsMfaEnforced                      bool   `json:"is_mfa_enforced"`
 }
 
 type MobileLoginRequest struct {
