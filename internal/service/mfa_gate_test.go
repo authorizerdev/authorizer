@@ -24,7 +24,7 @@ func TestResolveMFAGate(t *testing.T) {
 		{"enforced, skip flag present but ignored", true, true, false, true, mfaGateBlockEnroll},
 		{"optional, already verified -> still verify every time", true, false, true, false, mfaGateBlockVerify},
 		{"optional, already verified, skip flag stale -> still verify", true, false, true, true, mfaGateBlockVerify},
-		{"optional, not enrolled, never skipped -> offer", true, false, false, false, mfaGateOfferSetup},
+		{"optional, not enrolled, never skipped -> offer all methods, withhold token", true, false, false, false, mfaGateOfferAll},
 		{"optional, not enrolled, already skipped -> quiet login", true, false, false, true, mfaGateSkippedSetup},
 	}
 	for _, c := range cases {

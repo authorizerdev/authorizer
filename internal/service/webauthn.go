@@ -155,28 +155,47 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		return nil, nil, FailedPrecondition("email is not verified. please verify your email before signing in with a passkey")
 	}
 
-	// EnforceMFA is absolute and applies to passkey primary login exactly
-	// like it applies to password login: a passkey may not silently satisfy
-	// an org's two-factor requirement. This does not claim a passkey is
-	// itself insufficient as a factor - it only prevents passkey login from
-	// becoming an unintended bypass of a policy the org explicitly turned on.
-	if p.Config.EnforceMFA && refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+	// A passkey used for PRIMARY login is only one factor (something you
+	// have) — it does not itself satisfy an MFA requirement, so it goes
+	// through the exact same 5-way gate password login does. A WebAuthn
+	// credential registered for MFA purposes on this same account (there is
+	// no `purpose` field distinguishing "primary" vs "MFA" registrations)
+	// counts as a verified second factor here too, same as login.go's TOTP
+	// branch treats it — but the credential the user just authenticated
+	// PRIMARY with cannot also be counted as its own second factor, so
+	// authenticatorVerified below is TOTP-only for a passkey-primary login.
+	authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
+	gate := resolveMFAGate(
+		effectiveMFAEnabled(p.Config, user),
+		p.Config.EnforceMFA,
+		totpVerified,
+		user.HasSkippedMFASetupAt != nil,
+	)
+	switch gate {
+	case mfaGateBlockVerify:
 		if !p.Config.EnableTOTPLogin {
 			log.Debug().Msg("EnforceMFA is on but no compatible second factor is configured for passkey login")
 			return nil, nil, FailedPrecondition("multi-factor authentication is required but no compatible verification method is available for passkey sign-in; please sign in with your password instead")
 		}
-		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
 		expiresAt := time.Now().Add(3 * time.Minute).Unix()
 		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		if totpVerified {
-			return &model.AuthResponse{
-				Message:              `Proceed to mfa verification`,
-				ShouldShowTotpScreen: refs.NewBoolRef(true),
-			}, side, nil
+		return &model.AuthResponse{
+			Message:              `Proceed to mfa verification`,
+			ShouldShowTotpScreen: refs.NewBoolRef(true),
+		}, side, nil
+	case mfaGateBlockEnroll:
+		if !p.Config.EnableTOTPLogin {
+			log.Debug().Msg("EnforceMFA is on but no compatible second factor is configured for passkey login")
+			return nil, nil, FailedPrecondition("multi-factor authentication is required but no compatible verification method is available for passkey sign-in; please sign in with your password instead")
+		}
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			log.Debug().Msg("Failed to set mfa session")
+			return nil, nil, err
 		}
 		enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
 		if err != nil {
@@ -190,6 +209,37 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 			AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
 			AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
 		}, side, nil
+	case mfaGateOfferAll:
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			log.Debug().Msg("Failed to set mfa session")
+			return nil, nil, err
+		}
+		res := &model.AuthResponse{
+			Message:                     `Proceed to mfa setup`,
+			ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+		}
+		// Unlike login.go's TOTP branch (only reachable when EnableTOTPLogin is
+		// already true), passkey-primary login reaches this gate regardless of
+		// TOTP availability — only offer/generate a TOTP enrollment when TOTP
+		// login is actually enabled server-wide, or p.AuthenticatorProvider is
+		// nil and generateTOTPEnrollment panics. The token is withheld either
+		// way via setMFASession above; WebAuthn-only offer is still meaningful
+		// when TOTP isn't configured.
+		if p.Config.EnableTOTPLogin {
+			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+			if err != nil {
+				log.Debug().Msg("Failed to generate totp for optional setup")
+				return nil, nil, err
+			}
+			res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+			res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+			res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+			res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+		}
+		return res, side, nil
+	case mfaGateSkippedSetup, mfaGateNone:
+		// Both fall through to normal token issuance below.
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{

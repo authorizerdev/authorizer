@@ -132,12 +132,18 @@ type AuthResponse {
   # webauthn_login_options(email)/webauthn_login_verify mutations — in
   # addition to (or instead of) should_show_totp_screen's code-entry form.
   should_offer_webauthn_mfa_verify: Boolean
-  # should_offer_mfa_setup is true when MFA is available but not enforced,
-  # the user hasn't enrolled, and they haven't skipped setup before. Unlike
-  # should_show_totp_screen, access_token is ALREADY populated alongside
-  # this flag — the frontend should log the user in and separately offer
-  # (not force) MFA setup, e.g. via a dismissible hub with a Skip action.
+  # should_offer_mfa_setup is DEPRECATED and never set to true anymore: the
+  # first-time-offer case now withholds access_token (see
+  # should_show_totp_screen/should_offer_webauthn_mfa_setup) instead of
+  # issuing a token alongside an "offer" flag. Field kept (unset) because
+  # older integration tests still assert its zero value; do not read it.
   should_offer_mfa_setup: Boolean
+  # should_offer_webauthn_mfa_setup is true, alongside should_show_totp_screen,
+  # when this is a first-time optional-MFA offer (mfaGateOfferAll) and
+  # WebAuthn is enabled server-wide as an MFA factor. access_token is NOT
+  # populated alongside this flag — unlike the old should_offer_mfa_setup,
+  # the token is withheld until the user completes a method or skips.
+  should_offer_webauthn_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String

@@ -64,8 +64,15 @@ func assertPasskeyLogin(t *testing.T, ts *testSetup, rp virtualwebauthn.RelyingP
 }
 
 func TestWebauthnLoginVerifyEnforceMFA(t *testing.T) {
-	t.Run("EnforceMFA=false — unchanged, issues token", func(t *testing.T) {
+	t.Run("EnforceMFA=false, user opted into optional MFA, unenrolled — withholds token and offers setup", func(t *testing.T) {
+		// This is the exact bypass Task 3 closes: previously WebauthnLoginVerify
+		// only gated on EnforceMFA, so a passkey-primary login for a user with
+		// optional (not enforced) MFA enabled but never enrolled/skipped got a
+		// token unconditionally, skipping the first-time offer entirely. Now it
+		// goes through the same resolveMFAGate gate password login uses, and
+		// mfaGateOfferAll withholds the token same as login.go's TOTP branch.
 		cfg := getTestConfig()
+		cfg.EnableWebauthnMFA = true
 		ts := initTestSetup(t, cfg)
 		user, rp, authenticator, credential := registerPasskeyForNewUser(t, ts)
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
@@ -74,7 +81,13 @@ func TestWebauthnLoginVerifyEnforceMFA(t *testing.T) {
 
 		authRes, err := assertPasskeyLogin(t, ts, rp, authenticator, credential)
 		require.NoError(t, err)
-		require.NotNil(t, authRes.AccessToken, "EnforceMFA=false must not block passkey login")
+		require.NotNil(t, authRes)
+		assert.Nil(t, authRes.AccessToken, "a first-time optional-MFA offer must withhold the token even for passkey-primary login")
+		assert.True(t, refs.BoolValue(authRes.ShouldOfferWebauthnMfaSetup))
+		// This test config never sets EnableTOTPLogin, so no TOTP enrollment
+		// payload is offered alongside the WebAuthn offer.
+		assert.False(t, refs.BoolValue(authRes.ShouldShowTotpScreen))
+		assert.Nil(t, authRes.AuthenticatorSecret)
 	})
 
 	t.Run("EnforceMFA=true, user MFA not individually enabled — unaffected", func(t *testing.T) {

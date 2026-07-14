@@ -22,11 +22,14 @@ const (
 	// enrollment yet. Withhold the token until enrollment is completed.
 	// Never skippable.
 	mfaGateBlockEnroll
-	// mfaGateOfferSetup: MFA is available but not enforced, the user hasn't
-	// enrolled, and they've never skipped before. Issue the token now AND
-	// tell the frontend to offer (not force) MFA setup.
-	mfaGateOfferSetup
-	// mfaGateSkippedSetup: same as mfaGateOfferSetup but the user has already
+	// mfaGateOfferAll: MFA is available but not enforced, the user hasn't
+	// enrolled, and they've never skipped before. Token is WITHHELD (same
+	// group as mfaGateBlockVerify/mfaGateBlockEnroll) until the user
+	// completes one method or explicitly calls skip_mfa_setup — both of
+	// which authenticate via the MFA session cookie this decision triggers,
+	// not a bearer token, since none has been issued yet.
+	mfaGateOfferAll
+	// mfaGateSkippedSetup: same as mfaGateOfferAll but the user has already
 	// chosen Skip in the past. Issue the token, don't nag.
 	mfaGateSkippedSetup
 )
@@ -59,7 +62,7 @@ func resolveMFAGate(userMFAEnabled, enforceMFA, authenticatorVerified, hasSkippe
 	if hasSkippedSetup {
 		return mfaGateSkippedSetup
 	}
-	return mfaGateOfferSetup
+	return mfaGateOfferAll
 }
 
 // effectiveMFAEnabled reports whether MFA applies to this user right now.

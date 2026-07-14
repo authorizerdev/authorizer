@@ -11,7 +11,7 @@ import (
 // SkipMFASetup records that the authenticated caller explicitly declined the
 // optional MFA setup prompt shown at login. Never allowed when MFA is
 // org-enforced — that path never offers a skip in the first place
-// (resolveMFAGate never returns mfaGateOfferSetup when EnforceMFA is true),
+// (resolveMFAGate never returns mfaGateOfferAll when EnforceMFA is true),
 // but this is re-checked here server-side so a client can never forge the
 // request to bypass enforcement.
 //

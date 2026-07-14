@@ -84,6 +84,7 @@ type AuthResponse struct {
 	ShouldShowTotpScreen         *bool     `json:"should_show_totp_screen,omitempty"`
 	ShouldOfferWebauthnMfaVerify *bool     `json:"should_offer_webauthn_mfa_verify,omitempty"`
 	ShouldOfferMfaSetup          *bool     `json:"should_offer_mfa_setup,omitempty"`
+	ShouldOfferWebauthnMfaSetup  *bool     `json:"should_offer_webauthn_mfa_setup,omitempty"`
 	AccessToken                  *string   `json:"access_token,omitempty"`
 	IDToken                      *string   `json:"id_token,omitempty"`
 	RefreshToken                 *string   `json:"refresh_token,omitempty"`

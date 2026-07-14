@@ -17,20 +17,20 @@ import (
 
 // TestLoginMFAGateTokenWithholding is the regression guard for the security
 // property described in mfa_gate.go and wired into login.go's TOTP branch:
-// mfaGateBlockVerify and mfaGateBlockEnroll must NEVER reach the code path
-// that sets AccessToken on the login response, while mfaGateNone,
-// mfaGateOfferSetup and mfaGateSkippedSetup must all fall through to normal
-// token issuance.
+// mfaGateBlockVerify, mfaGateBlockEnroll, and mfaGateOfferAll must NEVER
+// reach the code path that sets AccessToken on the login response, while
+// mfaGateNone and mfaGateSkippedSetup must fall through to normal token
+// issuance.
 //
 // mfa_gate_test.go already covers resolveMFAGate's pure decision table in
 // isolation. This test drives the same 5 outcomes through the real
 // login.go switch (via GraphQLProvider.Login, a thin wrapper around
 // service.Provider.Login) with a user/config combination engineered to land
 // on exactly one outcome, and asserts on AccessToken directly. A future edit
-// that removes a `return` from the mfaGateBlockVerify/mfaGateBlockEnroll
-// cases — or that lets one of them fall through — would compile and pass
-// TestResolveMFAGate unchanged, but would fail here because AccessToken
-// stops being empty.
+// that removes a `return` from the mfaGateBlockVerify/mfaGateBlockEnroll/
+// mfaGateOfferAll cases — or that lets one of them fall through — would
+// compile and pass TestResolveMFAGate unchanged, but would fail here
+// because AccessToken stops being empty.
 func TestLoginMFAGateTokenWithholding(t *testing.T) {
 	const password = "Password@123"
 
@@ -163,7 +163,7 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		assert.NotNil(t, res.AuthenticatorSecret, "block-enroll must hand back a fresh enrollment payload")
 	})
 
-	t.Run("mfaGateOfferSetup issues a token and offers setup", func(t *testing.T) {
+	t.Run("mfaGateOfferAll withholds the token and offers every available method", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
 		cfg.EnableTOTPLogin = true
@@ -179,10 +179,9 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.NotNil(t, res.AccessToken, "optional MFA must not block login")
-		assert.NotEmpty(t, *res.AccessToken)
-		assert.True(t, refs.BoolValue(res.ShouldOfferMfaSetup))
-		assert.NotNil(t, res.AuthenticatorSecret)
+		assert.Nil(t, res.AccessToken, "a first-time optional-MFA offer must withhold the token until setup or skip")
+		assert.True(t, refs.BoolValue(res.ShouldShowTotpScreen))
+		assert.NotNil(t, res.AuthenticatorSecret, "offer-all must hand back a fresh TOTP enrollment payload")
 	})
 
 	t.Run("mfaGateSkippedSetup issues a token quietly", func(t *testing.T) {

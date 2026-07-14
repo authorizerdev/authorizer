@@ -70,7 +70,7 @@ func loginPerformDummyPasswordCheck(password string) {
 
 // totpEnrollment is a freshly generated (unverified) TOTP enrollment
 // payload, shared by both the mfaGateBlockEnroll (forced) and
-// mfaGateOfferSetup (optional) paths of the TOTP MFA branch below.
+// mfaGateOfferAll (optional) paths of the TOTP MFA branch below.
 type totpEnrollment struct {
 	ScannerImage  string
 	Secret        string
@@ -391,7 +391,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		hasWebauthnCredential := len(webauthnCreds) > 0
 		authenticatorVerified := totpVerified || hasWebauthnCredential
 		gate := resolveMFAGate(
-			refs.BoolValue(user.IsMultiFactorAuthEnabled),
+			effectiveMFAEnabled(p.Config, user),
 			p.Config.EnforceMFA,
 			authenticatorVerified,
 			user.HasSkippedMFASetupAt != nil,
@@ -429,15 +429,25 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
 				AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
 			}, side, nil
-		case mfaGateOfferSetup:
+		case mfaGateOfferAll:
+			expiresAt := time.Now().Add(3 * time.Minute).Unix()
+			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+				log.Debug().Msg("Failed to set mfa session")
+				return nil, nil, err
+			}
 			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
 			if err != nil {
 				log.Debug().Msg("Failed to generate totp for optional setup")
 				return nil, nil, err
 			}
-			// Falls through to normal token issuance below, with the offer
-			// flag and enrollment payload attached after CreateAuthToken.
-			side.PendingTOTPOffer = enrollment
+			return &model.AuthResponse{
+				Message:                     `Proceed to mfa setup`,
+				ShouldShowTotpScreen:        refs.NewBoolRef(true),
+				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				AuthenticatorScannerImage:   refs.NewStringRef(enrollment.ScannerImage),
+				AuthenticatorSecret:         refs.NewStringRef(enrollment.Secret),
+				AuthenticatorRecoveryCodes:  enrollment.RecoveryCodes,
+			}, side, nil
 		case mfaGateSkippedSetup:
 			side.OfferMFASetupQuiet = true
 		case mfaGateNone:
@@ -517,13 +527,6 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
 	}
-	if side.PendingTOTPOffer != nil {
-		res.ShouldOfferMfaSetup = refs.NewBoolRef(true)
-		res.AuthenticatorScannerImage = refs.NewStringRef(side.PendingTOTPOffer.ScannerImage)
-		res.AuthenticatorSecret = refs.NewStringRef(side.PendingTOTPOffer.Secret)
-		res.AuthenticatorRecoveryCodes = side.PendingTOTPOffer.RecoveryCodes
-	}
-
 	for _, c := range cookie.BuildSessionCookies(meta.HostURL, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
