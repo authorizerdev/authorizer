@@ -413,7 +413,8 @@ func (c *Config) Finalize() {
 
 	// One-way global kill switch. Wins over everything: no MFA challenge is
 	// possible and enforcement is neutralized so signup cannot flag users for
-	// an MFA they can never complete. WebAuthn/passkey is unaffected.
+	// an MFA they can never complete. Does not affect WebAuthn/passkey as a
+	// primary login method — only its role as an MFA factor.
 	if c.DisableMFA {
 		c.EnableMFA = false
 		c.EnforceMFA = false

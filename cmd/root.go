@@ -191,7 +191,7 @@ func init() {
 	f.BoolVar(&rootArgs.config.DisableWebauthnMFA, "disable-webauthn-mfa", false, "Disable WebAuthn/passkey as an MFA factor (enabled by default); does not affect WebAuthn/passkey as a primary login method")
 	f.BoolVar(&rootArgs.config.DisableEmailOTP, "disable-email-otp", false, "Disable email OTP MFA (enabled by default when email service is configured)")
 	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP MFA (enabled by default when SMS service is configured)")
-	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Globally disable MFA (TOTP/email/SMS OTP), overriding the per-method flags; does not affect WebAuthn/passkey")
+	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Globally disable MFA (TOTP/email/SMS OTP), overriding the per-method flags; does not affect WebAuthn/passkey as a primary login method")
 	f.BoolVar(&rootArgs.config.EnableSignup, "enable-signup", true, "Enable signup")
 
 	// Cookies flags
