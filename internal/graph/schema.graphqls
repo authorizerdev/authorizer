@@ -42,6 +42,13 @@ type Meta {
   is_sms_otp_mfa_enabled: Boolean!
   # is_webauthn_enabled indicates WebAuthn/passkey enrollment is available (always on; no operator flag).
   is_webauthn_enabled: Boolean!
+  # is_mfa_enforced mirrors EnforceMFA — when true, the frontend must not
+  # offer a standalone passkey primary-login path (it would bypass the org's
+  # two-factor requirement); passkey should only be offered as a second
+  # factor after password/social login. The server enforces this
+  # independently in webauthn_login_verify regardless of what the frontend
+  # shows.
+  is_mfa_enforced: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
@@ -80,6 +87,9 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  # has_skipped_mfa_setup_at is set once the user explicitly skips the
+  # optional MFA setup prompt shown at login. Null means never skipped.
+  has_skipped_mfa_setup_at: Int64
   app_data: Map
 }
 
@@ -115,6 +125,19 @@ type AuthResponse {
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
   should_show_totp_screen: Boolean
+  # should_offer_webauthn_mfa_verify is true when the authenticated-with-
+  # password user has a registered passkey and MFA verification (not
+  # enrollment) is required before a token is issued. The frontend should
+  # offer a "verify with your passkey" action — calling the existing scoped
+  # webauthn_login_options(email)/webauthn_login_verify mutations — in
+  # addition to (or instead of) should_show_totp_screen's code-entry form.
+  should_offer_webauthn_mfa_verify: Boolean
+  # should_offer_mfa_setup is true when MFA is available but not enforced,
+  # the user hasn't enrolled, and they haven't skipped setup before. Unlike
+  # should_show_totp_screen, access_token is ALREADY populated alongside
+  # this flag — the frontend should log the user in and separately offer
+  # (not force) MFA setup, e.g. via a dismissible hub with a Skip action.
+  should_offer_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -1317,6 +1340,10 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  # skip_mfa_setup records that the authenticated caller explicitly declined
+  # the optional MFA setup prompt. Fails with FAILED_PRECONDITION if MFA is
+  # organization-enforced (enforce-mfa) — enforcement is never skippable.
+  skip_mfa_setup: Response!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

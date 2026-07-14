@@ -34,9 +34,13 @@ type User struct {
 	Roles                    string  `json:"roles" bson:"roles" cql:"roles" dynamo:"roles"`
 	RevokedTimestamp         *int64  `json:"revoked_timestamp" bson:"revoked_timestamp" cql:"revoked_timestamp" dynamo:"revoked_timestamp"`
 	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled" bson:"is_multi_factor_auth_enabled" cql:"is_multi_factor_auth_enabled" dynamo:"is_multi_factor_auth_enabled"`
-	UpdatedAt                int64   `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
-	CreatedAt                int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
-	AppData                  *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
+	// HasSkippedMFASetupAt is set the moment a user explicitly skips the
+	// optional MFA setup prompt shown at login (never set when EnforceMFA is
+	// on — skip is not offered in that mode). Nil means "never skipped."
+	HasSkippedMFASetupAt *int64  `json:"has_skipped_mfa_setup_at" bson:"has_skipped_mfa_setup_at" cql:"has_skipped_mfa_setup_at" dynamo:"has_skipped_mfa_setup_at"`
+	UpdatedAt            int64   `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+	CreatedAt            int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+	AppData              *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
 
 	// ExternalID is the stable key an external IdP (SCIM/SSO) assigns to this
 	// user. It is nullable — only IdP-provisioned users carry one. For SCIM it
@@ -80,6 +84,7 @@ func (user *User) AsAPIUser() *model.User {
 		Roles:                    strings.Split(user.Roles, ","),
 		RevokedTimestamp:         user.RevokedTimestamp,
 		IsMultiFactorAuthEnabled: user.IsMultiFactorAuthEnabled,
+		HasSkippedMfaSetupAt:     user.HasSkippedMFASetupAt,
 		CreatedAt:                refs.NewInt64Ref(user.CreatedAt),
 		UpdatedAt:                refs.NewInt64Ref(user.UpdatedAt),
 		AppData:                  appDataMap,

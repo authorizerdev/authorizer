@@ -182,6 +182,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		deps.Log.Debug().Err(err).Msg("Failed to alter table as is_multi_factor_auth_enabled column exists")
 		// continue
 	}
+	// add has_skipped_mfa_setup_at on users table
+	userHasSkippedMFASetupAtAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD has_skipped_mfa_setup_at bigint`, KeySpace, schemas.Collections.User)
+	err = session.Query(userHasSkippedMFASetupAtAlterQuery).Exec()
+	if err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter table as has_skipped_mfa_setup_at column exists")
+		// continue
+	}
 	// add external_id and is_active on users table (SCIM provisioning)
 	userExternalIDAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD external_id text`, KeySpace, schemas.Collections.User)
 	err = session.Query(userExternalIDAlterQuery).Exec()

@@ -96,6 +96,9 @@ type Provider interface {
 	// DeactivateAccount is the method to deactivate account.
 	// Permissions: authorized user
 	DeactivateAccount(ctx context.Context) (*model.Response, error)
+	// SkipMFASetup is the method to skip optional MFA setup.
+	// Permissions: authorized user
+	SkipMFASetup(ctx context.Context) (*model.Response, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)

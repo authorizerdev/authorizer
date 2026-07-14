@@ -65,6 +65,15 @@ type ResponseSideEffects struct {
 	// SameSite, and MaxAge fields are honored as set; the transport adds them
 	// verbatim (gin: gc.SetSameSite + gc.SetCookie; net/http: http.SetCookie).
 	Cookies []*http.Cookie
+
+	// PendingTOTPOffer carries a freshly generated (unverified) TOTP
+	// enrollment payload to attach to the successful AuthResponse when the
+	// MFA gate decided to OFFER (not force) setup. Nil otherwise.
+	PendingTOTPOffer *totpEnrollment
+	// OfferMFASetupQuiet is true when the MFA gate decided the user already
+	// skipped setup before — no enrollment payload, no offer flag, just a
+	// normal login.
+	OfferMFASetupQuiet bool
 }
 
 // AddCookie appends a cookie to the side-effects. Convenience over manual

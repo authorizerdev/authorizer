@@ -1,0 +1,33 @@
+// internal/service/mfa_gate_test.go
+package service
+
+import "testing"
+
+func TestResolveMFAGate(t *testing.T) {
+	cases := []struct {
+		name                  string
+		userMFAEnabled        bool
+		enforceMFA            bool
+		authenticatorVerified bool
+		hasSkippedSetup       bool
+		want                  mfaGateDecision
+	}{
+		{"mfa off for user", false, false, false, false, mfaGateNone},
+		{"mfa off for user, enforced anyway (inconsistent state defends safe)", false, true, false, false, mfaGateNone},
+		{"enforced, not yet enrolled", true, true, false, false, mfaGateBlockEnroll},
+		{"enforced, already verified", true, true, true, false, mfaGateBlockVerify},
+		{"enforced, skip flag present but ignored", true, true, false, true, mfaGateBlockEnroll},
+		{"optional, already verified -> still verify every time", true, false, true, false, mfaGateBlockVerify},
+		{"optional, already verified, skip flag stale -> still verify", true, false, true, true, mfaGateBlockVerify},
+		{"optional, not enrolled, never skipped -> offer", true, false, false, false, mfaGateOfferSetup},
+		{"optional, not enrolled, already skipped -> quiet login", true, false, false, true, mfaGateSkippedSetup},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := resolveMFAGate(c.userMFAEnabled, c.enforceMFA, c.authenticatorVerified, c.hasSkippedSetup)
+			if got != c.want {
+				t.Errorf("resolveMFAGate(%v,%v,%v,%v) = %v, want %v", c.userMFAEnabled, c.enforceMFA, c.authenticatorVerified, c.hasSkippedSetup, got, c.want)
+			}
+		})
+	}
+}

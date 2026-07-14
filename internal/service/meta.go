@@ -37,5 +37,6 @@ func (p *provider) Meta(ctx context.Context, meta RequestMetadata) (*model.Meta,
 		IsSmsOtpMfaEnabled:                 c.EnableMFA && c.EnableSMSOTP && c.IsSMSServiceEnabled,
 		// WebAuthn/passkey ships always-on with no operator flag.
 		IsWebauthnEnabled: true,
+		IsMfaEnforced:     c.EnforceMFA,
 	}, nil, nil
 }

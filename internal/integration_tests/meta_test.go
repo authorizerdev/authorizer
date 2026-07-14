@@ -46,6 +46,24 @@ func TestMeta(t *testing.T) {
 		assert.False(t, meta.IsBasicAuthenticationEnabled)
 	})
 
+	t.Run("should reflect enforced MFA", func(t *testing.T) {
+		cfg2 := getTestConfig()
+		cfg2.EnforceMFA = true
+		ts2 := initTestSetup(t, cfg2)
+		_, ctx2 := createContext(ts2)
+
+		meta, err := ts2.GraphQLProvider.Meta(ctx2)
+		require.NoError(t, err)
+		assert.NotNil(t, meta)
+		assert.True(t, meta.IsMfaEnforced)
+	})
+
+	t.Run("should reflect non-enforced MFA by default", func(t *testing.T) {
+		meta, err := ts.GraphQLProvider.Meta(ctx)
+		require.NoError(t, err)
+		assert.False(t, meta.IsMfaEnforced)
+	})
+
 	t.Run("should expose per-method MFA availability with default config", func(t *testing.T) {
 		meta, err := ts.GraphQLProvider.Meta(ctx)
 		require.NoError(t, err)

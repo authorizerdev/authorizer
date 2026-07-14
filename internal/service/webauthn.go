@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -152,6 +153,43 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 	if user.EmailVerifiedAt == nil {
 		log.Debug().Msg("Email not verified — refusing passkey login")
 		return nil, nil, FailedPrecondition("email is not verified. please verify your email before signing in with a passkey")
+	}
+
+	// EnforceMFA is absolute and applies to passkey primary login exactly
+	// like it applies to password login: a passkey may not silently satisfy
+	// an org's two-factor requirement. This does not claim a passkey is
+	// itself insufficient as a factor - it only prevents passkey login from
+	// becoming an unintended bypass of a policy the org explicitly turned on.
+	if p.Config.EnforceMFA && refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+		if !p.Config.EnableTOTPLogin {
+			log.Debug().Msg("EnforceMFA is on but no compatible second factor is configured for passkey login")
+			return nil, nil, FailedPrecondition("multi-factor authentication is required but no compatible verification method is available for passkey sign-in; please sign in with your password instead")
+		}
+		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			log.Debug().Msg("Failed to set mfa session")
+			return nil, nil, err
+		}
+		if totpVerified {
+			return &model.AuthResponse{
+				Message:              `Proceed to mfa verification`,
+				ShouldShowTotpScreen: refs.NewBoolRef(true),
+			}, side, nil
+		}
+		enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+		if err != nil {
+			log.Debug().Msg("Failed to generate totp")
+			return nil, nil, err
+		}
+		return &model.AuthResponse{
+			Message:                    `Proceed to totp verification screen`,
+			ShouldShowTotpScreen:       refs.NewBoolRef(true),
+			AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
+			AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
+			AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
+		}, side, nil
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
