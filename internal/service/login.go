@@ -31,6 +31,22 @@ import (
 // ops visibility.
 const loginGenericErrMsg = "invalid credentials"
 
+// setMFASession arms a short-lived MFA session (memory-store entry + cookie)
+// proving the caller already completed a first authentication factor for
+// userID. verify_otp and the scoped webauthn_login_options/_verify flow both
+// require this session before they'll act. Shared by Login's TOTP branch and
+// WebauthnLoginVerify's EnforceMFA gate.
+func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64) error {
+	mfaSession := uuid.NewString()
+	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, expiresAt); err != nil {
+		return err
+	}
+	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
+		side.AddCookie(c)
+	}
+	return nil
+}
+
 // loginDummyBcryptHash is a precomputed bcrypt hash used to equalise the
 // response time of the user-not-found path with the real password verification
 // path. Without this, an attacker can distinguish "no such user" from "wrong
@@ -163,18 +179,6 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		otpData.Otp = otp
 		return otpData, nil
 	}
-	setOTPMFaSession := func(expiresAt int64) error {
-		mfaSession := uuid.NewString()
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
-		if err != nil {
-			log.Debug().Msg("Failed to set mfa session")
-			return err
-		}
-		for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
-			side.AddCookie(c)
-		}
-		return nil
-	}
 	if isEmailLogin {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 			log.Debug().Str("reason", "wrong_signup_method").Msg("login failed")
@@ -212,7 +216,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := setOTPMFaSession(expiresAt); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -253,7 +257,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := setOTPMFaSession(expiresAt); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -326,7 +330,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := setOTPMFaSession(expiresAt); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -355,7 +359,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := setOTPMFaSession(expiresAt); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -395,7 +399,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		switch gate {
 		case mfaGateBlockVerify:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := setOTPMFaSession(expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -409,7 +413,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return res, side, nil
 		case mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := setOTPMFaSession(expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
