@@ -321,6 +321,49 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
+	// Mirrors login.go's own guard around its resolveMFAGate/
+	// generateTOTPEnrollment call (see isMFAEnabled && isTOTPLoginEnabled
+	// there): AuthenticatorProvider is nil whenever EnableTOTPLogin is off
+	// (internal/authenticators/providers.go), so generateTOTPEnrollment
+	// would panic on a nil interface call if reached with TOTP unavailable.
+	// login.go never reaches its gate in that case either — a server with
+	// MFA available only via WebAuthn/email/SMS OTP (no TOTP) doesn't gate
+	// password-based login/signup at all; that's an existing, accepted
+	// scope limit of the basic-auth gate, not something Task 7 changes.
+	if p.Config.EnableMFA && p.Config.EnableTOTPLogin {
+		gate := resolveMFAGate(effectiveMFAEnabled(p.Config, user), p.Config.EnforceMFA, false, false)
+		switch gate {
+		case mfaGateOfferAll, mfaGateBlockEnroll:
+			expiresAt := time.Now().Add(3 * time.Minute).Unix()
+			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+				log.Debug().Err(err).Msg("Failed to set mfa session")
+				return nil, nil, err
+			}
+			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+			if err != nil {
+				log.Debug().Err(err).Msg("Failed to generate totp")
+				return nil, nil, err
+			}
+			return &model.AuthResponse{
+				Message:                     `Proceed to mfa setup`,
+				ShouldShowTotpScreen:        refs.NewBoolRef(true),
+				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
+				AuthenticatorScannerImage:   refs.NewStringRef(enrollment.ScannerImage),
+				AuthenticatorSecret:         refs.NewStringRef(enrollment.Secret),
+				AuthenticatorRecoveryCodes:  enrollment.RecoveryCodes,
+			}, side, nil
+		case mfaGateNone, mfaGateBlockVerify, mfaGateSkippedSetup:
+			// A brand-new signup can never be mfaGateBlockVerify (no
+			// authenticator exists yet) or mfaGateSkippedSetup (HasSkippedMFASetupAt
+			// can't be set yet) — resolveMFAGate is called here with both
+			// authenticatorVerified and hasSkippedSetup hardcoded false, so only
+			// mfaGateNone and mfaGateOfferAll/mfaGateBlockEnroll are reachable.
+			// Fall through to normal token issuance below.
+		}
+	}
+
 	// TokenProvider.CreateAuthToken takes *gin.Context but doesn't read from
 	// it (only AccessToken-getter and ID-token-getter helpers in the same
 	// file do). Synthesize a minimal gin.Context wrapping the inbound

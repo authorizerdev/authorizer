@@ -29,12 +29,19 @@ func TestAdminResetMFA(t *testing.T) {
 
 	email := "admin_reset_mfa_" + uuid.NewString() + "@authorizer.dev"
 	password := "Password@123"
-	signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email: &email, Password: password, ConfirmPassword: password,
 	})
 	require.NoError(t, err)
-	require.NotNil(t, signupRes.User)
-	userID := signupRes.User.ID
+	// cfg.EnableMFA/EnableTOTPLogin are both on here, so SignUp itself now
+	// runs the same MFA gate as Login (Task 7): its response withholds the
+	// token and the User field (matching login.go's own mfaGateOfferAll/
+	// BlockEnroll responses, which never set User either). Look the user up
+	// by email instead of relying on a User field that isn't there for this
+	// path.
+	signedUpUser, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	userID := signedUpUser.ID
 
 	// Put the user into the exact state reset_mfa is meant to unwind: locked,
 	// MFA enabled, skip recorded, plus a real TOTP authenticator row and a

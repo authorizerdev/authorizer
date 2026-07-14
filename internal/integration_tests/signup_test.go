@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -185,5 +186,46 @@ func TestSignup(t *testing.T) {
 			assert.Error(t, err)
 			assert.Nil(t, res)
 		})
+	})
+}
+
+// TestSignUpGatesToken verifies that a brand-new signup, like login, has its
+// token withheld and is offered the first-time MFA setup screen when MFA is
+// available server-wide, and issued a token immediately when it is not.
+func TestSignUpGatesToken(t *testing.T) {
+	const password = "Password@123"
+
+	t.Run("MFA available, no explicit opt-out -> token withheld, offer all", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		email := "signup_gate_offer_" + uuid.New().String() + "@authorizer.dev"
+		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken, "a brand-new signup with MFA available must withhold the token, same as login")
+		assert.True(t, refs.BoolValue(res.ShouldShowTotpScreen))
+		assert.NotNil(t, res.AuthenticatorSecret)
+	})
+
+	t.Run("MFA not available -> token issued immediately", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = false
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		email := "signup_gate_none_" + uuid.New().String() + "@authorizer.dev"
+		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.AccessToken)
 	})
 }

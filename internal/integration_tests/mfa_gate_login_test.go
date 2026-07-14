@@ -50,10 +50,25 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 	}
 
 	// addVerifiedAuthenticator gives the user a completed TOTP authenticator,
-	// the condition login.go reads as authenticatorVerified=true.
+	// the condition login.go reads as authenticatorVerified=true. Upserts
+	// rather than blindly inserting: SignUp itself now runs the same MFA
+	// gate as Login (Task 7), so signUpUser (below, with cfg.EnableMFA=true)
+	// already leaves an unverified TOTP row behind via its own
+	// generateTOTPEnrollment call. StorageProvider.AddAuthenticator no-ops
+	// when a row already exists for (userID, method), so calling it here
+	// unconditionally would silently fail to mark that pre-existing row
+	// verified.
 	addVerifiedAuthenticator := func(t *testing.T, ts *testSetup, ctx context.Context, userID string) {
 		t.Helper()
 		now := time.Now().Unix()
+		existing, _ := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+		if existing != nil {
+			existing.Secret = "dummy-secret-for-gate-test"
+			existing.VerifiedAt = &now
+			_, err := ts.StorageProvider.UpdateAuthenticator(ctx, existing)
+			require.NoError(t, err)
+			return
+		}
 		_, err := ts.StorageProvider.AddAuthenticator(ctx, &schemas.Authenticator{
 			UserID:     userID,
 			Method:     constants.EnvKeyTOTPAuthenticator,
