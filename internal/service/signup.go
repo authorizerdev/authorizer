@@ -269,7 +269,9 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			return nil, nil, err
 		}
 		mfaSession := uuid.NewString()
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		// The caller just created this account with an accepted signup
+		// credential, so the session is Verified.
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, expiresAt)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to add mfasession")
 			return nil, nil, err

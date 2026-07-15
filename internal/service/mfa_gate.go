@@ -2,7 +2,10 @@
 package service
 
 import (
+	"context"
+
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -48,7 +51,10 @@ const (
 //     hasSkippedSetup
 //   - hasSkippedSetup: schemas.User.HasSkippedMFASetupAt != nil
 func resolveMFAGate(userMFAEnabled, enforceMFA, authenticatorVerified, hasSkippedSetup bool) mfaGateDecision {
-	if !userMFAEnabled {
+	// EnforceMFA is absolute: an org-wide mandate overrides a user's persisted
+	// opt-out (IsMultiFactorAuthEnabled=false). Only skip the gate entirely
+	// when MFA does not apply to this user AND the org is not enforcing it.
+	if !userMFAEnabled && !enforceMFA {
 		return mfaGateNone
 	}
 	if authenticatorVerified {
@@ -76,4 +82,25 @@ func effectiveMFAEnabled(cfg *config.Config, user *schemas.User) bool {
 		return refs.BoolValue(user.IsMultiFactorAuthEnabled)
 	}
 	return cfg.EnableMFA
+}
+
+// authenticatorVerified reports whether userID has any completed/verified MFA
+// method: a verified TOTP authenticator, a registered WebAuthn credential, a
+// verified Email-OTP, or a verified SMS-OTP authenticator. This is the user's
+// own opted-in second factor — its presence maps to mfaGateBlockVerify (never
+// skippable). Mirrors the four-way check oauth_mfa_gate.go already performs.
+func (p *provider) authenticatorVerified(ctx context.Context, userID string) bool {
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		return true
+	}
+	if creds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, userID); len(creds) > 0 {
+		return true
+	}
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyEmailOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		return true
+	}
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeySMSOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		return true
+	}
+	return false
 }

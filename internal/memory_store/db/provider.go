@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,13 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
+
+// mfaPurposeSeparator joins the session key and its purpose inside the
+// persisted KeyName. The MFASession schema has no dedicated purpose column and
+// adding one would touch every DB provider (cassandra uses an explicit column
+// list), so the purpose rides along in KeyName as "<key>::<purpose>". The key
+// is a UUID, which never contains "::", so the split is unambiguous.
+const mfaPurposeSeparator = "::"
 
 // Dependencies struct for db store provider
 type Dependencies struct {
@@ -129,13 +137,15 @@ func (p *provider) DeleteSessionForNamespace(namespace string) error {
 	return p.deleteSessionTokensByNamespace(ctx, namespace)
 }
 
-// SetMfaSession sets the mfa session with key and value of userId
-func (p *provider) SetMfaSession(userId, key string, expiration int64) error {
+// SetMfaSession sets the mfa session, storing purpose in the persisted KeyName
+// alongside the key (see mfaPurposeSeparator).
+func (p *provider) SetMfaSession(userId, key, purpose string, expiration int64) error {
 	ctx := context.Background()
+	storedKey := key + mfaPurposeSeparator + purpose
 	mfaSession := &schemas.MFASession{
 		ID:        uuid.New().String(),
 		UserID:    userId,
-		KeyName:   key,
+		KeyName:   storedKey,
 		ExpiresAt: expiration,
 		CreatedAt: time.Now().Unix(),
 		UpdatedAt: time.Now().Unix(),
@@ -149,7 +159,7 @@ func (p *provider) SetMfaSession(userId, key string, expiration int64) error {
 	}
 
 	// Delete existing if any
-	err = p.deleteMFASessionByUserIDAndKey(ctx, userId, key)
+	err = p.deleteMFASessionByUserIDAndKey(ctx, userId, storedKey)
 	if err != nil {
 		p.dependencies.Log.Debug().Err(err).Msg("Error deleting existing MFA session")
 		// Continue anyway
@@ -162,7 +172,8 @@ func (p *provider) SetMfaSession(userId, key string, expiration int64) error {
 	return nil
 }
 
-// GetMfaSession returns value of given mfa session
+// GetMfaSession returns the stored purpose of the given mfa session. The key is
+// looked up against the "<key>::<purpose>" prefix of the persisted KeyName.
 func (p *provider) GetMfaSession(userId, key string) (string, error) {
 	ctx := context.Background()
 
@@ -172,20 +183,24 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 		p.dependencies.Log.Debug().Err(err).Msg("Error cleaning expired MFA sessions")
 	}
 
-	mfaSession, err := p.getMFASessionByUserIDAndKey(ctx, userId, key)
+	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
 	if err != nil {
 		return "", fmt.Errorf("not found")
 	}
 
-	// Check expiration
+	prefix := key + mfaPurposeSeparator
 	currentTime := time.Now().Unix()
-	if mfaSession.ExpiresAt < currentTime {
-		// Delete expired session
-		_ = p.deleteMFASession(ctx, mfaSession.ID)
-		return "", fmt.Errorf("not found")
+	for _, session := range sessions {
+		if !strings.HasPrefix(session.KeyName, prefix) {
+			continue
+		}
+		if session.ExpiresAt < currentTime {
+			_ = p.deleteMFASession(ctx, session.ID)
+			return "", fmt.Errorf("not found")
+		}
+		return strings.TrimPrefix(session.KeyName, prefix), nil
 	}
-
-	return mfaSession.UserID, nil
+	return "", fmt.Errorf("not found")
 }
 
 // GetAllMfaSessions returns all mfa sessions for given userId
@@ -209,15 +224,30 @@ func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
 
 	keys := make([]string, 0, len(sessions))
 	for _, session := range sessions {
-		keys = append(keys, session.KeyName)
+		k := session.KeyName
+		if idx := strings.Index(k, mfaPurposeSeparator); idx >= 0 {
+			k = k[:idx]
+		}
+		keys = append(keys, k)
 	}
 	return keys, nil
 }
 
-// DeleteMfaSession deletes given mfa session from in-memory store.
+// DeleteMfaSession deletes given mfa session from the store. KeyName carries a
+// "<key>::<purpose>" suffix, so match by prefix rather than exact key.
 func (p *provider) DeleteMfaSession(userId, key string) error {
 	ctx := context.Background()
-	return p.deleteMFASessionByUserIDAndKey(ctx, userId, key)
+	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
+	if err != nil {
+		return nil
+	}
+	prefix := key + mfaPurposeSeparator
+	for _, session := range sessions {
+		if strings.HasPrefix(session.KeyName, prefix) {
+			_ = p.deleteMFASession(ctx, session.ID)
+		}
+	}
+	return nil
 }
 
 // SetState sets the login state (key, value form) in the session store
@@ -362,10 +392,6 @@ func (p *provider) getAllSessionTokens(ctx context.Context) ([]*schemas.SessionT
 
 func (p *provider) addMFASession(ctx context.Context, session *schemas.MFASession) error {
 	return p.storageProvider.AddMFASession(ctx, session)
-}
-
-func (p *provider) getMFASessionByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.MFASession, error) {
-	return p.storageProvider.GetMFASessionByUserIDAndKey(ctx, userId, key)
 }
 
 func (p *provider) deleteMFASession(ctx context.Context, id string) error {

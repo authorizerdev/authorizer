@@ -213,16 +213,18 @@ type fakeMemoryStore struct {
 func (f *fakeMemoryStore) SetUserSession(userId, key, token string, expiration int64) error {
 	return nil
 }
-func (f *fakeMemoryStore) GetUserSession(userId, key string) (string, error)        { return "", nil }
-func (f *fakeMemoryStore) DeleteUserSession(userId, key string) error               { return nil }
-func (f *fakeMemoryStore) DeleteAllUserSessions(userId string) error                { return nil }
-func (f *fakeMemoryStore) DeleteSessionForNamespace(namespace string) error         { return nil }
-func (f *fakeMemoryStore) SetMfaSession(userId, key string, expiration int64) error { return nil }
-func (f *fakeMemoryStore) GetMfaSession(userId, key string) (string, error)         { return "", nil }
-func (f *fakeMemoryStore) GetAllMfaSessions(userId string) ([]string, error)        { return nil, nil }
-func (f *fakeMemoryStore) DeleteMfaSession(userId, key string) error                { return nil }
-func (f *fakeMemoryStore) SetState(key, state string) error                         { return nil }
-func (f *fakeMemoryStore) GetState(key string) (string, error)                      { return f.getStateVal, f.getStateErr }
+func (f *fakeMemoryStore) GetUserSession(userId, key string) (string, error) { return "", nil }
+func (f *fakeMemoryStore) DeleteUserSession(userId, key string) error        { return nil }
+func (f *fakeMemoryStore) DeleteAllUserSessions(userId string) error         { return nil }
+func (f *fakeMemoryStore) DeleteSessionForNamespace(namespace string) error  { return nil }
+func (f *fakeMemoryStore) SetMfaSession(userId, key, purpose string, expiration int64) error {
+	return nil
+}
+func (f *fakeMemoryStore) GetMfaSession(userId, key string) (string, error)  { return "", nil }
+func (f *fakeMemoryStore) GetAllMfaSessions(userId string) ([]string, error) { return nil, nil }
+func (f *fakeMemoryStore) DeleteMfaSession(userId, key string) error         { return nil }
+func (f *fakeMemoryStore) SetState(key, state string) error                  { return nil }
+func (f *fakeMemoryStore) GetState(key string) (string, error)               { return f.getStateVal, f.getStateErr }
 func (f *fakeMemoryStore) RemoveState(key string) error {
 	f.removedKeys = append(f.removedKeys, key)
 	return nil

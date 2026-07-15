@@ -48,7 +48,12 @@ func (p *provider) LockMFA(ctx context.Context, meta RequestMetadata, params *mo
 		return nil, nil, NotFound("invalid request")
 	}
 
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+	// A bare session must not lock an account. Require a Verified session
+	// (first factor completed for THIS user); a Challenge session
+	// (ResendOTP/ForgotPassword) is rejected with the same shape as a missing
+	// one, closing an unauthenticated account-lockout DoS.
+	purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+	if err != nil || purpose != constants.MFASessionPurposeVerified {
 		log.Debug().Err(err).Msg("Failed to get mfa session")
 		return nil, nil, Unauthenticated(`invalid session`)
 	}
@@ -64,6 +69,8 @@ func (p *provider) LockMFA(ctx context.Context, meta RequestMetadata, params *mo
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
+	// Single-use: drop the session so a captured cookie cannot be replayed.
+	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditMFALockedEvent,

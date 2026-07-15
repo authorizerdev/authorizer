@@ -51,15 +51,30 @@ func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata, param
 
 	// Validate the MFA session before touching any state — same ordering
 	// rationale as VerifyOTP: proves the caller actually completed the
-	// password/passkey step for THIS user before we act on their behalf.
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+	// password/passkey step for THIS user before we act on their behalf. A
+	// Challenge session (ResendOTP/ForgotPassword — no first factor) is
+	// rejected here with the same shape as a missing session, so it can never
+	// be traded for a token.
+	purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+	if err != nil || purpose != constants.MFASessionPurposeVerified {
 		log.Debug().Err(err).Msg("Failed to get mfa session")
 		return nil, nil, Unauthenticated(`invalid session`)
 	}
 
-	if p.Config.EnforceMFA {
-		log.Debug().Msg("Cannot skip MFA setup as it is enforced")
-		return nil, nil, FailedPrecondition("cannot skip multi factor authentication setup as it is enforced by organization")
+	// Recompute the gate: only a genuine mfaGateOfferAll offer (MFA available,
+	// not enforced, no verified factor yet, never skipped before) may be
+	// skipped. Anything else — enforcement, a verified second factor the user
+	// must not bypass (mfaGateBlockVerify), or an already-decided state — is
+	// not skippable.
+	gate := resolveMFAGate(
+		effectiveMFAEnabled(p.Config, user),
+		p.Config.EnforceMFA,
+		p.authenticatorVerified(ctx, user.ID),
+		user.HasSkippedMFASetupAt != nil,
+	)
+	if gate != mfaGateOfferAll {
+		log.Debug().Int("gate", int(gate)).Msg("MFA setup is not skippable in the current gate state")
+		return nil, nil, FailedPrecondition("cannot skip multi factor authentication setup")
 	}
 
 	now := time.Now().Unix()
@@ -69,6 +84,8 @@ func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata, param
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
+	// Single-use: drop the session so a captured cookie cannot be replayed.
+	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 
 	// Known simplification: issueAuthResponse always stamps loginMethod into
 	// the audit/webhook trail. The caller may have actually arrived via

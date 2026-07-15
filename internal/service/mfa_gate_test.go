@@ -18,7 +18,7 @@ func TestResolveMFAGate(t *testing.T) {
 		want                  mfaGateDecision
 	}{
 		{"mfa off for user", false, false, false, false, mfaGateNone},
-		{"mfa off for user, enforced anyway (inconsistent state defends safe)", false, true, false, false, mfaGateNone},
+		{"mfa off for user, but org enforces -> enforcement is absolute, must enroll", false, true, false, false, mfaGateBlockEnroll},
 		{"enforced, not yet enrolled", true, true, false, false, mfaGateBlockEnroll},
 		{"enforced, already verified", true, true, true, false, mfaGateBlockVerify},
 		{"enforced, skip flag present but ignored", true, true, false, true, mfaGateBlockEnroll},

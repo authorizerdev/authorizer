@@ -182,6 +182,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 			log.Debug().Msg("cannot enable multi factor authentication as no mfa method is available")
 			return nil, nil, errors.New("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
 		}
+		// EnforceMFA is absolute: an admin must not be able to persist an opt-out
+		// while the org enforces MFA (same guard self-service update_profile.go
+		// already applies).
+		if p.Config.EnforceMFA && !refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			log.Debug().Msg("cannot disable multi factor authentication as it is enforced by organization")
+			return nil, nil, errors.New("cannot disable multi factor authentication as it is enforced by organization")
+		}
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 

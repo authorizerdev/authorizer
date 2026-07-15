@@ -89,12 +89,12 @@ func TestDBMemoryStoreProvider(t *testing.T) {
 			assert.Empty(t, key)
 			assert.Error(t, err)
 
-			err = p.SetMfaSession("auth_provider:123", "session123", time.Now().Add(60*time.Second).Unix())
+			err = p.SetMfaSession("auth_provider:123", "session123", "test-purpose", time.Now().Add(60*time.Second).Unix())
 			assert.NoError(t, err)
 
 			key, err = p.GetMfaSession("auth_provider:123", "session123")
 			assert.NoError(t, err)
-			assert.Equal(t, "auth_provider:123", key)
+			assert.Equal(t, "test-purpose", key)
 
 			err = p.DeleteMfaSession("auth_provider:123", "session123")
 			assert.NoError(t, err)

@@ -37,7 +37,10 @@ const loginGenericErrMsg = "invalid credentials"
 // WebauthnLoginVerify's EnforceMFA gate.
 func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64) error {
 	mfaSession := uuid.NewString()
-	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, expiresAt); err != nil {
+	// Every caller of this helper (login, webauthn-verify, oauth callback) has
+	// already confirmed a first factor for userID, so the session is Verified —
+	// the only purpose skip_mfa_setup/lock_mfa will act on.
+	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, constants.MFASessionPurposeVerified, expiresAt); err != nil {
 		return err
 	}
 	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {

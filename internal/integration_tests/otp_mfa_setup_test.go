@@ -100,7 +100,7 @@ func TestEmailOTPMFAEnrollment(t *testing.T) {
 	// token -- arm a fresh session directly (same approach as
 	// TestVerifyOTPNoRecord) rather than threading the earlier one through.
 	verifySession := uuid.NewString()
-	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, verifySession, time.Now().Add(5*time.Minute).Unix()))
+	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, verifySession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", verifySession))
 	verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{Email: &email, Otp: knownPlainOTP})
 	require.NoError(t, err)

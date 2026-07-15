@@ -90,23 +90,25 @@ func TestWebauthnLoginVerifyEnforceMFA(t *testing.T) {
 		assert.Nil(t, authRes.AuthenticatorSecret)
 	})
 
-	t.Run("EnforceMFA=true, user MFA not individually enabled — unaffected", func(t *testing.T) {
+	t.Run("EnforceMFA=true overrides an individual opt-out — token withheld", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnforceMFA = true
+		cfg.EnableTOTPLogin = true
 		ts := initTestSetup(t, cfg)
 		user, rp, authenticator, credential := registerPasskeyForNewUser(t, ts)
-		// signup.go force-enables IsMultiFactorAuthEnabled for every new user
-		// while EnforceMFA is on, so a freshly signed-up user can't land here
-		// with it unset. Explicitly turn it back off — mirrors an admin
-		// disabling MFA for one account (admin_users.go allows this even
-		// under EnforceMFA) — to exercise the gate's own precondition.
+		// Turn the user's individual flag off, as an admin could have. Before
+		// the EnforceMFA-is-absolute fix this issued a token unconditionally
+		// (the persisted false short-circuited the gate to mfaGateNone). Now the
+		// org-wide mandate wins: the gate still applies and withholds the token.
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(false)
 		_, err := ts.StorageProvider.UpdateUser(t.Context(), user)
 		require.NoError(t, err)
 
 		authRes, err := assertPasskeyLogin(t, ts, rp, authenticator, credential)
 		require.NoError(t, err)
-		require.NotNil(t, authRes.AccessToken)
+		require.NotNil(t, authRes)
+		assert.Nil(t, authRes.AccessToken, "EnforceMFA must override an individual opt-out and withhold the token")
+		assert.True(t, refs.BoolValue(authRes.ShouldShowTotpScreen), "enforced enrollment must offer the TOTP setup screen")
 	})
 
 	t.Run("EnforceMFA=true, TOTP verified — blocks token, offers totp screen", func(t *testing.T) {

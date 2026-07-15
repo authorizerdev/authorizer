@@ -249,6 +249,10 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		})
 	}
 
+	// Single-use: the OTP is verified, so drop the session to prevent replay of
+	// a captured cookie within its remaining TTL.
+	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+
 	res, err := p.issueAuthResponse(ctx, meta, side, user, loginMethod, `OTP verified successfully.`, params.State, isSignUp)
 	if err != nil {
 		return nil, nil, err

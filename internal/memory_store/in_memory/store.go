@@ -47,9 +47,9 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
-// SetMfaSession sets the mfa session with key and value of userId
-func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
-	c.mfasessionStore.Set(userId, key, userId, expiration)
+// SetMfaSession sets the mfa session, storing purpose as its value.
+func (c *provider) SetMfaSession(userId, key, purpose string, expiration int64) error {
+	c.mfasessionStore.Set(userId, key, purpose, expiration)
 	return nil
 }
 

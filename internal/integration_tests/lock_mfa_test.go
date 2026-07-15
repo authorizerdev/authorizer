@@ -47,7 +47,7 @@ func TestLockMFA(t *testing.T) {
 		// challenge; LockMFA itself never issues a token, so there is
 		// nothing about a real challenge this test needs to exercise.
 		mfaSession := uuid.NewString()
-		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, time.Now().Add(5*time.Minute).Unix()))
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
 		lockRes, err := ts.GraphQLProvider.LockMFA(ctx, &model.LockMfaRequest{Email: &email})
@@ -97,4 +97,40 @@ func TestLockMFA(t *testing.T) {
 			assert.Equal(t, service.KindUnauthenticated, svcErr.Kind)
 		})
 	}
+
+	t.Run("rejects a Challenge session (ResendOTP/ForgotPassword) with Unauthenticated", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "lock_mfa_challenge_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// The pre-auth account-lockout DoS: an attacker who only knows the
+		// victim's email obtains a Challenge session via ResendOTP, then tries
+		// to permanently lock the account. It must be rejected.
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		lockRes, err := ts.GraphQLProvider.LockMFA(ctx, &model.LockMfaRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, lockRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a Challenge session must not be able to lock an account")
+
+		unlocked, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		assert.Nil(t, unlocked.MFALockedAt, "a rejected Challenge session must not have locked the account")
+	})
 }

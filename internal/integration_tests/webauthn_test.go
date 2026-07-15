@@ -105,6 +105,7 @@ func TestWebauthnPasskeyRegistrationAndLogin(t *testing.T) {
 		require.NotNil(t, signupRes.User, "test needs the signed-up user's id to arm a real MFA session")
 		mfaSession := uuid.New().String()
 		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(signupRes.User.ID, mfaSession,
+			constants.MFASessionPurposeVerified,
 			time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
@@ -262,6 +263,7 @@ func TestWebauthnLoginOptionsScopedRequiresMfaSession(t *testing.T) {
 		otherUserID := uuid.New().String()
 		mfaSession := uuid.New().String()
 		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(otherUserID, mfaSession,
+			constants.MFASessionPurposeVerified,
 			time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 

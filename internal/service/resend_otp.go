@@ -106,7 +106,10 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	}
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		// The caller only proved they can trigger an OTP send to this
+		// email/phone — no first factor. Challenge, NOT Verified, so this
+		// session can never skip MFA setup or lock the account.
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, expiresAt)
 		if err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return err

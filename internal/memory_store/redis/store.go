@@ -110,12 +110,12 @@ func (p *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
-// SetMfaSession sets the mfa session with key and value of userId
-func (p *provider) SetMfaSession(userId, key string, expiration int64) error {
+// SetMfaSession sets the mfa session, storing purpose as its value.
+func (p *provider) SetMfaSession(userId, key, purpose string, expiration int64) error {
 	currentTime := time.Now()
 	expireTime := time.Unix(expiration, 0)
 	duration := expireTime.Sub(currentTime)
-	err := p.store.Set(p.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), userId, duration).Err()
+	err := p.store.Set(p.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), purpose, duration).Err()
 	if err != nil {
 		p.dependencies.Log.Debug().Err(err).Msg("Error saving mfa session to redis")
 		return err

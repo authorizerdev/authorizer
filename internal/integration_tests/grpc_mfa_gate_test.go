@@ -155,7 +155,7 @@ func TestLockMfaGRPC(t *testing.T) {
 	require.NoError(t, err)
 
 	mfaSession := uuid.NewString()
-	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, time.Now().Add(5*time.Minute).Unix()))
+	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
 
 	t.Run("locks the account with a valid mfa session", func(t *testing.T) {
 		resp, err := c.LockMfa(mfaSessionCookieCtx(mfaSession), &authorizerv1.LockMfaRequest{Email: email})

@@ -69,7 +69,9 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		// Reached only via a signed verification token mailed to the user's
+		// inbox — a possession proof of this exact account, so Verified.
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, expiresAt)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return err

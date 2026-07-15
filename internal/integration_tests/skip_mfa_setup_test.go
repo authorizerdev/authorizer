@@ -97,7 +97,7 @@ func TestSkipMFASetup(t *testing.T) {
 		require.NoError(t, err)
 
 		mfaSession := uuid.NewString()
-		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, time.Now().Add(5*time.Minute).Unix()))
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
 		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
@@ -160,5 +160,84 @@ func TestSkipMFASetup(t *testing.T) {
 		var svcErr *service.Error
 		require.True(t, errors.As(err, &svcErr))
 		assert.Equal(t, service.KindInvalidArgument, svcErr.Kind)
+	})
+
+	t.Run("rejects a Challenge session (ResendOTP/ForgotPassword) with Unauthenticated", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "skip_mfa_challenge_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// A Challenge session is what ResendOTP / ForgotPassword mint for a
+		// caller who only supplied an email/phone number — no first factor. It
+		// must never be tradeable for a token, and must fail with the SAME shape
+		// as a missing session so the two cases are indistinguishable.
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, skipRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a Challenge session must be rejected like a missing session")
+
+		unchanged, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		assert.Nil(t, unchanged.HasSkippedMFASetupAt, "a rejected Challenge session must not have recorded a skip")
+	})
+
+	t.Run("rejects with FailedPrecondition when the user already has a verified authenticator", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "skip_mfa_verified_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// A verified TOTP authenticator puts the user in mfaGateBlockVerify —
+		// their own opted-in second factor. Even with a genuine Verified
+		// session, skip_mfa_setup must not let them bypass it.
+		_, err = ts.StorageProvider.AddAuthenticator(ctx, &schemas.Authenticator{
+			UserID:     user.ID,
+			Method:     constants.EnvKeyTOTPAuthenticator,
+			Secret:     "test-secret",
+			VerifiedAt: &now,
+		})
+		require.NoError(t, err)
+
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, skipRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "a user with a verified second factor must not be able to skip it")
 	})
 }
