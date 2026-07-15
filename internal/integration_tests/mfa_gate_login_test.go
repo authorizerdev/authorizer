@@ -245,4 +245,59 @@ func TestLoginMFAGateTokenWithholding(t *testing.T) {
 		assert.False(t, refs.BoolValue(res.ShouldShowTotpScreen))
 		assert.False(t, refs.BoolValue(res.ShouldOfferMfaSetup))
 	})
+
+	// Regression guard for finding I1 (final whole-branch review): this
+	// block used to be guarded by `isMFAEnabled && isTOTPLoginEnabled`. A
+	// server configured for WebAuthn-only enforced MFA (EnableTOTPLogin
+	// off, EnableWebauthnMFA on) skipped resolveMFAGate entirely and
+	// issued a token to an unenrolled password-login user unconditionally
+	// -- no offer, no enforcement -- even though WebauthnLoginVerify was
+	// already correctly gated on such a server. The gate must now run
+	// whenever MFA applies at all, and only the TOTP-specific parts of
+	// the response should be conditioned on EnableTOTPLogin.
+	t.Run("mfaGateBlockEnroll offers WebAuthn setup on a WebAuthn-only enforced-MFA server", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = false
+		cfg.EnableWebauthnMFA = true
+		cfg.EnforceMFA = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		user := signUpUser(t, ts, ctx)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		user, err := ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+		// No TOTP/WebAuthn enrollment.
+
+		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken, "must not issue a token to an unenrolled user on a WebAuthn-only enforced-MFA server")
+		assert.True(t, refs.BoolValue(res.ShouldOfferWebauthnMfaSetup))
+		assert.False(t, refs.BoolValue(res.ShouldShowTotpScreen), "TOTP login is disabled server-wide; must not offer a screen the user can't complete")
+		assert.Nil(t, res.AuthenticatorSecret, "must not generate a TOTP enrollment when TOTP login is disabled")
+	})
+
+	t.Run("mfaGateOfferAll offers WebAuthn setup on a WebAuthn-only server when MFA isn't enforced", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = false
+		cfg.EnableWebauthnMFA = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		user := signUpUser(t, ts, ctx)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		user, err := ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: user.Email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken, "a first-time optional-MFA offer must withhold the token even when TOTP login is unavailable")
+		assert.True(t, refs.BoolValue(res.ShouldOfferWebauthnMfaSetup))
+		assert.False(t, refs.BoolValue(res.ShouldShowTotpScreen))
+		assert.Nil(t, res.AuthenticatorSecret)
+	})
 }

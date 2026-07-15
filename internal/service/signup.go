@@ -321,16 +321,15 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
-	// Mirrors login.go's own guard around its resolveMFAGate/
-	// generateTOTPEnrollment call (see isMFAEnabled && isTOTPLoginEnabled
-	// there): AuthenticatorProvider is nil whenever EnableTOTPLogin is off
-	// (internal/authenticators/providers.go), so generateTOTPEnrollment
-	// would panic on a nil interface call if reached with TOTP unavailable.
-	// login.go never reaches its gate in that case either — a server with
-	// MFA available only via WebAuthn/email/SMS OTP (no TOTP) doesn't gate
-	// password-based login/signup at all; that's an existing, accepted
-	// scope limit of the basic-auth gate, not something Task 7 changes.
-	if p.Config.EnableMFA && p.Config.EnableTOTPLogin {
+	// Gate runs whenever MFA applies at all -- NOT scoped to "TOTP
+	// specifically is available" (I1: a WebAuthn-only enforced-MFA server,
+	// EnableTOTPLogin=false, skipped this block entirely and issued tokens
+	// unconditionally). Mirrors login.go's own guard/switch, which mirrors
+	// webauthn.go's WebauthnLoginVerify: resolveMFAGate runs unconditionally
+	// and only the TOTP-specific parts of the response are conditioned on
+	// p.Config.EnableTOTPLogin (AuthenticatorProvider is nil, and
+	// generateTOTPEnrollment panics, whenever EnableTOTPLogin is off).
+	if p.Config.EnableMFA {
 		gate := resolveMFAGate(effectiveMFAEnabled(p.Config, user), p.Config.EnforceMFA, false, false)
 		switch gate {
 		case mfaGateOfferAll, mfaGateBlockEnroll:
@@ -339,21 +338,24 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 				log.Debug().Err(err).Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
-			if err != nil {
-				log.Debug().Err(err).Msg("Failed to generate totp")
-				return nil, nil, err
-			}
-			return &model.AuthResponse{
+			res := &model.AuthResponse{
 				Message:                     `Proceed to mfa setup`,
-				ShouldShowTotpScreen:        refs.NewBoolRef(true),
 				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
 				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
 				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
-				AuthenticatorScannerImage:   refs.NewStringRef(enrollment.ScannerImage),
-				AuthenticatorSecret:         refs.NewStringRef(enrollment.Secret),
-				AuthenticatorRecoveryCodes:  enrollment.RecoveryCodes,
-			}, side, nil
+			}
+			if p.Config.EnableTOTPLogin {
+				enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+				if err != nil {
+					log.Debug().Err(err).Msg("Failed to generate totp")
+					return nil, nil, err
+				}
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+				res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+				res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+				res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+			}
+			return res, side, nil
 		case mfaGateNone, mfaGateBlockVerify, mfaGateSkippedSetup:
 			// A brand-new signup can never be mfaGateBlockVerify (no
 			// authenticator exists yet) or mfaGateSkippedSetup (HasSkippedMFASetupAt

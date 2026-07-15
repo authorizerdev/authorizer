@@ -390,8 +390,14 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
 		}, side, nil
 	}
-	// If mfa enabled and also totp enabled
-	if isMFAEnabled && isTOTPLoginEnabled {
+	// Gate runs whenever MFA applies at all -- NOT scoped to "TOTP
+	// specifically is available" (that was the I1 bypass: a WebAuthn-only
+	// enforced-MFA server, EnableTOTPLogin=false, skipped this block
+	// entirely and issued tokens unconditionally). Mirrors webauthn.go's
+	// WebauthnLoginVerify, which calls resolveMFAGate unconditionally and
+	// only conditions the TOTP-specific parts of the response on
+	// isTOTPLoginEnabled below.
+	if isMFAEnabled {
 		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
 		// A WebAuthn credential registered for ANY purpose (passwordless
@@ -416,7 +422,11 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				return nil, nil, err
 			}
 			res := &model.AuthResponse{Message: `Proceed to mfa verification`}
-			if totpVerified {
+			// Defense-in-depth: totpVerified can only be true if a TOTP row
+			// exists, but a server could have disabled TOTP login after the
+			// row was created (stale enrollment). Don't offer a screen the
+			// user can no longer complete.
+			if totpVerified && isTOTPLoginEnabled {
 				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
 			}
 			if hasWebauthnCredential {
@@ -429,39 +439,48 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
-			if err != nil {
-				log.Debug().Msg("Failed to generate totp")
-				return nil, nil, err
+			res := &model.AuthResponse{
+				Message:                     `Proceed to mfa setup`,
+				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
 			}
-			return &model.AuthResponse{
-				Message:                    `Proceed to totp verification screen`,
-				ShouldShowTotpScreen:       refs.NewBoolRef(true),
-				AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
-				AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
-				AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
-			}, side, nil
+			if isTOTPLoginEnabled {
+				enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+				if err != nil {
+					log.Debug().Msg("Failed to generate totp")
+					return nil, nil, err
+				}
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+				res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+				res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+				res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+			}
+			return res, side, nil
 		case mfaGateOfferAll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
 			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
-			if err != nil {
-				log.Debug().Msg("Failed to generate totp for optional setup")
-				return nil, nil, err
-			}
-			return &model.AuthResponse{
+			res := &model.AuthResponse{
 				Message:                     `Proceed to mfa setup`,
-				ShouldShowTotpScreen:        refs.NewBoolRef(true),
 				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
 				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
 				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
-				AuthenticatorScannerImage:   refs.NewStringRef(enrollment.ScannerImage),
-				AuthenticatorSecret:         refs.NewStringRef(enrollment.Secret),
-				AuthenticatorRecoveryCodes:  enrollment.RecoveryCodes,
-			}, side, nil
+			}
+			if isTOTPLoginEnabled {
+				enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+				if err != nil {
+					log.Debug().Msg("Failed to generate totp for optional setup")
+					return nil, nil, err
+				}
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+				res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+				res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+				res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+			}
+			return res, side, nil
 		case mfaGateSkippedSetup:
 			side.OfferMFASetupQuiet = true
 		case mfaGateNone:

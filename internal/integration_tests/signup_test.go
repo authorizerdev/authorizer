@@ -228,4 +228,33 @@ func TestSignUpGatesToken(t *testing.T) {
 		require.NotNil(t, res)
 		require.NotNil(t, res.AccessToken)
 	})
+
+	// Regression guard for finding I1 (final whole-branch review): this
+	// block used to be guarded by `p.Config.EnableMFA && p.Config.EnableTOTPLogin`,
+	// mirroring login.go's old guard. A server configured for WebAuthn-only
+	// enforced MFA (EnableTOTPLogin off, EnableWebauthnMFA on) skipped the
+	// gate entirely and issued a token to a brand-new signup unconditionally
+	// -- no offer, no enforcement. The gate must now run whenever MFA
+	// applies at all, and only the TOTP-specific parts of the response
+	// should be conditioned on EnableTOTPLogin.
+	t.Run("WebAuthn-only enforced MFA, unenrolled -> token withheld via mfaGateBlockEnroll, WebAuthn setup offered", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = false
+		cfg.EnableWebauthnMFA = true
+		cfg.EnforceMFA = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		email := "signup_gate_webauthn_only_" + uuid.New().String() + "@authorizer.dev"
+		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Nil(t, res.AccessToken, "must not issue a token to a brand-new signup on a WebAuthn-only enforced-MFA server")
+		assert.True(t, refs.BoolValue(res.ShouldOfferWebauthnMfaSetup))
+		assert.False(t, refs.BoolValue(res.ShouldShowTotpScreen), "TOTP login is disabled server-wide; must not offer a screen the user can't complete")
+		assert.Nil(t, res.AuthenticatorSecret, "must not generate a TOTP enrollment when TOTP login is disabled")
+	})
 }
