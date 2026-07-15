@@ -1261,6 +1261,17 @@ input LockMfaRequest {
   phone_number: String
 }
 
+input OtpMfaSetupRequest {
+  # Only used in the MFA-session-cookie mode of email_otp_mfa_setup /
+  # sms_otp_mfa_setup (a caller in the withheld first-time-offer state, with
+  # no bearer token yet) to resolve which user's MFA session cookie this is
+  # — same pattern as SkipMfaSetupRequest/LockMfaRequest. Ignored when the
+  # caller has a valid bearer token/session, which already identifies the
+  # user (the existing settings-screen "add a second factor" flow).
+  email: String
+  phone_number: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -1390,16 +1401,19 @@ type Mutation {
   # issue a token; the account requires admin recovery afterward.
   lock_mfa(params: LockMfaRequest!): Response!
   # email_otp_mfa_setup sends a one-time code to the caller's own email and
-  # creates an unverified email-OTP MFA enrollment. Requires an
-  # authenticated caller (bearer token) — this is a settings-screen action
-  # for an ALREADY-logged-in user adding a second factor, distinct from the
-  # withheld-token first-time-setup screen (which reuses the same
-  # underlying Authenticator row once verify_otp marks it verified).
-  email_otp_mfa_setup: Response!
+  # creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+  # (a) an authenticated caller (bearer token) — the settings-screen action
+  # for an ALREADY-logged-in user adding a second factor; params is unused
+  # in this mode. (b) a caller in the withheld first-time-offer state, with
+  # no bearer token yet — identified by the MFA session cookie plus
+  # params.email/phone_number, same pattern as skip_mfa_setup. Either mode
+  # reuses the same underlying Authenticator row once verify_otp marks it
+  # verified.
+  email_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
   # sms_otp_mfa_setup sends a one-time code to the caller's own phone number
-  # and creates an unverified SMS-OTP MFA enrollment. Same permissions and
-  # relationship to verify_otp as email_otp_mfa_setup.
-  sms_otp_mfa_setup: Response!
+  # and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+  # permissions and relationship to verify_otp as email_otp_mfa_setup.
+  sms_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

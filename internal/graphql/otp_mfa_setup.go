@@ -11,15 +11,15 @@ import (
 )
 
 // EmailOTPMFASetup delegates to the transport-agnostic service layer.
-// Permissions: authenticated user.
-func (g *graphqlProvider) EmailOTPMFASetup(ctx context.Context) (*model.Response, error) {
+// Permissions: authenticated user (bearer token) OR MFA session cookie.
+func (g *graphqlProvider) EmailOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, side, err := g.ServiceProvider.EmailOTPMFASetup(ctx, service.MetaFromGin(gc))
+	res, side, err := g.ServiceProvider.EmailOTPMFASetup(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err
 	}
@@ -28,15 +28,15 @@ func (g *graphqlProvider) EmailOTPMFASetup(ctx context.Context) (*model.Response
 }
 
 // SMSOTPMFASetup delegates to the transport-agnostic service layer.
-// Permissions: authenticated user.
-func (g *graphqlProvider) SMSOTPMFASetup(ctx context.Context) (*model.Response, error) {
+// Permissions: authenticated user (bearer token) OR MFA session cookie.
+func (g *graphqlProvider) SMSOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	res, side, err := g.ServiceProvider.SMSOTPMFASetup(ctx, service.MetaFromGin(gc))
+	res, side, err := g.ServiceProvider.SMSOTPMFASetup(ctx, service.MetaFromGin(gc), params)
 	if err != nil {
 		return nil, err
 	}

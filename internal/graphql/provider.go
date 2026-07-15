@@ -108,12 +108,14 @@ type Provider interface {
 	// bearer token.
 	LockMFA(ctx context.Context, params *model.LockMfaRequest) (*model.Response, error)
 	// EmailOTPMFASetup sends a one-time code to the caller's own email and
-	// begins an email-OTP MFA enrollment. Verified via VerifyOtp.
-	// Permissions: authorized user (bearer token).
-	EmailOTPMFASetup(ctx context.Context) (*model.Response, error)
+	// begins an email-OTP MFA enrollment. Verified via VerifyOtp. Dual-mode:
+	// bearer token (params ignored) or, absent a token, the MFA session
+	// cookie plus params.email/phone_number.
+	// Permissions: authorized user (bearer token) OR MFA session cookie.
+	EmailOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
 	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
-	// Permissions: authorized user (bearer token).
-	SMSOTPMFASetup(ctx context.Context) (*model.Response, error)
+	// Permissions: authorized user (bearer token) OR MFA session cookie.
+	SMSOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)

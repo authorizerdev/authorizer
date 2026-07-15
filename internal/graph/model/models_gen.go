@@ -612,6 +612,11 @@ type Organizations struct {
 	Organizations []*Organization `json:"organizations"`
 }
 
+type OtpMfaSetupRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+}
+
 type PaginatedRequest struct {
 	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }

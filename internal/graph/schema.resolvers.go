@@ -93,13 +93,13 @@ func (r *mutationResolver) LockMfa(ctx context.Context, params model.LockMfaRequ
 }
 
 // EmailOtpMfaSetup is the resolver for the email_otp_mfa_setup field.
-func (r *mutationResolver) EmailOtpMfaSetup(ctx context.Context) (*model.Response, error) {
-	return r.GraphQLProvider.EmailOTPMFASetup(ctx)
+func (r *mutationResolver) EmailOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
+	return r.GraphQLProvider.EmailOTPMFASetup(ctx, params)
 }
 
 // SmsOtpMfaSetup is the resolver for the sms_otp_mfa_setup field.
-func (r *mutationResolver) SmsOtpMfaSetup(ctx context.Context) (*model.Response, error) {
-	return r.GraphQLProvider.SMSOTPMFASetup(ctx)
+func (r *mutationResolver) SmsOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
+	return r.GraphQLProvider.SMSOTPMFASetup(ctx, params)
 }
 
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.

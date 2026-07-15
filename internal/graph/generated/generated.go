@@ -316,7 +316,7 @@ type ComplexityRoot struct {
 		DeleteTrustedIssuer         func(childComplexity int, params model.TrustedIssuerRequest) int
 		DeleteUser                  func(childComplexity int, params model.DeleteUserRequest) int
 		DeleteWebhook               func(childComplexity int, params model.WebhookRequest) int
-		EmailOtpMfaSetup            func(childComplexity int) int
+		EmailOtpMfaSetup            func(childComplexity int, params *model.OtpMfaSetupRequest) int
 		EnableAccess                func(childComplexity int, param model.UpdateAccessRequest) int
 		FgaDeleteTuples             func(childComplexity int, params model.FgaWriteTuplesInput) int
 		FgaReset                    func(childComplexity int) int
@@ -342,7 +342,7 @@ type ComplexityRoot struct {
 		RotateScimToken             func(childComplexity int, params model.ScimEndpointRequest) int
 		Signup                      func(childComplexity int, params model.SignUpRequest) int
 		SkipMfaSetup                func(childComplexity int, params model.SkipMfaSetupRequest) int
-		SmsOtpMfaSetup              func(childComplexity int) int
+		SmsOtpMfaSetup              func(childComplexity int, params *model.OtpMfaSetupRequest) int
 		TestEndpoint                func(childComplexity int, params model.TestEndpointRequest) int
 		UpdateClient                func(childComplexity int, params model.UpdateClientRequest) int
 		UpdateEmailTemplate         func(childComplexity int, params model.UpdateEmailTemplateRequest) int
@@ -673,8 +673,8 @@ type MutationResolver interface {
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
 	SkipMfaSetup(ctx context.Context, params model.SkipMfaSetupRequest) (*model.AuthResponse, error)
 	LockMfa(ctx context.Context, params model.LockMfaRequest) (*model.Response, error)
-	EmailOtpMfaSetup(ctx context.Context) (*model.Response, error)
-	SmsOtpMfaSetup(ctx context.Context) (*model.Response, error)
+	EmailOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
+	SmsOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
 	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
@@ -2300,7 +2300,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Mutation.EmailOtpMfaSetup(childComplexity), true
+		args, err := ec.field_Mutation_email_otp_mfa_setup_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EmailOtpMfaSetup(childComplexity, args["params"].(*model.OtpMfaSetupRequest)), true
 
 	case "Mutation._enable_access":
 		if e.complexity.Mutation.EnableAccess == nil {
@@ -2597,7 +2602,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Mutation.SmsOtpMfaSetup(childComplexity), true
+		args, err := ec.field_Mutation_sms_otp_mfa_setup_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SmsOtpMfaSetup(childComplexity, args["params"].(*model.OtpMfaSetupRequest)), true
 
 	case "Mutation._test_endpoint":
 		if e.complexity.Mutation.TestEndpoint == nil {
@@ -4365,6 +4375,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputOrgOIDCConnectionRequest,
 		ec.unmarshalInputOrgSAMLConnectionRequest,
 		ec.unmarshalInputOrganizationRequest,
+		ec.unmarshalInputOtpMfaSetupRequest,
 		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
 		ec.unmarshalInputPermissionCheckInput,
@@ -5759,6 +5770,17 @@ input LockMfaRequest {
   phone_number: String
 }
 
+input OtpMfaSetupRequest {
+  # Only used in the MFA-session-cookie mode of email_otp_mfa_setup /
+  # sms_otp_mfa_setup (a caller in the withheld first-time-offer state, with
+  # no bearer token yet) to resolve which user's MFA session cookie this is
+  # — same pattern as SkipMfaSetupRequest/LockMfaRequest. Ignored when the
+  # caller has a valid bearer token/session, which already identifies the
+  # user (the existing settings-screen "add a second factor" flow).
+  email: String
+  phone_number: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -5888,16 +5910,19 @@ type Mutation {
   # issue a token; the account requires admin recovery afterward.
   lock_mfa(params: LockMfaRequest!): Response!
   # email_otp_mfa_setup sends a one-time code to the caller's own email and
-  # creates an unverified email-OTP MFA enrollment. Requires an
-  # authenticated caller (bearer token) — this is a settings-screen action
-  # for an ALREADY-logged-in user adding a second factor, distinct from the
-  # withheld-token first-time-setup screen (which reuses the same
-  # underlying Authenticator row once verify_otp marks it verified).
-  email_otp_mfa_setup: Response!
+  # creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+  # (a) an authenticated caller (bearer token) — the settings-screen action
+  # for an ALREADY-logged-in user adding a second factor; params is unused
+  # in this mode. (b) a caller in the withheld first-time-offer state, with
+  # no bearer token yet — identified by the MFA session cookie plus
+  # params.email/phone_number, same pattern as skip_mfa_setup. Either mode
+  # reuses the same underlying Authenticator row once verify_otp marks it
+  # verified.
+  email_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
   # sms_otp_mfa_setup sends a one-time code to the caller's own phone number
-  # and creates an unverified SMS-OTP MFA enrollment. Same permissions and
-  # relationship to verify_otp as email_otp_mfa_setup.
-  sms_otp_mfa_setup: Response!
+  # and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+  # permissions and relationship to verify_otp as email_otp_mfa_setup.
+  sms_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
   # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
   webauthn_registration_options(
     email: String
@@ -7262,6 +7287,34 @@ func (ec *executionContext) field_Mutation__verify_org_domain_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_email_otp_mfa_setup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_email_otp_mfa_setup_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_email_otp_mfa_setup_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.OtpMfaSetupRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.OtpMfaSetupRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOOtpMfaSetupRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOtpMfaSetupRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.OtpMfaSetupRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_forgot_password_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7595,6 +7648,34 @@ func (ec *executionContext) field_Mutation_skip_mfa_setup_argsParams(
 	}
 
 	var zeroVal model.SkipMfaSetupRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_sms_otp_mfa_setup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_sms_otp_mfa_setup_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_sms_otp_mfa_setup_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.OtpMfaSetupRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.OtpMfaSetupRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOOtpMfaSetupRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOtpMfaSetupRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.OtpMfaSetupRequest
 	return zeroVal, nil
 }
 
@@ -17633,7 +17714,7 @@ func (ec *executionContext) _Mutation_email_otp_mfa_setup(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EmailOtpMfaSetup(rctx)
+		return ec.resolvers.Mutation().EmailOtpMfaSetup(rctx, fc.Args["params"].(*model.OtpMfaSetupRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17650,7 +17731,7 @@ func (ec *executionContext) _Mutation_email_otp_mfa_setup(ctx context.Context, f
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_email_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_email_otp_mfa_setup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -17663,6 +17744,17 @@ func (ec *executionContext) fieldContext_Mutation_email_otp_mfa_setup(_ context.
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_email_otp_mfa_setup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -17681,7 +17773,7 @@ func (ec *executionContext) _Mutation_sms_otp_mfa_setup(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SmsOtpMfaSetup(rctx)
+		return ec.resolvers.Mutation().SmsOtpMfaSetup(rctx, fc.Args["params"].(*model.OtpMfaSetupRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17698,7 +17790,7 @@ func (ec *executionContext) _Mutation_sms_otp_mfa_setup(ctx context.Context, fie
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_sms_otp_mfa_setup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_sms_otp_mfa_setup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -17711,6 +17803,17 @@ func (ec *executionContext) fieldContext_Mutation_sms_otp_mfa_setup(_ context.Co
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_sms_otp_mfa_setup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -34555,6 +34658,40 @@ func (ec *executionContext) unmarshalInputOrganizationRequest(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputOtpMfaSetupRequest(ctx context.Context, obj any) (model.OtpMfaSetupRequest, error) {
+	var it model.OtpMfaSetupRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "phone_number"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone_number":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPaginatedRequest(ctx context.Context, obj any) (model.PaginatedRequest, error) {
 	var it model.PaginatedRequest
 	asMap := map[string]any{}
@@ -43786,6 +43923,14 @@ func (ec *executionContext) unmarshalOMobileSignUpRequest2ᚖgithubᚗcomᚋauth
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputMobileSignUpRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOOtpMfaSetupRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOtpMfaSetupRequest(ctx context.Context, v any) (*model.OtpMfaSetupRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputOtpMfaSetupRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
