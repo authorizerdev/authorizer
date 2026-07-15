@@ -68,18 +68,18 @@ func TestMeta(t *testing.T) {
 		meta, err := ts.GraphQLProvider.Meta(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, meta)
-		// Default config has MFA disabled, so all OTP/TOTP methods are unavailable.
+		// Default config has MFA disabled, so all OTP/TOTP/WebAuthn methods are unavailable.
 		assert.False(t, meta.IsTotpMfaEnabled)
 		assert.False(t, meta.IsEmailOtpMfaEnabled)
 		assert.False(t, meta.IsSmsOtpMfaEnabled)
-		// WebAuthn/passkey ships always-on.
-		assert.True(t, meta.IsWebauthnEnabled)
+		assert.False(t, meta.IsWebauthnEnabled)
 	})
 
-	t.Run("should enable TOTP MFA when MFA and TOTP login are on", func(t *testing.T) {
+	t.Run("should enable TOTP and WebAuthn MFA when MFA, TOTP login, and WebAuthn MFA are on", func(t *testing.T) {
 		cfg2 := getTestConfig()
 		cfg2.EnableMFA = true
 		cfg2.EnableTOTPLogin = true
+		cfg2.EnableWebauthnMFA = true
 		ts2 := initTestSetup(t, cfg2)
 		_, ctx2 := createContext(ts2)
 
@@ -91,6 +91,22 @@ func TestMeta(t *testing.T) {
 		assert.False(t, meta.IsEmailOtpMfaEnabled)
 		assert.False(t, meta.IsSmsOtpMfaEnabled)
 		assert.True(t, meta.IsWebauthnEnabled)
+	})
+
+	t.Run("should disable WebAuthn MFA when --disable-webauthn-mfa is set, even with MFA on", func(t *testing.T) {
+		cfg2 := getTestConfig()
+		cfg2.EnableMFA = true
+		cfg2.EnableTOTPLogin = true
+		cfg2.EnableWebauthnMFA = false
+		ts2 := initTestSetup(t, cfg2)
+		_, ctx2 := createContext(ts2)
+
+		meta, err := ts2.GraphQLProvider.Meta(ctx2)
+		require.NoError(t, err)
+		require.NotNil(t, meta)
+		assert.False(t, meta.IsWebauthnEnabled)
+		// Other MFA methods are unaffected by disabling WebAuthn specifically.
+		assert.True(t, meta.IsTotpMfaEnabled)
 	})
 
 	t.Run("should gate email/SMS OTP MFA on service availability", func(t *testing.T) {
