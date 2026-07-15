@@ -58,7 +58,8 @@ RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
 FROM alpine:3.23.3
 ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
-RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
+RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31" && \
+    apk upgrade --no-cache
 
 ARG TARGETARCH=amd64
 
