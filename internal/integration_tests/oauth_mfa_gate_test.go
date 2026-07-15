@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"context"
 	"errors"
+	"net/url"
 	"testing"
 	"time"
 
@@ -124,6 +125,19 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 	t.Run("mfaGateBlockVerify withholds with mfa_required=1", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
+		// Enable every other MFA method the offer/enroll branches would list
+		// (webauthn, email OTP, SMS OTP — IsSMSServiceEnabled is already true
+		// in getTestConfig) so that if the gate mis-routed this verified-TOTP
+		// user to mfaGateOfferAll/BlockEnroll instead of mfaGateBlockVerify,
+		// mfa_methods would pick up those extra, un-enrolled methods too —
+		// making "totp" alone an insufficient signal. asserting the exact
+		// mfa_methods value below is what actually distinguishes the verify
+		// branch (lists only the user's already-verified factors) from the
+		// offer/enroll branches (lists every configured method).
+		cfg.EnableWebauthnMFA = true
+		cfg.EnableEmailOTP = true
+		cfg.IsEmailServiceEnabled = true
+		cfg.EnableSMSOTP = true
 		ts := initTestSetup(t, cfg)
 		_, ctx := createContext(ts)
 
@@ -145,7 +159,15 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, withheld)
 		assert.Contains(t, redirectSuffix, "mfa_required=1")
-		assert.Contains(t, redirectSuffix, "totp")
+
+		values, parseErr := url.ParseQuery(redirectSuffix)
+		require.NoError(t, parseErr)
+		// Exactly "totp" -- not "totp,webauthn,email_otp,sms_otp", which is
+		// what an offer/enroll branch would produce given the config above.
+		// This is what distinguishes mfaGateBlockVerify (only the factors
+		// this user actually has verified) from mfaGateOfferAll/BlockEnroll
+		// (every method the server has configured).
+		assert.Equal(t, constants.EnvKeyTOTPAuthenticator, values.Get("mfa_methods"))
 	})
 
 	t.Run("locked user is rejected", func(t *testing.T) {
