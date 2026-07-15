@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -168,6 +169,193 @@ func TestLockMfaGRPC(t *testing.T) {
 
 	t.Run("without a valid mfa session it is rejected, not Unimplemented", func(t *testing.T) {
 		_, err := c.LockMfa(context.Background(), &authorizerv1.LockMfaRequest{Email: email})
+		require.Error(t, err)
+		st, ok := status.FromError(err)
+		require.True(t, ok)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+}
+
+// TestEmailOtpMfaSetupGRPC exercises the new EmailOtpMfaSetup RPC end-to-end
+// over gRPC, proving the transport correctly reaches both auth modes
+// resolveOTPSetupCaller supports (already proven at the GraphQL layer by
+// TestEmailOTPMFASetupViaMfaSessionCookie / TestOTPMFASetupRejectsUnauthenticatedCaller
+// in otp_mfa_setup_test.go): the MFA-session-cookie + email fallback for a
+// caller in the withheld first-time-offer state, and the ordinary bearer
+// token used by an already-authenticated caller adding a second factor.
+func TestEmailOtpMfaSetupGRPC(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableMFA = true
+	cfg.EnableTOTPLogin = true
+	cfg.EnableEmailOTP = true
+	cfg.SMTPHost = "localhost"
+	cfg.SMTPPort = 1025
+	cfg.SMTPSenderEmail = "test@authorizer.dev"
+	cfg.SMTPSenderName = "Test"
+	cfg.SMTPLocalName = "Test"
+	cfg.SMTPSkipTLSVerification = true
+	cfg.IsEmailServiceEnabled = true
+	c, ts := bootPublicClientForConfig(t, cfg)
+	ctx := context.Background()
+	password := "Password@123"
+
+	t.Run("cookie mode: mfa session cookie + email, no bearer token", func(t *testing.T) {
+		email := "grpc_email_otp_cookie_" + uuid.New().String() + "@authorizer.dev"
+
+		_, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+			Email: email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		var header metadata.MD
+		loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{Email: email, Password: password}, grpc.Header(&header))
+		require.NoError(t, err)
+		require.Empty(t, loginResp.AccessToken, "first login with optional MFA and no prior enrollment must withhold the token")
+
+		mfaCookie := findSetCookie(header.Get("Set-Cookie"), constants.MfaCookieName+"_session")
+		require.NotEmpty(t, mfaCookie, "login must set an mfa session cookie via gRPC response metadata")
+		mfaCtx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs("cookie", mfaCookie))
+
+		resp, err := c.EmailOtpMfaSetup(mfaCtx, &authorizerv1.EmailOtpMfaSetupRequest{Email: email})
+		require.NoError(t, err, "email_otp_mfa_setup must be reachable via cookie+email with no bearer token")
+		require.NotEmpty(t, resp.Message)
+
+		authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyEmailOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, authenticator)
+		assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+	})
+
+	t.Run("bearer-token mode: already authenticated caller, no email param", func(t *testing.T) {
+		email := "grpc_email_otp_bearer_" + uuid.New().String() + "@authorizer.dev"
+
+		// Signup omits is_multi_factor_auth_enabled, which the gRPC handler
+		// still forwards explicitly as false (see AuthorizerHandler.Signup),
+		// so the MFA gate never engages here and the token is issued
+		// directly -- this caller reaches EmailOtpMfaSetup the ordinary
+		// already-logged-in "add a second factor from settings" way.
+		signupResp, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+			Email: email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, signupResp.AccessToken, "no MFA enrolled -> token issued directly")
+
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+
+		resp, err := c.EmailOtpMfaSetup(bearerCtx(signupResp.AccessToken), &authorizerv1.EmailOtpMfaSetupRequest{})
+		require.NoError(t, err, "email_otp_mfa_setup must be reachable via bearer token with no email param")
+		require.NotEmpty(t, resp.Message)
+
+		authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyEmailOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, authenticator)
+		assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+	})
+
+	t.Run("without a valid token or cookie+email it is rejected, not Unimplemented", func(t *testing.T) {
+		_, err := c.EmailOtpMfaSetup(context.Background(), &authorizerv1.EmailOtpMfaSetupRequest{})
+		require.Error(t, err)
+		st, ok := status.FromError(err)
+		require.True(t, ok)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+}
+
+// TestSmsOtpMfaSetupGRPC is TestEmailOtpMfaSetupGRPC's SMS twin -- same two
+// auth modes and rejection case, keyed by phone_number instead of email.
+func TestSmsOtpMfaSetupGRPC(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableMFA = true
+	cfg.EnableSMSOTP = true
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableMobileBasicAuthentication = true
+	cfg.TwilioAPISecret = "test-twilio-api-secret"
+	cfg.TwilioAPIKey = "test-twilio-api-key"
+	cfg.TwilioAccountSID = "test-twilio-account-sid"
+	cfg.TwilioSender = "test-twilio-sender"
+	c, ts := bootPublicClientForConfig(t, cfg)
+	ctx := context.Background()
+	password := "Password@123"
+
+	t.Run("cookie mode: mfa session cookie + phone_number, no bearer token", func(t *testing.T) {
+		mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
+
+		_, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+			PhoneNumber: mobile, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+
+		user, err := ts.StorageProvider.GetUserByPhoneNumber(ctx, mobile)
+		require.NoError(t, err)
+		// Signup's own phone-verification OTP is irrelevant here; mark the
+		// phone verified directly so login reaches the MFA gate instead of
+		// the phone-verification challenge, same as the GraphQL-layer twin.
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		var header metadata.MD
+		loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{PhoneNumber: mobile, Password: password}, grpc.Header(&header))
+		require.NoError(t, err)
+		require.Empty(t, loginResp.AccessToken, "first login with optional MFA and no prior enrollment must withhold the token")
+
+		mfaCookie := findSetCookie(header.Get("Set-Cookie"), constants.MfaCookieName+"_session")
+		require.NotEmpty(t, mfaCookie, "login must set an mfa session cookie via gRPC response metadata")
+		mfaCtx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs("cookie", mfaCookie))
+
+		resp, err := c.SmsOtpMfaSetup(mfaCtx, &authorizerv1.SmsOtpMfaSetupRequest{PhoneNumber: mobile})
+		require.NoError(t, err, "sms_otp_mfa_setup must be reachable via cookie+phone_number with no bearer token")
+		require.NotEmpty(t, resp.Message)
+
+		authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, authenticator)
+		assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+	})
+
+	t.Run("bearer-token mode: already authenticated caller, no phone_number param", func(t *testing.T) {
+		mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
+
+		_, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+			PhoneNumber: mobile, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+
+		user, err := ts.StorageProvider.GetUserByPhoneNumber(ctx, mobile)
+		require.NoError(t, err)
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Same reasoning as the email twin: is_multi_factor_auth_enabled is
+		// always forwarded explicitly (false here), so login issues the
+		// token directly instead of hitting the MFA gate.
+		loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{PhoneNumber: mobile, Password: password})
+		require.NoError(t, err)
+		require.NotEmpty(t, loginResp.AccessToken, "no MFA enrolled -> token issued directly")
+
+		resp, err := c.SmsOtpMfaSetup(bearerCtx(loginResp.AccessToken), &authorizerv1.SmsOtpMfaSetupRequest{})
+		require.NoError(t, err, "sms_otp_mfa_setup must be reachable via bearer token with no phone_number param")
+		require.NotEmpty(t, resp.Message)
+
+		authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, authenticator)
+		assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+	})
+
+	t.Run("without a valid token or cookie+phone_number it is rejected, not Unimplemented", func(t *testing.T) {
+		_, err := c.SmsOtpMfaSetup(context.Background(), &authorizerv1.SmsOtpMfaSetupRequest{})
 		require.Error(t, err)
 		st, ok := status.FromError(err)
 		require.True(t, ok)
