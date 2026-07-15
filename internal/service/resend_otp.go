@@ -11,7 +11,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -105,28 +104,6 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 			Message: "Failed to get for given email",
 		}, nil, errors.New("failed to get otp for given email")
 	}
-	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
-	generateOTP := func(expiresAt int64) (*schemas.OTP, error) {
-		otp, err := utils.GenerateOTP()
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to generate OTP")
-			return nil, err
-		}
-		// Store HMAC digest; the plaintext is restored on the returned
-		// struct so the caller's email/SMS body can read otpData.Otp.
-		otpData, err := p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
-			Email:       refs.StringValue(user.Email),
-			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         crypto.HashOTP(otp, p.Config.JWTSecret),
-			ExpiresAt:   expiresAt,
-		})
-		if err != nil {
-			log.Debug().Msg("Failed to upsert otp")
-			return nil, err
-		}
-		otpData.Otp = otp
-		return otpData, nil
-	}
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
 		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
@@ -140,7 +117,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 		return nil
 	}
 	expiresAt := time.Now().Add(1 * time.Minute).Unix()
-	otpData, err = generateOTP(expiresAt)
+	otpData, err = p.generateAndStoreOTP(ctx, user, expiresAt)
 	if err != nil {
 		log.Debug().Msg("Failed to generate otp")
 		return nil, nil, err

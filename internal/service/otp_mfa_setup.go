@@ -184,12 +184,13 @@ func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, par
 	return &model.Response{Message: "Check your phone for the verification code"}, nil, nil
 }
 
-// generateAndStoreOTP mirrors the local `generateOTP` closures in login.go /
-// resend_otp.go: generates a plaintext OTP, persists its HMAC digest via
-// UpsertOTP (keyed by the user's email/phone), and returns the plaintext on
-// the returned struct for the caller's email/SMS body. Not shared with those
-// closures directly since they capture per-call locals (log, ctx); this is
-// the package-level equivalent for the setup mutations.
+// generateAndStoreOTP is the single OTP-generation implementation shared by
+// login.go's email/SMS-verification and TOTP-alternative branches,
+// resend_otp.go, and this file's Email/SMS-OTP-as-MFA setup: generates a
+// plaintext OTP, persists its HMAC digest via UpsertOTP (keyed by the user's
+// email/phone), and returns the plaintext on the returned struct for the
+// caller's email/SMS body. Callers log their own error context at the call
+// site rather than this method logging internally.
 func (p *provider) generateAndStoreOTP(ctx context.Context, user *schemas.User, expiresAt int64) (*schemas.OTP, error) {
 	otp, err := utils.GenerateOTP()
 	if err != nil {
