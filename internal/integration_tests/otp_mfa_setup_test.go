@@ -200,7 +200,9 @@ func TestEmailOTPMFASetupViaMfaSessionCookie(t *testing.T) {
 
 // TestSMSOTPMFASetupViaMfaSessionCookie is TestEmailOTPMFASetupViaMfaSessionCookie's
 // SMS twin -- confirms sms_otp_mfa_setup is reachable the same cookie-only
-// way, keyed by phone_number instead of email.
+// way, keyed by phone_number instead of email, and that the full chain
+// (withheld login -> cookie-authenticated setup -> verify_otp -> the
+// withheld token being issued) closes the same as the email-OTP twin.
 func TestSMSOTPMFASetupViaMfaSessionCookie(t *testing.T) {
 	const password = "Password@123"
 
@@ -249,7 +251,31 @@ func TestSMSOTPMFASetupViaMfaSessionCookie(t *testing.T) {
 	authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
 	require.NoError(t, err)
 	require.NotNil(t, authenticator)
-	assert.Nil(t, authenticator.VerifiedAt)
+	assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+
+	// Complete the chain: the test can't intercept the outgoing SMS, so
+	// overwrite the stored digest with one for a known plaintext, same as
+	// the email-OTP twin.
+	const knownPlainOTP = "739104"
+	storedOTP, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
+	require.NoError(t, err)
+	require.NotNil(t, storedOTP)
+	storedOTP.Otp = crypto.HashOTP(knownPlainOTP, cfg.JWTSecret)
+	storedOTP.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+	_, err = ts.StorageProvider.UpsertOTP(ctx, storedOTP)
+	require.NoError(t, err)
+
+	// Same MFA session cookie is still valid -- verify_otp completes the
+	// still-in-progress, still-withheld login.
+	verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{PhoneNumber: &mobile, Otp: knownPlainOTP})
+	require.NoError(t, err)
+	require.NotNil(t, verifyRes)
+	require.NotNil(t, verifyRes.AccessToken, "verify_otp must issue the token that was withheld at login")
+
+	authenticator, err = ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
+	require.NoError(t, err)
+	require.NotNil(t, authenticator)
+	require.NotNil(t, authenticator.VerifiedAt, "verify_otp must mark the pending enrollment verified")
 }
 
 // TestOTPMFASetupRejectsUnauthenticatedCaller confirms the new dual-mode
