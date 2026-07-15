@@ -75,6 +75,11 @@ func TestReleaseSmoke(t *testing.T) {
 		fmt.Sprintf("--http-port=%d", httpPort),
 		fmt.Sprintf("--metrics-port=%d", metricsPort),
 		fmt.Sprintf("--grpc-port=%d", grpcPort),
+		// This scenario exercises FGA permission checks, not MFA. MFA is on by
+		// default (TOTP/WebAuthn need no external provider), which would
+		// withhold signup's token behind the MFA-setup gate instead of
+		// returning it directly.
+		"--disable-mfa",
 	}
 	stopServer := startServer(t, bin, serverArgs, baseURL)
 
