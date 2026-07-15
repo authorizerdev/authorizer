@@ -334,15 +334,6 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Code challenge could be optional if PKCE flow is not used
-		if code != "" {
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
-				log.Debug().Err(err).Msg("Failed to set state")
-				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
-				return
-			}
-		}
-
 		// expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		// if expiresIn <= 0 { expiresIn = 1 }
 		// params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
@@ -378,6 +369,21 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}
 			ctx.Redirect(http.StatusFound, redirectURL)
 			return
+		}
+
+		// Code challenge could be optional if PKCE flow is not used. Set only on
+		// the normal (non-withheld) path: the `code` is never disclosed to the
+		// browser on a withheld redirect (it carries mfa_required=1, not
+		// state/code), so setting this state entry before the gate check would
+		// leave an orphaned, unreachable entry that just self-expires — not
+		// exploitable, but there's no reason to write it before we know the
+		// login actually proceeds.
+		if code != "" {
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
+				log.Debug().Err(err).Msg("Failed to set state")
+				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
+				return
+			}
 		}
 
 		sessionKey := provider + ":" + user.ID
