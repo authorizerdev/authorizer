@@ -1495,6 +1495,39 @@
         ]
       }
     },
+    "/v1/email_otp_mfa_setup": {
+      "post": {
+        "summary": "EmailOtpMfaSetup sends a one-time code to the caller's own email and\ncreates an unverified email-OTP MFA enrollment. Dual-mode permissions:\n(a) an authenticated caller (bearer token) — the settings-screen action\nfor an ALREADY-logged-in user adding a second factor; the request body is\nunused in this mode. (b) a caller in the withheld first-time-offer\nstate, with no bearer token yet — identified by the MFA session cookie\nplus email/phone_number, same pattern as SkipMfaSetup. Either mode\nreuses the same underlying Authenticator row once VerifyOtp marks it\nverified.",
+        "operationId": "AuthorizerService_EmailOtpMfaSetup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1EmailOtpMfaSetupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1EmailOtpMfaSetupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
     "/v1/forgot_password": {
       "post": {
         "operationId": "AuthorizerService_ForgotPassword",
@@ -1552,6 +1585,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1ListPermissionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/lock_mfa": {
+      "post": {
+        "summary": "LockMfa records that the caller lost access to their only MFA\nfactor(s). Only allowed when the caller has NO verified Email/SMS OTP\nfallback enrolled — if one exists, use it instead of locking. Does not\nissue a token; the account requires admin recovery afterward.",
+        "operationId": "AuthorizerService_LockMfa",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LockMfaResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LockMfaRequest"
             }
           }
         ],
@@ -1890,6 +1956,72 @@
         ]
       }
     },
+    "/v1/skip_mfa_setup": {
+      "post": {
+        "summary": "SkipMfaSetup completes an in-progress, token-withheld MFA offer by\nrecording that the caller explicitly declined it, then issues the\naccess token that was withheld. Identified by the MFA session cookie\n(set when the offer screen was returned) plus email/phone_number to\nresolve the pending user — same identification pattern as VerifyOtp.\nFails with FAILED_PRECONDITION if MFA is organization-enforced\n(enforce-mfa) — enforcement is never skippable.",
+        "operationId": "AuthorizerService_SkipMfaSetup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuthResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SkipMfaSetupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/sms_otp_mfa_setup": {
+      "post": {
+        "summary": "SmsOtpMfaSetup sends a one-time code to the caller's own phone number\nand creates an unverified SMS-OTP MFA enrollment. Same dual-mode\npermissions and relationship to VerifyOtp as EmailOtpMfaSetup.",
+        "operationId": "AuthorizerService_SmsOtpMfaSetup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SmsOtpMfaSetupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SmsOtpMfaSetupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
     "/v1/update_profile": {
       "post": {
         "operationId": "AuthorizerService_UpdateProfile",
@@ -2156,6 +2288,10 @@
         },
         "is_webauthn_enabled": {
           "type": "boolean"
+        },
+        "is_mfa_enforced": {
+          "type": "boolean",
+          "description": "Mirrors Meta.is_mfa_enforced in GraphQL."
         }
       },
       "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
@@ -2231,6 +2367,16 @@
         "app_data": {
           "$ref": "#/definitions/v1AppData",
           "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+        },
+        "has_skipped_mfa_setup_at": {
+          "type": "string",
+          "format": "int64",
+          "description": "Mirrors User.has_skipped_mfa_setup_at in GraphQL. 0 means never skipped."
+        },
+        "mfa_locked_at": {
+          "type": "string",
+          "format": "int64",
+          "description": "Mirrors User.mfa_locked_at in GraphQL. 0 means not locked."
         }
       },
       "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
@@ -2555,6 +2701,22 @@
           "items": {
             "type": "string"
           }
+        },
+        "should_offer_webauthn_mfa_verify": {
+          "type": "boolean",
+          "description": "Mirrors AuthResponse.should_offer_webauthn_mfa_verify in GraphQL."
+        },
+        "should_offer_webauthn_mfa_setup": {
+          "type": "boolean",
+          "description": "Mirrors AuthResponse.should_offer_webauthn_mfa_setup in GraphQL."
+        },
+        "should_offer_email_otp_mfa_setup": {
+          "type": "boolean",
+          "description": "Mirrors AuthResponse.should_offer_email_otp_mfa_setup in GraphQL."
+        },
+        "should_offer_sms_otp_mfa_setup": {
+          "type": "boolean",
+          "description": "Mirrors AuthResponse.should_offer_sms_otp_mfa_setup in GraphQL."
         }
       },
       "description": "AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by\nevery method that produces a session: Signup, Login, MagicLinkLogin,\nVerifyEmail, VerifyOtp, Session."
@@ -2767,6 +2929,26 @@
       "description": "DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from GetWebhookRequest per buf's one-message-per-RPC rule."
     },
     "v1DeleteWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1EmailOtpMfaSetupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Only used in the MFA-session-cookie mode (a caller in the withheld\nfirst-time-offer state, with no bearer token yet) to resolve which\nuser's MFA session cookie this is — same pattern as SkipMfaSetupRequest\n/ LockMfaRequest. Ignored when the caller has a valid bearer\ntoken/session, which already identifies the user."
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      }
+    },
+    "v1EmailOtpMfaSetupResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -3211,6 +3393,26 @@
         }
       }
     },
+    "v1LockMfaRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Either email or phone_number is required, to resolve which user's MFA\nsession cookie this is — same pattern as SkipMfaSetupRequest."
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      }
+    },
+    "v1LockMfaResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1LoginRequest": {
       "type": "object",
       "properties": {
@@ -3577,6 +3779,41 @@
         }
       }
     },
+    "v1SkipMfaSetupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Either email or phone_number is required, to resolve which user's MFA\nsession cookie this is."
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SmsOtpMfaSetupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Same dual-mode identification semantics as EmailOtpMfaSetupRequest."
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SmsOtpMfaSetupResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1TestEndpointRequest": {
       "type": "object",
       "properties": {
@@ -3906,6 +4143,10 @@
         },
         "app_data": {
           "$ref": "#/definitions/v1AppData"
+        },
+        "reset_mfa": {
+          "type": "boolean",
+          "description": "Mirrors UpdateUserRequest.reset_mfa in GraphQL — see schema.graphqls'\ndoc comment on that field for exact semantics (clears mfa_locked_at,\nis_multi_factor_auth_enabled, has_skipped_mfa_setup_at, deletes all\nauthenticators/passkeys)."
         }
       },
       "description": "UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use\nproto3 `optional` so an unset field is distinguishable from an empty value\n(e.g. clearing a name vs leaving it untouched, or email_verified=false)."

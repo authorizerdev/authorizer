@@ -2,7 +2,8 @@
 // public API. Method names match the GraphQL operation names 1:1
 // (snake_case in GraphQL → PascalCase in proto): Signup, Login,
 // MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
-// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// ResetPassword, VerifyOtp, ResendOtp, SkipMfaSetup, LockMfa,
+// EmailOtpMfaSetup, SmsOtpMfaSetup, UpdateProfile, DeactivateAccount,
 // Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
 // CheckPermissions, ListPermissions, Logout.
 //
@@ -46,6 +47,10 @@ const (
 	AuthorizerService_ResendVerifyEmail_FullMethodName = "/authorizer.v1.AuthorizerService/ResendVerifyEmail"
 	AuthorizerService_VerifyOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/VerifyOtp"
 	AuthorizerService_ResendOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/ResendOtp"
+	AuthorizerService_SkipMfaSetup_FullMethodName      = "/authorizer.v1.AuthorizerService/SkipMfaSetup"
+	AuthorizerService_LockMfa_FullMethodName           = "/authorizer.v1.AuthorizerService/LockMfa"
+	AuthorizerService_EmailOtpMfaSetup_FullMethodName  = "/authorizer.v1.AuthorizerService/EmailOtpMfaSetup"
+	AuthorizerService_SmsOtpMfaSetup_FullMethodName    = "/authorizer.v1.AuthorizerService/SmsOtpMfaSetup"
 	AuthorizerService_ForgotPassword_FullMethodName    = "/authorizer.v1.AuthorizerService/ForgotPassword"
 	AuthorizerService_ResetPassword_FullMethodName     = "/authorizer.v1.AuthorizerService/ResetPassword"
 	AuthorizerService_Profile_FullMethodName           = "/authorizer.v1.AuthorizerService/Profile"
@@ -80,6 +85,33 @@ type AuthorizerServiceClient interface {
 	ResendVerifyEmail(ctx context.Context, in *ResendVerifyEmailRequest, opts ...grpc.CallOption) (*ResendVerifyEmailResponse, error)
 	VerifyOtp(ctx context.Context, in *VerifyOtpRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	ResendOtp(ctx context.Context, in *ResendOtpRequest, opts ...grpc.CallOption) (*ResendOtpResponse, error)
+	// SkipMfaSetup completes an in-progress, token-withheld MFA offer by
+	// recording that the caller explicitly declined it, then issues the
+	// access token that was withheld. Identified by the MFA session cookie
+	// (set when the offer screen was returned) plus email/phone_number to
+	// resolve the pending user — same identification pattern as VerifyOtp.
+	// Fails with FAILED_PRECONDITION if MFA is organization-enforced
+	// (enforce-mfa) — enforcement is never skippable.
+	SkipMfaSetup(ctx context.Context, in *SkipMfaSetupRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// LockMfa records that the caller lost access to their only MFA
+	// factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+	// fallback enrolled — if one exists, use it instead of locking. Does not
+	// issue a token; the account requires admin recovery afterward.
+	LockMfa(ctx context.Context, in *LockMfaRequest, opts ...grpc.CallOption) (*LockMfaResponse, error)
+	// EmailOtpMfaSetup sends a one-time code to the caller's own email and
+	// creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+	// (a) an authenticated caller (bearer token) — the settings-screen action
+	// for an ALREADY-logged-in user adding a second factor; the request body is
+	// unused in this mode. (b) a caller in the withheld first-time-offer
+	// state, with no bearer token yet — identified by the MFA session cookie
+	// plus email/phone_number, same pattern as SkipMfaSetup. Either mode
+	// reuses the same underlying Authenticator row once VerifyOtp marks it
+	// verified.
+	EmailOtpMfaSetup(ctx context.Context, in *EmailOtpMfaSetupRequest, opts ...grpc.CallOption) (*EmailOtpMfaSetupResponse, error)
+	// SmsOtpMfaSetup sends a one-time code to the caller's own phone number
+	// and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+	// permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+	SmsOtpMfaSetup(ctx context.Context, in *SmsOtpMfaSetupRequest, opts ...grpc.CallOption) (*SmsOtpMfaSetupResponse, error)
 	ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	// Profile returns the authenticated user.
@@ -197,6 +229,46 @@ func (c *authorizerServiceClient) ResendOtp(ctx context.Context, in *ResendOtpRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResendOtpResponse)
 	err := c.cc.Invoke(ctx, AuthorizerService_ResendOtp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) SkipMfaSetup(ctx context.Context, in *SkipMfaSetupRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_SkipMfaSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) LockMfa(ctx context.Context, in *LockMfaRequest, opts ...grpc.CallOption) (*LockMfaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LockMfaResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_LockMfa_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) EmailOtpMfaSetup(ctx context.Context, in *EmailOtpMfaSetupRequest, opts ...grpc.CallOption) (*EmailOtpMfaSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailOtpMfaSetupResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_EmailOtpMfaSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) SmsOtpMfaSetup(ctx context.Context, in *SmsOtpMfaSetupRequest, opts ...grpc.CallOption) (*SmsOtpMfaSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SmsOtpMfaSetupResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_SmsOtpMfaSetup_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -343,6 +415,33 @@ type AuthorizerServiceServer interface {
 	ResendVerifyEmail(context.Context, *ResendVerifyEmailRequest) (*ResendVerifyEmailResponse, error)
 	VerifyOtp(context.Context, *VerifyOtpRequest) (*AuthResponse, error)
 	ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error)
+	// SkipMfaSetup completes an in-progress, token-withheld MFA offer by
+	// recording that the caller explicitly declined it, then issues the
+	// access token that was withheld. Identified by the MFA session cookie
+	// (set when the offer screen was returned) plus email/phone_number to
+	// resolve the pending user — same identification pattern as VerifyOtp.
+	// Fails with FAILED_PRECONDITION if MFA is organization-enforced
+	// (enforce-mfa) — enforcement is never skippable.
+	SkipMfaSetup(context.Context, *SkipMfaSetupRequest) (*AuthResponse, error)
+	// LockMfa records that the caller lost access to their only MFA
+	// factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+	// fallback enrolled — if one exists, use it instead of locking. Does not
+	// issue a token; the account requires admin recovery afterward.
+	LockMfa(context.Context, *LockMfaRequest) (*LockMfaResponse, error)
+	// EmailOtpMfaSetup sends a one-time code to the caller's own email and
+	// creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+	// (a) an authenticated caller (bearer token) — the settings-screen action
+	// for an ALREADY-logged-in user adding a second factor; the request body is
+	// unused in this mode. (b) a caller in the withheld first-time-offer
+	// state, with no bearer token yet — identified by the MFA session cookie
+	// plus email/phone_number, same pattern as SkipMfaSetup. Either mode
+	// reuses the same underlying Authenticator row once VerifyOtp marks it
+	// verified.
+	EmailOtpMfaSetup(context.Context, *EmailOtpMfaSetupRequest) (*EmailOtpMfaSetupResponse, error)
+	// SmsOtpMfaSetup sends a one-time code to the caller's own phone number
+	// and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+	// permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+	SmsOtpMfaSetup(context.Context, *SmsOtpMfaSetupRequest) (*SmsOtpMfaSetupResponse, error)
 	ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	// Profile returns the authenticated user.
@@ -408,6 +507,18 @@ func (UnimplementedAuthorizerServiceServer) VerifyOtp(context.Context, *VerifyOt
 }
 func (UnimplementedAuthorizerServiceServer) ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResendOtp not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) SkipMfaSetup(context.Context, *SkipMfaSetupRequest) (*AuthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SkipMfaSetup not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) LockMfa(context.Context, *LockMfaRequest) (*LockMfaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockMfa not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) EmailOtpMfaSetup(context.Context, *EmailOtpMfaSetupRequest) (*EmailOtpMfaSetupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EmailOtpMfaSetup not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) SmsOtpMfaSetup(context.Context, *SmsOtpMfaSetupRequest) (*SmsOtpMfaSetupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SmsOtpMfaSetup not implemented")
 }
 func (UnimplementedAuthorizerServiceServer) ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ForgotPassword not implemented")
@@ -605,6 +716,78 @@ func _AuthorizerService_ResendOtp_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthorizerServiceServer).ResendOtp(ctx, req.(*ResendOtpRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_SkipMfaSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SkipMfaSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).SkipMfaSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_SkipMfaSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).SkipMfaSetup(ctx, req.(*SkipMfaSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_LockMfa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LockMfaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).LockMfa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_LockMfa_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).LockMfa(ctx, req.(*LockMfaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_EmailOtpMfaSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailOtpMfaSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).EmailOtpMfaSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_EmailOtpMfaSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).EmailOtpMfaSetup(ctx, req.(*EmailOtpMfaSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_SmsOtpMfaSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SmsOtpMfaSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).SmsOtpMfaSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_SmsOtpMfaSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).SmsOtpMfaSetup(ctx, req.(*SmsOtpMfaSetupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -863,6 +1046,22 @@ var AuthorizerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResendOtp",
 			Handler:    _AuthorizerService_ResendOtp_Handler,
+		},
+		{
+			MethodName: "SkipMfaSetup",
+			Handler:    _AuthorizerService_SkipMfaSetup_Handler,
+		},
+		{
+			MethodName: "LockMfa",
+			Handler:    _AuthorizerService_LockMfa_Handler,
+		},
+		{
+			MethodName: "EmailOtpMfaSetup",
+			Handler:    _AuthorizerService_EmailOtpMfaSetup_Handler,
+		},
+		{
+			MethodName: "SmsOtpMfaSetup",
+			Handler:    _AuthorizerService_SmsOtpMfaSetup_Handler,
 		},
 		{
 			MethodName: "ForgotPassword",

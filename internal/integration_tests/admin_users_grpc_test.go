@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -164,6 +165,29 @@ func TestAdminUpdateUserGRPC(t *testing.T) {
 	t.Run("no update params is an error", func(t *testing.T) {
 		_, err := client.UpdateUser(adminCtx(cfg.AdminSecret), &authorizerv1.UpdateUserRequest{Id: id})
 		require.Error(t, err)
+	})
+
+	t.Run("reset_mfa clears locked/enabled/skipped MFA state", func(t *testing.T) {
+		now := int64(1)
+		user, err := ts.StorageProvider.AddUser(context.Background(), &schemas.User{
+			Email:                    refs.NewStringRef("admin-users-grpc-reset-mfa-" + uuid.New().String() + "@authorizer.test"),
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			EmailVerifiedAt:          &now,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+			MFALockedAt:              &now,
+			HasSkippedMFASetupAt:     &now,
+		})
+		require.NoError(t, err)
+
+		resp, err := client.UpdateUser(adminCtx(cfg.AdminSecret), &authorizerv1.UpdateUserRequest{
+			Id:       user.ID,
+			ResetMfa: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp.User)
+		assert.False(t, resp.User.IsMultiFactorAuthEnabled)
+		assert.Zero(t, resp.User.MfaLockedAt)
+		assert.Zero(t, resp.User.HasSkippedMfaSetupAt)
 	})
 }
 

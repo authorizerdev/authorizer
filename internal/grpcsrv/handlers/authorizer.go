@@ -231,6 +231,68 @@ func (h *AuthorizerHandler) ResendOtp(ctx context.Context, req *authorizerv1.Res
 	return &authorizerv1.ResendOtpResponse{Message: res.Message}, nil
 }
 
+// SkipMfaSetup delegates to service.SkipMFASetup, applies the withheld-token
+// cookie side-effect to the outgoing stream, and projects the AuthResponse.
+// Public — identified by the MFA session cookie plus email/phone_number, same
+// as VerifyOtp.
+func (h *AuthorizerHandler) SkipMfaSetup(ctx context.Context, req *authorizerv1.SkipMfaSetupRequest) (*authorizerv1.AuthResponse, error) {
+	res, side, err := h.Service.SkipMFASetup(ctx, transport.MetaFromGRPC(ctx), &model.SkipMfaSetupRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+		State:       optionalString(req.State),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return projectAuthResponse(res), nil
+}
+
+// LockMfa delegates to service.LockMFA. Public — identified by the MFA
+// session cookie plus email/phone_number, same as SkipMfaSetup.
+func (h *AuthorizerHandler) LockMfa(ctx context.Context, req *authorizerv1.LockMfaRequest) (*authorizerv1.LockMfaResponse, error) {
+	res, side, err := h.Service.LockMFA(ctx, transport.MetaFromGRPC(ctx), &model.LockMfaRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.LockMfaResponse{Message: res.Message}, nil
+}
+
+// EmailOtpMfaSetup delegates to service.EmailOTPMFASetup. Public at the
+// transport layer — the service resolves the caller from either a bearer
+// token/session (settings-screen "add a second factor") or, absent one, the
+// MFA session cookie plus email/phone_number (withheld first-time-offer
+// state), same dual-mode pattern as the GraphQL resolver.
+func (h *AuthorizerHandler) EmailOtpMfaSetup(ctx context.Context, req *authorizerv1.EmailOtpMfaSetupRequest) (*authorizerv1.EmailOtpMfaSetupResponse, error) {
+	res, side, err := h.Service.EmailOTPMFASetup(ctx, transport.MetaFromGRPC(ctx), &model.OtpMfaSetupRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.EmailOtpMfaSetupResponse{Message: res.Message}, nil
+}
+
+// SmsOtpMfaSetup delegates to service.SMSOTPMFASetup. Same dual-mode
+// permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+func (h *AuthorizerHandler) SmsOtpMfaSetup(ctx context.Context, req *authorizerv1.SmsOtpMfaSetupRequest) (*authorizerv1.SmsOtpMfaSetupResponse, error) {
+	res, side, err := h.Service.SMSOTPMFASetup(ctx, transport.MetaFromGRPC(ctx), &model.OtpMfaSetupRequest{
+		Email:       optionalString(req.Email),
+		PhoneNumber: optionalString(req.PhoneNumber),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.SmsOtpMfaSetupResponse{Message: res.Message}, nil
+}
+
 // ForgotPassword delegates to service.ForgotPassword. Public — the response is
 // generic to avoid account enumeration. Applies any MFA-session cookie
 // side-effects (SMS flow) to the outgoing stream.
@@ -405,5 +467,6 @@ func (h *AuthorizerHandler) Meta(ctx context.Context, _ *authorizerv1.MetaReques
 		IsEmailOtpMfaEnabled:               m.IsEmailOtpMfaEnabled,
 		IsSmsOtpMfaEnabled:                 m.IsSmsOtpMfaEnabled,
 		IsWebauthnEnabled:                  m.IsWebauthnEnabled,
+		IsMfaEnforced:                      m.IsMfaEnforced,
 	}, nil
 }
