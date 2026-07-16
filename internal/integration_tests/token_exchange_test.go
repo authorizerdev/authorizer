@@ -181,6 +181,37 @@ func TestTokenExchangeDelegation(t *testing.T) {
 			"a scope outside the agent's ceiling must never be granted (non-widening)")
 	})
 
+	t.Run("deactivated_service_account_subject_cannot_seed_delegation", func(t *testing.T) {
+		// The subject here is a DIFFERENT service account than the agent -
+		// simulates a multi-hop chain where an upstream agent's own token is
+		// being re-exchanged as the subject_token. Deactivate it AFTER
+		// minting its token but before the exchange: the token is still
+		// cryptographically valid (unexpired, correctly signed) - proving
+		// this rejection actually comes from a live active-status check, not
+		// from token validation catching something else.
+		subjectClientID, subjectSecret := newDelegationAgent(t, ts, "openid,profile,email")
+		subjectToken := agentAccessToken(t, ts, router, subjectClientID, subjectSecret)
+
+		subjectClient, err := ts.StorageProvider.GetClientByClientID(context.Background(), subjectClientID)
+		require.NoError(t, err)
+		subjectClient.IsActive = false
+		_, err = ts.StorageProvider.UpdateClient(context.Background(), subjectClient)
+		require.NoError(t, err)
+
+		clientID, secret := newDelegationAgent(t, ts, "openid,profile,email")
+		actor := agentAccessToken(t, ts, router, clientID, secret)
+		form := url.Values{}
+		form.Set("grant_type", tokenExchangeGrant)
+		form.Set("subject_token", subjectToken)
+		form.Set("subject_token_type", accessTokenType)
+		form.Set("actor_token", actor)
+		form.Set("actor_token_type", accessTokenType)
+		form.Set("resource", "https://api.example.com/v1")
+		w := postTokenExchange(ts, router, form, clientID, secret)
+		assert.Equal(t, http.StatusBadRequest, w.Code, "a deactivated service-account subject must not seed a delegation: %s", w.Body.String())
+		assert.Contains(t, w.Body.String(), "no longer active")
+	})
+
 	t.Run("actor_token_must_belong_to_authenticated_agent", func(t *testing.T) {
 		// A valid token that is NOT the agent's own (here a user token, whose
 		// client_id != the agent) must be rejected as the actor (RFC 8693 §1.1).

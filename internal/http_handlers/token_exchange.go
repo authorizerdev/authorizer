@@ -129,6 +129,31 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	onBehalfOfType := constants.AuditActorTypeUser
 	if lm, _ := subjectClaims["login_method"].(string); lm == constants.AuthRecipeMethodServiceAccount {
 		onBehalfOfType = "agent"
+		// validateExchangeToken only checks the JWT's own signature/exp — it
+		// has no session-store lookup, so a service-account subject_token
+		// stays cryptographically valid until its natural expiry even after
+		// the account is deactivated. Without this check, a still-unexpired
+		// token from a just-deactivated service account could keep seeding
+		// fresh delegated tokens through a willing downstream agent,
+		// extending its effective lifetime past deactivation. Same
+		// fail-closed contract as the user branch below: a subject we
+		// cannot load or confirm active must not seed a delegation.
+		subjectClient, cErr := h.StorageProvider.GetClientByID(gc, subject)
+		if cErr != nil || subjectClient == nil {
+			log.Debug().Err(cErr).Msg("subject service account could not be verified")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_grant",
+				"error_description": "The subject could not be verified",
+			})
+			return
+		}
+		if !subjectClient.IsActive {
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_grant",
+				"error_description": "The subject is no longer active",
+			})
+			return
+		}
 	} else {
 		user, uErr := h.StorageProvider.GetUserByID(gc, subject)
 		if uErr != nil || user == nil {
