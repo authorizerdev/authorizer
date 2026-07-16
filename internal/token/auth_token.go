@@ -383,6 +383,11 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
+	if p.userIsRevoked(gc, userID) {
+		p.dependencies.Log.Debug().Str("user_id", userID).Msg("access token rejected: user revoked")
+		return res, fmt.Errorf(`unauthorized: user revoked`)
+	}
+
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
 		HostName: hostname,
@@ -484,7 +489,33 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
 
+	if p.userIsRevoked(gc, res.Subject) {
+		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: user revoked")
+		return nil, fmt.Errorf(`unauthorized: user revoked`)
+	}
+
 	return &res, nil
+}
+
+// userIsRevoked re-checks the DB RevokedTimestamp for a user resolved from an
+// already-issued access token or browser session. This is defense-in-depth:
+// the session-store deletion SCIM deactivate() (and account deactivation)
+// perform is the primary revocation mechanism for these stateful tokens, but
+// if that delete was missed or failed on this instance, a held token would
+// otherwise keep authenticating requests until its natural exp. Mirrors the
+// same demote-only pattern used by introspect.go/token.go/login.go: a lookup
+// failure never blocks a request that otherwise validated (fail open on DB
+// errors so a transient storage blip can't take down every authenticated
+// request), only a confirmed RevokedTimestamp does.
+func (p *provider) userIsRevoked(gc *gin.Context, userID string) bool {
+	if p.dependencies.StorageProvider == nil || userID == "" {
+		return false
+	}
+	user, err := p.dependencies.StorageProvider.GetUserByID(gc, userID)
+	if err != nil || user == nil {
+		return false
+	}
+	return user.RevokedTimestamp != nil
 }
 
 // CreateIDToken util to create the OIDC ID token JWT, based on user

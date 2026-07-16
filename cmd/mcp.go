@@ -100,6 +100,7 @@ func runMCP(_ *cobra.Command, _ []string) {
 	tokenProvider, err := token.New(&rootArgs.config, &token.Dependencies{
 		Log:                 &log,
 		MemoryStoreProvider: memoryStoreProvider,
+		StorageProvider:     storageProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create token provider")

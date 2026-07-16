@@ -68,7 +68,7 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 	require.NoError(t, err)
 	smsProvider, err := sms.New(cfg, &sms.Dependencies{Log: &logger})
 	require.NoError(t, err)
-	tokenProvider, err := token.New(cfg, &token.Dependencies{Log: &logger, MemoryStoreProvider: memoryStoreProvider})
+	tokenProvider, err := token.New(cfg, &token.Dependencies{Log: &logger, MemoryStoreProvider: memoryStoreProvider, StorageProvider: storageProvider})
 	require.NoError(t, err)
 	rateLimitProvider, err := rate_limit.New(cfg, &rate_limit.Dependencies{Log: &logger})
 	require.NoError(t, err)

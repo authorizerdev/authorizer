@@ -10,12 +10,19 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Dependencies struct for token provider
 type Dependencies struct {
 	Log                 *zerolog.Logger
 	MemoryStoreProvider memory_store.Provider
+	// StorageProvider backs the revocation re-check in ValidateAccessToken /
+	// ValidateBrowserSession: defense-in-depth so a deprovisioned user
+	// (RevokedTimestamp set — SCIM active:false, account deactivation) loses
+	// request-serving access even if the session-store delete that normally
+	// invalidates the token was missed or failed on this instance.
+	StorageProvider storage.Provider
 }
 
 type provider struct {

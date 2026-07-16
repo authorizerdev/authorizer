@@ -282,6 +282,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	tokenProvider, err := token.New(cfg, &token.Dependencies{
 		Log:                 &logger,
 		MemoryStoreProvider: memoryStoreProvider,
+		StorageProvider:     storageProvider,
 	})
 	require.NoError(t, err)
 
