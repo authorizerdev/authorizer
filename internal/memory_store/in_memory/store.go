@@ -77,6 +77,15 @@ func (c *provider) DeleteMfaSession(userId, key string) error {
 	return nil
 }
 
+// GetMfaSessionOwner resolves the userID and purpose for a bare mfa session key.
+func (c *provider) GetMfaSessionOwner(key string) (string, string, error) {
+	ownerKey, value, found := c.mfasessionStore.FindOwnerBySuffix(key)
+	if !found {
+		return "", "", fmt.Errorf("not found")
+	}
+	return ownerKey, value, nil
+}
+
 // SetState sets the state in the in-memory store.
 func (c *provider) SetState(key, state string) error {
 	c.mutex.Lock()

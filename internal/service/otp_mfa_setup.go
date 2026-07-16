@@ -50,7 +50,17 @@ func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetada
 		phoneNumber = strings.TrimSpace(refs.StringValue(params.PhoneNumber))
 	}
 	if email == "" && phoneNumber == "" {
-		return nil, Unauthenticated(`unauthorized`)
+		// No identifier supplied (OAuth-return first-time-offer): resolve the
+		// account from the session cookie alone.
+		ownerID, _, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil {
+			return nil, Unauthenticated(`unauthorized`)
+		}
+		user, uErr := p.StorageProvider.GetUserByID(ctx, ownerID)
+		if user == nil || uErr != nil {
+			return nil, Unauthenticated(`unauthorized`)
+		}
+		return user, nil
 	}
 
 	var user *schemas.User

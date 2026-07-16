@@ -138,19 +138,18 @@ func TestSkipMFASetup(t *testing.T) {
 		})
 	}
 
-	t.Run("rejects with InvalidArgument when neither email nor phone_number is given", func(t *testing.T) {
+	t.Run("rejects with Unauthenticated when no identifier is given and the session cookie does not resolve", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
 		cfg.EnableTOTPLogin = true
 		ts := initTestSetup(t, cfg)
 		req, ctx := createContext(ts)
 
-		// SkipMFASetup reads the mfa session cookie before validating
-		// email/phone_number (mirrors VerifyOTP's ordering), so a cookie
-		// must be present here or the call short-circuits on Unauthenticated
-		// before ever reaching the check this subtest targets. The value
-		// itself need not resolve to a real session — no user lookup happens
-		// before the email/phone_number check runs.
+		// With no email/phone_number, SkipMFASetup now falls back to resolving
+		// the account from the session cookie alone (the OAuth-return
+		// continuation path — GetMfaSessionOwner). A cookie that resolves to no
+		// stored session therefore fails with Unauthenticated, not
+		// InvalidArgument: there is no longer an "identifier required" path here.
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", uuid.NewString()))
 
 		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{})
@@ -159,7 +158,7 @@ func TestSkipMFASetup(t *testing.T) {
 
 		var svcErr *service.Error
 		require.True(t, errors.As(err, &svcErr))
-		assert.Equal(t, service.KindInvalidArgument, svcErr.Kind)
+		assert.Equal(t, service.KindUnauthenticated, svcErr.Kind)
 	})
 
 	t.Run("rejects a Challenge session (ResendOTP/ForgotPassword) with Unauthenticated", func(t *testing.T) {

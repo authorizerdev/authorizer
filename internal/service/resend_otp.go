@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
@@ -26,12 +27,44 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	phoneNumber := strings.Trim(refs.StringValue(params.PhoneNumber), " ")
 	log := p.Log.With().Str("func", "ResendOTP").Str("email", email).Str("phone_number", phoneNumber).Logger()
 	side := &ResponseSideEffects{}
-	if email == "" && phoneNumber == "" {
-		log.Debug().Msg("Email or phone number is required")
-		return nil, nil, InvalidArgument("email or phone number is required")
-	}
 	var user *schemas.User
 	var err error
+	// The identifier-supplied path mints a Challenge session (the C1-fix
+	// behavior); the session-only fallback below upgrades this to Verified.
+	mfaSessionPurpose := constants.MFASessionPurposeChallenge
+	if email == "" && phoneNumber == "" {
+		// Session-only fallback: an OAuth-return caller has a Verified MFA
+		// session cookie but no identifier (email/phone never travels in the
+		// redirect, to avoid referrer/log/history leakage). Resolve the account
+		// from the session alone, then run the normal resend body. Only a
+		// Verified session qualifies — a bare Challenge session must not spawn
+		// further resends without an identifier (preserves the C1-fix
+		// invariant), so anything short of a resolvable Verified session is
+		// treated exactly as if no identifier was supplied.
+		gc := &gin.Context{Request: meta.Request}
+		mfaSession, cErr := cookie.GetMfaSession(gc)
+		if cErr != nil {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		user, err = p.StorageProvider.GetUserByID(ctx, ownerID)
+		if user == nil || err != nil {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		// Drive the rest of the flow off the resolved account, preferring email.
+		email = strings.ToLower(strings.Trim(refs.StringValue(user.Email), " "))
+		phoneNumber = strings.Trim(refs.StringValue(user.PhoneNumber), " ")
+		if email != "" {
+			phoneNumber = ""
+		}
+		mfaSessionPurpose = constants.MFASessionPurposeVerified
+	}
 	var isEmailServiceEnabled, isSMSServiceEnabled bool
 	if email != "" {
 		isEmailServiceEnabled = p.Config.IsEmailServiceEnabled
@@ -106,10 +139,12 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	}
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
-		// The caller only proved they can trigger an OTP send to this
-		// email/phone — no first factor. Challenge, NOT Verified, so this
-		// session can never skip MFA setup or lock the account.
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, expiresAt)
+		// Identifier-supplied callers only proved they can trigger an OTP send
+		// to this email/phone — no first factor — so they get a Challenge
+		// session that can never skip MFA setup or lock the account. The
+		// session-only fallback above resolved an already-Verified caller, so
+		// it keeps that Verified status (mfaSessionPurpose).
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, mfaSessionPurpose, expiresAt)
 		if err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return err

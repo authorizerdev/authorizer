@@ -82,5 +82,11 @@ func (p *provider) EvaluateMFAGateForOAuth(ctx context.Context, meta RequestMeta
 	q := url.Values{}
 	q.Set("mfa_required", "1")
 	q.Set("mfa_methods", strings.Join(methods, ","))
+	// Deliberately no email/phone_number here: OAuth's continuation calls
+	// (verify_otp/skip_mfa_setup/lock_mfa) resolve the account from the MFA
+	// session cookie alone when no identifier is supplied — see
+	// MemoryStoreProvider.GetMfaSessionOwner. Putting PII in a redirect URL
+	// risks referrer leakage to third-party scripts, proxy/CDN access logs,
+	// and browser history — avoided entirely by not needing it here.
 	return true, q.Encode(), nil
 }

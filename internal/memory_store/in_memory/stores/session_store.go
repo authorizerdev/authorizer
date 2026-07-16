@@ -105,6 +105,28 @@ func (s *SessionStore) GetAll(key string) []string {
 	return values
 }
 
+// FindOwnerBySuffix scans for any stored key ending in ":<subKey>" and returns
+// the owner portion (the userID prefix) and its value (the purpose). Used to
+// resolve an mfa session by its bare session key when the caller does not know
+// the owning userID. Expired entries are skipped (and deleted), same as Get.
+func (s *SessionStore) FindOwnerBySuffix(subKey string) (ownerKey, value string, found bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	currentTime := time.Now().Unix()
+	suffix := ":" + subKey
+	for k, v := range s.store {
+		if !strings.HasSuffix(k, suffix) {
+			continue
+		}
+		if v.ExpiresAt > currentTime {
+			return strings.TrimSuffix(k, suffix), v.Value, true
+		}
+		// Delete expired items
+		delete(s.store, k)
+	}
+	return "", "", false
+}
+
 // Set sets the value of the key in state store
 func (s *SessionStore) Set(key string, subKey, value string, expiration int64) {
 	s.mutex.Lock()

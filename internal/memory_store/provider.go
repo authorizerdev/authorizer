@@ -58,6 +58,12 @@ type Provider interface {
 	GetAllMfaSessions(userId string) ([]string, error)
 	// DeleteMfaSession deletes given mfa session from in-memory store.
 	DeleteMfaSession(userId, key string) error
+	// GetMfaSessionOwner resolves the userID and purpose for a bare mfa session
+	// key, without the caller already knowing the owning userID — used when a
+	// caller has a valid session cookie but no identifier (e.g. continuing an
+	// OAuth-originated MFA challenge, where the frontend never learns the
+	// account's email/phone).
+	GetMfaSessionOwner(key string) (userID, purpose string, err error)
 
 	// SetState sets the login state (key, value form) in the session store
 	SetState(key, state string) error

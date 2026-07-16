@@ -250,6 +250,32 @@ func (p *provider) DeleteMfaSession(userId, key string) error {
 	return nil
 }
 
+// GetMfaSessionOwner resolves the userID and purpose for a bare mfa session
+// key, without knowing the owning userID. The persisted KeyName carries a
+// "<key>::<purpose>" form, so match on the "<key>::" prefix.
+func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
+	ctx := context.Background()
+
+	// Clean expired entries first
+	err := p.cleanExpiredMFASessions(ctx)
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("Error cleaning expired MFA sessions")
+	}
+
+	sessions, err := p.getAllMFASessions(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("not found")
+	}
+
+	prefix := key + mfaPurposeSeparator
+	for _, session := range sessions {
+		if strings.HasPrefix(session.KeyName, prefix) {
+			return session.UserID, strings.TrimPrefix(session.KeyName, prefix), nil
+		}
+	}
+	return "", "", fmt.Errorf("not found")
+}
+
 // SetState sets the login state (key, value form) in the session store
 func (p *provider) SetState(key, state string) error {
 	ctx := context.Background()

@@ -32,30 +32,43 @@ func (p *provider) LockMFA(ctx context.Context, meta RequestMetadata, params *mo
 
 	email := strings.TrimSpace(refs.StringValue(params.Email))
 	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
-	if email == "" && phoneNumber == "" {
-		log.Debug().Msg("Email or phone number is required")
-		return nil, nil, InvalidArgument(`email or phone number is required`)
-	}
 
 	var user *schemas.User
-	if email != "" {
-		user, err = p.StorageProvider.GetUserByEmail(ctx, email)
+	if email == "" && phoneNumber == "" {
+		// No identifier supplied (OAuth-return MFA continuation): resolve the
+		// account from the session cookie alone. Ownership plus a Verified
+		// purpose prove the first factor, exactly as the GetMfaSession +
+		// purpose check does on the identifier-supplied path below.
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
+			log.Debug().Err(oErr).Msg("Failed to resolve mfa session owner")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
+		user, err = p.StorageProvider.GetUserByID(ctx, ownerID)
+		if user == nil || err != nil {
+			log.Debug().Err(err).Msg("Failed to resolve user from mfa session")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
 	} else {
-		user, err = p.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
-	}
-	if user == nil || err != nil {
-		log.Debug().Err(err).Msg("User not found")
-		return nil, nil, NotFound("invalid request")
-	}
+		if email != "" {
+			user, err = p.StorageProvider.GetUserByEmail(ctx, email)
+		} else {
+			user, err = p.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
+		}
+		if user == nil || err != nil {
+			log.Debug().Err(err).Msg("User not found")
+			return nil, nil, NotFound("invalid request")
+		}
 
-	// A bare session must not lock an account. Require a Verified session
-	// (first factor completed for THIS user); a Challenge session
-	// (ResendOTP/ForgotPassword) is rejected with the same shape as a missing
-	// one, closing an unauthenticated account-lockout DoS.
-	purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
-	if err != nil || purpose != constants.MFASessionPurposeVerified {
-		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, nil, Unauthenticated(`invalid session`)
+		// A bare session must not lock an account. Require a Verified session
+		// (first factor completed for THIS user); a Challenge session
+		// (ResendOTP/ForgotPassword) is rejected with the same shape as a missing
+		// one, closing an unauthenticated account-lockout DoS.
+		purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+		if err != nil || purpose != constants.MFASessionPurposeVerified {
+			log.Debug().Err(err).Msg("Failed to get mfa session")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
 	}
 
 	if p.hasVerifiedOTPFallback(ctx, user.ID) {
