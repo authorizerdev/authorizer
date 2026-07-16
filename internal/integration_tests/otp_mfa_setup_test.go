@@ -56,7 +56,13 @@ func TestTOTPMFAEnrollment(t *testing.T) {
 	require.NotNil(t, skipRes.AccessToken)
 	req.Header.Set("Authorization", "Bearer "+*skipRes.AccessToken)
 
-	// Now, as an already-logged-in user, enroll TOTP.
+	// Now, as an already-logged-in user with NO leftover MFA session (skip
+	// already consumed/deleted the one from login), enroll TOTP. This is
+	// the realistic settings-screen scenario, and the regression case:
+	// resolveOTPSetupCaller must re-arm a fresh MFA session itself here, or
+	// the verify_otp call below fails with "invalid session" even though
+	// setup itself reported success.
+	req.Header.Set("Cookie", "")
 	setupRes, err := ts.GraphQLProvider.TOTPMFASetup(ctx, nil)
 	require.NoError(t, err)
 	require.NotNil(t, setupRes)
@@ -72,11 +78,11 @@ func TestTOTPMFAEnrollment(t *testing.T) {
 	code, err := totp.GenerateCode(refs.StringValue(setupRes.AuthenticatorSecret), time.Now())
 	require.NoError(t, err)
 
-	// verify_otp is identified by the mfa session cookie, not the bearer
-	// token -- arm a fresh session directly, same pattern as the email-OTP
-	// enrollment test.
-	verifySession := uuid.NewString()
-	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, verifySession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+	// verify_otp is identified by the mfa session cookie TOTPMFASetup itself
+	// must have just re-armed - not a synthetic one, proving the fix rather
+	// than bypassing the exact gap it closes.
+	verifySession := latestMfaSessionCookie(ts)
+	require.NotEmpty(t, verifySession, "totp_mfa_setup must re-arm an MFA session for the caller")
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", verifySession))
 	verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{Email: &email, Otp: code, IsTotp: refs.NewBoolRef(true)})
 	require.NoError(t, err)
@@ -155,7 +161,13 @@ func TestEmailOTPMFAEnrollment(t *testing.T) {
 	require.NotNil(t, skipRes.AccessToken)
 	req.Header.Set("Authorization", "Bearer "+*skipRes.AccessToken)
 
-	// Now, as an already-logged-in user, enroll a second factor.
+	// Now, as an already-logged-in user with NO leftover MFA session (skip
+	// already consumed/deleted the one from login), enroll a second factor.
+	// This is the realistic settings-screen scenario, and the regression
+	// case: resolveOTPSetupCaller must re-arm a fresh MFA session itself
+	// here, or the verify_otp call below fails with "invalid session" even
+	// though setup itself reported success.
+	req.Header.Set("Cookie", "")
 	setupRes, err := ts.GraphQLProvider.EmailOTPMFASetup(ctx, nil)
 	require.NoError(t, err)
 	require.NotNil(t, setupRes)
@@ -177,11 +189,11 @@ func TestEmailOTPMFAEnrollment(t *testing.T) {
 	_, err = ts.StorageProvider.UpsertOTP(ctx, storedOTP)
 	require.NoError(t, err)
 
-	// verify_otp is identified by the mfa session cookie, not the bearer
-	// token -- arm a fresh session directly (same approach as
-	// TestVerifyOTPNoRecord) rather than threading the earlier one through.
-	verifySession := uuid.NewString()
-	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, verifySession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+	// verify_otp is identified by the mfa session cookie EmailOTPMFASetup
+	// itself must have just re-armed - not a synthetic one, proving the fix
+	// rather than bypassing the exact gap it closes.
+	verifySession := latestMfaSessionCookie(ts)
+	require.NotEmpty(t, verifySession, "email_otp_mfa_setup must re-arm an MFA session for the caller")
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", verifySession))
 	verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{Email: &email, Otp: knownPlainOTP})
 	require.NoError(t, err)

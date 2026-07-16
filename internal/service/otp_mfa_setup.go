@@ -19,7 +19,7 @@ import (
 )
 
 // resolveOTPSetupCaller resolves the caller for EmailOTPMFASetup /
-// SMSOTPMFASetup under either of two auth modes:
+// SMSOTPMFASetup / TOTPMFASetup under either of two auth modes:
 //
 //  1. Bearer token / session (unchanged, existing behavior) — an
 //     already-logged-in user adding a second factor from account settings.
@@ -32,8 +32,33 @@ import (
 //     email/phone_number, then validate the MFA session cookie is actually
 //     theirs.
 //
+// Either way, re-arms a fresh MFA session before returning: verify_otp
+// requires a valid MFA session cookie unconditionally, and a bearer-token
+// caller (the realistic settings-screen path) has no MFA session at all
+// yet — without this, setup would succeed but the immediately-following
+// verify_otp call would fail with "invalid session" for anyone who isn't
+// still holding a live session from a recent login-time MFA gate. A
+// cookie-mode caller already has a valid session, but re-arming it too
+// keeps both modes uniform and refreshes a session that may be close to
+// its original expiry.
+//
 // Returns Unauthenticated if neither mode resolves a caller.
-func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
+func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
+	user, err := p.resolveOTPSetupCallerIdentity(ctx, meta, params)
+	if err != nil {
+		return nil, err
+	}
+	expiresAt := time.Now().Add(3 * time.Minute).Unix()
+	if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// resolveOTPSetupCallerIdentity is resolveOTPSetupCaller's identity-only
+// half, split out so the MFA-session re-arming above has a single call site
+// rather than being duplicated across every return branch below.
+func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
 	if tokenData, err := p.callerTokenData(ctx, meta); err == nil && tokenData != nil && tokenData.UserID != "" {
 		return p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
 	}
@@ -88,8 +113,9 @@ func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetada
 // offer state. See resolveOTPSetupCaller.
 func (p *provider) EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "EmailOTPMFASetup").Logger()
+	side := &ResponseSideEffects{}
 
-	user, err := p.resolveOTPSetupCaller(ctx, meta, params)
+	user, err := p.resolveOTPSetupCaller(ctx, meta, side, params)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve caller")
 		return nil, nil, err
@@ -137,14 +163,15 @@ func (p *provider) EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, p
 		UserAgent:    meta.UserAgent,
 	})
 
-	return &model.Response{Message: "Check your email for the verification code"}, nil, nil
+	return &model.Response{Message: "Check your email for the verification code"}, side, nil
 }
 
 // SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
 func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "SMSOTPMFASetup").Logger()
+	side := &ResponseSideEffects{}
 
-	user, err := p.resolveOTPSetupCaller(ctx, meta, params)
+	user, err := p.resolveOTPSetupCaller(ctx, meta, side, params)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve caller")
 		return nil, nil, err
@@ -191,7 +218,7 @@ func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, par
 		UserAgent:    meta.UserAgent,
 	})
 
-	return &model.Response{Message: "Check your phone for the verification code"}, nil, nil
+	return &model.Response{Message: "Check your phone for the verification code"}, side, nil
 }
 
 // TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
@@ -205,8 +232,9 @@ func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, par
 // resolveOTPSetupCaller.
 func (p *provider) TOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "TOTPMFASetup").Logger()
+	side := &ResponseSideEffects{}
 
-	user, err := p.resolveOTPSetupCaller(ctx, meta, params)
+	user, err := p.resolveOTPSetupCaller(ctx, meta, side, params)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve caller")
 		return nil, nil, err
@@ -239,7 +267,7 @@ func (p *provider) TOTPMFASetup(ctx context.Context, meta RequestMetadata, param
 		AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
 		AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
 		AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
-	}, nil, nil
+	}, side, nil
 }
 
 // generateAndStoreOTP is the single OTP-generation implementation shared by
