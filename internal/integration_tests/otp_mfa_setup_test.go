@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +16,86 @@ import (
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
+
+// TestTOTPMFAEnrollment covers the full enroll-then-use cycle for
+// settings-mode TOTP MFA setup (totp_mfa_setup): previously TOTP enrollment
+// could only ever be generated inline as a side effect of the login/signup
+// gate response - a bearer-token-authenticated user had no way to add TOTP
+// from account settings the way EmailOTPMFASetup/SMSOTPMFASetup already
+// allow. Mirrors TestEmailOTPMFAEnrollment's flow.
+func TestTOTPMFAEnrollment(t *testing.T) {
+	const password = "Password@123"
+
+	cfg := getTestConfig()
+	cfg.EnableMFA = true
+	cfg.EnableTOTPLogin = true
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	email := "totp_mfa_" + uuid.NewString() + "@authorizer.dev"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email: &email, Password: password, ConfirmPassword: password,
+		IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+	})
+	require.NoError(t, err)
+	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+
+	// First login: nothing enrolled yet -> withheld, offered.
+	loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+	require.NoError(t, err)
+	require.Nil(t, loginRes.AccessToken, "no method enrolled yet -> withheld, offer-all")
+
+	// Get a bearer token the realistic way: skip the offer now (settings-
+	// screen enrollment is a separate, later, already-logged-in action).
+	mfaSession := latestMfaSessionCookie(ts)
+	require.NotEmpty(t, mfaSession, "login must have set an mfa session cookie on the response")
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+	skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+	require.NoError(t, err)
+	require.NotNil(t, skipRes.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+*skipRes.AccessToken)
+
+	// Now, as an already-logged-in user, enroll TOTP.
+	setupRes, err := ts.GraphQLProvider.TOTPMFASetup(ctx, nil)
+	require.NoError(t, err)
+	require.NotNil(t, setupRes)
+	require.NotEmpty(t, refs.StringValue(setupRes.AuthenticatorSecret))
+	require.NotEmpty(t, refs.StringValue(setupRes.AuthenticatorScannerImage))
+	require.NotEmpty(t, setupRes.AuthenticatorRecoveryCodes)
+
+	authenticator, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	require.NoError(t, err)
+	require.NotNil(t, authenticator)
+	assert.Nil(t, authenticator.VerifiedAt, "setup alone must not mark the enrollment verified")
+
+	code, err := totp.GenerateCode(refs.StringValue(setupRes.AuthenticatorSecret), time.Now())
+	require.NoError(t, err)
+
+	// verify_otp is identified by the mfa session cookie, not the bearer
+	// token -- arm a fresh session directly, same pattern as the email-OTP
+	// enrollment test.
+	verifySession := uuid.NewString()
+	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, verifySession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", verifySession))
+	verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{Email: &email, Otp: code, IsTotp: refs.NewBoolRef(true)})
+	require.NoError(t, err)
+	require.NotNil(t, verifyRes)
+
+	authenticator, err = ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	require.NoError(t, err)
+	require.NotNil(t, authenticator)
+	require.NotNil(t, authenticator.VerifiedAt, "verify_otp must mark the pending enrollment verified")
+
+	// A subsequent login now routes through the TOTP challenge branch (not
+	// mfaGateOfferAll) since the enrollment is verified - authenticatorVerified
+	// wins over the earlier skip per resolveMFAGate's decision table.
+	req.Header.Set("Authorization", "")
+	secondLogin, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+	require.NoError(t, err)
+	require.Nil(t, secondLogin.AccessToken, "an enrolled-and-verified TOTP factor must challenge, not skip, login")
+	assert.True(t, refs.BoolValue(secondLogin.ShouldShowTotpScreen), "must route through the TOTP challenge branch, not the offer-all screen")
+}
 
 // TestEmailOTPMFAEnrollment covers the full enroll-then-use cycle for
 // email-OTP-as-MFA:
@@ -296,6 +377,9 @@ func TestOTPMFASetupRejectsUnauthenticatedCaller(t *testing.T) {
 	assert.Error(t, err, "no token and no cookie/identity must be rejected")
 
 	_, err = ts.GraphQLProvider.SMSOTPMFASetup(ctx, nil)
+	assert.Error(t, err, "no token and no cookie/identity must be rejected")
+
+	_, err = ts.GraphQLProvider.TOTPMFASetup(ctx, nil)
 	assert.Error(t, err, "no token and no cookie/identity must be rejected")
 
 	// email/phone_number supplied but no MFA session cookie set at all --

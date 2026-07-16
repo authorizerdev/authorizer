@@ -194,6 +194,54 @@ func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, par
 	return &model.Response{Message: "Check your phone for the verification code"}, nil, nil
 }
 
+// TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
+// caller to enroll as an MFA method. Unlike EmailOTPMFASetup/SMSOTPMFASetup,
+// nothing is sent anywhere - generateTOTPEnrollment (login.go) already
+// persists the unverified Authenticator row itself (via
+// AuthenticatorProvider.Generate), so the enrollment payload is simply
+// returned to the caller to scan/enter, then completed via
+// VerifyOTP(is_totp: true) same as the login-gate TOTP flow.
+// Permissions: same dual mode as EmailOTPMFASetup/SMSOTPMFASetup - see
+// resolveOTPSetupCaller.
+func (p *provider) TOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error) {
+	log := p.Log.With().Str("func", "TOTPMFASetup").Logger()
+
+	user, err := p.resolveOTPSetupCaller(ctx, meta, params)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to resolve caller")
+		return nil, nil, err
+	}
+
+	if !p.Config.EnableTOTPLogin {
+		return nil, nil, FailedPrecondition("authenticator app MFA is not available on this server")
+	}
+
+	enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to generate totp enrollment")
+		return nil, nil, err
+	}
+
+	p.AuditProvider.LogEvent(audit.Event{
+		Action:   constants.AuditMFAEnabledEvent,
+		Protocol: meta.Protocol, ActorID: user.ID,
+		ActorType:    constants.AuditActorTypeUser,
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+		IPAddress:    meta.IPAddress,
+		UserAgent:    meta.UserAgent,
+	})
+
+	return &model.AuthResponse{
+		Message:                    `Proceed to totp verification screen`,
+		ShouldShowTotpScreen:       refs.NewBoolRef(true),
+		AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
+		AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
+		AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
+	}, nil, nil
+}
+
 // generateAndStoreOTP is the single OTP-generation implementation shared by
 // login.go's email/SMS-verification and TOTP-alternative branches,
 // resend_otp.go, and this file's Email/SMS-OTP-as-MFA setup: generates a

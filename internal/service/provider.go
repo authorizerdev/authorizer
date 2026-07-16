@@ -122,6 +122,13 @@ type Provider interface {
 	EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error)
 	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
 	SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error)
+	// TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
+	// caller to enroll as an MFA method, same dual-mode permissions as
+	// EmailOTPMFASetup/SMSOTPMFASetup. Unlike those, nothing is sent
+	// anywhere - the enrollment payload is returned directly (same shape
+	// login.go's gate response uses) so the caller scans the QR/enters the
+	// code, then completes enrollment via VerifyOTP(is_totp: true).
+	TOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.

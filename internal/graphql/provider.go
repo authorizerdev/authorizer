@@ -116,6 +116,10 @@ type Provider interface {
 	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
 	// Permissions: authorized user (bearer token) OR MFA session cookie.
 	SMSOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
+	// TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
+	// caller to enroll as an MFA method. Same dual-mode permissions as
+	// EmailOTPMFASetup/SMSOTPMFASetup.
+	TOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)

@@ -1414,6 +1414,14 @@ type Mutation {
   # and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
   # permissions and relationship to verify_otp as email_otp_mfa_setup.
   sms_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
+  # totp_mfa_setup generates a fresh TOTP secret/QR/recovery-codes for the
+  # caller to enroll as an MFA method. Same dual-mode permissions as
+  # email_otp_mfa_setup/sms_otp_mfa_setup. Unlike those, nothing is sent
+  # anywhere - the enrollment payload is returned directly (same
+  # authenticator_scanner_image/authenticator_secret/authenticator_recovery_codes
+  # fields the login/signup gate response uses) so the caller scans the
+  # QR/enters the code, then completes enrollment via verify_otp(is_totp: true).
+  totp_mfa_setup(params: OtpMfaSetupRequest): AuthResponse!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
   webauthn_registration_options(
     email: String

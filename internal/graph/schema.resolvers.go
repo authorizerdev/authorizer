@@ -102,6 +102,11 @@ func (r *mutationResolver) SmsOtpMfaSetup(ctx context.Context, params *model.Otp
 	return r.GraphQLProvider.SMSOTPMFASetup(ctx, params)
 }
 
+// TotpMfaSetup is the resolver for the totp_mfa_setup field.
+func (r *mutationResolver) TotpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error) {
+	return r.GraphQLProvider.TOTPMFASetup(ctx, params)
+}
+
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
 func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
 	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email)

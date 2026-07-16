@@ -43,3 +43,20 @@ func (g *graphqlProvider) SMSOTPMFASetup(ctx context.Context, params *model.OtpM
 	service.ApplyToGin(gc, side)
 	return res, nil
 }
+
+// TOTPMFASetup delegates to the transport-agnostic service layer.
+// Permissions: authenticated user (bearer token) OR MFA session cookie.
+func (g *graphqlProvider) TOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error) {
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		g.Log.Debug().Err(err).Msg("failed to get gin context")
+		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
+		return nil, err
+	}
+	res, side, err := g.ServiceProvider.TOTPMFASetup(ctx, service.MetaFromGin(gc), params)
+	if err != nil {
+		return nil, err
+	}
+	service.ApplyToGin(gc, side)
+	return res, nil
+}
