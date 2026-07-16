@@ -284,6 +284,20 @@ func TestSAML_WrongRecipientRejected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Destination (the <Response> attribute) is checked independently of
+// SubjectConfirmationData/Recipient — a response signed for a *different*
+// org's ACS URL but replayed at org A, with Recipient left correct, must
+// still be rejected. Closes a coverage gap: TestSAML_WrongRecipientRejected
+// only varied Recipient, never isolated Destination.
+func TestSAML_WrongDestinationRejected(t *testing.T) {
+	idp := newSAMLIdP(t)
+	p := defaultAssertionParams()
+	p.destination = "https://auth.example.com/oauth/saml/other/acs"
+	raw := makeSAMLResponse(t, idp, p)
+	_, err := parseWith(t, samlTestConn(idp), raw, []string{samlTestRequestID})
+	require.Error(t, err)
+}
+
 func TestSAML_ExpiredAssertionRejected(t *testing.T) {
 	idp := newSAMLIdP(t)
 	p := defaultAssertionParams()
