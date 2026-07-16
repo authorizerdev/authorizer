@@ -103,6 +103,36 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 		assert.NotEmpty(t, side.Cookies, "an mfa session cookie must be set on a withheld outcome")
 	})
 
+	t.Run("mfaGateOfferAll omits totp when TOTP login is disabled", func(t *testing.T) {
+		// Regression guard for the oauth gate appending totp unconditionally:
+		// every other method is gated on its own config flag, but totp used to
+		// be listed even on a server where TOTP login is off (DisableTOTPLogin).
+		// Enable WebAuthn so the offer branch still produces a non-empty
+		// mfa_methods, then assert it lists only webauthn — never totp.
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = false
+		cfg.EnableWebauthnMFA = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		user := newTestUser(t, ts, ctx, func(u *schemas.User) {
+			u.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		})
+
+		side := &service.ResponseSideEffects{}
+		meta := service.RequestMetadata{HostURL: testAuthorizerHost(ts)}
+		withheld, redirectSuffix, err := ts.ServiceProvider.EvaluateMFAGateForOAuth(ctx, meta, side, user)
+		require.NoError(t, err)
+		assert.True(t, withheld)
+
+		values, parseErr := url.ParseQuery(redirectSuffix)
+		require.NoError(t, parseErr)
+		methods := values.Get("mfa_methods")
+		assert.NotContains(t, methods, constants.EnvKeyTOTPAuthenticator, "totp must not be offered when TOTP login is disabled")
+		assert.Contains(t, methods, constants.AuthRecipeMethodWebauthn, "the offer branch must still list configured methods")
+	})
+
 	t.Run("mfaGateBlockEnroll withholds with mfa_required=1", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true

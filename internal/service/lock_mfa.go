@@ -87,12 +87,10 @@ func (p *provider) LockMFA(ctx context.Context, meta RequestMetadata, params *mo
 }
 
 // hasVerifiedOTPFallback reports whether userID has a verified Email-OTP or
-// SMS-OTP MFA enrollment — the one case where locking is refused because a
-// working recovery path already exists. Depends on Task 6's Email/SMS-OTP
-// Authenticator rows (constants.EnvKeyEmailOTPAuthenticator /
-// constants.EnvKeySMSOTPAuthenticator) — until Task 6 lands, this always
-// returns false (no such rows can exist yet), which is safe: it just means
-// lock_mfa is never refused, matching this task's standalone test scope.
+// SMS-OTP MFA enrollment (constants.EnvKeyEmailOTPAuthenticator /
+// constants.EnvKeySMSOTPAuthenticator) — the one case where locking is
+// refused because a working recovery path already exists and should be used
+// instead.
 func (p *provider) hasVerifiedOTPFallback(ctx context.Context, userID string) bool {
 	for _, method := range []string{constants.EnvKeyEmailOTPAuthenticator, constants.EnvKeySMSOTPAuthenticator} {
 		a, err := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, method)

@@ -70,6 +70,48 @@ func TestLockMFA(t *testing.T) {
 		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "a locked account must be rejected by the lockout check specifically, not any other error kind")
 	})
 
+	t.Run("refuses to lock when a verified SMS-OTP fallback exists", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "lock_mfa_otp_fallback_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// A verified SMS-OTP authenticator is a working recovery path, so
+		// locking must be refused: the user should use it instead.
+		_, err = ts.StorageProvider.AddAuthenticator(ctx, &schemas.Authenticator{
+			UserID:     user.ID,
+			Method:     constants.EnvKeySMSOTPAuthenticator,
+			VerifiedAt: &now,
+		})
+		require.NoError(t, err)
+
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		lockRes, err := ts.GraphQLProvider.LockMFA(ctx, &model.LockMfaRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, lockRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "a verified OTP fallback must block locking with FailedPrecondition")
+
+		unlocked, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		assert.Nil(t, unlocked.MFALockedAt, "a refused lock must not have persisted MFALockedAt")
+	})
+
 	for _, enforceMFA := range []bool{false, true} {
 		t.Run(fmt.Sprintf("rejects with Unauthenticated when caller has no valid mfa session (EnforceMFA=%v)", enforceMFA), func(t *testing.T) {
 			cfg := getTestConfig()

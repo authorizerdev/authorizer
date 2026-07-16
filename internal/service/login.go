@@ -306,10 +306,16 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
 	}
 
-	// If multi factor authentication is enabled and is email based login and email otp is enabled
+	// A verified Email-OTP second factor is challenged on enrollment alone,
+	// independent of which identifier (email or phone) the caller logged in
+	// with: a user who signed up with email, later verified a phone number,
+	// and picked SMS/Email-OTP as their factor must still be challenged for it
+	// on an email+password login. The code is sent to the account's own stored
+	// contact (user.Email), not the login params, which may be empty for the
+	// non-matching identifier.
 	emailOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyEmailOTPAuthenticator)
 	emailOTPEnrolled := emailOTPAuthenticator != nil && emailOTPAuthenticator.VerifiedAt != nil
-	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin && emailOTPEnrolled {
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && emailOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 		if err != nil {
@@ -323,7 +329,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		go func() {
 			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
-			if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
+			if err := p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeOTP, map[string]any{
 				"user":         user.ToMap(),
 				"organization": utils.GetOrganization(p.Config),
 				"otp":          otpData.Otp,
@@ -334,13 +340,16 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		}()
 		return &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
-			ShouldShowEmailOtpScreen: refs.NewBoolRef(isEmailLogin),
+			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
 		}, side, nil
 	}
-	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
+	// SMS-OTP twin of the email branch above: challenged on enrollment alone,
+	// sent to user.PhoneNumber regardless of the login identifier. Email wins
+	// deterministically if a user somehow enrolled both (email branch returns
+	// first).
 	smsOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
 	smsOTPEnrolled := smsOTPAuthenticator != nil && smsOTPAuthenticator.VerifiedAt != nil
-	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && isMobileLogin && smsOTPEnrolled {
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && smsOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 		if err != nil {
@@ -357,13 +366,13 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-			if err := p.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
+			if err := p.SMSProvider.SendSMS(refs.StringValue(user.PhoneNumber), smsBody.String()); err != nil {
 				log.Debug().Msg("Failed to send sms")
 			}
 		}()
 		return &model.AuthResponse{
 			Message:                   "Please check text message for the OTP",
-			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
 		}, side, nil
 	}
 	// Gate runs whenever MFA applies at all -- NOT scoped to "TOTP

@@ -66,7 +66,9 @@ func (p *provider) EvaluateMFAGateForOAuth(ctx context.Context, meta RequestMeta
 			methods = append(methods, constants.EnvKeySMSOTPAuthenticator)
 		}
 	case mfaGateBlockEnroll, mfaGateOfferAll:
-		methods = append(methods, constants.EnvKeyTOTPAuthenticator)
+		if p.Config.EnableTOTPLogin {
+			methods = append(methods, constants.EnvKeyTOTPAuthenticator)
+		}
 		if p.Config.EnableWebauthnMFA {
 			methods = append(methods, constants.AuthRecipeMethodWebauthn)
 		}
