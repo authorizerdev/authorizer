@@ -13,15 +13,25 @@ import (
 )
 
 // spaBuildCacheMiddleware sets cache headers for SPA build assets:
-//   - "index.js" / "main.css" (unhashed entry points the shell HTML loads
-//     by name) → no-cache, so browsers always pick up new chunk references
-//     after a deploy.
+//   - the unhashed entry points the shell HTML loads by name → no-cache, so
+//     browsers always pick up new chunk references after a deploy. Shared
+//     across web/app and web/dashboard, whose Vite configs disagree on the
+//     entry CSS filename: web/dashboard emits main.css, web/app emits
+//     index.css (its assetFileNames names the CSS after the entry chunk,
+//     "index", not a fixed "main") — both must be listed, or the app whose
+//     name doesn't match falls into the immutable branch below and its CSS
+//     gets cached for a year past any style fix.
 //   - everything else (content-hashed chunks, immutable assets) → long-lived
 //     immutable cache, since a content change produces a new filename.
 func spaBuildCacheMiddleware() gin.HandlerFunc {
+	noCacheEntryFiles := map[string]bool{
+		"index.js":  true,
+		"index.css": true,
+		"main.css":  true,
+	}
 	return func(c *gin.Context) {
 		base := path.Base(c.Request.URL.Path)
-		if base == "index.js" || base == "main.css" {
+		if noCacheEntryFiles[base] {
 			c.Header("Cache-Control", "no-cache, must-revalidate")
 		} else {
 			c.Header("Cache-Control", "public, max-age=31536000, immutable")
