@@ -348,17 +348,29 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		// When prompt=login and a valid session cookie exists, don't discard
-		// it. The normal flow below validates it, performs a session rollover,
-		// stores the authorization code state, and redirects to the RP.
-		// Discarding the session here would send the user to the login UI
-		// where the React SDK auto-detects the still-valid cookie, redirects
-		// immediately, but the authorization code state is never stored
-		// because the login mutation is never called.
-		//
-		// For max_age=0 or max_age-exceeded, we DO discard the session
-		// because the spec requires actual re-authentication based on time.
-		if forceReauth && (prompt != "login" || err != nil || sessionToken == "") {
+		// OIDC Core §3.1.2.1: prompt=login and an exceeded max_age both
+		// require actually re-authenticating the user, not just ignoring
+		// the local `sessionToken` variable for this one request — the
+		// browser's session cookie stays valid, so the login UI's own
+		// session check (getSession) still sees a logged-in user and
+		// immediately bounces back to /authorize without ever rendering a
+		// login form, and the authorization code state is never stored.
+		// Revoke the session for real (memory store + cookie) so the login
+		// UI genuinely sees a logged-out user and forces fresh credentials.
+		if forceReauth && err == nil && sessionToken != "" {
+			if decryptedFingerPrint, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
+				var sd token.SessionData
+				if jsonErr := json.Unmarshal([]byte(decryptedFingerPrint), &sd); jsonErr == nil {
+					revokeKey := sd.Subject
+					if sd.LoginMethod != "" {
+						revokeKey = sd.LoginMethod + ":" + sd.Subject
+					}
+					_ = h.MemoryStoreProvider.DeleteUserSession(revokeKey, sd.Nonce)
+				}
+			}
+			cookie.DeleteSession(gc, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
+		}
+		if forceReauth {
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
