@@ -89,7 +89,9 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/.well-known/openid-configuration", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", s.Dependencies.HTTPProvider.JWKsHandler())
 	router.GET("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())
+	// OIDC Core §5.3.1: the UserInfo Endpoint MUST support both GET and POST.
 	router.GET("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
+	router.POST("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
 	router.GET("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())

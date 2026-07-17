@@ -58,6 +58,15 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt POST /userinfo (OIDC Core §5.3.1 requires the UserInfo
+		// endpoint to accept POST). Authenticated via a bearer access token,
+		// not cookies, so CSRF does not apply — same rationale as
+		// /oauth/token above.
+		if c.Request.URL.Path == "/userinfo" {
+			c.Next()
+			return
+		}
+
 		// Exempt the SAML ACS endpoint (POST /oauth/saml/:org_slug/acs). The
 		// SAML POST binding delivers the assertion via an auto-submitting form
 		// from the IdP's origin — a legitimate cross-origin POST that Origin
