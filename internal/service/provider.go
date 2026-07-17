@@ -189,7 +189,9 @@ type Provider interface {
 
 	// EvaluateMFAGateForOAuth runs the same MFA gate Login/SignUp/
 	// WebauthnLoginVerify use, for a user who just completed an OAuth/
-	// social-provider callback. On a withhold-group outcome it sets the MFA
+	// social-provider callback - or, via VerifyEmailHandler, a magic-link/
+	// email-verification click-through, which needs the identical
+	// gate-then-redirect shape. On a withhold-group outcome it sets the MFA
 	// session cookie via side and returns (true, redirectSuffix) where
 	// redirectSuffix is the query string to append instead of the normal
 	// state/code params. On mfaGateNone/mfaGateSkippedSetup it returns

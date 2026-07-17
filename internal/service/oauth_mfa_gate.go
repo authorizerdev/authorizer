@@ -13,7 +13,10 @@ import (
 
 // EvaluateMFAGateForOAuth is oauth_callback.go's entry point into the same
 // gate Login/SignUp/WebauthnLoginVerify use. See interface doc comment on
-// Provider.EvaluateMFAGateForOAuth.
+// Provider.EvaluateMFAGateForOAuth. Also used by the REST VerifyEmailHandler
+// (magic-link/email-verification click-through), which needs the same
+// gate-then-redirect-with-mfa_required shape - name is a historical
+// carryover from its original caller, not OAuth-specific.
 //
 // Like WebauthnLoginVerify, an OAuth/social login is only one factor
 // (something you have — the provider's own session) and does not itself

@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -79,6 +80,52 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			log.Debug().Err(err).Msg("Error getting user by email")
 			errorRes["error"] = err.Error()
 			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+			return
+		}
+
+		if user.RevokedTimestamp != nil {
+			log.Debug().Msg("User access has been revoked")
+			errorRes["error"] = "user access has been revoked"
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+			return
+		}
+
+		// Resolved once, early: needed both for the MFA-gate-withheld redirect
+		// below and the success redirect further down.
+		if redirectURL == "" {
+			redirectURL = claim["redirect_uri"].(string)
+		}
+		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
+			log.Debug().Msg("Invalid redirect URI in token claim")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
+			return
+		}
+
+		// MFA gate: this REST endpoint is what the emailed verification/magic
+		// link literally points to, so it must enforce the same gate every
+		// other login entry point does (login.go/signup.go/oauth_callback.go).
+		// Previously this handler issued tokens unconditionally, bypassing MFA
+		// entirely for magic-link login and signup email verification - the
+		// GraphQL verify_email mutation's own gate fix (service.VerifyEmail)
+		// never covered this REST path since it's a separate implementation.
+		meta := service.MetaFromGin(c)
+		side := &service.ResponseSideEffects{}
+		withheld, redirectSuffix, gateErr := h.ServiceProvider.EvaluateMFAGateForOAuth(c, meta, side, user)
+		if gateErr != nil {
+			log.Debug().Err(gateErr).Msg("MFA gate rejected email verification")
+			errorRes["error"] = gateErr.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+			return
+		}
+		if withheld {
+			service.ApplyToGin(c, side)
+			target := redirectURL
+			if strings.Contains(target, "?") {
+				target = target + "&" + redirectSuffix
+			} else {
+				target = target + "?" + strings.TrimPrefix(redirectSuffix, "&")
+			}
+			c.Redirect(http.StatusTemporaryRedirect, target)
 			return
 		}
 
@@ -197,15 +244,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
 			_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
-		}
-
-		if redirectURL == "" {
-			redirectURL = claim["redirect_uri"].(string)
-		}
-		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
-			log.Debug().Msg("Invalid redirect URI in token claim")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
-			return
 		}
 
 		if strings.Contains(redirectURL, "?") {

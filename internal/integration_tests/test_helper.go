@@ -366,6 +366,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	r.Use(httpProvider.LoggerMiddleware())
 
 	r.POST("/graphql", httpProvider.GraphqlHandler())
+	r.GET("/verify_email", httpProvider.VerifyEmailHandler())
 
 	server := httptest.NewServer(r)
 
