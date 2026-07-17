@@ -147,8 +147,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
+		// RFC 6749 §3.1.1: response_type is REQUIRED. gin's Query() can't
+		// distinguish an absent parameter from an empty one, so both land
+		// here — reject rather than silently defaulting to an implicit-flow
+		// token grant the client never asked for.
 		if responseType == "" {
-			responseType = h.Config.DefaultAuthorizeResponseType
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "response_type is required")
+			return
 		}
 
 		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
