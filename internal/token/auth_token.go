@@ -121,14 +121,32 @@ type AuthToken struct {
 }
 
 // SessionData holds the session claims persisted for a user session.
+//
+// IssuedAt is stamped fresh on every CreateSessionToken call, including
+// silent rollovers of an already-authenticated session. AuthTime is the
+// timestamp of the End-User's actual last authentication (OIDC Core §2's
+// auth_time) and MUST survive rollovers unchanged — conflating the two
+// previously caused auth_time and max_age staleness checks to reset on
+// every silent /authorize call, defeating both.
 type SessionData struct {
 	Subject     string   `json:"sub"`
 	Roles       []string `json:"roles"`
 	Scope       []string `json:"scope"`
 	Nonce       string   `json:"nonce"`
 	IssuedAt    int64    `json:"iat"`
+	AuthTime    int64    `json:"auth_time"`
 	ExpiresAt   int64    `json:"exp"`
 	LoginMethod string   `json:"login_method"`
+}
+
+// EffectiveAuthTime returns AuthTime, falling back to IssuedAt for session
+// cookies minted before AuthTime existed (unmarshal leaves it at the zero
+// value with no error).
+func (sd *SessionData) EffectiveAuthTime() int64 {
+	if sd.AuthTime != 0 {
+		return sd.AuthTime
+	}
+	return sd.IssuedAt
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
@@ -185,6 +203,10 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 // CreateSessionToken creates a new session token
 func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
 	expiresAt := time.Now().Add(24 * time.Hour).Unix()
+	authTime := cfg.AuthTime
+	if authTime == 0 {
+		authTime = time.Now().Unix()
+	}
 	fingerPrintMap := &SessionData{
 		Nonce:       cfg.Nonce,
 		Roles:       cfg.Roles,
@@ -192,6 +214,7 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 		Scope:       cfg.Scope,
 		LoginMethod: cfg.LoginMethod,
 		IssuedAt:    time.Now().Unix(),
+		AuthTime:    authTime,
 		ExpiresAt:   expiresAt,
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
@@ -213,12 +236,17 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 	}
 	expiryBound := time.Duration(expirySeconds) * time.Second
 	expiresAt := time.Now().Add(expiryBound).Unix()
+	authTime := cfg.AuthTime
+	if authTime == 0 {
+		authTime = time.Now().Unix()
+	}
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
 		"aud":           p.config.ClientID,
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
+		"auth_time":     authTime,
 		"token_type":    constants.TokenTypeRefreshToken,
 		"roles":         cfg.Roles,
 		"scope":         cfg.Scope,

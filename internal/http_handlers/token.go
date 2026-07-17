@@ -156,7 +156,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		var roles, scope []string
 		loginMethod := ""
 		sessionKey := ""
-		oidcNonce := "" // OIDC nonce from the original /authorize request
+		oidcNonce := ""      // OIDC nonce from the original /authorize request
+		authTime := int64(0) // End-User's actual last authentication (OIDC Core §2 auth_time); 0 = unknown, CreateIDToken falls back to time.Now()
 
 		if isAuthorizationCodeGrant {
 			if code == "" {
@@ -306,6 +307,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			roles = claims.Roles
 			scope = claims.Scope
 			loginMethod = claims.LoginMethod
+			authTime = claims.EffectiveAuthTime()
 
 			// Extract OIDC nonce from stored code data (third @@-separated part).
 			if len(sessionDataSplit) > 2 {
@@ -408,6 +410,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				loginMethod = lm
 			}
 
+			// auth_time survives token refresh unchanged — a refresh must
+			// not reset "when the user last actually authenticated".
+			// JWT numeric claims decode as float64.
+			if at, ok := claims["auth_time"].(float64); ok {
+				authTime = int64(at)
+			}
+
 			nonce, ok := claims["nonce"].(string)
 			if !ok || nonce == "" {
 				log.Debug().Msg("Invalid nonce in refresh token")
@@ -467,6 +476,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			Nonce:       nonce,
 			OIDCNonce:   oidcNonce,
 			HostName:    hostname,
+			AuthTime:    authTime,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")

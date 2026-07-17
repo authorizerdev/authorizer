@@ -107,6 +107,7 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 		Scope:       scope,
 		LoginMethod: claims.LoginMethod,
 		HostName:    hostname,
+		AuthTime:    claims.EffectiveAuthTime(),
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to CreateAuthToken")

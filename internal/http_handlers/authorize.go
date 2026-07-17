@@ -340,8 +340,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if decryptedFingerPrint, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
 				var sd token.SessionData
 				if jsonErr := json.Unmarshal([]byte(decryptedFingerPrint), &sd); jsonErr == nil {
-					if time.Now().Unix()-sd.IssuedAt > int64(maxAge) {
-						log.Debug().Int("max_age", maxAge).Int64("session_age", time.Now().Unix()-sd.IssuedAt).Msg("session exceeds max_age — forcing re-auth")
+					// Measured against AuthTime (the End-User's actual last
+					// authentication), not IssuedAt (which refreshes on
+					// every silent rollover) — otherwise a client can keep
+					// a session alive past max_age indefinitely by polling
+					// faster than the max_age window.
+					authTime := sd.EffectiveAuthTime()
+					if time.Now().Unix()-authTime > int64(maxAge) {
+						log.Debug().Int("max_age", maxAge).Int64("session_age", time.Now().Unix()-authTime).Msg("session exceeds max_age — forcing re-auth")
 						forceReauth = true
 					}
 				}
@@ -489,7 +495,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
@@ -581,7 +587,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for id_token token response")
@@ -642,7 +648,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating session token")
@@ -728,7 +734,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -780,7 +786,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
