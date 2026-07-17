@@ -137,7 +137,27 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			redirectURI = "/app"
 		} else {
 			hostname := parsers.GetHost(gc)
-			if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
+			validRedirect := validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname)
+			// RFC 6749 §3.1.2.3 / OAuth 2.0 Security BCP (RFC 9700): once a
+			// client has registered exact redirect URIs, the presented
+			// redirect_uri MUST exact-match one of them — never a prefix or
+			// origin match. IsValidRedirectURI above only checks
+			// scheme+host+port against the global AllowedOrigins allowlist,
+			// which alone would let any path under an allowed host through
+			// (including a suffix appended to another client's callback);
+			// it remains the fallback for clients with no registered URIs.
+			if client, err := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID); err == nil && client != nil {
+				if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
+					validRedirect = false
+					for _, r := range registered {
+						if r == redirectURI {
+							validRedirect = true
+							break
+						}
+					}
+				}
+			}
+			if !validRedirect {
 				log.Debug().Msg("Invalid redirect URI")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_request",

@@ -52,7 +52,7 @@ func TestAuthorize_PromptLogin_RevokesExistingSession(t *testing.T) {
 			ClientSecret:   clientSecret,
 			AllowedOrigins: []string{"*"},
 		},
-		Dependencies: Dependencies{Log: &logger, MemoryStoreProvider: ms},
+		Dependencies: Dependencies{Log: &logger, MemoryStoreProvider: ms, StorageProvider: &redirectURIClientStore{}},
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -97,7 +97,7 @@ func TestAuthorize_NoPrompt_ExistingSession_NotRevoked(t *testing.T) {
 			ClientSecret:   clientSecret,
 			AllowedOrigins: []string{"*"},
 		},
-		Dependencies: Dependencies{Log: &logger, MemoryStoreProvider: ms},
+		Dependencies: Dependencies{Log: &logger, MemoryStoreProvider: ms, StorageProvider: &redirectURIClientStore{}},
 	}
 
 	gin.SetMode(gin.TestMode)

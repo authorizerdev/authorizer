@@ -44,7 +44,7 @@ func TestAuthorize_MissingResponseType_WithRedirectURI_RedirectsWithError(t *tes
 	logger := zerolog.Nop()
 	h := &httpProvider{
 		Config:       &config.Config{AllowedOrigins: []string{"*"}},
-		Dependencies: Dependencies{Log: &logger},
+		Dependencies: Dependencies{Log: &logger, StorageProvider: &redirectURIClientStore{}},
 	}
 
 	c, rec := authorizeCtx("client_id=abc&state=xyz&redirect_uri=" + "http%3A%2F%2Fexample.com%2Fapp%2Fcallback")
