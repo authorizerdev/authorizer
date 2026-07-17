@@ -68,7 +68,12 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	verificationRequestCollection := mongodb.Collection(schemas.Collections.VerificationRequest, options.Collection())
 	_, _ = verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"email": 1, "identifier": 1},
+			// Compound index keys MUST use the ordered bson.D — the driver
+			// rejects a multi-key bson.M ("multi-key map passed in for ordered
+			// parameter keys"), so this unique constraint was silently never
+			// created; same bug already found and fixed for the authenticator
+			// index below.
+			Keys:    bson.D{{Key: "email", Value: 1}, {Key: "identifier", Value: 1}},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
@@ -151,7 +156,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	sessionTokenCollection := mongodb.Collection(schemas.Collections.SessionToken, options.Collection())
 	_, _ = sessionTokenCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			// bson.D, not bson.M - see the verification-request index comment above.
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "key_name", Value: 1}},
 			Options: options.Index().SetSparse(true),
 		},
 		{
@@ -165,7 +171,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	mfaSessionCollection := mongodb.Collection(schemas.Collections.MFASession, options.Collection())
 	_, _ = mfaSessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			// bson.D, not bson.M - see the verification-request index comment above.
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "key_name", Value: 1}},
 			Options: options.Index().SetSparse(true),
 		},
 		{

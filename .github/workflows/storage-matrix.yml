@@ -1,0 +1,44 @@
+name: Storage backend matrix
+
+on:
+  # CI's `test` job only exercises SQLite (make test). This job runs the
+  # same provider_test.go suite against all 6 other backends via Docker
+  # containers (make test-all-db) - real coverage that otherwise never runs
+  # anywhere. Kept off the PR path since it's slow (multiple DB containers,
+  # Couchbase alone takes minutes to become healthy); PRs touching storage
+  # code get fast feedback via the path filter below instead of waiting on
+  # every unrelated PR.
+  pull_request:
+    paths:
+      - "internal/storage/**"
+      - "Makefile"
+      - "scripts/couchbase-test.sh"
+      - ".github/workflows/storage-matrix.yml"
+  schedule:
+    - cron: "0 3 * * *" # daily, catches regressions within a day either way
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storage-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-all-db:
+    name: Go tests (all storage backends)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests across all storage backends
+        run: make test-all-db
