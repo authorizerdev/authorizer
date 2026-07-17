@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import { AuthorizerMFASetup, useAuthorizer } from '@authorizerdev/authorizer-react';
+import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
@@ -38,7 +39,16 @@ export default function Root({
 }: {
 	globalState: Record<string, string>;
 }) {
-	const { token, loading, config } = useAuthorizer();
+	const { token, loading, config, setAuthData } = useAuthorizer();
+
+	// The server redirects here with these params, instead of issuing a
+	// token, when its MFA gate withholds one - not just for the OAuth
+	// /authorize flow this originated for, but also the magic-link-login and
+	// signup-email-verification click-through URLs (GET /verify_email),
+	// which redirect to the same place with the same params.
+	const mfaRedirect = hasWindow()
+		? parseMfaRedirectParams(window.location.href)
+		: null;
 
 	const combinedParams = getCombinedParams();
 	const getParam = (key: string): string => combinedParams.get(key) || '';
@@ -108,6 +118,29 @@ export default function Root({
 
 	if (loading) {
 		return <h1>Loading...</h1>;
+	}
+	if (mfaRedirect) {
+		return (
+			<AuthorizerMFASetup
+				availableMfaMethods={{
+					totp: mfaRedirect.mfaMethods.includes('totp'),
+					passkey: false,
+					emailOtp: mfaRedirect.mfaMethods.includes('email_otp'),
+					smsOtp: mfaRedirect.mfaMethods.includes('sms_otp'),
+				}}
+				heading="Set up multi-factor authentication"
+				loginContext={{
+					onComplete: (data: any) => {
+						setAuthData({
+							user: data?.user || null,
+							token: data,
+							config,
+							loading: false,
+						});
+					},
+				}}
+			/>
+		);
 	}
 	if (token) {
 		return (
