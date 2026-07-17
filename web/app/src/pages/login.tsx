@@ -7,7 +7,7 @@ import {
 	useAuthorizer,
 } from '@authorizerdev/authorizer-react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const enum VIEW_TYPES {
 	LOGIN = 'login',
@@ -82,6 +82,11 @@ async function homeRealmDiscovery(
 
 export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 	const { config } = useAuthorizer();
+	// Preserved on the Sign Up link below: dropping the query string here
+	// (state/client_id/redirect_uri/...) strands a user who signs up
+	// mid-OAuth-flow on the dashboard with no way back to /authorize, since
+	// Root.tsx's resumption effect reads these from the current URL only.
+	const location = useLocation();
 	const [view, setView] = useState<VIEW_TYPES>(VIEW_TYPES.LOGIN);
 	// Email-first Home Realm Discovery: show an email field first. On an SSO
 	// match we redirect to the org's SP-initiated login; otherwise we reveal the
@@ -210,7 +215,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 				!config.is_magic_link_login_enabled &&
 				config.is_sign_up_enabled && (
 					<FooterContent>
-						Don't have an account? &nbsp; <Link to="/app/signup"> Sign Up</Link>
+						Don't have an account? &nbsp; <Link to={{ pathname: '/app/signup', search: location.search }}> Sign Up</Link>
 					</FooterContent>
 				)}
 		</Fragment>
