@@ -213,13 +213,24 @@ harness, default `--rate-limit-*` raised, `Origin` header set:
 | C. Container, 8 vCPU / 4GB | `client_credentials` s2s | 80 VUs | 31.2 req/s | 2.49s | 2.99s |
 | C. Container, 8 vCPU / 4GB | `validate_jwt_token` | 100 VUs | 15,721 req/s | 5.71ms | 11.6ms |
 | C. Container, 8 vCPU / 4GB | `check_permissions` | 100 VUs, 200k tuples | 12,388 req/s | 7.11ms | 14.3ms |
-| D. In-process (`go test -bench`) | `Check` | 10k bg tuples, no HTTP/DB hop | — | — | 89µs/op |
+| D. In-process, memory store (`go test -bench`) | `Check` | 10k bg tuples, no HTTP/DB hop | — | — | 89µs/op |
+| D. In-process, memory store (`go test -bench`) | `Check` | 200k bg tuples, no HTTP/DB hop | — | — | 2.25ms/op |
 
-`validate_jwt_token` and `check_permissions` are cheap (RSA verify / direct
-tuple lookup) and scale with cores without ever being the bottleneck — the
-~50x gap between the in-process Check (89µs) and the HTTP-path
-check_permissions (6-14ms) is the HTTP+CSRF+auth+DB round trip, not FGA
-resolution.
+**Correction from an earlier draft of this table:** we originally claimed FGA
+resolution cost was flat regardless of store size, based on comparing a
+10k-tuple in-process number against a 200k-tuple HTTP number — an
+apples-to-oranges comparison on two axes at once (different tuple volume,
+*and* the in-process benchmark uses OpenFGA's in-memory datastore while the
+HTTP path's FGA store auto-reuses `--database-type=postgres`, a different
+backend). Once both were measured at the same 200k volume, the in-memory
+datastore's Check cost is **~25x higher at 200k tuples than at 10k**
+(89µs → 2.25ms — worth knowing if you rely on OpenFGA's in-memory store
+past dev/test scale). At 200k tuples, that 2.25ms in-process cost is roughly
+**two-thirds of the entire HTTP check_permissions p50** (3.52ms) — FGA
+resolution is a real, dominant cost at this volume, not noise. The
+Postgres-backed FGA store (what the HTTP path actually uses) wasn't
+benchmarked in-process at 200k tuples here — a real gap, not a claim.
+`validate_jwt_token` has no FGA involvement and stays cheap regardless.
 
 `login` and `client_credentials` are slow **by design**: both verify a bcrypt
 hash, which is deliberately CPU-expensive to resist offline brute-forcing.
