@@ -112,7 +112,15 @@ export default function Users() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// Guards against out-of-order responses: if a page/search change fires a
+	// new request before an earlier one resolves, the earlier response must
+	// not overwrite the list with stale results. Each call captures the
+	// request id current at its start and checks it's still current before
+	// touching state.
+	const requestIdRef = React.useRef(0);
+
 	const updateUserList = async () => {
+		const requestId = ++requestIdRef.current;
 		setLoading(true);
 		const { data } = await client
 			.query<UsersResponse>(UserDetailsQuery, {
@@ -125,6 +133,10 @@ export default function Users() {
 				},
 			})
 			.toPromise();
+		if (requestId !== requestIdRef.current) {
+			// A newer request has since started; discard this stale response.
+			return;
+		}
 		if (data?._users) {
 			const { pagination, users } = data._users;
 			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
@@ -499,6 +511,7 @@ export default function Users() {
 								<Button
 									variant="outline"
 									size="icon"
+									aria-label="First page"
 									onClick={() => paginationHandler({ page: 1 })}
 									disabled={paginationProps.page <= 1}
 								>
@@ -507,6 +520,7 @@ export default function Users() {
 								<Button
 									variant="outline"
 									size="icon"
+									aria-label="Previous page"
 									onClick={() =>
 										paginationHandler({
 											page: paginationProps.page - 1,
@@ -560,6 +574,7 @@ export default function Users() {
 								<Button
 									variant="outline"
 									size="icon"
+									aria-label="Next page"
 									onClick={() =>
 										paginationHandler({
 											page: paginationProps.page + 1,
@@ -572,6 +587,7 @@ export default function Users() {
 								<Button
 									variant="outline"
 									size="icon"
+									aria-label="Last page"
 									onClick={() =>
 										paginationHandler({
 											page: paginationProps.maxPages,

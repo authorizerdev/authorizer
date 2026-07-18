@@ -24,6 +24,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogDescription,
+	DialogFooter,
 } from '../../components/ui/dialog';
 import {
 	Table,
@@ -118,6 +119,11 @@ const Tuples = () => {
 	const [modelExists, setModelExists] = useState<boolean | null>(null);
 	// The grant-pattern catalog lives in a modal so the form stays the focus.
 	const [patternsOpen, setPatternsOpen] = useState(false);
+	// Pending add — set once the form is validated, cleared once the confirm
+	// dialog closes. Non-null also drives whether the confirm dialog is open.
+	const [pendingAdd, setPendingAdd] = useState<typeof emptyForm | null>(null);
+	// Pending delete — same pattern, holds the tuple awaiting confirmation.
+	const [pendingDelete, setPendingDelete] = useState<FgaTuple | null>(null);
 
 	const checkModel = useCallback(async () => {
 		try {
@@ -204,25 +210,34 @@ const Tuples = () => {
 		fetchTuples('');
 	};
 
-	const handleAdd = async (e: React.FormEvent) => {
+	// A wildcard user (`user:*`, or a userset built on one, e.g. `user:*#member`)
+	// grants the relation to literally everyone — the broadest possible tuple.
+	// It gets an extra warning in the confirm dialog rather than silently
+	// going through the same one-click path as a scoped grant.
+	const isWildcardGrant = (user: string): boolean => /^user:\*/.test(user.trim());
+
+	const handleAddSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.user.trim() || !form.relation.trim() || !form.object.trim()) {
 			toast.error('user, relation and object are all required');
+			return;
+		}
+		setPendingAdd({
+			user: form.user.trim(),
+			relation: form.relation.trim(),
+			object: form.object.trim(),
+		});
+	};
+
+	const confirmAdd = async () => {
+		if (!pendingAdd) {
 			return;
 		}
 		setSubmitting(true);
 		try {
 			const res = await client
 				.mutation<FgaWriteTuplesResponse>(FgaWriteTuples, {
-					params: {
-						tuples: [
-							{
-								user: form.user.trim(),
-								relation: form.relation.trim(),
-								object: form.object.trim(),
-							},
-						],
-					},
+					params: { tuples: [pendingAdd] },
 				})
 				.toPromise();
 
@@ -246,10 +261,15 @@ const Tuples = () => {
 			toast.error('Failed to add tuple');
 		} finally {
 			setSubmitting(false);
+			setPendingAdd(null);
 		}
 	};
 
-	const handleDelete = async (tuple: FgaTuple) => {
+	const confirmDelete = async () => {
+		if (!pendingDelete) {
+			return;
+		}
+		const tuple = pendingDelete;
 		try {
 			const res = await client
 				.mutation<FgaDeleteTuplesResponse>(FgaDeleteTuples, {
@@ -278,6 +298,8 @@ const Tuples = () => {
 			fetchTuples(currentToken);
 		} catch {
 			toast.error('Failed to delete tuple');
+		} finally {
+			setPendingDelete(null);
 		}
 	};
 
@@ -417,13 +439,100 @@ const Tuples = () => {
 				</DialogContent>
 			</Dialog>
 
+			{/* Confirm before granting — wildcard (user:*) grants get an extra
+			    warning since they hand the relation to literally everyone. */}
+			<Dialog
+				open={!!pendingAdd}
+				onOpenChange={(open) => !open && setPendingAdd(null)}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Confirm access grant</DialogTitle>
+						<DialogDescription>
+							This tuple will take effect immediately.
+						</DialogDescription>
+					</DialogHeader>
+					{pendingAdd && (
+						<>
+							<div className="rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-sm">
+								{pendingAdd.user} · {pendingAdd.relation} · {pendingAdd.object}
+							</div>
+							{isWildcardGrant(pendingAdd.user) && (
+								<div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+									<AlertTriangle
+										className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+										aria-hidden="true"
+									/>
+									<p className="text-xs leading-relaxed text-amber-800">
+										<strong>{pendingAdd.user}</strong> is a wildcard — this
+										grants <strong>{pendingAdd.relation}</strong> on{' '}
+										<strong>{pendingAdd.object}</strong> to every user, not just
+										one.
+									</p>
+								</div>
+							)}
+						</>
+					)}
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setPendingAdd(null)}
+							disabled={submitting}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={confirmAdd}
+							disabled={submitting}
+							variant={
+								pendingAdd && isWildcardGrant(pendingAdd.user)
+									? 'destructive'
+									: 'default'
+							}
+						>
+							{submitting ? 'Adding...' : 'Confirm grant'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Confirm before revoking. */}
+			<Dialog
+				open={!!pendingDelete}
+				onOpenChange={(open) => !open && setPendingDelete(null)}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Revoke access?</DialogTitle>
+						<DialogDescription>
+							This removes the tuple immediately.
+						</DialogDescription>
+					</DialogHeader>
+					{pendingDelete && (
+						<div className="rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-sm">
+							{pendingDelete.user} · {pendingDelete.relation} ·{' '}
+							{pendingDelete.object}
+						</div>
+					)}
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setPendingDelete(null)}>
+							Cancel
+						</Button>
+						<Button variant="destructive" onClick={confirmDelete}>
+							<Trash2 className="mr-2 h-4 w-4" />
+							Revoke
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<div className="mb-4">
 				<DocsLinks />
 			</div>
 
 			{/* Add tuple form */}
 			<form
-				onSubmit={handleAdd}
+				onSubmit={handleAddSubmit}
 				className="mb-6 grid grid-cols-1 gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end"
 			>
 				<div className="space-y-1">
@@ -499,7 +608,8 @@ const Tuples = () => {
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() => handleDelete(tuple)}
+											aria-label="Revoke this tuple"
+											onClick={() => setPendingDelete(tuple)}
 										>
 											<Trash2 className="h-4 w-4 text-red-500" />
 										</Button>
