@@ -43,20 +43,20 @@ export function setup() {
   const adminLogin = http.post(
     `${BASE_URL}/v1/admin/login`,
     JSON.stringify({ admin_secret: ADMIN_SECRET }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   check(adminLogin, { 'admin login 200': (r) => r.status === 200 });
   const cookie = (adminLogin.headers['Set-Cookie'] || '').split(';')[0];
 
   const model = http.post(`${BASE_URL}/v1/admin/fga/model`, JSON.stringify({ dsl: MODEL_DSL }), {
-    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Cookie: cookie },
   });
   check(model, { 'model written': (r) => r.status === 200 });
 
   const clientRes = http.post(
     `${BASE_URL}/v1/admin/create_client`,
     JSON.stringify({ name: `perf-s2s-${Date.now()}`, allowed_scopes: ['openid'] }),
-    { headers: { 'Content-Type': 'application/json', Cookie: cookie } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Cookie: cookie } }
   );
   check(clientRes, { 'client created': (r) => r.status === 200 });
 
@@ -64,7 +64,7 @@ export function setup() {
   http.post(
     `${BASE_URL}/v1/signup`,
     JSON.stringify({ email, password: PASSWORD, confirm_password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
 
   return {
@@ -83,7 +83,7 @@ export default function (data) {
     tuples.push({ user: `user:perf-user-${n}`, relation: 'viewer', object: `document:perf-doc-${n}` });
   }
   const res = http.post(`${BASE_URL}/v1/admin/fga/tuples`, JSON.stringify({ tuples }), {
-    headers: { 'Content-Type': 'application/json', Cookie: data.cookie },
+    headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Cookie: data.cookie },
   });
   check(res, { 'tuples written': (r) => r.status === 200 });
 }

@@ -19,12 +19,12 @@ export function setup() {
   http.post(
     `${BASE_URL}/v1/signup`,
     JSON.stringify({ email, password: PASSWORD, confirm_password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   const login = http.post(
     `${BASE_URL}/v1/login`,
     JSON.stringify({ email, password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   check(login, { 'login 200': (r) => r.status === 200 });
   return { token: login.json('access_token') };
@@ -34,7 +34,7 @@ export default function (data) {
   const res = http.post(
     `${BASE_URL}/v1/validate_jwt_token`,
     JSON.stringify({ token_type: 'access_token', token: data.token }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   check(res, {
     'validate 200': (r) => r.status === 200,

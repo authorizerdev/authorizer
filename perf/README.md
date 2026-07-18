@@ -26,6 +26,37 @@ whole batch) today. Not fixed here — out of scope for a perf-harness change
 and needs its own fix (chunk internally at 50, or lower the public max and
 update the proto/docs) plus a regression test. Flagging for a follow-up PR.
 
+## Gotchas found running this end to end (M4 Pro, native Postgres)
+
+Three things will silently wreck your numbers if you don't know about them —
+found by actually running these scripts, not just reading the code:
+
+1. **CSRF requires an `Origin` header on every state-changing request.**
+   `/v1/signup`, `/v1/login`, `/v1/validate_jwt_token`, `/v1/check_permissions`,
+   and all `/v1/admin/*` routes reject POSTs with no `Origin`/`Referer`
+   matching `--allowed-origins` (`internal/http_handlers/csrf.go`). Only
+   `/oauth/token`, `/oauth/revoke`, `/oauth/introspect`, SCIM, and the SAML ACS
+   callback are exempt. The scripts here already send `Origin: <BASE_URL>` —
+   if you write your own script or hit these routes with `curl`/`ghz`, do the
+   same or every call 403s with `csrf_validation_failed`.
+
+2. **The default per-IP rate limit (30 rps / burst 20) throttles any real load
+   test run from one machine.** All of k6's traffic comes from one IP, so
+   without raising it you're benchmarking the rate limiter, not the server —
+   we saw 99.95% failures (mostly 429s) at 20 VUs until adding
+   `--rate-limit-rps=1000000 --rate-limit-burst=1000000` to the server under
+   test. This is worth remembering the other direction too: in production,
+   traffic concentrated behind one NAT/proxy IP (a shared egress, a small pool
+   of s2s callers) hits the same per-IP ceiling unless raised deliberately.
+
+3. **macOS ephemeral port exhaustion on the load-generator side.** A sustained
+   ~70k-request k6 run against `localhost` left 20k+ sockets in `TIME_WAIT`,
+   which can exhaust the default ephemeral range (`net.inet.ip.portrange.first`
+   / `.last`, ~16k ports) and make the *next* k6 run fail with `can't assign
+   requested address` — a load-generator artifact, not a server problem. Give
+   it 30-60s between successive high-RPS runs on macOS, or widen the ephemeral
+   port range, before concluding the server itself has a ceiling.
+
 ## Tools (all OSS, all optional beyond k6)
 
 | Tool | Layer | Install |
@@ -93,7 +124,7 @@ ghz --insecure --proto proto/authorizer/v1/authorizer.proto \
     --call authorizer.v1.AuthorizerService.CheckPermissions \
     -d '{"checks":[{"relation":"can_view","object":"document:1"}]}' \
     -m '{"authorization":"Bearer '"$TOKEN"'"}' \
-    -c 50 -z 60s localhost:8081
+    -c 50 -z 60s localhost:9091
 ```
 
 Postgres ceiling, isolated from the app (run once, tells you whether the app
@@ -124,6 +155,25 @@ the curve is linear:
 | Medium | 1 replica, tuned DB pool, `VUS=200`+ | Per-replica ceiling, where it breaks first (DB pool / FGA resolution / CPU) |
 | Maximum (single box) | N replicas behind a local LB, Redis for rate-limit/session | Whether scaling is linear per replica |
 | Maximum (cloud) | Same as above on target deploy hardware (x86 or Graviton) | The number you can actually publish |
+
+### Minimal-tier data point (M4 Pro, native Postgres 16, single node, loopback, 20 VUs)
+
+Not publishable as-is per the checklist below (single laptop, loopback, no
+cloud corroboration) — but a real, reproducible floor from actually running
+this harness, default `--rate-limit-*` raised, `Origin` header set:
+
+| Scenario | Throughput | p90 | p95 |
+|---|---|---|---|
+| `validate_jwt_token` | ~4,740 req/s | 10.8ms | 14.2ms |
+| `check_permissions` (1 tuple, cold store) | ~4,670 req/s | 11.1ms | 13.7ms |
+| FGA engine in-process `Check` (10k bg tuples, no HTTP/DB hop) | — | — | ~89µs/op |
+| FGA engine in-process `BatchCheck` (50 items) | — | — | ~246µs/op |
+
+The ~50x gap between the in-process Check (89µs) and the HTTP-path
+check_permissions (~13.7ms p95) is the HTTP+CSRF+auth+DB round trip, not FGA
+resolution — that's the layer to optimize first if the HTTP-path number needs
+to move. Re-run at higher `VUS` and with a tuned DB pool to find where it
+actually breaks; 20 VUs on a laptop is nowhere near this server's ceiling.
 
 Isolate the load generator from the server under test at every tier — on a
 laptop especially, k6/ghz and the server competing for the same cores measures

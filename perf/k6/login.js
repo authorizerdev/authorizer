@@ -16,7 +16,7 @@ export function setup() {
   const res = http.post(
     `${BASE_URL}/v1/signup`,
     JSON.stringify({ email, password: PASSWORD, confirm_password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   check(res, { 'signup 200': (r) => r.status === 200 });
   return { email };
@@ -26,7 +26,7 @@ export default function (data) {
   const res = http.post(
     `${BASE_URL}/v1/login`,
     JSON.stringify({ email: data.email, password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
   );
   check(res, {
     'login 200': (r) => r.status === 200,

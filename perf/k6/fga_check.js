@@ -36,12 +36,12 @@ export function setup() {
     http.post(
       `${BASE_URL}/v1/signup`,
       JSON.stringify({ email, password: PASSWORD, confirm_password: PASSWORD }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
     );
     const login = http.post(
       `${BASE_URL}/v1/login`,
       JSON.stringify({ email, password: PASSWORD }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
     );
     check(login, { 'login 200': (r) => r.status === 200 });
     token = login.json('access_token');
@@ -52,18 +52,18 @@ export function setup() {
     const adminLogin = http.post(
       `${BASE_URL}/v1/admin/login`,
       JSON.stringify({ admin_secret: ADMIN_SECRET }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json', Origin: BASE_URL } }
     );
     check(adminLogin, { 'admin login 200': (r) => r.status === 200 });
     const cookie = (adminLogin.headers['Set-Cookie'] || '').split(';')[0];
 
     http.post(`${BASE_URL}/v1/admin/fga/model`, JSON.stringify({ dsl: MODEL_DSL }), {
-      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Cookie: cookie },
     });
     const tupleRes = http.post(
       `${BASE_URL}/v1/admin/fga/tuples`,
       JSON.stringify({ tuples: [{ user: `user:${userId}`, relation: 'viewer', object: OBJECT }] }),
-      { headers: { 'Content-Type': 'application/json', Cookie: cookie } }
+      { headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Cookie: cookie } }
     );
     check(tupleRes, { 'tuple written': (r) => r.status === 200 });
   }
@@ -75,7 +75,7 @@ export default function (data) {
   const res = http.post(
     `${BASE_URL}/v1/check_permissions`,
     JSON.stringify({ checks: [{ relation: 'can_view', object: OBJECT }] }),
-    { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.token}` } }
+    { headers: { 'Content-Type': 'application/json', Origin: BASE_URL, Authorization: `Bearer ${data.token}` } }
   );
   check(res, { 'check_permissions 200': (r) => r.status === 200 });
 }
