@@ -3,6 +3,7 @@ import {
 	AuthorizerBasicAuthLogin,
 	AuthorizerForgotPassword,
 	AuthorizerMagicLinkLogin,
+	AuthorizerPasskeyLogin,
 	AuthorizerSocialLogin,
 	useAuthorizer,
 } from '@authorizerdev/authorizer-react';
@@ -164,6 +165,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 				<Fragment>
 					<h1 style={{ textAlign: 'center' }}>Login</h1>
 					<AuthorizerSocialLogin urlProps={urlProps} />
+					<AuthorizerPasskeyLogin />
 					<br />
 					{(config.is_basic_authentication_enabled ||
 						config.is_mobile_basic_authentication_enabled) &&

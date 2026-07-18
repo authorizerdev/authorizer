@@ -8,6 +8,7 @@ import { hasWindow, createRandomString } from './utils/common';
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
+const Settings = lazy(() => import('./pages/settings'));
 const SignUp = lazy(() => import('./pages/signup'));
 
 /**
@@ -147,6 +148,7 @@ export default function Root({
 			<Suspense fallback={<></>}>
 				<Routes>
 					<Route path="/app" element={<Dashboard />} />
+					<Route path="/app/settings" element={<Settings />} />
 					<Route path="*" element={<Navigate to="/app" replace />} />
 				</Routes>
 			</Suspense>
