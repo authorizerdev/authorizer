@@ -223,10 +223,10 @@ type Provider interface {
 	VerifyOTP(ctx context.Context, params *model.VerifyOTPRequest) (*model.AuthResponse, error)
 	// WebauthnRegistrationOptions begins a passkey registration ceremony.
 	// Permissions: authenticated:user
-	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	WebauthnRegistrationOptions(ctx context.Context, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	// WebauthnRegistrationVerify stores a newly registered passkey.
 	// Permissions: authenticated:user
-	WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error)
 	// WebauthnLoginOptions begins a passkey login ceremony.
 	// Permissions: none
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)

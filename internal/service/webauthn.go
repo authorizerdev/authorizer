@@ -10,25 +10,83 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
-// WebauthnRegistrationOptions begins a passkey registration ceremony for the
-// authenticated caller. The session — not the email argument — identifies the
-// user, so a caller can only register a passkey against their own account.
-//
-// Permissions: authenticated:user
-func (p *provider) WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
-	log := p.Log.With().Str("func", "WebauthnRegistrationOptions").Logger()
-	tokenData, err := p.callerTokenData(ctx, meta)
-	if err != nil || tokenData == nil || tokenData.UserID == "" {
-		log.Debug().Err(err).Msg("Failed to resolve caller")
-		return nil, Unauthenticated("unauthorized")
+// resolveWebauthnSetupCaller resolves who is calling
+// WebauthnRegistrationOptions/WebauthnRegistrationVerify. The ordinary
+// settings-page caller is bearer-token authenticated (unchanged). During a
+// token-withheld MFA offer (mfaGateOfferAll/mfaGateBlockEnroll — see
+// mfa_gate.go) there is no bearer token yet, only the MFA session cookie, so
+// registering a passkey there authenticates the same way VerifyOTP/
+// SkipMFASetup do: the cookie's Verified purpose proves the first factor
+// already completed for this exact user. The gate is recomputed and must
+// still be a genuine enrollment offer — never mfaGateBlockVerify, or a caller
+// who only proved a password could mint a brand-new passkey and skip
+// challenging their EXISTING second factor, defeating it entirely.
+func (p *provider) resolveWebauthnSetupCaller(ctx context.Context, meta RequestMetadata, email, phoneNumber string) (*schemas.User, bool, error) {
+	if tokenData, tErr := p.callerTokenData(ctx, meta); tErr == nil && tokenData != nil && tokenData.UserID != "" {
+		user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
+		if err != nil {
+			return nil, false, err
+		}
+		return user, false, nil
 	}
-	user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
+
+	gc := &gin.Context{Request: meta.Request}
+	mfaSession, err := cookie.GetMfaSession(gc)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by id")
+		return nil, false, Unauthenticated("unauthorized")
+	}
+
+	email = strings.TrimSpace(email)
+	phoneNumber = strings.TrimSpace(phoneNumber)
+	var user *schemas.User
+	if email == "" && phoneNumber == "" {
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
+			return nil, false, Unauthenticated("invalid session")
+		}
+		user, err = p.StorageProvider.GetUserByID(ctx, ownerID)
+	} else if email != "" {
+		user, err = p.StorageProvider.GetUserByEmail(ctx, email)
+	} else {
+		user, err = p.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
+	}
+	if user == nil || err != nil {
+		return nil, false, Unauthenticated("invalid session")
+	}
+	if email != "" || phoneNumber != "" {
+		purpose, pErr := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+		if pErr != nil || purpose != constants.MFASessionPurposeVerified {
+			return nil, false, Unauthenticated("invalid session")
+		}
+	}
+
+	gate := resolveMFAGate(
+		effectiveMFAEnabled(p.Config, user),
+		p.Config.EnforceMFA,
+		p.authenticatorVerified(ctx, user.ID),
+		user.HasSkippedMFASetupAt != nil,
+	)
+	if gate != mfaGateOfferAll && gate != mfaGateBlockEnroll {
+		return nil, false, FailedPrecondition("cannot set up a passkey in the current state")
+	}
+	return user, true, nil
+}
+
+// WebauthnRegistrationOptions begins a passkey registration ceremony for the
+// caller — either bearer-token authenticated (settings page) or MFA-session
+// authenticated (login-time enrollment offer); see resolveWebauthnSetupCaller.
+//
+// Permissions: authenticated:user, or an MFA-session-cookie caller mid-offer.
+func (p *provider) WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error) {
+	log := p.Log.With().Str("func", "WebauthnRegistrationOptions").Logger()
+	user, _, err := p.resolveWebauthnSetupCaller(ctx, meta, refs.StringValue(email), refs.StringValue(phoneNumber))
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to resolve caller")
 		return nil, err
 	}
 	options, err := p.WebAuthnProvider.BeginRegistration(ctx, meta.HostURL, user)
@@ -40,20 +98,20 @@ func (p *provider) WebauthnRegistrationOptions(ctx context.Context, meta Request
 }
 
 // WebauthnRegistrationVerify verifies the attestation from the browser and
-// persists the passkey for the authenticated caller.
+// persists the passkey for the caller (see resolveWebauthnSetupCaller). When
+// resolved via the MFA session (login-time enrollment offer, not the
+// settings page), this also completes the MFA gate and issues the
+// previously-withheld auth token — exactly like totp_mfa_setup +
+// verify_otp(is_totp: true) does for TOTP.
 //
-// Permissions: authenticated:user
-func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error) {
+// Permissions: authenticated:user, or an MFA-session-cookie caller mid-offer.
+func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "WebauthnRegistrationVerify").Logger()
-	tokenData, err := p.callerTokenData(ctx, meta)
-	if err != nil || tokenData == nil || tokenData.UserID == "" {
-		log.Debug().Err(err).Msg("Failed to resolve caller")
-		return nil, Unauthenticated("unauthorized")
-	}
-	user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
+	side := &ResponseSideEffects{}
+	user, sessionAuthenticated, err := p.resolveWebauthnSetupCaller(ctx, meta, refs.StringValue(params.Email), refs.StringValue(params.PhoneNumber))
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by id")
-		return nil, err
+		log.Debug().Err(err).Msg("Failed to resolve caller")
+		return nil, nil, err
 	}
 	name := ""
 	if params.Name != nil {
@@ -62,7 +120,7 @@ func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestM
 	cred, err := p.WebAuthnProvider.FinishRegistration(ctx, meta.HostURL, user, name, params.Credential)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to finish registration")
-		return nil, InvalidArgument(err.Error())
+		return nil, nil, InvalidArgument(err.Error())
 	}
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditWebauthnCredentialAddedEvent,
@@ -74,7 +132,19 @@ func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestM
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
 	})
-	return &model.Response{Message: "Passkey registered successfully."}, nil
+	if !sessionAuthenticated {
+		return &model.AuthResponse{Message: "Passkey registered successfully."}, side, nil
+	}
+	// Single-use: drop the session so a captured cookie cannot be replayed.
+	gc := &gin.Context{Request: meta.Request}
+	if mfaSession, sErr := cookie.GetMfaSession(gc); sErr == nil {
+		_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+	}
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res, side, nil
 }
 
 // WebauthnLoginOptions begins a passkey login ceremony. With no email it is a

@@ -361,7 +361,7 @@ type ComplexityRoot struct {
 		WebauthnDeleteCredential    func(childComplexity int, id string) int
 		WebauthnLoginOptions        func(childComplexity int, email *string) int
 		WebauthnLoginVerify         func(childComplexity int, params model.WebauthnLoginVerifyRequest) int
-		WebauthnRegistrationOptions func(childComplexity int, email *string) int
+		WebauthnRegistrationOptions func(childComplexity int, email *string, phoneNumber *string) int
 		WebauthnRegistrationVerify  func(childComplexity int, params model.WebauthnRegistrationVerifyRequest) int
 	}
 
@@ -677,8 +677,8 @@ type MutationResolver interface {
 	EmailOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
 	SmsOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
 	TotpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error)
-	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
-	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	WebauthnRegistrationOptions(ctx context.Context, email *string, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error)
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)
 	WebauthnLoginVerify(ctx context.Context, params model.WebauthnLoginVerifyRequest) (*model.AuthResponse, error)
 	WebauthnDeleteCredential(ctx context.Context, id string) (*model.Response, error)
@@ -2837,7 +2837,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.WebauthnRegistrationOptions(childComplexity, args["email"].(*string)), true
+		return e.complexity.Mutation.WebauthnRegistrationOptions(childComplexity, args["email"].(*string), args["phone_number"].(*string)), true
 
 	case "Mutation.webauthn_registration_verify":
 		if e.complexity.Mutation.WebauthnRegistrationVerify == nil {
@@ -4725,6 +4725,13 @@ input WebauthnRegistrationVerifyRequest {
   # JSON-encoded PublicKeyCredential attestation response from
   # navigator.credentials.create().
   credential: String!
+  # The following three fields are only used on the MFA-session-cookie path
+  # (mfaGateOfferAll/mfaGateBlockEnroll passkey enrollment) — ignored for an
+  # ordinary bearer-token-authenticated settings-page caller. Same shape as
+  # SkipMfaSetupRequest/VerifyOTPRequest.
+  email: String
+  phone_number: String
+  state: String
 }
 
 input WebauthnLoginVerifyRequest {
@@ -5946,12 +5953,21 @@ type Mutation {
   # QR/enters the code, then completes enrollment via verify_otp(is_totp: true).
   totp_mfa_setup(params: OtpMfaSetupRequest): AuthResponse!
   # WebAuthn / passkey self-service ceremonies (no admin ` + "`" + `_` + "`" + ` prefix).
+  #
+  # Both also accept an MFA-session-cookie caller in addition to a bearer
+  # token: during a token-withheld mfaGateOfferAll/mfaGateBlockEnroll offer
+  # (see mfa_gate.go), registering a passkey completes the gate the same way
+  # totp_mfa_setup + verify_otp(is_totp: true) does, so
+  # webauthn_registration_verify returns AuthResponse (access_token set only
+  # on that session-resolved path; nil, message-only, for the ordinary
+  # authenticated-settings-page caller).
   webauthn_registration_options(
     email: String
+    phone_number: String
   ): WebauthnRegistrationOptionsResponse!
   webauthn_registration_verify(
     params: WebauthnRegistrationVerifyRequest!
-  ): Response!
+  ): AuthResponse!
   webauthn_login_options(email: String): WebauthnLoginOptionsResponse!
   webauthn_login_verify(params: WebauthnLoginVerifyRequest!): AuthResponse!
   webauthn_delete_credential(id: ID!): Response!
@@ -7905,6 +7921,11 @@ func (ec *executionContext) field_Mutation_webauthn_registration_options_args(ct
 		return nil, err
 	}
 	args["email"] = arg0
+	arg1, err := ec.field_Mutation_webauthn_registration_options_argsPhoneNumber(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["phone_number"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_webauthn_registration_options_argsEmail(
@@ -7918,6 +7939,24 @@ func (ec *executionContext) field_Mutation_webauthn_registration_options_argsEma
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 	if tmp, ok := rawArgs["email"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_webauthn_registration_options_argsPhoneNumber(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["phone_number"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+	if tmp, ok := rawArgs["phone_number"]; ok {
 		return ec.unmarshalOString2ᚖstring(ctx, tmp)
 	}
 
@@ -17973,7 +18012,7 @@ func (ec *executionContext) _Mutation_webauthn_registration_options(ctx context.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().WebauthnRegistrationOptions(rctx, fc.Args["email"].(*string))
+		return ec.resolvers.Mutation().WebauthnRegistrationOptions(rctx, fc.Args["email"].(*string), fc.Args["phone_number"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18044,9 +18083,9 @@ func (ec *executionContext) _Mutation_webauthn_registration_verify(ctx context.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Response)
+	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_webauthn_registration_verify(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -18058,9 +18097,41 @@ func (ec *executionContext) fieldContext_Mutation_webauthn_registration_verify(c
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "message":
-				return ec.fieldContext_Response_message(ctx, field)
+				return ec.fieldContext_AuthResponse_message(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+			case "should_offer_webauthn_mfa_verify":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_verify(ctx, field)
+			case "should_offer_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_mfa_setup(ctx, field)
+			case "should_offer_webauthn_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_webauthn_mfa_setup(ctx, field)
+			case "should_offer_email_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_email_otp_mfa_setup(ctx, field)
+			case "should_offer_sms_otp_mfa_setup":
+				return ec.fieldContext_AuthResponse_should_offer_sms_otp_mfa_setup(ctx, field)
+			case "access_token":
+				return ec.fieldContext_AuthResponse_access_token(ctx, field)
+			case "id_token":
+				return ec.fieldContext_AuthResponse_id_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
+			case "expires_in":
+				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -36957,7 +37028,7 @@ func (ec *executionContext) unmarshalInputWebauthnRegistrationVerifyRequest(ctx 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "credential"}
+	fieldsInOrder := [...]string{"name", "credential", "email", "phone_number", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -36978,6 +37049,27 @@ func (ec *executionContext) unmarshalInputWebauthnRegistrationVerifyRequest(ctx 
 				return it, err
 			}
 			it.Credential = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone_number":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
 		}
 	}
 

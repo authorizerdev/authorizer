@@ -202,6 +202,13 @@ input WebauthnRegistrationVerifyRequest {
   # JSON-encoded PublicKeyCredential attestation response from
   # navigator.credentials.create().
   credential: String!
+  # The following three fields are only used on the MFA-session-cookie path
+  # (mfaGateOfferAll/mfaGateBlockEnroll passkey enrollment) — ignored for an
+  # ordinary bearer-token-authenticated settings-page caller. Same shape as
+  # SkipMfaSetupRequest/VerifyOTPRequest.
+  email: String
+  phone_number: String
+  state: String
 }
 
 input WebauthnLoginVerifyRequest {
@@ -1423,12 +1430,21 @@ type Mutation {
   # QR/enters the code, then completes enrollment via verify_otp(is_totp: true).
   totp_mfa_setup(params: OtpMfaSetupRequest): AuthResponse!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
+  #
+  # Both also accept an MFA-session-cookie caller in addition to a bearer
+  # token: during a token-withheld mfaGateOfferAll/mfaGateBlockEnroll offer
+  # (see mfa_gate.go), registering a passkey completes the gate the same way
+  # totp_mfa_setup + verify_otp(is_totp: true) does, so
+  # webauthn_registration_verify returns AuthResponse (access_token set only
+  # on that session-resolved path; nil, message-only, for the ordinary
+  # authenticated-settings-page caller).
   webauthn_registration_options(
     email: String
+    phone_number: String
   ): WebauthnRegistrationOptionsResponse!
   webauthn_registration_verify(
     params: WebauthnRegistrationVerifyRequest!
-  ): Response!
+  ): AuthResponse!
   webauthn_login_options(email: String): WebauthnLoginOptionsResponse!
   webauthn_login_verify(params: WebauthnLoginVerifyRequest!): AuthResponse!
   webauthn_delete_credential(id: ID!): Response!

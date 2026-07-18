@@ -62,7 +62,7 @@ func TestWebauthnPasskeyRegistrationAndLogin(t *testing.T) {
 	var credentialID string
 
 	t.Run("register a passkey for the authenticated user", func(t *testing.T) {
-		optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+		optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 		require.NoError(t, err)
 		attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 		require.NoError(t, err)
@@ -170,7 +170,7 @@ func TestWebauthnLoginRequiresVerifiedEmail(t *testing.T) {
 	// Register a passkey while the account is (test-config default) verified,
 	// then flip the account back to unverified directly in storage to isolate
 	// the login-time gate from signup/verification-flow plumbing.
-	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 	require.NoError(t, err)
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 	require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestWebauthnLoginOptionsScopedRequiresMfaSession(t *testing.T) {
 	require.NotNil(t, signupRes.AccessToken)
 	req.Header.Set("Authorization", "Bearer "+*signupRes.AccessToken)
 
-	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 	require.NoError(t, err)
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 	require.NoError(t, err)

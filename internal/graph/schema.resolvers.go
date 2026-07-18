@@ -108,12 +108,12 @@ func (r *mutationResolver) TotpMfaSetup(ctx context.Context, params *model.OtpMf
 }
 
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
-func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
-	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email)
+func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error) {
+	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email, phoneNumber)
 }
 
 // WebauthnRegistrationVerify is the resolver for the webauthn_registration_verify field.
-func (r *mutationResolver) WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error) {
+func (r *mutationResolver) WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error) {
 	return r.GraphQLProvider.WebauthnRegistrationVerify(ctx, &params)
 }
 

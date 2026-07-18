@@ -10,27 +10,32 @@ import (
 )
 
 // WebauthnRegistrationOptions delegates to the transport-agnostic service layer.
-// Permissions: authenticated:user.
-func (g *graphqlProvider) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
+// Permissions: authenticated:user, or an MFA-session-cookie caller mid-offer.
+func (g *graphqlProvider) WebauthnRegistrationOptions(ctx context.Context, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	return g.ServiceProvider.WebauthnRegistrationOptions(ctx, service.MetaFromGin(gc), email)
+	return g.ServiceProvider.WebauthnRegistrationOptions(ctx, service.MetaFromGin(gc), email, phoneNumber)
 }
 
 // WebauthnRegistrationVerify delegates to the transport-agnostic service layer.
-// Permissions: authenticated:user.
-func (g *graphqlProvider) WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error) {
+// Permissions: authenticated:user, or an MFA-session-cookie caller mid-offer.
+func (g *graphqlProvider) WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")
 		metrics.RecordSecurityEvent(metrics.SecurityEventGinContextMissing, "graphql")
 		return nil, err
 	}
-	return g.ServiceProvider.WebauthnRegistrationVerify(ctx, service.MetaFromGin(gc), params)
+	res, side, err := g.ServiceProvider.WebauthnRegistrationVerify(ctx, service.MetaFromGin(gc), params)
+	if err != nil {
+		return nil, err
+	}
+	service.ApplyToGin(gc, side)
+	return res, nil
 }
 
 // WebauthnLoginOptions delegates to the transport-agnostic service layer.

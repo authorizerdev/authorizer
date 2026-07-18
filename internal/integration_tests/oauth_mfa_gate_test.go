@@ -100,6 +100,7 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, withheld)
 		assert.Contains(t, redirectSuffix, "mfa_required=1")
+		assert.Contains(t, redirectSuffix, "mfa_gate=offer", "a first-time offer must route the frontend to the setup screen, not the verify screen")
 		assert.NotEmpty(t, side.Cookies, "an mfa session cookie must be set on a withheld outcome")
 	})
 
@@ -150,6 +151,7 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, withheld)
 		assert.Contains(t, redirectSuffix, "mfa_required=1")
+		assert.Contains(t, redirectSuffix, "mfa_gate=offer", "enforced-but-unenrolled is still an enrollment offer, not a challenge")
 	})
 
 	t.Run("mfaGateBlockVerify withholds with mfa_required=1", func(t *testing.T) {
@@ -189,6 +191,7 @@ func TestEvaluateMFAGateForOAuth(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, withheld)
 		assert.Contains(t, redirectSuffix, "mfa_required=1")
+		assert.Contains(t, redirectSuffix, "mfa_gate=verify", "an already-verified factor must route the frontend to the challenge screen, not the setup screen")
 
 		values, parseErr := url.ParseQuery(redirectSuffix)
 		require.NoError(t, parseErr)

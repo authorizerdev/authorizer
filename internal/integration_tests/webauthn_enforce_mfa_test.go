@@ -34,7 +34,7 @@ func registerPasskeyForNewUser(t *testing.T, ts *testSetup) (*schemas.User, virt
 	require.NotNil(t, signupRes.AccessToken)
 	req.Header.Set("Authorization", "Bearer "+*signupRes.AccessToken)
 
-	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 	require.NoError(t, err)
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 	require.NoError(t, err)

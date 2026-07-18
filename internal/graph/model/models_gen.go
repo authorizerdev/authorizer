@@ -1071,8 +1071,11 @@ type WebauthnRegistrationOptionsResponse struct {
 }
 
 type WebauthnRegistrationVerifyRequest struct {
-	Name       *string `json:"name,omitempty"`
-	Credential string  `json:"credential"`
+	Name        *string `json:"name,omitempty"`
+	Credential  string  `json:"credential"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	State       *string `json:"state,omitempty"`
 }
 
 type Webhook struct {

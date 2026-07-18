@@ -85,6 +85,16 @@ func (p *provider) EvaluateMFAGateForOAuth(ctx context.Context, meta RequestMeta
 	q := url.Values{}
 	q.Set("mfa_required", "1")
 	q.Set("mfa_methods", strings.Join(methods, ","))
+	// mfa_gate distinguishes a challenge for an already-configured factor
+	// (mfaGateBlockVerify) from a first-time enrollment offer with a Skip
+	// option (mfaGateBlockEnroll/mfaGateOfferAll) - the frontend must render
+	// the verify (code/passkey-assertion) screen for the former and the setup
+	// (enroll-a-method) screen for the latter; they are not interchangeable.
+	if gate == mfaGateBlockVerify {
+		q.Set("mfa_gate", "verify")
+	} else {
+		q.Set("mfa_gate", "offer")
+	}
 	// Deliberately no email/phone_number here: OAuth's continuation calls
 	// (verify_otp/skip_mfa_setup/lock_mfa) resolve the account from the MFA
 	// session cookie alone when no identifier is supplied — see

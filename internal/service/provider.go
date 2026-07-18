@@ -169,11 +169,13 @@ type Provider interface {
 	VerifyOTP(ctx context.Context, meta RequestMetadata, params *model.VerifyOTPRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
 	// WebauthnRegistrationOptions begins a passkey registration ceremony for the
-	// authenticated caller. Requires a session. Public (self-service).
-	WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	// caller: bearer-token authenticated (settings page) or, mid MFA-offer,
+	// MFA-session-cookie authenticated. Public (self-service).
+	WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	// WebauthnRegistrationVerify verifies the attestation and stores the passkey
-	// for the authenticated caller. Requires a session. Public (self-service).
-	WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	// for the caller. When MFA-session authenticated, also completes the MFA
+	// gate and issues the withheld auth token. Public (self-service).
+	WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 	// WebauthnLoginOptions begins a passkey login ceremony — usernameless when
 	// email is nil, else scoped to that user's credentials. Public.
 	WebauthnLoginOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnLoginOptionsResponse, error)

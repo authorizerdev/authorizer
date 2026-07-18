@@ -1,6 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthorizerMFASetup, useAuthorizer } from '@authorizerdev/authorizer-react';
+import { AuthorizerMFASetup, AuthorizerVerifyOtp, useAuthorizer } from '@authorizerdev/authorizer-react';
 import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
@@ -120,12 +120,37 @@ export default function Root({
 	if (loading) {
 		return <h1>Loading...</h1>;
 	}
-	if (mfaRedirect) {
+	if (mfaRedirect && mfaRedirect.mfaGate === 'verify') {
+		// An already-configured factor must be challenged, not offered setup
+		// again - no email/phone_number in hand (OAuth/magic-link return), but
+		// verify_otp resolves the pending user from the MFA session cookie
+		// alone, same as the passkey-primary-login continuation.
+		return (
+			<AuthorizerVerifyOtp
+				is_totp={mfaRedirect.mfaMethods.includes('totp')}
+				offerWebauthnVerify={mfaRedirect.mfaMethods.includes('webauthn')}
+				hasCodeFactor={
+					mfaRedirect.mfaMethods.includes('totp') ||
+					mfaRedirect.mfaMethods.includes('email_otp') ||
+					mfaRedirect.mfaMethods.includes('sms_otp')
+				}
+				onLogin={(data: any) => {
+					setAuthData({
+						user: data?.user || null,
+						token: data,
+						config,
+						loading: false,
+					});
+				}}
+			/>
+		);
+	}
+	if (mfaRedirect && mfaRedirect.mfaGate === 'offer') {
 		return (
 			<AuthorizerMFASetup
 				availableMfaMethods={{
 					totp: mfaRedirect.mfaMethods.includes('totp'),
-					passkey: false,
+					passkey: mfaRedirect.mfaMethods.includes('webauthn'),
 					emailOtp: mfaRedirect.mfaMethods.includes('email_otp'),
 					smsOtp: mfaRedirect.mfaMethods.includes('sms_otp'),
 				}}
