@@ -68,23 +68,62 @@ found by actually running these scripts, not just reading the code:
 
 ## 0. Build and run the server under test
 
+Two ways to do this. Use container mode unless you specifically need the raw
+hardware ceiling with zero virtualization overhead — most people deploy
+Authorizer in a container, so it's the more representative default, and it's
+also just less setup.
+
+### Container mode (recommended)
+
+```bash
+CPUS=2 MEM=2g ./perf/run_container.sh   # prints ADMIN_SECRET and next steps
+# ...run scenarios (section 2)...
+./perf/stop_container.sh                # when done
+```
+
+Builds `authorizer:perf-local` from the repo's own `Dockerfile` — same image
+a real deployment runs — pinned to your host's own CPU architecture (checked
+via `uname -m`) so it never silently builds `linux/amd64` and runs under
+emulation on Apple Silicon, which would badly skew every number. Starts
+Postgres 16 + Redis 7 as containers on a dedicated Docker network, and the
+app container with the CPU/memory limits you pass (`CPUS`/`MEM`) — that's
+your resource tier. Re-run with a higher `CPUS` to test the next tier; see
+"Vertical scaling" below for what that actually buys you.
+
+Rate limiting and CSRF are still live — see "Gotchas" below for the `Origin`
+header and `--rate-limit-*` overrides you need for a real load test.
+
+### Native mode (raw hardware ceiling, more setup)
+
 Use the built binary, not `go run` — and run Postgres/Redis natively
-(Homebrew) rather than via Docker Desktop if you're on macOS and the numbers
-will be published; Docker Desktop's Linux VM adds a virtualization tax on
-disk/network that skews results (see "Publishing numbers" below).
+(Homebrew) rather than via Docker Desktop if the numbers will be published;
+Docker Desktop's Linux VM adds a virtualization tax on disk/network that
+skews results (see "Publishing numbers" below).
 
 ```bash
 make build
 brew services start postgresql@16
 brew services start redis
+createdb authorizer_perf
 
 ./build/darwin/arm64/authorizer \
   --admin-secret "$(openssl rand -hex 16)" \
   --database-type postgres \
-  --database-url "postgres://localhost:5432/authorizer?sslmode=disable" \
-  --fga-store postgres \
-  --port 8080
+  --database-url "postgres://localhost:5432/authorizer_perf?sslmode=disable" \
+  --jwt-type RS256 \
+  --jwt-private-key "$(cat perf/dev-jwt-private.pem)" \
+  --jwt-public-key "$(cat perf/dev-jwt-public.pem)" \
+  --client-id kbyuFDidLLm280LIwVFiazOqjO3ty8KH \
+  --client-secret 60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa \
+  --allowed-origins localhost:8080 \
+  --http-port 8080
 ```
+
+`--admin-secret`, `--jwt-type`/`--jwt-private-key`/`--jwt-public-key`, and
+`--client-id`/`--client-secret` are all required — the server exits with
+`client ID missing in rootArgs` (or similar) without them. `--fga-store` can
+be omitted: it auto-reuses `--database-url` when the main DB is SQL-compatible
+(postgres/mysql/sqlite) — see `internal/config/fga.go`.
 
 ## 1. Seed data
 
@@ -156,24 +195,63 @@ the curve is linear:
 | Maximum (single box) | N replicas behind a local LB, Redis for rate-limit/session | Whether scaling is linear per replica |
 | Maximum (cloud) | Same as above on target deploy hardware (x86 or Graviton) | The number you can actually publish |
 
-### Minimal-tier data point (M4 Pro, native Postgres 16, single node, loopback, 20 VUs)
+### Data points (M4 Pro host, single node)
 
-Not publishable as-is per the checklist below (single laptop, loopback, no
-cloud corroboration) — but a real, reproducible floor from actually running
-this harness, default `--rate-limit-*` raised, `Origin` header set:
+Not publishable as-is per the checklist below (one laptop, no cloud
+corroboration) — but real, reproducible numbers from actually running this
+harness, default `--rate-limit-*` raised, `Origin` header set:
 
-| Scenario | Throughput | p90 | p95 |
+| Tier | Scenario | Input | Throughput | p50 | p95 |
+|---|---|---|---|---|---|
+| A. Native, unconstrained cores | `validate_jwt_token` | 20 VUs | 4,743 req/s | 0.58ms | 14.2ms |
+| A. Native, unconstrained cores | `check_permissions` | 20 VUs, 1 tuple | 4,668 req/s | 0.69ms | 13.7ms |
+| B. Container, 2 vCPU / 2GB | `login` | 20 VUs | 27.8 req/s | 690ms | 1.00s |
+| B. Container, 2 vCPU / 2GB | `client_credentials` s2s | 20 VUs | 7.9 req/s | 2.50s | 2.86s |
+| B. Container, 2 vCPU / 2GB | `validate_jwt_token` | 20 VUs | 5,670 req/s | 3.15ms | 6.29ms |
+| B. Container, 2 vCPU / 2GB | `check_permissions` | 20 VUs, 200k tuples | 5,001 req/s | 3.52ms | 6.86ms |
+| C. Container, 8 vCPU / 4GB | `login` | 80 VUs | 103.1 req/s | 738ms | 1.14s |
+| C. Container, 8 vCPU / 4GB | `client_credentials` s2s | 80 VUs | 31.2 req/s | 2.49s | 2.99s |
+| C. Container, 8 vCPU / 4GB | `validate_jwt_token` | 100 VUs | 15,721 req/s | 5.71ms | 11.6ms |
+| C. Container, 8 vCPU / 4GB | `check_permissions` | 100 VUs, 200k tuples | 12,388 req/s | 7.11ms | 14.3ms |
+| D. In-process (`go test -bench`) | `Check` | 10k bg tuples, no HTTP/DB hop | — | — | 89µs/op |
+
+`validate_jwt_token` and `check_permissions` are cheap (RSA verify / direct
+tuple lookup) and scale with cores without ever being the bottleneck — the
+~50x gap between the in-process Check (89µs) and the HTTP-path
+check_permissions (6-14ms) is the HTTP+CSRF+auth+DB round trip, not FGA
+resolution.
+
+`login` and `client_credentials` are slow **by design**: both verify a bcrypt
+hash, which is deliberately CPU-expensive to resist offline brute-forcing.
+Login uses `bcrypt.DefaultCost` (10, `internal/service/login.go:288`);
+service-account client secrets use cost **12** — 4x more expensive, a
+decision already on record: *"the schema doc comment on ClientSecret commits
+to cost 12 — this MUST stay 12"* (`internal/service/admin_clients.go:24-26`).
+Throughput on a CPU-bound op is `cores ÷ time-per-op`: 2 cores ÷ ~70ms (cost
+10) ≈ 28 req/s, 2 cores ÷ ~280ms (cost 12) ≈ 7 req/s — both match measured
+numbers almost exactly.
+
+**Vertical scaling, proven, not assumed** — B → C is a 4x CPU increase
+(2→8 vCPU) at roughly proportional VU increase:
+
+| Scenario | 2 vCPU | 8 vCPU | Scale factor |
 |---|---|---|---|
-| `validate_jwt_token` | ~4,740 req/s | 10.8ms | 14.2ms |
-| `check_permissions` (1 tuple, cold store) | ~4,670 req/s | 11.1ms | 13.7ms |
-| FGA engine in-process `Check` (10k bg tuples, no HTTP/DB hop) | — | — | ~89µs/op |
-| FGA engine in-process `BatchCheck` (50 items) | — | — | ~246µs/op |
+| `login` | 27.8 req/s | 103.1 req/s | 3.71x |
+| `client_credentials` s2s | 7.9 req/s | 31.2 req/s | 3.93x |
 
-The ~50x gap between the in-process Check (89µs) and the HTTP-path
-check_permissions (~13.7ms p95) is the HTTP+CSRF+auth+DB round trip, not FGA
-resolution — that's the layer to optimize first if the HTTP-path number needs
-to move. Re-run at higher `VUS` and with a tuned DB pool to find where it
-actually breaks; 20 VUs on a laptop is nowhere near this server's ceiling.
+Near-linear. The fix for slow login/s2s throughput is capacity (more cores),
+not weakening bcrypt — that would be a real security regression for a
+cosmetic throughput win. `validate_jwt_token`/`check_permissions` scaled less
+cleanly (2.5-2.8x) only because they were never core-saturated to begin with
+at 20 VUs; the comparison isn't apples-to-apples for those two since VUs rose
+5x alongside cores, not 4x.
+
+One anomaly worth flagging: `login` at 8 vCPU/80 VUs had a 2.05% error rate
+(0% everywhere else). Likely DB connection pool saturation under 80
+concurrent bcrypt-heavy requests — Authorizer has no CLI flag today to tune
+`MaxOpenConns`/`MaxIdleConns` (checked `internal/storage/db/sql/client.go`
+and `cmd/root.go`; GORM defaults apply). Not chased further here; worth a
+look if you hit it at a higher tier.
 
 Isolate the load generator from the server under test at every tier — on a
 laptop especially, k6/ghz and the server competing for the same cores measures
