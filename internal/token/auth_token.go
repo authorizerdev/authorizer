@@ -77,6 +77,13 @@ type AuthTokenConfig struct {
 	// token claim. If zero, CreateIDToken falls back to time.Now() so
 	// existing callers continue to work unchanged (backward compat).
 	AuthTime int64
+	// ClientID is the OAuth client the refresh token is being minted for —
+	// the client that authenticated at /oauth/token when the token was
+	// issued or last rotated. CreateRefreshToken embeds it as the
+	// "client_id" claim so a later refresh_token redemption can be bound
+	// to the same client (RFC 6749 §6). Empty is valid (client_credentials
+	// / machine paths that never mint a refresh token).
+	ClientID string
 }
 
 // loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
@@ -226,6 +233,19 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 	return fingerPrintMap, fingerPrintHash, expiresAt, nil
 }
 
+// audience returns the OIDC "aud" claim value: the OAuth client the token is
+// being issued to. cfg.ClientID carries the actual requesting client for the
+// /authorize and /oauth/token flows; callers that mint a token for
+// Authorizer's own hosted app (GraphQL login/signup, social/SAML/SSO
+// callbacks establishing the browser session) leave it unset, and the
+// reserved bootstrap client_id remains the audience — unchanged behavior.
+func (p *provider) audience(cfg *AuthTokenConfig) string {
+	if cfg.ClientID != "" {
+		return cfg.ClientID
+	}
+	return p.config.ClientID
+}
+
 // CreateRefreshToken util to create JWT token
 func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
 	// Lifetime is configurable via --refresh-token-expires-in (seconds).
@@ -242,7 +262,7 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 	}
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
-		"aud":           p.config.ClientID,
+		"aud":           p.audience(cfg),
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
@@ -253,6 +273,7 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"nonce":         cfg.Nonce,
 		"login_method":  cfg.LoginMethod,
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
+		"client_id":     cfg.ClientID,
 	}
 
 	token, err := p.SignJWTToken(customClaims)
@@ -280,7 +301,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
-		"aud":           p.config.ClientID,
+		"aud":           p.audience(cfg),
 		"nonce":         cfg.Nonce,
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
@@ -416,11 +437,19 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized: user revoked`)
 	}
 
+	// /userinfo and the generic session-or-access-token resolver present no
+	// client credentials — a bearer access token is accepted from whichever
+	// client it was issued to, there being no request-time client identity to
+	// bind it to. Trust the token's own "aud" (set at issuance, protected by
+	// the JWT signature) as the expected value; the checks above already
+	// establish the token is a genuine, unexpired, unrevoked Authorizer token.
+	aud, _ := res["aud"].(string)
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
 		HostName: hostname,
 		Nonce:    nonce,
 		User:     &schemas.User{ID: userID},
+		ClientID: aud,
 	}); !ok || err != nil {
 		return res, err
 	}
@@ -432,8 +461,10 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	return res, nil
 }
 
-// Function to validate refreshToken
-func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
+// Function to validate refreshToken. expectedClientID is the OAuth client
+// presenting the token at the token endpoint (RFC 6749 §6 client binding) —
+// it must match the "aud" claim the token was issued with.
+func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string, expectedClientID string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if refreshToken == "" {
@@ -472,6 +503,7 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		HostName: hostname,
 		Nonce:    nonce,
 		User:     &schemas.User{ID: userID},
+		ClientID: expectedClientID,
 	}); !ok || err != nil {
 		return res, err
 	}
@@ -563,7 +595,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 
 	customClaims := jwt.MapClaims{
 		"iss":                 cfg.HostName,
-		"aud":                 p.config.ClientID,
+		"aud":                 p.audience(cfg),
 		"sub":                 cfg.User.ID,
 		"exp":                 expiresAt,
 		"iat":                 time.Now().Unix(),

@@ -219,7 +219,8 @@ func TestResetPassword(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("X-Authorizer-URL", issuer)
 		router.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusUnauthorized, w.Code,
+		// RFC 6749 §5.2: invalid_grant responses MUST use HTTP 400, not 401.
+		assert.Equal(t, http.StatusBadRequest, w.Code,
 			"pre-existing refresh token must be rejected after password reset")
 	})
 

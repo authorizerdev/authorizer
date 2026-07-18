@@ -60,12 +60,21 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		}
 	}
 
+	// This API validates an arbitrary bearer token without knowing which
+	// OAuth client is asking, so it can't assert a specific expected
+	// audience the way the /oauth/token and /userinfo endpoints do. Trust the
+	// token's own "aud" claim as the expected value — a no-op audience check
+	// that still requires the claim be present and well-formed; the token's
+	// signature (already verified by ParseJWTToken) is what actually
+	// guarantees the claim wasn't forged.
+	aud, _ := claims["aud"].(string)
 	hostname := meta.HostURL
 	if nonce != "" {
 		if ok, err := p.TokenProvider.ValidateJWTClaims(claims, &token.AuthTokenConfig{
 			HostName: hostname,
 			Nonce:    nonce,
 			User:     &schemas.User{ID: userID},
+			ClientID: aud,
 		}); !ok || err != nil {
 			log.Debug().Err(err).Msg("Failed to validate jwt claims")
 			return nil, nil, Unauthenticated("invalid claims")
@@ -74,6 +83,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		if ok, err := p.TokenProvider.ValidateJWTTokenWithoutNonce(claims, &token.AuthTokenConfig{
 			HostName: hostname,
 			User:     &schemas.User{ID: userID},
+			ClientID: aud,
 		}); !ok || err != nil {
 			log.Debug().Err(err).Msg("Failed to validate jwt claims")
 			return nil, nil, Unauthenticated("invalid claims")

@@ -151,7 +151,7 @@ func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
 
 // ValidateJWTClaims common util to validate claims
 func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error) {
-	if claims["aud"] != p.config.ClientID {
+	if claims["aud"] != p.audience(authTokenConfig) {
 		return false, errors.New("invalid audience")
 	}
 
@@ -172,7 +172,7 @@ func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *Auth
 
 // ValidateJWTTokenWithoutNonce common util to validate claims without nonce
 func (p *provider) ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error) {
-	if claims["aud"] != p.config.ClientID {
+	if claims["aud"] != p.audience(authTokenConfig) {
 		return false, errors.New("invalid audience")
 	}
 

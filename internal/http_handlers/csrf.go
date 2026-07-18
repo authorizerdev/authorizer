@@ -67,6 +67,18 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt POST /authorize (RFC 6749 §3.1 / OIDC Core §3.1.2.1 require
+		// the authorization endpoint to accept POST). This endpoint is
+		// reached via top-level navigation/form-submit from arbitrary
+		// third-party RPs — the request is not cookie-authenticated the way
+		// GraphQL/admin mutations are (an existing session cookie is only
+		// consulted to skip re-login; anonymous requests are the common
+		// case), so CSRF does not apply.
+		if c.Request.URL.Path == "/authorize" {
+			c.Next()
+			return
+		}
+
 		// Exempt the SAML ACS endpoint (POST /oauth/saml/:org_slug/acs). The
 		// SAML POST binding delivers the assertion via an auto-submitting form
 		// from the IdP's origin — a legitimate cross-origin POST that Origin

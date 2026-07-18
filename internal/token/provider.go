@@ -73,8 +73,10 @@ type Provider interface {
 	ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error)
 	// ValidateJWTTokenWithoutNonce validates jwt token without nonce
 	ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error)
-	// ValidateRefreshToken validates refresh token
-	ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error)
+	// ValidateRefreshToken validates refresh token. expectedClientID is the
+	// OAuth client presenting the token at the token endpoint — it MUST match
+	// the token's "aud" claim (the client it was issued to).
+	ValidateRefreshToken(gc *gin.Context, refreshToken string, expectedClientID string) (map[string]interface{}, error)
 	// NotifyBackchannelLogout signs and POSTs an OIDC Back-Channel Logout
 	// 1.0 logout_token to the supplied URI. Intended to be invoked from a
 	// goroutine; remote HTTP failures are not surfaced beyond the local error.

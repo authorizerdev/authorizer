@@ -97,7 +97,8 @@ func TestDeprovisionedUserRevocation(t *testing.T) {
 	require.NoError(t, ts.MemoryStoreProvider.DeleteAllUserSessions(user.ID))
 
 	// After deprovision: refresh is rejected and introspection reports inactive.
-	assert.Equal(t, http.StatusUnauthorized, refresh(), "refresh must be rejected for a revoked user")
+	// RFC 6749 §5.2: invalid_grant responses MUST use HTTP 400, not 401.
+	assert.Equal(t, http.StatusBadRequest, refresh(), "refresh must be rejected for a revoked user")
 	assert.False(t, introspect(*loginRes.AccessToken), "a revoked user's access token must introspect as inactive")
 }
 

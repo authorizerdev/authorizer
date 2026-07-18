@@ -76,23 +76,31 @@ const (
 func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 	return func(gc *gin.Context) {
-		redirectURI := strings.TrimSpace(gc.Query("redirect_uri"))
-		responseType := strings.TrimSpace(gc.Query("response_type"))
-		state := strings.TrimSpace(gc.Query("state"))
-		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
-		scopeString := strings.TrimSpace(gc.Query("scope"))
-		clientID := strings.TrimSpace(gc.Query("client_id"))
-		responseMode := strings.TrimSpace(gc.Query("response_mode"))
+		// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint
+		// MUST support GET and MAY support POST (form-urlencoded body).
+		// FormValue reads the POST body first, falling back to the query
+		// string, so the same handler serves both methods.
+		param := func(key string) string {
+			return strings.TrimSpace(gc.Request.FormValue(key))
+		}
+
+		redirectURI := param("redirect_uri")
+		responseType := param("response_type")
+		state := param("state")
+		codeChallenge := param("code_challenge")
+		scopeString := param("scope")
+		clientID := param("client_id")
+		responseMode := param("response_mode")
 		rawResponseMode := responseMode
-		nonce := strings.TrimSpace(gc.Query("nonce"))
-		screenHint := strings.TrimSpace(gc.Query("screen_hint"))
+		nonce := param("nonce")
+		screenHint := param("screen_hint")
 
 		// OIDC Core §3.1.2.1 standard authorization request parameters.
-		loginHint := strings.TrimSpace(gc.Query("login_hint"))
-		uiLocales := strings.TrimSpace(gc.Query("ui_locales"))
-		prompt := strings.TrimSpace(gc.Query("prompt"))
-		maxAgeStr := strings.TrimSpace(gc.Query("max_age"))
-		idTokenHint := strings.TrimSpace(gc.Query("id_token_hint"))
+		loginHint := param("login_hint")
+		uiLocales := param("ui_locales")
+		prompt := param("prompt")
+		maxAgeStr := param("max_age")
+		idTokenHint := param("id_token_hint")
 
 		// max_age is advisory. Parse per OIDC Core §3.1.2.1:
 		//   - negative or non-integer → treat as absent (no constraint)
@@ -167,6 +175,23 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
+		// OIDCC-3.1.2.6 (JAR, RFC 9101): the server must either process a
+		// `request`/`request_uri` object or reject it with
+		// request_not_supported / request_uri_not_supported. We don't parse
+		// request objects, so reject explicitly rather than silently
+		// ignoring the parameter and falling through to a confusing
+		// generic validation error.
+		if requestObject, requestURI := param("request"), param("request_uri"); requestObject != "" || requestURI != "" {
+			errCode := "request_not_supported"
+			errDesc := "the request parameter is not supported"
+			if requestURI != "" {
+				errCode = "request_uri_not_supported"
+				errDesc = "the request_uri parameter is not supported"
+			}
+			redirectErrorToRP(gc, responseMode, redirectURI, state, errCode, errDesc)
+			return
+		}
+
 		// RFC 6749 §3.1.1: response_type is REQUIRED. gin's Query() can't
 		// distinguish an absent parameter from an empty one, so both land
 		// here — reject rather than silently defaulting to an implicit-flow
@@ -176,7 +201,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
+		codeChallengeMethod := param("code_challenge_method")
 		// RFC 7636 §4.2: "If the client is capable of using
 		// "S256", it MUST use "S256" [...] If the server does not
 		// support the transformation, [...] it MUST return [...].
@@ -516,6 +541,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
 				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
@@ -608,6 +634,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
 				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for id_token token response")
@@ -755,6 +782,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
 				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -807,6 +835,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
 				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
