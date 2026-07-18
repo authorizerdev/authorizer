@@ -255,3 +255,33 @@ lint-go: lint-tools
 lint-ts:
 	cd web/app && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'
 	cd web/dashboard && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'
+
+# --- Performance testing (see perf/README.md) ---
+# BASE_URL/VUS/DURATION/ADMIN_SECRET/CLIENT_ID/CLIENT_SECRET/TUPLES are read
+# from the environment by the underlying k6 scripts; export before invoking.
+
+# Embedded FGA engine in-process ceiling — no HTTP/DB round trip.
+# Override background tuple volume: FGA_BENCH_TUPLES=1000000 make perf-fga-bench
+.PHONY: perf-fga-bench
+perf-fga-bench:
+	go test ./internal/authorization/engine/openfga/... -run '^$$' -bench . -benchmem
+
+.PHONY: perf-seed
+perf-seed:
+	k6 run perf/k6/seed_fga.js
+
+.PHONY: perf-k6-login
+perf-k6-login:
+	k6 run perf/k6/login.js
+
+.PHONY: perf-k6-s2s
+perf-k6-s2s:
+	k6 run perf/k6/s2s_client_credentials.js
+
+.PHONY: perf-k6-validate
+perf-k6-validate:
+	k6 run perf/k6/validate_jwt.js
+
+.PHONY: perf-k6-check
+perf-k6-check:
+	k6 run perf/k6/fga_check.js
