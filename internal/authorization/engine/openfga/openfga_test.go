@@ -114,6 +114,34 @@ func TestOpenFGAEngine_BatchCheck(t *testing.T) {
 	assert.False(t, results[2].Allowed, "bob no grant")
 }
 
+// TestOpenFGAEngine_BatchCheck_AtAdvertisedLimit guards the regression where the
+// embedded server's default BatchCheck cap (50) sat below the 100 that
+// check_permissions advertises/enforces (service.maxPermissionChecks), failing
+// 51-100 check requests closed. maxBatchCheckSize now raises the server cap to
+// match; a full-size batch must resolve, not error.
+func TestOpenFGAEngine_BatchCheck_AtAdvertisedLimit(t *testing.T) {
+	ctx := context.Background()
+	eng, _ := newTestEngine(t)
+
+	_, err := eng.WriteModel(ctx, testModel)
+	require.NoError(t, err)
+	require.NoError(t, eng.WriteTuples(ctx, []engine.TupleKey{
+		{User: "user:alice", Relation: "viewer", Object: "document:1"},
+	}))
+
+	requests := make([]engine.CheckRequest, maxBatchCheckSize)
+	for i := range requests {
+		requests[i] = engine.CheckRequest{User: "user:alice", Relation: "can_view", Object: "document:1"}
+	}
+
+	results, err := eng.BatchCheck(ctx, requests)
+	require.NoError(t, err, "a batch at the advertised limit must not exceed the server cap")
+	require.Len(t, results, maxBatchCheckSize)
+	for i, r := range results {
+		assert.True(t, r.Allowed, "check %d should be allowed", i)
+	}
+}
+
 func TestOpenFGAEngine_ReadWriteDeleteTuples(t *testing.T) {
 	ctx := context.Background()
 	eng, _ := newTestEngine(t)

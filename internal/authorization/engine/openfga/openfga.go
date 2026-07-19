@@ -35,6 +35,12 @@ const (
 	StoreMySQL = "mysql"
 )
 
+// maxBatchCheckSize is the per-request BatchCheck cap. It must match (or
+// exceed) service.maxPermissionChecks (100), which check_permissions advertises
+// and enforces. OpenFGA defaults this to 50; leaving it there fails 51-100
+// check requests closed.
+const maxBatchCheckSize = 100
+
 // Config holds the parameters needed to construct the embedded OpenFGA engine.
 //
 // StoreID and ModelID are the OpenFGA-assigned ULIDs. They normally stay
@@ -108,7 +114,16 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 		return nil, err
 	}
 
-	srv, err := server.NewServerWithOpts(server.WithDatastore(ds))
+	// Raise the per-request BatchCheck cap to match the limit the
+	// check_permissions API advertises and enforces (service.maxPermissionChecks
+	// = 100). OpenFGA's default is 50, so without this a request of 51-100
+	// checks clears the API guard then fails the whole batch closed inside
+	// BatchCheck. Kept as a literal here to avoid the engine depending on the
+	// service package — the two must stay in sync.
+	srv, err := server.NewServerWithOpts(
+		server.WithDatastore(ds),
+		server.WithMaxChecksPerBatchCheck(maxBatchCheckSize),
+	)
 	if err != nil {
 		ds.Close()
 		return nil, fmt.Errorf("openfga.New: NewServerWithOpts: %w", err)
