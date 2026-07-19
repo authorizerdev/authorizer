@@ -73,11 +73,14 @@ func TestVerifyEmailChallengesEmailOTPFactor(t *testing.T) {
 	assert.True(t, refs.BoolValue(verifyRes.ShouldShowEmailOtpScreen), "must challenge the account's enrolled Email-OTP factor")
 }
 
-// TestWebauthnLoginVerifyChallengesEmailOTPFactor is the same bug in
-// WebauthnLoginVerify: authenticatorVerified only considered TOTP, so a
-// passkey-primary login for a user whose only enrolled second factor was
-// Email-OTP or SMS-OTP silently issued a token with zero MFA challenge.
-func TestWebauthnLoginVerifyChallengesEmailOTPFactor(t *testing.T) {
+// TestWebauthnLoginVerifySatisfiesMFAOverEmailOTPFactor locks in the decided
+// policy for WebauthnLoginVerify (the inverse of the VerifyEmail case above,
+// which is a different, unchanged code path): a successful passkey assertion
+// satisfies MFA outright, so even the exact skip-setup + Email-OTP-enrolled
+// combination that this endpoint used to challenge now issues a token with no
+// OTP prompt. VerifyEmail (magic-link / signup) still challenges it — only the
+// passkey path treats the assertion itself as the satisfied factor.
+func TestWebauthnLoginVerifySatisfiesMFAOverEmailOTPFactor(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.EnableWebauthnMFA = true
 	cfg.EnableEmailOTP = true
@@ -86,8 +89,7 @@ func TestWebauthnLoginVerifyChallengesEmailOTPFactor(t *testing.T) {
 
 	// Per-user opt-in, not the global cfg.EnableMFA flag - signup itself must
 	// stay unaffected so registerPasskeyForNewUser's SignUp call still issues
-	// a token to register the passkey with. WebauthnLoginVerify's own gate
-	// (below) only requires effectiveMFAEnabled, not cfg.EnableMFA globally.
+	// a token to register the passkey with.
 	user, rp, authenticator, credential := registerPasskeyForNewUser(t, ts)
 
 	now := time.Now().Unix()
@@ -105,6 +107,6 @@ func TestWebauthnLoginVerifyChallengesEmailOTPFactor(t *testing.T) {
 	res, err := assertPasskeyLogin(t, ts, rp, authenticator, credential)
 	require.NoError(t, err)
 	require.NotNil(t, res)
-	assert.Nil(t, res.AccessToken, "must not issue a token before the enrolled Email-OTP factor is verified")
-	assert.True(t, refs.BoolValue(res.ShouldShowEmailOtpScreen), "must challenge the account's enrolled Email-OTP factor")
+	require.NotNil(t, res.AccessToken, "a passkey assertion satisfies MFA on its own — no Email-OTP challenge")
+	assert.False(t, refs.BoolValue(res.ShouldShowEmailOtpScreen), "must not challenge Email-OTP after a successful passkey verify")
 }

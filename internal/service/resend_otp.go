@@ -149,7 +149,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 			log.Debug().Msg("Failed to set mfa session")
 			return err
 		}
-		for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
+		for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 			side.AddCookie(c)
 		}
 		return nil

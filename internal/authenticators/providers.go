@@ -6,6 +6,7 @@ import (
 	ac "github.com/authorizerdev/authorizer/internal/authenticators/config"
 	"github.com/authorizerdev/authorizer/internal/authenticators/totp"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/rs/zerolog"
 )
@@ -14,6 +15,10 @@ import (
 type Dependencies struct {
 	Log             *zerolog.Logger
 	StorageProvider storage.Provider
+	// MemoryStoreProvider backs the transient pending-secret store used to make
+	// TOTP re-enrollment safe (a re-setup can't desync a working authenticator
+	// until the new code is confirmed). See totp.Generate/Validate.
+	MemoryStoreProvider memory_store.Provider
 }
 
 // Provider defines authenticators provider
@@ -32,8 +37,9 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 		return nil, nil
 	}
 	return totp.NewProvider(&totp.Dependencies{
-		Log:             deps.Log,
-		StorageProvider: deps.StorageProvider,
-		EncryptionKey:   cfg.JWTSecret,
+		Log:                 deps.Log,
+		StorageProvider:     deps.StorageProvider,
+		MemoryStoreProvider: deps.MemoryStoreProvider,
+		EncryptionKey:       cfg.JWTSecret,
 	})
 }

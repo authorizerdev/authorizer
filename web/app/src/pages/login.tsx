@@ -95,6 +95,22 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 	const [ssoResolved, setSsoResolved] = useState(false);
 	const [hrdEmail, setHrdEmail] = useState('');
 	const [hrdChecking, setHrdChecking] = useState(false);
+	// AuthorizerPasskeyLogin and AuthorizerBasicAuthLogin each take over the
+	// whole login surface once their own sign-in needs a second factor (their
+	// own MFA setup/verify/locked screens) - every other login option, and
+	// the login attempt not currently in flight, don't belong stacked on top
+	// of those screens.
+	const [passkeyStep, setPasskeyStep] = useState<
+		'button' | 'mfa-setup' | 'mfa-verify' | 'locked'
+	>('button');
+	const [basicAuthStep, setBasicAuthStep] = useState<
+		'form' | 'mfa-setup' | 'otp-verify' | 'locked'
+	>('form');
+	const passkeyIdle = passkeyStep === 'button';
+	const basicAuthIdle = basicAuthStep === 'form';
+	// Social login, magic link, and the forgot-password/sign-up footers only
+	// make sense while both login attempts are idle.
+	const showChrome = passkeyIdle && basicAuthIdle;
 
 	const handleHRDSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -164,30 +180,40 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 			{view === VIEW_TYPES.LOGIN && (
 				<Fragment>
 					<h1 style={{ textAlign: 'center' }}>Login</h1>
-					<AuthorizerSocialLogin urlProps={urlProps} />
-					<AuthorizerPasskeyLogin />
-					<br />
-					{(config.is_basic_authentication_enabled ||
-						config.is_mobile_basic_authentication_enabled) &&
-						!config.is_magic_link_login_enabled && (
-							<AuthorizerBasicAuthLogin urlProps={urlProps} />
-						)}
-					{config.is_magic_link_login_enabled && (
-						<AuthorizerMagicLinkLogin urlProps={urlProps} />
+					{showChrome && <AuthorizerSocialLogin urlProps={urlProps} />}
+					{basicAuthIdle && (
+						<AuthorizerPasskeyLogin onStepChange={setPasskeyStep} />
 					)}
-					{(config.is_basic_authentication_enabled ||
-						config.is_mobile_basic_authentication_enabled) &&
-						!config.is_magic_link_login_enabled && (
-							<Footer>
-								<Link
-									to="#"
-									onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
-									style={{ marginBottom: 10 }}
-								>
-									Forgot Password?
-								</Link>
-							</Footer>
-						)}
+					{passkeyIdle && (
+						<Fragment>
+							<br />
+							{(config.is_basic_authentication_enabled ||
+								config.is_mobile_basic_authentication_enabled) &&
+								!config.is_magic_link_login_enabled && (
+									<AuthorizerBasicAuthLogin
+										urlProps={urlProps}
+										onStepChange={setBasicAuthStep}
+									/>
+								)}
+							{showChrome && config.is_magic_link_login_enabled && (
+								<AuthorizerMagicLinkLogin urlProps={urlProps} />
+							)}
+							{showChrome &&
+								(config.is_basic_authentication_enabled ||
+									config.is_mobile_basic_authentication_enabled) &&
+								!config.is_magic_link_login_enabled && (
+									<Footer>
+										<Link
+											to="#"
+											onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
+											style={{ marginBottom: 10 }}
+										>
+											Forgot Password?
+										</Link>
+									</Footer>
+								)}
+						</Fragment>
+					)}
 				</Fragment>
 			)}
 			{view === VIEW_TYPES.FORGOT_PASSWORD && (
@@ -213,7 +239,8 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 					</Footer>
 				</Fragment>
 			)}
-			{config.is_basic_authentication_enabled &&
+			{showChrome &&
+				config.is_basic_authentication_enabled &&
 				!config.is_magic_link_login_enabled &&
 				config.is_sign_up_enabled && (
 					<FooterContent>

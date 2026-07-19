@@ -137,8 +137,9 @@ func runMCP(_ *cobra.Command, _ []string) {
 	// Authenticator provider — required by the service layer's TOTP/MFA
 	// verification flows (verify_otp, login).
 	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
-		Log:             &log,
-		StorageProvider: storageProvider,
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create authenticator provider")

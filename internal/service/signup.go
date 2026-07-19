@@ -276,7 +276,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			log.Debug().Err(err).Msg("Failed to add mfasession")
 			return nil, nil, err
 		}
-		for _, c := range cookie.BuildMfaSessionCookies(hostname, mfaSession, p.Config.AppCookieSecure) {
+		for _, c := range cookie.BuildMfaSessionCookies(hostname, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 			side.AddCookie(c)
 		}
 		go func() {

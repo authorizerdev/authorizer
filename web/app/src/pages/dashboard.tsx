@@ -26,7 +26,7 @@ export default function Dashboard() {
 
 			<p>
 				<Link to="/app/settings" style={{ color: '#3B82F6' }}>
-					Manage passkeys
+					Manage MFA
 				</Link>
 			</p>
 

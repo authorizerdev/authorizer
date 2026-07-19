@@ -43,7 +43,7 @@ func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects
 	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, constants.MFASessionPurposeVerified, expiresAt); err != nil {
 		return err
 	}
-	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
+	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 		side.AddCookie(c)
 	}
 	return nil
@@ -306,6 +306,16 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
 	}
 
+	// Computed up-front (not just inside the TOTP/resolveMFAGate branch below)
+	// so the email-OTP and SMS-OTP branches can offer it too: a registered
+	// passkey satisfies MFA on its own (see webauthn.go's WebauthnLoginVerify),
+	// so it must be offered as an alternative alongside whichever OTP method
+	// gets challenged first — the same way it's already offered alongside
+	// TOTP. Ignore a list error the same way the TOTP/resolveMFAGate branch
+	// does: treat "couldn't check" as "found none" rather than failing login.
+	webauthnCreds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+	hasWebauthnCredential := len(webauthnCreds) > 0
+
 	// A verified Email-OTP second factor is challenged on enrollment alone,
 	// independent of which identifier (email or phone) the caller logged in
 	// with: a user who signed up with email, later verified a phone number,
@@ -338,10 +348,14 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			}
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
-		return &model.AuthResponse{
+		res := &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
 			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
-		}, side, nil
+		}
+		if hasWebauthnCredential {
+			res.ShouldOfferWebauthnMfaVerify = refs.NewBoolRef(true)
+		}
+		return res, side, nil
 	}
 	// SMS-OTP twin of the email branch above: challenged on enrollment alone,
 	// sent to user.PhoneNumber regardless of the login identifier. Email wins
@@ -370,10 +384,14 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				log.Debug().Msg("Failed to send sms")
 			}
 		}()
-		return &model.AuthResponse{
+		res := &model.AuthResponse{
 			Message:                   "Please check text message for the OTP",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
-		}, side, nil
+		}
+		if hasWebauthnCredential {
+			res.ShouldOfferWebauthnMfaVerify = refs.NewBoolRef(true)
+		}
+		return res, side, nil
 	}
 	// Gate runs whenever MFA applies at all -- NOT scoped to "TOTP
 	// specifically is available" (that was the I1 bypass: a WebAuthn-only
@@ -385,13 +403,8 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	if isMFAEnabled {
 		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
-		// A WebAuthn credential registered for ANY purpose (passwordless
-		// primary login or explicit MFA setup — there is no `purpose` field)
-		// counts as a verified second factor. Ignore a list error rather than
-		// failing login on it: treat "couldn't check" the same as "found
-		// none," matching how a missing TOTP authenticator row is handled.
-		webauthnCreds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
-		hasWebauthnCredential := len(webauthnCreds) > 0
+		// hasWebauthnCredential is computed once, up-front (see above) — reused
+		// here rather than re-queried.
 		authenticatorVerified := totpVerified || hasWebauthnCredential
 		gate := resolveMFAGate(
 			effectiveMFAEnabled(p.Config, user),

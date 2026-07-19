@@ -69,7 +69,7 @@ export default function Root({
 
 	const rawRedirectURL = getParam('redirect_uri') || getParam('redirectURL');
 	urlProps.redirectURL =
-		rawRedirectURL || (hasWindow() ? window.location.origin : '/app');
+		rawRedirectURL || (hasWindow() ? `${window.location.origin}/app` : '/app');
 
 	urlProps.redirect_uri = urlProps.redirectURL;
 
@@ -117,6 +117,12 @@ export default function Root({
 		window.location.replace(`/authorize?${params.toString()}`);
 	}, [token, isAuthorizeContext, state]);
 
+	// Both MFA gates below are reached via a server redirect carrying the
+	// gate state in the URL, not client-side navigation - there's no prior
+	// SPA screen to pop back to. "Back" here means abandoning the pending
+	// MFA session and returning to a clean /app (fresh login screen).
+	const backToLogin = () => window.location.replace('/app');
+
 	if (loading) {
 		return <h1>Loading...</h1>;
 	}
@@ -134,6 +140,7 @@ export default function Root({
 					mfaRedirect.mfaMethods.includes('email_otp') ||
 					mfaRedirect.mfaMethods.includes('sms_otp')
 				}
+				onBack={backToLogin}
 				onLogin={(data: any) => {
 					setAuthData({
 						user: data?.user || null,
@@ -155,6 +162,7 @@ export default function Root({
 					smsOtp: mfaRedirect.mfaMethods.includes('sms_otp'),
 				}}
 				heading="Set up multi-factor authentication"
+				onBack={backToLogin}
 				loginContext={{
 					onComplete: (data: any) => {
 						setAuthData({

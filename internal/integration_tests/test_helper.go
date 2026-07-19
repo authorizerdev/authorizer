@@ -244,9 +244,15 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	require.NoError(t, err)
 
 	// Initialize other providers
+	memoryStoreProvider, err := memory_store.New(cfg, &memory_store.Dependencies{
+		Log: &logger,
+	})
+	require.NoError(t, err)
+
 	authProvider, err := authenticators.New(cfg, &authenticators.Dependencies{
-		Log:             &logger,
-		StorageProvider: storageProvider,
+		Log:                 &logger,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
 	})
 	require.NoError(t, err)
 
@@ -259,11 +265,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	eventsProvider, err := events.New(cfg, &events.Dependencies{
 		Log:             &logger,
 		StorageProvider: storageProvider,
-	})
-	require.NoError(t, err)
-
-	memoryStoreProvider, err := memory_store.New(cfg, &memory_store.Dependencies{
-		Log: &logger,
 	})
 	require.NoError(t, err)
 

@@ -450,15 +450,6 @@ func runRoot(c *cobra.Command, args []string) {
 	// auth from this row.
 	seedReservedClient(context.Background(), storageProvider, &rootArgs.config, &log)
 
-	// Authenticator provider
-	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
-		Log:             &log,
-		StorageProvider: storageProvider,
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create authenticator provider")
-	}
-
 	// Email provider
 	emailProvider, err := email.New(&rootArgs.config, &email.Dependencies{
 		Log:             &log,
@@ -484,6 +475,17 @@ func runRoot(c *cobra.Command, args []string) {
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create memory store provider")
+	}
+
+	// Authenticator provider — depends on the memory store for the transient
+	// pending-secret used by safe TOTP re-enrollment (see totp.Generate).
+	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authenticator provider")
 	}
 
 	// WebAuthn/passkey provider

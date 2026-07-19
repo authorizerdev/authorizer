@@ -167,7 +167,7 @@ func (p *provider) ForgotPassword(ctx context.Context, meta RequestMetadata, par
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		for _, c := range cookie.BuildMfaSessionCookies(hostname, mfaSession, p.Config.AppCookieSecure) {
+		for _, c := range cookie.BuildMfaSessionCookies(hostname, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 			side.AddCookie(c)
 		}
 		smsBody := strings.Builder{}
