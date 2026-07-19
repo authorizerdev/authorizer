@@ -70,3 +70,12 @@ models:
   Any:
     model:
       - github.com/99designs/gqlgen/graphql.Any
+  # Force a per-field resolver for User.enrolled_mfa_methods so it is NOT bound
+  # onto the generated model.User struct. This keeps it lazily computed: gqlgen
+  # only invokes the resolver when a query selects the field, so hot paths that
+  # construct User (login, signup, profile, every AuthResponse) never trigger
+  # the extra storage reads it needs.
+  User:
+    fields:
+      enrolled_mfa_methods:
+        resolver: true

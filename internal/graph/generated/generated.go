@@ -40,6 +40,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -547,6 +548,7 @@ type ComplexityRoot struct {
 		CreatedAt                func(childComplexity int) int
 		Email                    func(childComplexity int) int
 		EmailVerified            func(childComplexity int) int
+		EnrolledMfaMethods       func(childComplexity int) int
 		FamilyName               func(childComplexity int) int
 		Gender                   func(childComplexity int) int
 		GivenName                func(childComplexity int) int
@@ -766,6 +768,9 @@ type QueryResolver interface {
 	FgaExpand(ctx context.Context, params model.FgaExpandInput) (*model.FgaExpandResponse, error)
 	CheckPermissions(ctx context.Context, params model.CheckPermissionsInput) (*model.CheckPermissionsResponse, error)
 	ListPermissions(ctx context.Context, params model.ListPermissionsInput) (*model.ListPermissionsResponse, error)
+}
+type UserResolver interface {
+	EnrolledMfaMethods(ctx context.Context, obj *model.User) ([]string, error)
 }
 
 type executableSchema struct {
@@ -3880,6 +3885,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.EmailVerified(childComplexity), true
 
+	case "User.enrolled_mfa_methods":
+		if e.complexity.User.EnrolledMfaMethods == nil {
+			break
+		}
+
+		return e.complexity.User.EnrolledMfaMethods(childComplexity), true
+
 	case "User.family_name":
 		if e.complexity.User.FamilyName == nil {
 			break
@@ -4617,6 +4629,13 @@ type User {
   # MFA factor(s) with no OTP fallback enrolled. Null means not locked. Only
   # an admin can clear it (_update_user with reset_mfa: true).
   mfa_locked_at: Int64
+  # enrolled_mfa_methods lists the MFA factors this user has actually
+  # verified/enrolled: any of "totp", "webauthn", "email_otp", "sms_otp".
+  # Distinct from is_multi_factor_auth_enabled (a required-at-login flag) —
+  # this reflects real enrollment rows in storage. Lazily resolved: computed
+  # only when selected, so login/profile/auth responses that don't ask for it
+  # pay nothing. Empty list means nothing enrolled.
+  enrolled_mfa_methods: [String!]!
   app_data: Map
 }
 
@@ -10290,6 +10309,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -15339,6 +15360,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(_ context.C
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -18545,6 +18568,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -24336,6 +24361,8 @@ func (ec *executionContext) fieldContext_Query_profile(_ context.Context, field 
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -24667,6 +24694,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -28693,6 +28722,50 @@ func (ec *executionContext) fieldContext_User_mfa_locked_at(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _User_enrolled_mfa_methods(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().EnrolledMfaMethods(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_enrolled_mfa_methods(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_app_data(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_app_data(ctx, field)
 	if err != nil {
@@ -29075,6 +29148,8 @@ func (ec *executionContext) fieldContext_Users_users(_ context.Context, field gr
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -29294,6 +29369,8 @@ func (ec *executionContext) fieldContext_ValidateSessionResponse_user(_ context.
 				return ec.fieldContext_User_has_skipped_mfa_setup_at(ctx, field)
 			case "mfa_locked_at":
 				return ec.fieldContext_User_mfa_locked_at(ctx, field)
+			case "enrolled_mfa_methods":
+				return ec.fieldContext_User_enrolled_mfa_methods(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
@@ -40796,19 +40873,19 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
 		case "email_verified":
 			out.Values[i] = ec._User_email_verified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "signup_methods":
 			out.Values[i] = ec._User_signup_methods(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "given_name":
 			out.Values[i] = ec._User_given_name(ctx, field, obj)
@@ -40829,14 +40906,14 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "phone_number_verified":
 			out.Values[i] = ec._User_phone_number_verified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "picture":
 			out.Values[i] = ec._User_picture(ctx, field, obj)
 		case "roles":
 			out.Values[i] = ec._User_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "created_at":
 			out.Values[i] = ec._User_created_at(ctx, field, obj)
@@ -40850,6 +40927,42 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_has_skipped_mfa_setup_at(ctx, field, obj)
 		case "mfa_locked_at":
 			out.Values[i] = ec._User_mfa_locked_at(ctx, field, obj)
+		case "enrolled_mfa_methods":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_enrolled_mfa_methods(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "app_data":
 			out.Values[i] = ec._User_app_data(ctx, field, obj)
 		default:

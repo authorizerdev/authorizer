@@ -94,6 +94,13 @@ type User {
   # MFA factor(s) with no OTP fallback enrolled. Null means not locked. Only
   # an admin can clear it (_update_user with reset_mfa: true).
   mfa_locked_at: Int64
+  # enrolled_mfa_methods lists the MFA factors this user has actually
+  # verified/enrolled: any of "totp", "webauthn", "email_otp", "sms_otp".
+  # Distinct from is_multi_factor_auth_enabled (a required-at-login flag) —
+  # this reflects real enrollment rows in storage. Lazily resolved: computed
+  # only when selected, so login/profile/auth responses that don't ask for it
+  # pay nothing. Empty list means nothing enrolled.
+  enrolled_mfa_methods: [String!]!
   app_data: Map
 }
 

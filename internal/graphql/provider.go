@@ -161,6 +161,10 @@ type Provider interface {
 	// Profile is the method to get profile.
 	// Permissions: authorized user
 	Profile(ctx context.Context) (*model.User, error)
+	// EnrolledMFAMethods resolves the lazily-computed User.enrolled_mfa_methods
+	// field for a resolved User. Only invoked when the field is selected.
+	// Permissions: inherited from the parent User query.
+	EnrolledMFAMethods(ctx context.Context, user *model.User) ([]string, error)
 	// ResendOTP is the method to resend OTP.
 	// Permissions: none
 	ResendOTP(ctx context.Context, params *model.ResendOTPRequest) (*model.Response, error)

@@ -19,6 +19,7 @@ import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
 import ViewUserModal from '../components/ViewUserModal';
+import MfaStatus from '../components/MfaStatus';
 import UserPermissionsModal from '../components/UserPermissionsModal';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -242,12 +243,16 @@ export default function Users() {
 	};
 
 	const multiFactorAuthUpdateHandler = async (user: User) => {
+		// Disabling must actually clear the user's enrolled authenticators
+		// (reset_mfa), not just flip the flag - otherwise their old TOTP
+		// secret/passkey/OTP enrollment sits in storage untouched and silently
+		// becomes live again the moment MFA is re-enabled for them, with no
+		// re-enrollment step and no visibility into that happening.
 		const res = await client
 			.mutation(UpdateUser, {
-				params: {
-					id: user.id,
-					is_multi_factor_auth_enabled: !user.is_multi_factor_auth_enabled,
-				},
+				params: user.is_multi_factor_auth_enabled
+					? { id: user.id, reset_mfa: true }
+					: { id: user.id, is_multi_factor_auth_enabled: true },
 			})
 			.toPromise();
 		if (res.data?._update_user?.id) {
@@ -395,17 +400,11 @@ export default function Users() {
 											</Badge>
 										</TableCell>
 										<TableCell>
-											<Badge
-												variant={
-													user.is_multi_factor_auth_enabled
-														? 'success'
-														: 'destructive'
-												}
-											>
-												{user.is_multi_factor_auth_enabled
-													? 'Enabled'
-													: 'Disabled'}
-											</Badge>
+											<MfaStatus
+												mfaServiceEnabled={mfaServiceEnabled}
+												enrolledMethods={user.enrolled_mfa_methods}
+												isMfaEnabled={user.is_multi_factor_auth_enabled}
+											/>
 										</TableCell>
 										<TableCell onClick={(e) => e.stopPropagation()}>
 											<DropdownMenu>
@@ -615,6 +614,7 @@ export default function Users() {
 			<ViewUserModal
 				user={selectedUser}
 				open={!!selectedUser}
+				mfaServiceEnabled={mfaServiceEnabled}
 				onClose={() => setSelectedUser(null)}
 			/>
 		</div>

@@ -69,6 +69,13 @@ type Provider interface {
 	// Profile returns the authenticated user. Requires session/bearer auth.
 	Profile(ctx context.Context, meta RequestMetadata) (*model.User, *ResponseSideEffects, error)
 
+	// EnrolledMFAMethods returns the MFA method identifiers the user has
+	// verified/enrolled ("totp", "webauthn", "email_otp", "sms_otp"). Read
+	// helper backing the User.enrolled_mfa_methods GraphQL field resolver;
+	// takes a resolved user ID (not caller input), so it carries no meta and
+	// no side effects. Never nil.
+	EnrolledMFAMethods(ctx context.Context, userID string) ([]string, error)
+
 	// CheckPermissions evaluates one or more fine-grained permission checks
 	// for the caller (or, for super-admins, an explicit subject). Requires
 	// session/bearer auth and a configured FGA engine (fail-closed).

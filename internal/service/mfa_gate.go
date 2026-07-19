@@ -84,6 +84,41 @@ func effectiveMFAEnabled(cfg *config.Config, user *schemas.User) bool {
 	return cfg.EnableMFA
 }
 
+// EnrolledMFAMethods returns the MFA method identifiers userID has actually
+// verified/enrolled: any of constants.EnvKeyTOTPAuthenticator ("totp"),
+// constants.AuthRecipeMethodWebauthn ("webauthn"),
+// constants.EnvKeyEmailOTPAuthenticator ("email_otp"),
+// constants.EnvKeySMSOTPAuthenticator ("sms_otp"). Never nil — an empty slice
+// means nothing is enrolled.
+//
+// It applies the exact same verified checks as authenticatorVerified /
+// oauth_mfa_gate.go, but reports the complete set instead of short-circuiting,
+// so unlike authenticatorVerified it always runs all four storage reads. That
+// is fine because this is only ever invoked lazily by the
+// User.enrolled_mfa_methods GraphQL field resolver (when the field is
+// selected) — never on the hot login path, where authenticatorVerified's
+// short-circuit stays in use.
+//
+// Storage lookup errors are treated as "not enrolled" (mirroring the existing
+// `a, _ :=` pattern), since a missing authenticator row surfaces as an error
+// in some providers.
+func (p *provider) EnrolledMFAMethods(ctx context.Context, userID string) ([]string, error) {
+	methods := []string{}
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		methods = append(methods, constants.EnvKeyTOTPAuthenticator)
+	}
+	if creds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, userID); len(creds) > 0 {
+		methods = append(methods, constants.AuthRecipeMethodWebauthn)
+	}
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyEmailOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		methods = append(methods, constants.EnvKeyEmailOTPAuthenticator)
+	}
+	if a, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeySMSOTPAuthenticator); a != nil && a.VerifiedAt != nil {
+		methods = append(methods, constants.EnvKeySMSOTPAuthenticator)
+	}
+	return methods, nil
+}
+
 // authenticatorVerified reports whether userID has any completed/verified MFA
 // method: a verified TOTP authenticator, a registered WebAuthn credential, a
 // verified Email-OTP, or a verified SMS-OTP authenticator. This is the user's

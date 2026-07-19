@@ -17,6 +17,10 @@ export interface User {
 	updated_at?: number;
 	revoked_timestamp?: number;
 	is_multi_factor_auth_enabled?: boolean;
+	// enrolled_mfa_methods lists the factors this user has actually verified:
+	// any of "totp", "webauthn", "email_otp", "sms_otp". Distinct from
+	// is_multi_factor_auth_enabled (a required-at-login flag).
+	enrolled_mfa_methods?: string[];
 	preferred_username?: string;
 }
 

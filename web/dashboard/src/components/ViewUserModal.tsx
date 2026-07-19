@@ -2,6 +2,7 @@ import React from 'react';
 import { useClient } from 'urql';
 import dayjs from 'dayjs';
 import { Badge } from './ui/badge';
+import MfaStatus from './MfaStatus';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { UserOrganizationsQuery } from '../graphql/queries';
 import type {
@@ -13,10 +14,20 @@ import type {
 interface ViewUserModalProps {
 	user: User | null;
 	open: boolean;
+	// mfaServiceEnabled is the org-wide _admin_meta
+	// .is_multi_factor_auth_service_enabled signal, passed down from the Users
+	// page so the MFA status can distinguish "server has no MFA" from "user
+	// hasn't enrolled".
+	mfaServiceEnabled: boolean;
 	onClose: () => void;
 }
 
-const ViewUserModal = ({ user, open, onClose }: ViewUserModalProps) => {
+const ViewUserModal = ({
+	user,
+	open,
+	mfaServiceEnabled,
+	onClose,
+}: ViewUserModalProps) => {
 	const client = useClient();
 	const [orgs, setOrgs] = React.useState<UserOrganization[]>([]);
 	const [orgLoading, setOrgLoading] = React.useState(false);
@@ -103,13 +114,11 @@ const ViewUserModal = ({ user, open, onClose }: ViewUserModalProps) => {
 		{
 			label: 'MFA',
 			value: (
-				<Badge
-					variant={
-						user.is_multi_factor_auth_enabled ? 'success' : 'destructive'
-					}
-				>
-					{user.is_multi_factor_auth_enabled ? 'Enabled' : 'Disabled'}
-				</Badge>
+				<MfaStatus
+					mfaServiceEnabled={mfaServiceEnabled}
+					enrolledMethods={user.enrolled_mfa_methods}
+					isMfaEnabled={user.is_multi_factor_auth_enabled}
+				/>
 			),
 		},
 		{
