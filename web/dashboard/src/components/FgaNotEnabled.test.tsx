@@ -20,9 +20,9 @@ describe('FgaNotEnabled', () => {
 		render(<FgaNotEnabled />);
 		// The command renders in more than one place (code block + copy
 		// affordance) — all occurrences must carry both flags.
-		expect(
-			screen.getAllByText(/--fga-store=postgres/).length,
-		).toBeGreaterThan(0);
+		expect(screen.getAllByText(/--fga-store=postgres/).length).toBeGreaterThan(
+			0,
+		);
 		expect(screen.getAllByText(/--fga-store-url=/).length).toBeGreaterThan(0);
 	});
 });

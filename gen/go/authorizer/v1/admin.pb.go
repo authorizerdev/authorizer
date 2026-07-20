@@ -5612,6 +5612,1277 @@ func (x *TrustedIssuersResponse) GetPagination() *Pagination {
 	return nil
 }
 
+// SamlServiceProvider mirrors model.SAMLServiceProvider field-for-field. It is a
+// downstream SAML 2.0 SP that Authorizer (acting as the IdP) issues signed
+// assertions to. Optional pointer fields collapse to zero values on the wire.
+type SamlServiceProvider struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Name  string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience).
+	EntityId string `protobuf:"bytes,4,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	// acs_url: the SP Assertion Consumer Service URL — the only place assertions
+	// are POSTed.
+	AcsUrl string `protobuf:"bytes,5,opt,name=acs_url,json=acsUrl,proto3" json:"acs_url,omitempty"`
+	// sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+	SpCertPem string `protobuf:"bytes,6,opt,name=sp_cert_pem,json=spCertPem,proto3" json:"sp_cert_pem,omitempty"`
+	// name_id_format: SAML NameID format for the Subject (default emailAddress).
+	NameIdFormat string `protobuf:"bytes,7,opt,name=name_id_format,json=nameIdFormat,proto3" json:"name_id_format,omitempty"`
+	// mapped_attributes: JSON mapping profile fields to emitted SAML attribute names.
+	MappedAttributes string `protobuf:"bytes,8,opt,name=mapped_attributes,json=mappedAttributes,proto3" json:"mapped_attributes,omitempty"`
+	// allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted.
+	AllowIdpInitiated bool  `protobuf:"varint,9,opt,name=allow_idp_initiated,json=allowIdpInitiated,proto3" json:"allow_idp_initiated,omitempty"`
+	IsActive          bool  `protobuf:"varint,10,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	CreatedAt         int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt         int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+}
+
+func (x *SamlServiceProvider) Reset() {
+	*x = SamlServiceProvider{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[95]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SamlServiceProvider) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SamlServiceProvider) ProtoMessage() {}
+
+func (x *SamlServiceProvider) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[95]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SamlServiceProvider.ProtoReflect.Descriptor instead.
+func (*SamlServiceProvider) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{95}
+}
+
+func (x *SamlServiceProvider) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetAcsUrl() string {
+	if x != nil {
+		return x.AcsUrl
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetSpCertPem() string {
+	if x != nil {
+		return x.SpCertPem
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetNameIdFormat() string {
+	if x != nil {
+		return x.NameIdFormat
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetMappedAttributes() string {
+	if x != nil {
+		return x.MappedAttributes
+	}
+	return ""
+}
+
+func (x *SamlServiceProvider) GetAllowIdpInitiated() bool {
+	if x != nil {
+		return x.AllowIdpInitiated
+	}
+	return false
+}
+
+func (x *SamlServiceProvider) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+func (x *SamlServiceProvider) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *SamlServiceProvider) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+// SamlIdpKey mirrors model.SAMLIDPKey. The private key is NEVER projected — only
+// the certificate and rotation status.
+type SamlIdpKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs.
+	CertPem   string `protobuf:"bytes,3,opt,name=cert_pem,json=certPem,proto3" json:"cert_pem,omitempty"`
+	Algorithm string `protobuf:"bytes,4,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
+	// status: "current" (signs new assertions), "active" (published in metadata,
+	// not signing), or "retired" (neither).
+	Status    string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt int64  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt int64  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+}
+
+func (x *SamlIdpKey) Reset() {
+	*x = SamlIdpKey{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SamlIdpKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SamlIdpKey) ProtoMessage() {}
+
+func (x *SamlIdpKey) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SamlIdpKey.ProtoReflect.Descriptor instead.
+func (*SamlIdpKey) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{96}
+}
+
+func (x *SamlIdpKey) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SamlIdpKey) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *SamlIdpKey) GetCertPem() string {
+	if x != nil {
+		return x.CertPem
+	}
+	return ""
+}
+
+func (x *SamlIdpKey) GetAlgorithm() string {
+	if x != nil {
+		return x.Algorithm
+	}
+	return ""
+}
+
+func (x *SamlIdpKey) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *SamlIdpKey) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *SamlIdpKey) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+// SamlSpMetadataParseResult mirrors model.SAMLSPMetadataParseResult. It does NOT
+// create a record — it returns fields to prefill a create call.
+type SamlSpMetadataParseResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	EntityId    string `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	AcsUrl      string `protobuf:"bytes,2,opt,name=acs_url,json=acsUrl,proto3" json:"acs_url,omitempty"`
+	Certificate string `protobuf:"bytes,3,opt,name=certificate,proto3" json:"certificate,omitempty"`
+}
+
+func (x *SamlSpMetadataParseResult) Reset() {
+	*x = SamlSpMetadataParseResult{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SamlSpMetadataParseResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SamlSpMetadataParseResult) ProtoMessage() {}
+
+func (x *SamlSpMetadataParseResult) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SamlSpMetadataParseResult.ProtoReflect.Descriptor instead.
+func (*SamlSpMetadataParseResult) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{97}
+}
+
+func (x *SamlSpMetadataParseResult) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *SamlSpMetadataParseResult) GetAcsUrl() string {
+	if x != nil {
+		return x.AcsUrl
+	}
+	return ""
+}
+
+func (x *SamlSpMetadataParseResult) GetCertificate() string {
+	if x != nil {
+		return x.Certificate
+	}
+	return ""
+}
+
+// CreateSamlServiceProviderRequest mirrors model.CreateSAMLServiceProviderRequest.
+// sp_cert_pem, name_id_format, mapped_attributes, and allow_idp_initiated are
+// optional.
+type CreateSamlServiceProviderRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	OrgId     string  `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Name      string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	EntityId  string  `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	AcsUrl    string  `protobuf:"bytes,4,opt,name=acs_url,json=acsUrl,proto3" json:"acs_url,omitempty"`
+	SpCertPem *string `protobuf:"bytes,5,opt,name=sp_cert_pem,json=spCertPem,proto3,oneof" json:"sp_cert_pem,omitempty"`
+	// name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+	NameIdFormat *string `protobuf:"bytes,6,opt,name=name_id_format,json=nameIdFormat,proto3,oneof" json:"name_id_format,omitempty"`
+	// mapped_attributes: JSON, e.g. {"email":"email","given_name":"firstName"}.
+	MappedAttributes *string `protobuf:"bytes,7,opt,name=mapped_attributes,json=mappedAttributes,proto3,oneof" json:"mapped_attributes,omitempty"`
+	// allow_idp_initiated: default false (SP-initiated only).
+	AllowIdpInitiated *bool `protobuf:"varint,8,opt,name=allow_idp_initiated,json=allowIdpInitiated,proto3,oneof" json:"allow_idp_initiated,omitempty"`
+}
+
+func (x *CreateSamlServiceProviderRequest) Reset() {
+	*x = CreateSamlServiceProviderRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSamlServiceProviderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSamlServiceProviderRequest) ProtoMessage() {}
+
+func (x *CreateSamlServiceProviderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSamlServiceProviderRequest.ProtoReflect.Descriptor instead.
+func (*CreateSamlServiceProviderRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{98}
+}
+
+func (x *CreateSamlServiceProviderRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetAcsUrl() string {
+	if x != nil {
+		return x.AcsUrl
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetSpCertPem() string {
+	if x != nil && x.SpCertPem != nil {
+		return *x.SpCertPem
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetNameIdFormat() string {
+	if x != nil && x.NameIdFormat != nil {
+		return *x.NameIdFormat
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetMappedAttributes() string {
+	if x != nil && x.MappedAttributes != nil {
+		return *x.MappedAttributes
+	}
+	return ""
+}
+
+func (x *CreateSamlServiceProviderRequest) GetAllowIdpInitiated() bool {
+	if x != nil && x.AllowIdpInitiated != nil {
+		return *x.AllowIdpInitiated
+	}
+	return false
+}
+
+type CreateSamlServiceProviderResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlServiceProvider *SamlServiceProvider `protobuf:"bytes,1,opt,name=saml_service_provider,json=samlServiceProvider,proto3" json:"saml_service_provider,omitempty"`
+}
+
+func (x *CreateSamlServiceProviderResponse) Reset() {
+	*x = CreateSamlServiceProviderResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[99]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSamlServiceProviderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSamlServiceProviderResponse) ProtoMessage() {}
+
+func (x *CreateSamlServiceProviderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[99]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSamlServiceProviderResponse.ProtoReflect.Descriptor instead.
+func (*CreateSamlServiceProviderResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{99}
+}
+
+func (x *CreateSamlServiceProviderResponse) GetSamlServiceProvider() *SamlServiceProvider {
+	if x != nil {
+		return x.SamlServiceProvider
+	}
+	return nil
+}
+
+// UpdateSamlServiceProviderRequest mirrors model.UpdateSAMLServiceProviderRequest.
+// Nullable GraphQL inputs use proto3 `optional` so an unset field is
+// distinguishable from an empty value.
+type UpdateSamlServiceProviderRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id                string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name              *string `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	EntityId          *string `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3,oneof" json:"entity_id,omitempty"`
+	AcsUrl            *string `protobuf:"bytes,4,opt,name=acs_url,json=acsUrl,proto3,oneof" json:"acs_url,omitempty"`
+	SpCertPem         *string `protobuf:"bytes,5,opt,name=sp_cert_pem,json=spCertPem,proto3,oneof" json:"sp_cert_pem,omitempty"`
+	NameIdFormat      *string `protobuf:"bytes,6,opt,name=name_id_format,json=nameIdFormat,proto3,oneof" json:"name_id_format,omitempty"`
+	MappedAttributes  *string `protobuf:"bytes,7,opt,name=mapped_attributes,json=mappedAttributes,proto3,oneof" json:"mapped_attributes,omitempty"`
+	AllowIdpInitiated *bool   `protobuf:"varint,8,opt,name=allow_idp_initiated,json=allowIdpInitiated,proto3,oneof" json:"allow_idp_initiated,omitempty"`
+	IsActive          *bool   `protobuf:"varint,9,opt,name=is_active,json=isActive,proto3,oneof" json:"is_active,omitempty"`
+}
+
+func (x *UpdateSamlServiceProviderRequest) Reset() {
+	*x = UpdateSamlServiceProviderRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSamlServiceProviderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSamlServiceProviderRequest) ProtoMessage() {}
+
+func (x *UpdateSamlServiceProviderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSamlServiceProviderRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSamlServiceProviderRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetEntityId() string {
+	if x != nil && x.EntityId != nil {
+		return *x.EntityId
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetAcsUrl() string {
+	if x != nil && x.AcsUrl != nil {
+		return *x.AcsUrl
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetSpCertPem() string {
+	if x != nil && x.SpCertPem != nil {
+		return *x.SpCertPem
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetNameIdFormat() string {
+	if x != nil && x.NameIdFormat != nil {
+		return *x.NameIdFormat
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetMappedAttributes() string {
+	if x != nil && x.MappedAttributes != nil {
+		return *x.MappedAttributes
+	}
+	return ""
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetAllowIdpInitiated() bool {
+	if x != nil && x.AllowIdpInitiated != nil {
+		return *x.AllowIdpInitiated
+	}
+	return false
+}
+
+func (x *UpdateSamlServiceProviderRequest) GetIsActive() bool {
+	if x != nil && x.IsActive != nil {
+		return *x.IsActive
+	}
+	return false
+}
+
+type UpdateSamlServiceProviderResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlServiceProvider *SamlServiceProvider `protobuf:"bytes,1,opt,name=saml_service_provider,json=samlServiceProvider,proto3" json:"saml_service_provider,omitempty"`
+}
+
+func (x *UpdateSamlServiceProviderResponse) Reset() {
+	*x = UpdateSamlServiceProviderResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSamlServiceProviderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSamlServiceProviderResponse) ProtoMessage() {}
+
+func (x *UpdateSamlServiceProviderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSamlServiceProviderResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSamlServiceProviderResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *UpdateSamlServiceProviderResponse) GetSamlServiceProvider() *SamlServiceProvider {
+	if x != nil {
+		return x.SamlServiceProvider
+	}
+	return nil
+}
+
+// DeleteSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a
+// single SP id). Kept distinct from GetSamlServiceProviderRequest per buf's
+// one-message-per-RPC rule.
+type DeleteSamlServiceProviderRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *DeleteSamlServiceProviderRequest) Reset() {
+	*x = DeleteSamlServiceProviderRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[102]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSamlServiceProviderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSamlServiceProviderRequest) ProtoMessage() {}
+
+func (x *DeleteSamlServiceProviderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[102]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSamlServiceProviderRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSamlServiceProviderRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{102}
+}
+
+func (x *DeleteSamlServiceProviderRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteSamlServiceProviderResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *DeleteSamlServiceProviderResponse) Reset() {
+	*x = DeleteSamlServiceProviderResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[103]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSamlServiceProviderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSamlServiceProviderResponse) ProtoMessage() {}
+
+func (x *DeleteSamlServiceProviderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[103]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSamlServiceProviderResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSamlServiceProviderResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{103}
+}
+
+func (x *DeleteSamlServiceProviderResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// GetSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a
+// single SP id). Kept distinct from DeleteSamlServiceProviderRequest per buf's
+// one-message-per-RPC rule.
+type GetSamlServiceProviderRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *GetSamlServiceProviderRequest) Reset() {
+	*x = GetSamlServiceProviderRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[104]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSamlServiceProviderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSamlServiceProviderRequest) ProtoMessage() {}
+
+func (x *GetSamlServiceProviderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[104]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSamlServiceProviderRequest.ProtoReflect.Descriptor instead.
+func (*GetSamlServiceProviderRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{104}
+}
+
+func (x *GetSamlServiceProviderRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetSamlServiceProviderResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlServiceProvider *SamlServiceProvider `protobuf:"bytes,1,opt,name=saml_service_provider,json=samlServiceProvider,proto3" json:"saml_service_provider,omitempty"`
+}
+
+func (x *GetSamlServiceProviderResponse) Reset() {
+	*x = GetSamlServiceProviderResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[105]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSamlServiceProviderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSamlServiceProviderResponse) ProtoMessage() {}
+
+func (x *GetSamlServiceProviderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[105]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSamlServiceProviderResponse.ProtoReflect.Descriptor instead.
+func (*GetSamlServiceProviderResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{105}
+}
+
+func (x *GetSamlServiceProviderResponse) GetSamlServiceProvider() *SamlServiceProvider {
+	if x != nil {
+		return x.SamlServiceProvider
+	}
+	return nil
+}
+
+// ListSamlServiceProvidersRequest mirrors model.ListSAMLServiceProvidersRequest.
+type ListSamlServiceProvidersRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	OrgId      string             `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Pagination *PaginationRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (x *ListSamlServiceProvidersRequest) Reset() {
+	*x = ListSamlServiceProvidersRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[106]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSamlServiceProvidersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSamlServiceProvidersRequest) ProtoMessage() {}
+
+func (x *ListSamlServiceProvidersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[106]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSamlServiceProvidersRequest.ProtoReflect.Descriptor instead.
+func (*ListSamlServiceProvidersRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{106}
+}
+
+func (x *ListSamlServiceProvidersRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *ListSamlServiceProvidersRequest) GetPagination() *PaginationRequest {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+type ListSamlServiceProvidersResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlServiceProviders []*SamlServiceProvider `protobuf:"bytes,1,rep,name=saml_service_providers,json=samlServiceProviders,proto3" json:"saml_service_providers,omitempty"`
+	Pagination           *Pagination            `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (x *ListSamlServiceProvidersResponse) Reset() {
+	*x = ListSamlServiceProvidersResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[107]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSamlServiceProvidersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSamlServiceProvidersResponse) ProtoMessage() {}
+
+func (x *ListSamlServiceProvidersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[107]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSamlServiceProvidersResponse.ProtoReflect.Descriptor instead.
+func (*ListSamlServiceProvidersResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{107}
+}
+
+func (x *ListSamlServiceProvidersResponse) GetSamlServiceProviders() []*SamlServiceProvider {
+	if x != nil {
+		return x.SamlServiceProviders
+	}
+	return nil
+}
+
+func (x *ListSamlServiceProvidersResponse) GetPagination() *Pagination {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+// RotateSamlIdpCertRequest mirrors model.RotateSAMLIDPCertRequest.
+type RotateSamlIdpCertRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+}
+
+func (x *RotateSamlIdpCertRequest) Reset() {
+	*x = RotateSamlIdpCertRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[108]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateSamlIdpCertRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateSamlIdpCertRequest) ProtoMessage() {}
+
+func (x *RotateSamlIdpCertRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[108]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateSamlIdpCertRequest.ProtoReflect.Descriptor instead.
+func (*RotateSamlIdpCertRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{108}
+}
+
+func (x *RotateSamlIdpCertRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+type RotateSamlIdpCertResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlIdpKey *SamlIdpKey `protobuf:"bytes,1,opt,name=saml_idp_key,json=samlIdpKey,proto3" json:"saml_idp_key,omitempty"`
+}
+
+func (x *RotateSamlIdpCertResponse) Reset() {
+	*x = RotateSamlIdpCertResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[109]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateSamlIdpCertResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateSamlIdpCertResponse) ProtoMessage() {}
+
+func (x *RotateSamlIdpCertResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[109]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateSamlIdpCertResponse.ProtoReflect.Descriptor instead.
+func (*RotateSamlIdpCertResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{109}
+}
+
+func (x *RotateSamlIdpCertResponse) GetSamlIdpKey() *SamlIdpKey {
+	if x != nil {
+		return x.SamlIdpKey
+	}
+	return nil
+}
+
+// RetireSamlIdpKeyRequest mirrors model.RetireSAMLIDPKeyRequest (a single key id).
+type RetireSamlIdpKeyRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *RetireSamlIdpKeyRequest) Reset() {
+	*x = RetireSamlIdpKeyRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[110]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetireSamlIdpKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetireSamlIdpKeyRequest) ProtoMessage() {}
+
+func (x *RetireSamlIdpKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[110]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetireSamlIdpKeyRequest.ProtoReflect.Descriptor instead.
+func (*RetireSamlIdpKeyRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{110}
+}
+
+func (x *RetireSamlIdpKeyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type RetireSamlIdpKeyResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *RetireSamlIdpKeyResponse) Reset() {
+	*x = RetireSamlIdpKeyResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[111]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetireSamlIdpKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetireSamlIdpKeyResponse) ProtoMessage() {}
+
+func (x *RetireSamlIdpKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[111]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetireSamlIdpKeyResponse.ProtoReflect.Descriptor instead.
+func (*RetireSamlIdpKeyResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{111}
+}
+
+func (x *RetireSamlIdpKeyResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// ListSamlIdpKeysRequest mirrors model.ListSAMLIDPKeysRequest.
+type ListSamlIdpKeysRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+}
+
+func (x *ListSamlIdpKeysRequest) Reset() {
+	*x = ListSamlIdpKeysRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[112]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSamlIdpKeysRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSamlIdpKeysRequest) ProtoMessage() {}
+
+func (x *ListSamlIdpKeysRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[112]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSamlIdpKeysRequest.ProtoReflect.Descriptor instead.
+func (*ListSamlIdpKeysRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{112}
+}
+
+func (x *ListSamlIdpKeysRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+type ListSamlIdpKeysResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SamlIdpKeys []*SamlIdpKey `protobuf:"bytes,1,rep,name=saml_idp_keys,json=samlIdpKeys,proto3" json:"saml_idp_keys,omitempty"`
+}
+
+func (x *ListSamlIdpKeysResponse) Reset() {
+	*x = ListSamlIdpKeysResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[113]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSamlIdpKeysResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSamlIdpKeysResponse) ProtoMessage() {}
+
+func (x *ListSamlIdpKeysResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[113]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSamlIdpKeysResponse.ProtoReflect.Descriptor instead.
+func (*ListSamlIdpKeysResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{113}
+}
+
+func (x *ListSamlIdpKeysResponse) GetSamlIdpKeys() []*SamlIdpKey {
+	if x != nil {
+		return x.SamlIdpKeys
+	}
+	return nil
+}
+
+// ImportSamlSpMetadataRequest mirrors model.ImportSAMLSPMetadataRequest. The
+// metadata is pasted XML — NOT a URL; no remote fetch is performed.
+type ImportSamlSpMetadataRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MetadataXml string `protobuf:"bytes,1,opt,name=metadata_xml,json=metadataXml,proto3" json:"metadata_xml,omitempty"`
+}
+
+func (x *ImportSamlSpMetadataRequest) Reset() {
+	*x = ImportSamlSpMetadataRequest{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[114]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportSamlSpMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportSamlSpMetadataRequest) ProtoMessage() {}
+
+func (x *ImportSamlSpMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[114]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportSamlSpMetadataRequest.ProtoReflect.Descriptor instead.
+func (*ImportSamlSpMetadataRequest) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{114}
+}
+
+func (x *ImportSamlSpMetadataRequest) GetMetadataXml() string {
+	if x != nil {
+		return x.MetadataXml
+	}
+	return ""
+}
+
+type ImportSamlSpMetadataResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Result *SamlSpMetadataParseResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+}
+
+func (x *ImportSamlSpMetadataResponse) Reset() {
+	*x = ImportSamlSpMetadataResponse{}
+	mi := &file_authorizer_v1_admin_proto_msgTypes[115]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportSamlSpMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportSamlSpMetadataResponse) ProtoMessage() {}
+
+func (x *ImportSamlSpMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authorizer_v1_admin_proto_msgTypes[115]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportSamlSpMetadataResponse.ProtoReflect.Descriptor instead.
+func (*ImportSamlSpMetadataResponse) Descriptor() ([]byte, []int) {
+	return file_authorizer_v1_admin_proto_rawDescGZIP(), []int{115}
+}
+
+func (x *ImportSamlSpMetadataResponse) GetResult() *SamlSpMetadataParseResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
 var File_authorizer_v1_admin_proto protoreflect.FileDescriptor
 
 var file_authorizer_v1_admin_proto_rawDesc = []byte{
@@ -6401,7 +7672,200 @@ var file_authorizer_v1_admin_proto_rawDesc = []byte{
 	0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x61,
 	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67,
 	0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x32, 0xa8, 0x2a, 0x0a, 0x16, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x69, 0x6f, 0x6e, 0x22, 0x84, 0x03, 0x0a, 0x13, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x69,
+	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x15, 0x0a, 0x06, 0x6f,
+	0x72, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6f, 0x72, 0x67,
+	0x49, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1b, 0x0a, 0x09, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79,
+	0x5f, 0x69, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x65, 0x6e, 0x74, 0x69, 0x74,
+	0x79, 0x49, 0x64, 0x12, 0x17, 0x0a, 0x07, 0x61, 0x63, 0x73, 0x5f, 0x75, 0x72, 0x6c, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x61, 0x63, 0x73, 0x55, 0x72, 0x6c, 0x12, 0x1e, 0x0a, 0x0b,
+	0x73, 0x70, 0x5f, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x70, 0x65, 0x6d, 0x18, 0x06, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x09, 0x73, 0x70, 0x43, 0x65, 0x72, 0x74, 0x50, 0x65, 0x6d, 0x12, 0x24, 0x0a, 0x0e,
+	0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x69, 0x64, 0x5f, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x07,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x6e, 0x61, 0x6d, 0x65, 0x49, 0x64, 0x46, 0x6f, 0x72, 0x6d,
+	0x61, 0x74, 0x12, 0x2b, 0x0a, 0x11, 0x6d, 0x61, 0x70, 0x70, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x74,
+	0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x6d,
+	0x61, 0x70, 0x70, 0x65, 0x64, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x12,
+	0x2e, 0x0a, 0x13, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x69, 0x6e, 0x69,
+	0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x18, 0x09, 0x20, 0x01, 0x28, 0x08, 0x52, 0x11, 0x61, 0x6c,
+	0x6c, 0x6f, 0x77, 0x49, 0x64, 0x70, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x12,
+	0x1b, 0x0a, 0x09, 0x69, 0x73, 0x5f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x65, 0x18, 0x0a, 0x20, 0x01,
+	0x28, 0x08, 0x52, 0x08, 0x69, 0x73, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x12, 0x1d, 0x0a, 0x0a,
+	0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x03,
+	0x52, 0x09, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x41, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x75,
+	0x70, 0x64, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x09, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x64, 0x41, 0x74, 0x22, 0xc2, 0x01, 0x0a, 0x0a, 0x53,
+	0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x15, 0x0a, 0x06, 0x6f, 0x72, 0x67,
+	0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64,
+	0x12, 0x19, 0x0a, 0x08, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x70, 0x65, 0x6d, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x07, 0x63, 0x65, 0x72, 0x74, 0x50, 0x65, 0x6d, 0x12, 0x1c, 0x0a, 0x09, 0x61,
+	0x6c, 0x67, 0x6f, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
+	0x61, 0x6c, 0x67, 0x6f, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61,
+	0x74, 0x75, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x12, 0x1d, 0x0a, 0x0a, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18,
+	0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x41, 0x74,
+	0x12, 0x1d, 0x0a, 0x0a, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18, 0x07,
+	0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x64, 0x41, 0x74, 0x22,
+	0x73, 0x0a, 0x19, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0x50, 0x61, 0x72, 0x73, 0x65, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x1b, 0x0a, 0x09,
+	0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x49, 0x64, 0x12, 0x17, 0x0a, 0x07, 0x61, 0x63, 0x73,
+	0x5f, 0x75, 0x72, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x61, 0x63, 0x73, 0x55,
+	0x72, 0x6c, 0x12, 0x20, 0x0a, 0x0b, 0x63, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74,
+	0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x63, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69,
+	0x63, 0x61, 0x74, 0x65, 0x22, 0xaf, 0x03, 0x0a, 0x20, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x53,
+	0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1e, 0x0a, 0x06, 0x6f, 0x72, 0x67,
+	0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02,
+	0x10, 0x01, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64, 0x12, 0x1b, 0x0a, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01,
+	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x24, 0x0a, 0x09, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79,
+	0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02,
+	0x10, 0x01, 0x52, 0x08, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x49, 0x64, 0x12, 0x20, 0x0a, 0x07,
+	0x61, 0x63, 0x73, 0x5f, 0x75, 0x72, 0x6c, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba,
+	0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x06, 0x61, 0x63, 0x73, 0x55, 0x72, 0x6c, 0x12, 0x23,
+	0x0a, 0x0b, 0x73, 0x70, 0x5f, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x70, 0x65, 0x6d, 0x18, 0x05, 0x20,
+	0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x09, 0x73, 0x70, 0x43, 0x65, 0x72, 0x74, 0x50, 0x65, 0x6d,
+	0x88, 0x01, 0x01, 0x12, 0x29, 0x0a, 0x0e, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x69, 0x64, 0x5f, 0x66,
+	0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x48, 0x01, 0x52, 0x0c, 0x6e,
+	0x61, 0x6d, 0x65, 0x49, 0x64, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x88, 0x01, 0x01, 0x12, 0x30,
+	0x0a, 0x11, 0x6d, 0x61, 0x70, 0x70, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75,
+	0x74, 0x65, 0x73, 0x18, 0x07, 0x20, 0x01, 0x28, 0x09, 0x48, 0x02, 0x52, 0x10, 0x6d, 0x61, 0x70,
+	0x70, 0x65, 0x64, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x88, 0x01, 0x01,
+	0x12, 0x33, 0x0a, 0x13, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x69, 0x6e,
+	0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x18, 0x08, 0x20, 0x01, 0x28, 0x08, 0x48, 0x03, 0x52,
+	0x11, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x49, 0x64, 0x70, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74,
+	0x65, 0x64, 0x88, 0x01, 0x01, 0x42, 0x0e, 0x0a, 0x0c, 0x5f, 0x73, 0x70, 0x5f, 0x63, 0x65, 0x72,
+	0x74, 0x5f, 0x70, 0x65, 0x6d, 0x42, 0x11, 0x0a, 0x0f, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x69,
+	0x64, 0x5f, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x42, 0x14, 0x0a, 0x12, 0x5f, 0x6d, 0x61, 0x70,
+	0x70, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x42, 0x16,
+	0x0a, 0x14, 0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x69, 0x6e, 0x69,
+	0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x22, 0x7b, 0x0a, 0x21, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
+	0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a, 0x15, 0x73,
+	0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x61, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x61, 0x6d, 0x6c, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x13,
+	0x73, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x22, 0xef, 0x03, 0x0a, 0x20, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53, 0x61,
+	0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x02, 0x69,
+	0x64, 0x12, 0x17, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x48,
+	0x00, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x88, 0x01, 0x01, 0x12, 0x20, 0x0a, 0x09, 0x65, 0x6e,
+	0x74, 0x69, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48, 0x01, 0x52,
+	0x08, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x49, 0x64, 0x88, 0x01, 0x01, 0x12, 0x1c, 0x0a, 0x07,
+	0x61, 0x63, 0x73, 0x5f, 0x75, 0x72, 0x6c, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x48, 0x02, 0x52,
+	0x06, 0x61, 0x63, 0x73, 0x55, 0x72, 0x6c, 0x88, 0x01, 0x01, 0x12, 0x23, 0x0a, 0x0b, 0x73, 0x70,
+	0x5f, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x70, 0x65, 0x6d, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x48,
+	0x03, 0x52, 0x09, 0x73, 0x70, 0x43, 0x65, 0x72, 0x74, 0x50, 0x65, 0x6d, 0x88, 0x01, 0x01, 0x12,
+	0x29, 0x0a, 0x0e, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x69, 0x64, 0x5f, 0x66, 0x6f, 0x72, 0x6d, 0x61,
+	0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x48, 0x04, 0x52, 0x0c, 0x6e, 0x61, 0x6d, 0x65, 0x49,
+	0x64, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x88, 0x01, 0x01, 0x12, 0x30, 0x0a, 0x11, 0x6d, 0x61,
+	0x70, 0x70, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x18,
+	0x07, 0x20, 0x01, 0x28, 0x09, 0x48, 0x05, 0x52, 0x10, 0x6d, 0x61, 0x70, 0x70, 0x65, 0x64, 0x41,
+	0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x88, 0x01, 0x01, 0x12, 0x33, 0x0a, 0x13,
+	0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x69, 0x6e, 0x69, 0x74, 0x69, 0x61,
+	0x74, 0x65, 0x64, 0x18, 0x08, 0x20, 0x01, 0x28, 0x08, 0x48, 0x06, 0x52, 0x11, 0x61, 0x6c, 0x6c,
+	0x6f, 0x77, 0x49, 0x64, 0x70, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x88, 0x01,
+	0x01, 0x12, 0x20, 0x0a, 0x09, 0x69, 0x73, 0x5f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x65, 0x18, 0x09,
+	0x20, 0x01, 0x28, 0x08, 0x48, 0x07, 0x52, 0x08, 0x69, 0x73, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65,
+	0x88, 0x01, 0x01, 0x42, 0x07, 0x0a, 0x05, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x42, 0x0c, 0x0a, 0x0a,
+	0x5f, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x61,
+	0x63, 0x73, 0x5f, 0x75, 0x72, 0x6c, 0x42, 0x0e, 0x0a, 0x0c, 0x5f, 0x73, 0x70, 0x5f, 0x63, 0x65,
+	0x72, 0x74, 0x5f, 0x70, 0x65, 0x6d, 0x42, 0x11, 0x0a, 0x0f, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x5f,
+	0x69, 0x64, 0x5f, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x42, 0x14, 0x0a, 0x12, 0x5f, 0x6d, 0x61,
+	0x70, 0x70, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x42,
+	0x16, 0x0a, 0x14, 0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x69, 0x6e,
+	0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x64, 0x42, 0x0c, 0x0a, 0x0a, 0x5f, 0x69, 0x73, 0x5f, 0x61,
+	0x63, 0x74, 0x69, 0x76, 0x65, 0x22, 0x7b, 0x0a, 0x21, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53,
+	0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a, 0x15, 0x73, 0x61,
+	0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x61, 0x75, 0x74, 0x68,
+	0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x13, 0x73,
+	0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x22, 0x3b, 0x0a, 0x20, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c,
+	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x02, 0x69, 0x64, 0x22,
+	0x3d, 0x0a, 0x21, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x22, 0x38,
+	0x0a, 0x1d, 0x47, 0x65, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x17, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04,
+	0x72, 0x02, 0x10, 0x01, 0x52, 0x02, 0x69, 0x64, 0x22, 0x78, 0x0a, 0x1e, 0x47, 0x65, 0x74, 0x53,
+	0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a, 0x15, 0x73, 0x61,
+	0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x61, 0x75, 0x74, 0x68,
+	0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x13, 0x73,
+	0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x22, 0x83, 0x01, 0x0a, 0x1f, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1e, 0x0a, 0x06, 0x6f, 0x72, 0x67, 0x5f, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52,
+	0x05, 0x6f, 0x72, 0x67, 0x49, 0x64, 0x12, 0x40, 0x0a, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x61, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67, 0x69, 0x6e,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x0a, 0x70, 0x61,
+	0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xb7, 0x01, 0x0a, 0x20, 0x4c, 0x69, 0x73,
+	0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x58, 0x0a,
+	0x16, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x22, 0x2e,
+	0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x61,
+	0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x52, 0x14, 0x73, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x39, 0x0a, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x61, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67, 0x69,
+	0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x22, 0x3a, 0x0a, 0x18, 0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c,
+	0x49, 0x64, 0x70, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1e,
+	0x0a, 0x06, 0x6f, 0x72, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07,
+	0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64, 0x22, 0x58,
+	0x0a, 0x19, 0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x43,
+	0x65, 0x72, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3b, 0x0a, 0x0c, 0x73,
+	0x61, 0x6d, 0x6c, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x19, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x2e, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x52, 0x0a, 0x73, 0x61,
+	0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x22, 0x32, 0x0a, 0x17, 0x52, 0x65, 0x74, 0x69,
+	0x72, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42,
+	0x07, 0xba, 0x48, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x02, 0x69, 0x64, 0x22, 0x34, 0x0a, 0x18,
+	0x52, 0x65, 0x74, 0x69, 0x72, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x22, 0x38, 0x0a, 0x16, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64,
+	0x70, 0x4b, 0x65, 0x79, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1e, 0x0a, 0x06,
+	0x6f, 0x72, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48,
+	0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64, 0x22, 0x58, 0x0a, 0x17,
+	0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x73, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3d, 0x0a, 0x0d, 0x73, 0x61, 0x6d, 0x6c, 0x5f,
+	0x69, 0x64, 0x70, 0x5f, 0x6b, 0x65, 0x79, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x19,
+	0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53,
+	0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x52, 0x0b, 0x73, 0x61, 0x6d, 0x6c, 0x49,
+	0x64, 0x70, 0x4b, 0x65, 0x79, 0x73, 0x22, 0x49, 0x0a, 0x1b, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74,
+	0x53, 0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2a, 0x0a, 0x0c, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0x5f, 0x78, 0x6d, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xba, 0x48, 0x04,
+	0x72, 0x02, 0x10, 0x01, 0x52, 0x0b, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x58, 0x6d,
+	0x6c, 0x22, 0x60, 0x0a, 0x1c, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53,
+	0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x40, 0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x28, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x2e, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
+	0x50, 0x61, 0x72, 0x73, 0x65, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x06, 0x72, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x32, 0xde, 0x35, 0x0a, 0x16, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
 	0x65, 0x72, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x71,
 	0x0a, 0x0a, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x12, 0x20, 0x2e, 0x61,
 	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x64, 0x6d,
@@ -6739,20 +8203,111 @@ var file_authorizer_v1_admin_proto_rawDesc = []byte{
 	0x31, 0x2e, 0x54, 0x72, 0x75, 0x73, 0x74, 0x65, 0x64, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72, 0x73,
 	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x24, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1e,
 	0x3a, 0x01, 0x2a, 0x22, 0x19, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x74,
-	0x72, 0x75, 0x73, 0x74, 0x65, 0x64, 0x5f, 0x69, 0x73, 0x73, 0x75, 0x65, 0x72, 0x73, 0x42, 0xbb,
-	0x01, 0x0a, 0x11, 0x63, 0x6f, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65,
-	0x72, 0x2e, 0x76, 0x31, 0x42, 0x0a, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x50, 0x72, 0x6f, 0x74, 0x6f,
-	0x50, 0x01, 0x5a, 0x45, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61,
-	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x64, 0x65, 0x76, 0x2f, 0x61, 0x75, 0x74,
-	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x67, 0x6f, 0x2f, 0x61,
-	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2f, 0x76, 0x31, 0x3b, 0x61, 0x75, 0x74,
-	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x41, 0x58, 0x58, 0xaa,
-	0x02, 0x0d, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x56, 0x31, 0xca,
-	0x02, 0x0d, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x5c, 0x56, 0x31, 0xe2,
-	0x02, 0x19, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x5c, 0x56, 0x31, 0x5c,
-	0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x0e, 0x41, 0x75,
-	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x75, 0x73, 0x74, 0x65, 0x64, 0x5f, 0x69, 0x73, 0x73, 0x75, 0x65, 0x72, 0x73, 0x12, 0xb1,
+	0x01, 0x0a, 0x19, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x2f, 0x2e, 0x61,
+	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65,
+	0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x30, 0x2e,
+	0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
+	0x31, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2b, 0x3a, 0x01, 0x2a, 0x22, 0x26, 0x2f, 0x76, 0x31, 0x2f,
+	0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x73, 0x61, 0x6d,
+	0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x12, 0xb1, 0x01, 0x0a, 0x19, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d,
+	0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x12, 0x2f, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31,
+	0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x30, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x31, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2b, 0x3a, 0x01, 0x2a, 0x22, 0x26,
+	0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65,
+	0x5f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0xb1, 0x01, 0x0a, 0x19, 0x44, 0x65, 0x6c, 0x65, 0x74,
+	0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x12, 0x2f, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65,
+	0x72, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x30, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c,
+	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x31, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2b, 0x3a,
+	0x01, 0x2a, 0x22, 0x26, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x64, 0x65,
+	0x6c, 0x65, 0x74, 0x65, 0x5f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63,
+	0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0xa1, 0x01, 0x0a, 0x16, 0x47,
+	0x65, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f,
+	0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x2c, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72,
+	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x2a, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x24, 0x3a, 0x01, 0x2a, 0x22, 0x1f, 0x2f,
+	0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0xa8,
+	0x01, 0x0a, 0x18, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x2e, 0x2e, 0x61, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74,
+	0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f, 0x2e, 0x61, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74,
+	0x53, 0x61, 0x6d, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2b, 0x82, 0xd3,
+	0xe4, 0x93, 0x02, 0x25, 0x3a, 0x01, 0x2a, 0x22, 0x20, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d,
+	0x69, 0x6e, 0x2f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f,
+	0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x91, 0x01, 0x0a, 0x11, 0x52, 0x6f,
+	0x74, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x43, 0x65, 0x72, 0x74, 0x12,
+	0x27, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e,
+	0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x43, 0x65, 0x72,
+	0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f,
+	0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x53,
+	0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x29, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x23, 0x3a, 0x01, 0x2a, 0x22, 0x1e, 0x2f,
+	0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x72, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x5f,
+	0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x63, 0x65, 0x72, 0x74, 0x12, 0x8d, 0x01,
+	0x0a, 0x10, 0x52, 0x65, 0x74, 0x69, 0x72, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b,
+	0x65, 0x79, 0x12, 0x26, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e,
+	0x76, 0x31, 0x2e, 0x52, 0x65, 0x74, 0x69, 0x72, 0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70,
+	0x4b, 0x65, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x27, 0x2e, 0x61, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x74, 0x69, 0x72,
+	0x65, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x28, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x22, 0x3a, 0x01, 0x2a, 0x22, 0x1d,
+	0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x72, 0x65, 0x74, 0x69, 0x72, 0x65,
+	0x5f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x69, 0x64, 0x70, 0x5f, 0x6b, 0x65, 0x79, 0x12, 0x84, 0x01,
+	0x0a, 0x0f, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79,
+	0x73, 0x12, 0x25, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f,
+	0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x61, 0x6d,
+	0x6c, 0x49, 0x64, 0x70, 0x4b, 0x65, 0x79, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x22, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1c, 0x3a, 0x01, 0x2a, 0x22, 0x17, 0x2f, 0x76, 0x31,
+	0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x69, 0x64, 0x70, 0x5f,
+	0x6b, 0x65, 0x79, 0x73, 0x12, 0x9d, 0x01, 0x0a, 0x14, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x53,
+	0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x12, 0x2a, 0x2e,
+	0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6d,
+	0x70, 0x6f, 0x72, 0x74, 0x53, 0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x61, 0x75, 0x74, 0x68,
+	0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74,
+	0x53, 0x61, 0x6d, 0x6c, 0x53, 0x70, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2c, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x26, 0x3a, 0x01,
+	0x2a, 0x22, 0x21, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x2f, 0x69, 0x6d, 0x70,
+	0x6f, 0x72, 0x74, 0x5f, 0x73, 0x61, 0x6d, 0x6c, 0x5f, 0x73, 0x70, 0x5f, 0x6d, 0x65, 0x74, 0x61,
+	0x64, 0x61, 0x74, 0x61, 0x42, 0xbb, 0x01, 0x0a, 0x11, 0x63, 0x6f, 0x6d, 0x2e, 0x61, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x42, 0x0a, 0x41, 0x64, 0x6d, 0x69,
+	0x6e, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x45, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x64,
+	0x65, 0x76, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2f, 0x67, 0x65,
+	0x6e, 0x2f, 0x67, 0x6f, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x2f,
+	0x76, 0x31, 0x3b, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x76, 0x31, 0xa2,
+	0x02, 0x03, 0x41, 0x58, 0x58, 0xaa, 0x02, 0x0d, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x65, 0x72, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0d, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x65, 0x72, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x19, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x65, 0x72, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0xea, 0x02, 0x0e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x72, 0x3a, 0x3a,
+	0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -6767,246 +8322,294 @@ func file_authorizer_v1_admin_proto_rawDescGZIP() []byte {
 	return file_authorizer_v1_admin_proto_rawDescData
 }
 
-var file_authorizer_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
+var file_authorizer_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 116)
 var file_authorizer_v1_admin_proto_goTypes = []any{
-	(*AdminLoginRequest)(nil),            // 0: authorizer.v1.AdminLoginRequest
-	(*AdminLoginResponse)(nil),           // 1: authorizer.v1.AdminLoginResponse
-	(*AdminLogoutRequest)(nil),           // 2: authorizer.v1.AdminLogoutRequest
-	(*AdminLogoutResponse)(nil),          // 3: authorizer.v1.AdminLogoutResponse
-	(*AdminSessionRequest)(nil),          // 4: authorizer.v1.AdminSessionRequest
-	(*AdminSessionResponse)(nil),         // 5: authorizer.v1.AdminSessionResponse
-	(*AdminMetaRequest)(nil),             // 6: authorizer.v1.AdminMetaRequest
-	(*AdminMetaResponse)(nil),            // 7: authorizer.v1.AdminMetaResponse
-	(*AdminMeta)(nil),                    // 8: authorizer.v1.AdminMeta
-	(*UsersRequest)(nil),                 // 9: authorizer.v1.UsersRequest
-	(*UsersResponse)(nil),                // 10: authorizer.v1.UsersResponse
-	(*UserRequest)(nil),                  // 11: authorizer.v1.UserRequest
-	(*UserResponse)(nil),                 // 12: authorizer.v1.UserResponse
-	(*UpdateUserRequest)(nil),            // 13: authorizer.v1.UpdateUserRequest
-	(*UpdateUserResponse)(nil),           // 14: authorizer.v1.UpdateUserResponse
-	(*DeleteUserRequest)(nil),            // 15: authorizer.v1.DeleteUserRequest
-	(*DeleteUserResponse)(nil),           // 16: authorizer.v1.DeleteUserResponse
-	(*VerificationRequestsRequest)(nil),  // 17: authorizer.v1.VerificationRequestsRequest
-	(*VerificationRequestsResponse)(nil), // 18: authorizer.v1.VerificationRequestsResponse
-	(*VerificationRequest)(nil),          // 19: authorizer.v1.VerificationRequest
-	(*RevokeAccessRequest)(nil),          // 20: authorizer.v1.RevokeAccessRequest
-	(*RevokeAccessResponse)(nil),         // 21: authorizer.v1.RevokeAccessResponse
-	(*EnableAccessRequest)(nil),          // 22: authorizer.v1.EnableAccessRequest
-	(*EnableAccessResponse)(nil),         // 23: authorizer.v1.EnableAccessResponse
-	(*InviteMembersRequest)(nil),         // 24: authorizer.v1.InviteMembersRequest
-	(*InviteMembersResponse)(nil),        // 25: authorizer.v1.InviteMembersResponse
-	(*Webhook)(nil),                      // 26: authorizer.v1.Webhook
-	(*WebhookLog)(nil),                   // 27: authorizer.v1.WebhookLog
-	(*AddWebhookRequest)(nil),            // 28: authorizer.v1.AddWebhookRequest
-	(*AddWebhookResponse)(nil),           // 29: authorizer.v1.AddWebhookResponse
-	(*UpdateWebhookRequest)(nil),         // 30: authorizer.v1.UpdateWebhookRequest
-	(*UpdateWebhookResponse)(nil),        // 31: authorizer.v1.UpdateWebhookResponse
-	(*DeleteWebhookRequest)(nil),         // 32: authorizer.v1.DeleteWebhookRequest
-	(*DeleteWebhookResponse)(nil),        // 33: authorizer.v1.DeleteWebhookResponse
-	(*GetWebhookRequest)(nil),            // 34: authorizer.v1.GetWebhookRequest
-	(*GetWebhookResponse)(nil),           // 35: authorizer.v1.GetWebhookResponse
-	(*WebhooksRequest)(nil),              // 36: authorizer.v1.WebhooksRequest
-	(*WebhooksResponse)(nil),             // 37: authorizer.v1.WebhooksResponse
-	(*WebhookLogsRequest)(nil),           // 38: authorizer.v1.WebhookLogsRequest
-	(*WebhookLogsResponse)(nil),          // 39: authorizer.v1.WebhookLogsResponse
-	(*TestEndpointRequest)(nil),          // 40: authorizer.v1.TestEndpointRequest
-	(*TestEndpointResponse)(nil),         // 41: authorizer.v1.TestEndpointResponse
-	(*EmailTemplate)(nil),                // 42: authorizer.v1.EmailTemplate
-	(*AddEmailTemplateRequest)(nil),      // 43: authorizer.v1.AddEmailTemplateRequest
-	(*AddEmailTemplateResponse)(nil),     // 44: authorizer.v1.AddEmailTemplateResponse
-	(*UpdateEmailTemplateRequest)(nil),   // 45: authorizer.v1.UpdateEmailTemplateRequest
-	(*UpdateEmailTemplateResponse)(nil),  // 46: authorizer.v1.UpdateEmailTemplateResponse
-	(*DeleteEmailTemplateRequest)(nil),   // 47: authorizer.v1.DeleteEmailTemplateRequest
-	(*DeleteEmailTemplateResponse)(nil),  // 48: authorizer.v1.DeleteEmailTemplateResponse
-	(*EmailTemplatesRequest)(nil),        // 49: authorizer.v1.EmailTemplatesRequest
-	(*EmailTemplatesResponse)(nil),       // 50: authorizer.v1.EmailTemplatesResponse
-	(*AuditLog)(nil),                     // 51: authorizer.v1.AuditLog
-	(*AuditLogsRequest)(nil),             // 52: authorizer.v1.AuditLogsRequest
-	(*AuditLogsResponse)(nil),            // 53: authorizer.v1.AuditLogsResponse
-	(*FgaModel)(nil),                     // 54: authorizer.v1.FgaModel
-	(*FgaTuple)(nil),                     // 55: authorizer.v1.FgaTuple
-	(*FgaGetModelRequest)(nil),           // 56: authorizer.v1.FgaGetModelRequest
-	(*FgaGetModelResponse)(nil),          // 57: authorizer.v1.FgaGetModelResponse
-	(*FgaWriteModelRequest)(nil),         // 58: authorizer.v1.FgaWriteModelRequest
-	(*FgaWriteModelResponse)(nil),        // 59: authorizer.v1.FgaWriteModelResponse
-	(*FgaWriteTuplesRequest)(nil),        // 60: authorizer.v1.FgaWriteTuplesRequest
-	(*FgaWriteTuplesResponse)(nil),       // 61: authorizer.v1.FgaWriteTuplesResponse
-	(*FgaDeleteTuplesRequest)(nil),       // 62: authorizer.v1.FgaDeleteTuplesRequest
-	(*FgaDeleteTuplesResponse)(nil),      // 63: authorizer.v1.FgaDeleteTuplesResponse
-	(*FgaReadTuplesRequest)(nil),         // 64: authorizer.v1.FgaReadTuplesRequest
-	(*FgaReadTuplesResponse)(nil),        // 65: authorizer.v1.FgaReadTuplesResponse
-	(*FgaListUsersRequest)(nil),          // 66: authorizer.v1.FgaListUsersRequest
-	(*FgaListUsersResponse)(nil),         // 67: authorizer.v1.FgaListUsersResponse
-	(*FgaExpandRequest)(nil),             // 68: authorizer.v1.FgaExpandRequest
-	(*FgaExpandResponse)(nil),            // 69: authorizer.v1.FgaExpandResponse
-	(*FgaResetRequest)(nil),              // 70: authorizer.v1.FgaResetRequest
-	(*FgaResetResponse)(nil),             // 71: authorizer.v1.FgaResetResponse
-	(*Client)(nil),                       // 72: authorizer.v1.Client
-	(*CreateClientRequest)(nil),          // 73: authorizer.v1.CreateClientRequest
-	(*CreateClientResponse)(nil),         // 74: authorizer.v1.CreateClientResponse
-	(*UpdateClientRequest)(nil),          // 75: authorizer.v1.UpdateClientRequest
-	(*UpdateClientResponse)(nil),         // 76: authorizer.v1.UpdateClientResponse
-	(*DeleteClientRequest)(nil),          // 77: authorizer.v1.DeleteClientRequest
-	(*DeleteClientResponse)(nil),         // 78: authorizer.v1.DeleteClientResponse
-	(*RotateClientSecretRequest)(nil),    // 79: authorizer.v1.RotateClientSecretRequest
-	(*GetClientRequest)(nil),             // 80: authorizer.v1.GetClientRequest
-	(*GetClientResponse)(nil),            // 81: authorizer.v1.GetClientResponse
-	(*ClientsRequest)(nil),               // 82: authorizer.v1.ClientsRequest
-	(*ClientsResponse)(nil),              // 83: authorizer.v1.ClientsResponse
-	(*TrustedIssuer)(nil),                // 84: authorizer.v1.TrustedIssuer
-	(*AddTrustedIssuerRequest)(nil),      // 85: authorizer.v1.AddTrustedIssuerRequest
-	(*AddTrustedIssuerResponse)(nil),     // 86: authorizer.v1.AddTrustedIssuerResponse
-	(*UpdateTrustedIssuerRequest)(nil),   // 87: authorizer.v1.UpdateTrustedIssuerRequest
-	(*UpdateTrustedIssuerResponse)(nil),  // 88: authorizer.v1.UpdateTrustedIssuerResponse
-	(*DeleteTrustedIssuerRequest)(nil),   // 89: authorizer.v1.DeleteTrustedIssuerRequest
-	(*DeleteTrustedIssuerResponse)(nil),  // 90: authorizer.v1.DeleteTrustedIssuerResponse
-	(*GetTrustedIssuerRequest)(nil),      // 91: authorizer.v1.GetTrustedIssuerRequest
-	(*GetTrustedIssuerResponse)(nil),     // 92: authorizer.v1.GetTrustedIssuerResponse
-	(*TrustedIssuersRequest)(nil),        // 93: authorizer.v1.TrustedIssuersRequest
-	(*TrustedIssuersResponse)(nil),       // 94: authorizer.v1.TrustedIssuersResponse
-	(*PaginationRequest)(nil),            // 95: authorizer.v1.PaginationRequest
-	(*User)(nil),                         // 96: authorizer.v1.User
-	(*Pagination)(nil),                   // 97: authorizer.v1.Pagination
-	(*AppData)(nil),                      // 98: authorizer.v1.AppData
-	(*FgaTupleInput)(nil),                // 99: authorizer.v1.FgaTupleInput
+	(*AdminLoginRequest)(nil),                 // 0: authorizer.v1.AdminLoginRequest
+	(*AdminLoginResponse)(nil),                // 1: authorizer.v1.AdminLoginResponse
+	(*AdminLogoutRequest)(nil),                // 2: authorizer.v1.AdminLogoutRequest
+	(*AdminLogoutResponse)(nil),               // 3: authorizer.v1.AdminLogoutResponse
+	(*AdminSessionRequest)(nil),               // 4: authorizer.v1.AdminSessionRequest
+	(*AdminSessionResponse)(nil),              // 5: authorizer.v1.AdminSessionResponse
+	(*AdminMetaRequest)(nil),                  // 6: authorizer.v1.AdminMetaRequest
+	(*AdminMetaResponse)(nil),                 // 7: authorizer.v1.AdminMetaResponse
+	(*AdminMeta)(nil),                         // 8: authorizer.v1.AdminMeta
+	(*UsersRequest)(nil),                      // 9: authorizer.v1.UsersRequest
+	(*UsersResponse)(nil),                     // 10: authorizer.v1.UsersResponse
+	(*UserRequest)(nil),                       // 11: authorizer.v1.UserRequest
+	(*UserResponse)(nil),                      // 12: authorizer.v1.UserResponse
+	(*UpdateUserRequest)(nil),                 // 13: authorizer.v1.UpdateUserRequest
+	(*UpdateUserResponse)(nil),                // 14: authorizer.v1.UpdateUserResponse
+	(*DeleteUserRequest)(nil),                 // 15: authorizer.v1.DeleteUserRequest
+	(*DeleteUserResponse)(nil),                // 16: authorizer.v1.DeleteUserResponse
+	(*VerificationRequestsRequest)(nil),       // 17: authorizer.v1.VerificationRequestsRequest
+	(*VerificationRequestsResponse)(nil),      // 18: authorizer.v1.VerificationRequestsResponse
+	(*VerificationRequest)(nil),               // 19: authorizer.v1.VerificationRequest
+	(*RevokeAccessRequest)(nil),               // 20: authorizer.v1.RevokeAccessRequest
+	(*RevokeAccessResponse)(nil),              // 21: authorizer.v1.RevokeAccessResponse
+	(*EnableAccessRequest)(nil),               // 22: authorizer.v1.EnableAccessRequest
+	(*EnableAccessResponse)(nil),              // 23: authorizer.v1.EnableAccessResponse
+	(*InviteMembersRequest)(nil),              // 24: authorizer.v1.InviteMembersRequest
+	(*InviteMembersResponse)(nil),             // 25: authorizer.v1.InviteMembersResponse
+	(*Webhook)(nil),                           // 26: authorizer.v1.Webhook
+	(*WebhookLog)(nil),                        // 27: authorizer.v1.WebhookLog
+	(*AddWebhookRequest)(nil),                 // 28: authorizer.v1.AddWebhookRequest
+	(*AddWebhookResponse)(nil),                // 29: authorizer.v1.AddWebhookResponse
+	(*UpdateWebhookRequest)(nil),              // 30: authorizer.v1.UpdateWebhookRequest
+	(*UpdateWebhookResponse)(nil),             // 31: authorizer.v1.UpdateWebhookResponse
+	(*DeleteWebhookRequest)(nil),              // 32: authorizer.v1.DeleteWebhookRequest
+	(*DeleteWebhookResponse)(nil),             // 33: authorizer.v1.DeleteWebhookResponse
+	(*GetWebhookRequest)(nil),                 // 34: authorizer.v1.GetWebhookRequest
+	(*GetWebhookResponse)(nil),                // 35: authorizer.v1.GetWebhookResponse
+	(*WebhooksRequest)(nil),                   // 36: authorizer.v1.WebhooksRequest
+	(*WebhooksResponse)(nil),                  // 37: authorizer.v1.WebhooksResponse
+	(*WebhookLogsRequest)(nil),                // 38: authorizer.v1.WebhookLogsRequest
+	(*WebhookLogsResponse)(nil),               // 39: authorizer.v1.WebhookLogsResponse
+	(*TestEndpointRequest)(nil),               // 40: authorizer.v1.TestEndpointRequest
+	(*TestEndpointResponse)(nil),              // 41: authorizer.v1.TestEndpointResponse
+	(*EmailTemplate)(nil),                     // 42: authorizer.v1.EmailTemplate
+	(*AddEmailTemplateRequest)(nil),           // 43: authorizer.v1.AddEmailTemplateRequest
+	(*AddEmailTemplateResponse)(nil),          // 44: authorizer.v1.AddEmailTemplateResponse
+	(*UpdateEmailTemplateRequest)(nil),        // 45: authorizer.v1.UpdateEmailTemplateRequest
+	(*UpdateEmailTemplateResponse)(nil),       // 46: authorizer.v1.UpdateEmailTemplateResponse
+	(*DeleteEmailTemplateRequest)(nil),        // 47: authorizer.v1.DeleteEmailTemplateRequest
+	(*DeleteEmailTemplateResponse)(nil),       // 48: authorizer.v1.DeleteEmailTemplateResponse
+	(*EmailTemplatesRequest)(nil),             // 49: authorizer.v1.EmailTemplatesRequest
+	(*EmailTemplatesResponse)(nil),            // 50: authorizer.v1.EmailTemplatesResponse
+	(*AuditLog)(nil),                          // 51: authorizer.v1.AuditLog
+	(*AuditLogsRequest)(nil),                  // 52: authorizer.v1.AuditLogsRequest
+	(*AuditLogsResponse)(nil),                 // 53: authorizer.v1.AuditLogsResponse
+	(*FgaModel)(nil),                          // 54: authorizer.v1.FgaModel
+	(*FgaTuple)(nil),                          // 55: authorizer.v1.FgaTuple
+	(*FgaGetModelRequest)(nil),                // 56: authorizer.v1.FgaGetModelRequest
+	(*FgaGetModelResponse)(nil),               // 57: authorizer.v1.FgaGetModelResponse
+	(*FgaWriteModelRequest)(nil),              // 58: authorizer.v1.FgaWriteModelRequest
+	(*FgaWriteModelResponse)(nil),             // 59: authorizer.v1.FgaWriteModelResponse
+	(*FgaWriteTuplesRequest)(nil),             // 60: authorizer.v1.FgaWriteTuplesRequest
+	(*FgaWriteTuplesResponse)(nil),            // 61: authorizer.v1.FgaWriteTuplesResponse
+	(*FgaDeleteTuplesRequest)(nil),            // 62: authorizer.v1.FgaDeleteTuplesRequest
+	(*FgaDeleteTuplesResponse)(nil),           // 63: authorizer.v1.FgaDeleteTuplesResponse
+	(*FgaReadTuplesRequest)(nil),              // 64: authorizer.v1.FgaReadTuplesRequest
+	(*FgaReadTuplesResponse)(nil),             // 65: authorizer.v1.FgaReadTuplesResponse
+	(*FgaListUsersRequest)(nil),               // 66: authorizer.v1.FgaListUsersRequest
+	(*FgaListUsersResponse)(nil),              // 67: authorizer.v1.FgaListUsersResponse
+	(*FgaExpandRequest)(nil),                  // 68: authorizer.v1.FgaExpandRequest
+	(*FgaExpandResponse)(nil),                 // 69: authorizer.v1.FgaExpandResponse
+	(*FgaResetRequest)(nil),                   // 70: authorizer.v1.FgaResetRequest
+	(*FgaResetResponse)(nil),                  // 71: authorizer.v1.FgaResetResponse
+	(*Client)(nil),                            // 72: authorizer.v1.Client
+	(*CreateClientRequest)(nil),               // 73: authorizer.v1.CreateClientRequest
+	(*CreateClientResponse)(nil),              // 74: authorizer.v1.CreateClientResponse
+	(*UpdateClientRequest)(nil),               // 75: authorizer.v1.UpdateClientRequest
+	(*UpdateClientResponse)(nil),              // 76: authorizer.v1.UpdateClientResponse
+	(*DeleteClientRequest)(nil),               // 77: authorizer.v1.DeleteClientRequest
+	(*DeleteClientResponse)(nil),              // 78: authorizer.v1.DeleteClientResponse
+	(*RotateClientSecretRequest)(nil),         // 79: authorizer.v1.RotateClientSecretRequest
+	(*GetClientRequest)(nil),                  // 80: authorizer.v1.GetClientRequest
+	(*GetClientResponse)(nil),                 // 81: authorizer.v1.GetClientResponse
+	(*ClientsRequest)(nil),                    // 82: authorizer.v1.ClientsRequest
+	(*ClientsResponse)(nil),                   // 83: authorizer.v1.ClientsResponse
+	(*TrustedIssuer)(nil),                     // 84: authorizer.v1.TrustedIssuer
+	(*AddTrustedIssuerRequest)(nil),           // 85: authorizer.v1.AddTrustedIssuerRequest
+	(*AddTrustedIssuerResponse)(nil),          // 86: authorizer.v1.AddTrustedIssuerResponse
+	(*UpdateTrustedIssuerRequest)(nil),        // 87: authorizer.v1.UpdateTrustedIssuerRequest
+	(*UpdateTrustedIssuerResponse)(nil),       // 88: authorizer.v1.UpdateTrustedIssuerResponse
+	(*DeleteTrustedIssuerRequest)(nil),        // 89: authorizer.v1.DeleteTrustedIssuerRequest
+	(*DeleteTrustedIssuerResponse)(nil),       // 90: authorizer.v1.DeleteTrustedIssuerResponse
+	(*GetTrustedIssuerRequest)(nil),           // 91: authorizer.v1.GetTrustedIssuerRequest
+	(*GetTrustedIssuerResponse)(nil),          // 92: authorizer.v1.GetTrustedIssuerResponse
+	(*TrustedIssuersRequest)(nil),             // 93: authorizer.v1.TrustedIssuersRequest
+	(*TrustedIssuersResponse)(nil),            // 94: authorizer.v1.TrustedIssuersResponse
+	(*SamlServiceProvider)(nil),               // 95: authorizer.v1.SamlServiceProvider
+	(*SamlIdpKey)(nil),                        // 96: authorizer.v1.SamlIdpKey
+	(*SamlSpMetadataParseResult)(nil),         // 97: authorizer.v1.SamlSpMetadataParseResult
+	(*CreateSamlServiceProviderRequest)(nil),  // 98: authorizer.v1.CreateSamlServiceProviderRequest
+	(*CreateSamlServiceProviderResponse)(nil), // 99: authorizer.v1.CreateSamlServiceProviderResponse
+	(*UpdateSamlServiceProviderRequest)(nil),  // 100: authorizer.v1.UpdateSamlServiceProviderRequest
+	(*UpdateSamlServiceProviderResponse)(nil), // 101: authorizer.v1.UpdateSamlServiceProviderResponse
+	(*DeleteSamlServiceProviderRequest)(nil),  // 102: authorizer.v1.DeleteSamlServiceProviderRequest
+	(*DeleteSamlServiceProviderResponse)(nil), // 103: authorizer.v1.DeleteSamlServiceProviderResponse
+	(*GetSamlServiceProviderRequest)(nil),     // 104: authorizer.v1.GetSamlServiceProviderRequest
+	(*GetSamlServiceProviderResponse)(nil),    // 105: authorizer.v1.GetSamlServiceProviderResponse
+	(*ListSamlServiceProvidersRequest)(nil),   // 106: authorizer.v1.ListSamlServiceProvidersRequest
+	(*ListSamlServiceProvidersResponse)(nil),  // 107: authorizer.v1.ListSamlServiceProvidersResponse
+	(*RotateSamlIdpCertRequest)(nil),          // 108: authorizer.v1.RotateSamlIdpCertRequest
+	(*RotateSamlIdpCertResponse)(nil),         // 109: authorizer.v1.RotateSamlIdpCertResponse
+	(*RetireSamlIdpKeyRequest)(nil),           // 110: authorizer.v1.RetireSamlIdpKeyRequest
+	(*RetireSamlIdpKeyResponse)(nil),          // 111: authorizer.v1.RetireSamlIdpKeyResponse
+	(*ListSamlIdpKeysRequest)(nil),            // 112: authorizer.v1.ListSamlIdpKeysRequest
+	(*ListSamlIdpKeysResponse)(nil),           // 113: authorizer.v1.ListSamlIdpKeysResponse
+	(*ImportSamlSpMetadataRequest)(nil),       // 114: authorizer.v1.ImportSamlSpMetadataRequest
+	(*ImportSamlSpMetadataResponse)(nil),      // 115: authorizer.v1.ImportSamlSpMetadataResponse
+	(*PaginationRequest)(nil),                 // 116: authorizer.v1.PaginationRequest
+	(*User)(nil),                              // 117: authorizer.v1.User
+	(*Pagination)(nil),                        // 118: authorizer.v1.Pagination
+	(*AppData)(nil),                           // 119: authorizer.v1.AppData
+	(*FgaTupleInput)(nil),                     // 120: authorizer.v1.FgaTupleInput
 }
 var file_authorizer_v1_admin_proto_depIdxs = []int32{
-	8,  // 0: authorizer.v1.AdminMetaResponse.admin_meta:type_name -> authorizer.v1.AdminMeta
-	95, // 1: authorizer.v1.UsersRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	96, // 2: authorizer.v1.UsersResponse.users:type_name -> authorizer.v1.User
-	97, // 3: authorizer.v1.UsersResponse.pagination:type_name -> authorizer.v1.Pagination
-	96, // 4: authorizer.v1.UserResponse.user:type_name -> authorizer.v1.User
-	98, // 5: authorizer.v1.UpdateUserRequest.app_data:type_name -> authorizer.v1.AppData
-	96, // 6: authorizer.v1.UpdateUserResponse.user:type_name -> authorizer.v1.User
-	95, // 7: authorizer.v1.VerificationRequestsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	19, // 8: authorizer.v1.VerificationRequestsResponse.verification_requests:type_name -> authorizer.v1.VerificationRequest
-	97, // 9: authorizer.v1.VerificationRequestsResponse.pagination:type_name -> authorizer.v1.Pagination
-	96, // 10: authorizer.v1.InviteMembersResponse.users:type_name -> authorizer.v1.User
-	98, // 11: authorizer.v1.Webhook.headers:type_name -> authorizer.v1.AppData
-	98, // 12: authorizer.v1.AddWebhookRequest.headers:type_name -> authorizer.v1.AppData
-	98, // 13: authorizer.v1.UpdateWebhookRequest.headers:type_name -> authorizer.v1.AppData
-	26, // 14: authorizer.v1.GetWebhookResponse.webhook:type_name -> authorizer.v1.Webhook
-	95, // 15: authorizer.v1.WebhooksRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	26, // 16: authorizer.v1.WebhooksResponse.webhooks:type_name -> authorizer.v1.Webhook
-	97, // 17: authorizer.v1.WebhooksResponse.pagination:type_name -> authorizer.v1.Pagination
-	95, // 18: authorizer.v1.WebhookLogsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	27, // 19: authorizer.v1.WebhookLogsResponse.webhook_logs:type_name -> authorizer.v1.WebhookLog
-	97, // 20: authorizer.v1.WebhookLogsResponse.pagination:type_name -> authorizer.v1.Pagination
-	98, // 21: authorizer.v1.TestEndpointRequest.headers:type_name -> authorizer.v1.AppData
-	95, // 22: authorizer.v1.EmailTemplatesRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	42, // 23: authorizer.v1.EmailTemplatesResponse.email_templates:type_name -> authorizer.v1.EmailTemplate
-	97, // 24: authorizer.v1.EmailTemplatesResponse.pagination:type_name -> authorizer.v1.Pagination
-	95, // 25: authorizer.v1.AuditLogsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	51, // 26: authorizer.v1.AuditLogsResponse.audit_logs:type_name -> authorizer.v1.AuditLog
-	97, // 27: authorizer.v1.AuditLogsResponse.pagination:type_name -> authorizer.v1.Pagination
-	54, // 28: authorizer.v1.FgaGetModelResponse.model:type_name -> authorizer.v1.FgaModel
-	54, // 29: authorizer.v1.FgaWriteModelResponse.model:type_name -> authorizer.v1.FgaModel
-	99, // 30: authorizer.v1.FgaWriteTuplesRequest.tuples:type_name -> authorizer.v1.FgaTupleInput
-	99, // 31: authorizer.v1.FgaDeleteTuplesRequest.tuples:type_name -> authorizer.v1.FgaTupleInput
-	55, // 32: authorizer.v1.FgaReadTuplesResponse.tuples:type_name -> authorizer.v1.FgaTuple
-	72, // 33: authorizer.v1.CreateClientResponse.client:type_name -> authorizer.v1.Client
-	72, // 34: authorizer.v1.UpdateClientResponse.client:type_name -> authorizer.v1.Client
-	72, // 35: authorizer.v1.GetClientResponse.client:type_name -> authorizer.v1.Client
-	95, // 36: authorizer.v1.ClientsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	72, // 37: authorizer.v1.ClientsResponse.clients:type_name -> authorizer.v1.Client
-	97, // 38: authorizer.v1.ClientsResponse.pagination:type_name -> authorizer.v1.Pagination
-	84, // 39: authorizer.v1.AddTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
-	84, // 40: authorizer.v1.UpdateTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
-	84, // 41: authorizer.v1.GetTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
-	95, // 42: authorizer.v1.TrustedIssuersRequest.pagination:type_name -> authorizer.v1.PaginationRequest
-	84, // 43: authorizer.v1.TrustedIssuersResponse.trusted_issuers:type_name -> authorizer.v1.TrustedIssuer
-	97, // 44: authorizer.v1.TrustedIssuersResponse.pagination:type_name -> authorizer.v1.Pagination
-	0,  // 45: authorizer.v1.AuthorizerAdminService.AdminLogin:input_type -> authorizer.v1.AdminLoginRequest
-	2,  // 46: authorizer.v1.AuthorizerAdminService.AdminLogout:input_type -> authorizer.v1.AdminLogoutRequest
-	4,  // 47: authorizer.v1.AuthorizerAdminService.AdminSession:input_type -> authorizer.v1.AdminSessionRequest
-	6,  // 48: authorizer.v1.AuthorizerAdminService.AdminMeta:input_type -> authorizer.v1.AdminMetaRequest
-	9,  // 49: authorizer.v1.AuthorizerAdminService.Users:input_type -> authorizer.v1.UsersRequest
-	11, // 50: authorizer.v1.AuthorizerAdminService.User:input_type -> authorizer.v1.UserRequest
-	13, // 51: authorizer.v1.AuthorizerAdminService.UpdateUser:input_type -> authorizer.v1.UpdateUserRequest
-	15, // 52: authorizer.v1.AuthorizerAdminService.DeleteUser:input_type -> authorizer.v1.DeleteUserRequest
-	17, // 53: authorizer.v1.AuthorizerAdminService.VerificationRequests:input_type -> authorizer.v1.VerificationRequestsRequest
-	20, // 54: authorizer.v1.AuthorizerAdminService.RevokeAccess:input_type -> authorizer.v1.RevokeAccessRequest
-	22, // 55: authorizer.v1.AuthorizerAdminService.EnableAccess:input_type -> authorizer.v1.EnableAccessRequest
-	24, // 56: authorizer.v1.AuthorizerAdminService.InviteMembers:input_type -> authorizer.v1.InviteMembersRequest
-	28, // 57: authorizer.v1.AuthorizerAdminService.AddWebhook:input_type -> authorizer.v1.AddWebhookRequest
-	30, // 58: authorizer.v1.AuthorizerAdminService.UpdateWebhook:input_type -> authorizer.v1.UpdateWebhookRequest
-	32, // 59: authorizer.v1.AuthorizerAdminService.DeleteWebhook:input_type -> authorizer.v1.DeleteWebhookRequest
-	34, // 60: authorizer.v1.AuthorizerAdminService.GetWebhook:input_type -> authorizer.v1.GetWebhookRequest
-	36, // 61: authorizer.v1.AuthorizerAdminService.Webhooks:input_type -> authorizer.v1.WebhooksRequest
-	38, // 62: authorizer.v1.AuthorizerAdminService.WebhookLogs:input_type -> authorizer.v1.WebhookLogsRequest
-	40, // 63: authorizer.v1.AuthorizerAdminService.TestEndpoint:input_type -> authorizer.v1.TestEndpointRequest
-	43, // 64: authorizer.v1.AuthorizerAdminService.AddEmailTemplate:input_type -> authorizer.v1.AddEmailTemplateRequest
-	45, // 65: authorizer.v1.AuthorizerAdminService.UpdateEmailTemplate:input_type -> authorizer.v1.UpdateEmailTemplateRequest
-	47, // 66: authorizer.v1.AuthorizerAdminService.DeleteEmailTemplate:input_type -> authorizer.v1.DeleteEmailTemplateRequest
-	49, // 67: authorizer.v1.AuthorizerAdminService.EmailTemplates:input_type -> authorizer.v1.EmailTemplatesRequest
-	52, // 68: authorizer.v1.AuthorizerAdminService.AuditLogs:input_type -> authorizer.v1.AuditLogsRequest
-	56, // 69: authorizer.v1.AuthorizerAdminService.FgaGetModel:input_type -> authorizer.v1.FgaGetModelRequest
-	58, // 70: authorizer.v1.AuthorizerAdminService.FgaWriteModel:input_type -> authorizer.v1.FgaWriteModelRequest
-	60, // 71: authorizer.v1.AuthorizerAdminService.FgaWriteTuples:input_type -> authorizer.v1.FgaWriteTuplesRequest
-	62, // 72: authorizer.v1.AuthorizerAdminService.FgaDeleteTuples:input_type -> authorizer.v1.FgaDeleteTuplesRequest
-	64, // 73: authorizer.v1.AuthorizerAdminService.FgaReadTuples:input_type -> authorizer.v1.FgaReadTuplesRequest
-	66, // 74: authorizer.v1.AuthorizerAdminService.FgaListUsers:input_type -> authorizer.v1.FgaListUsersRequest
-	68, // 75: authorizer.v1.AuthorizerAdminService.FgaExpand:input_type -> authorizer.v1.FgaExpandRequest
-	70, // 76: authorizer.v1.AuthorizerAdminService.FgaReset:input_type -> authorizer.v1.FgaResetRequest
-	73, // 77: authorizer.v1.AuthorizerAdminService.CreateClient:input_type -> authorizer.v1.CreateClientRequest
-	75, // 78: authorizer.v1.AuthorizerAdminService.UpdateClient:input_type -> authorizer.v1.UpdateClientRequest
-	77, // 79: authorizer.v1.AuthorizerAdminService.DeleteClient:input_type -> authorizer.v1.DeleteClientRequest
-	79, // 80: authorizer.v1.AuthorizerAdminService.RotateClientSecret:input_type -> authorizer.v1.RotateClientSecretRequest
-	80, // 81: authorizer.v1.AuthorizerAdminService.GetClient:input_type -> authorizer.v1.GetClientRequest
-	82, // 82: authorizer.v1.AuthorizerAdminService.Clients:input_type -> authorizer.v1.ClientsRequest
-	85, // 83: authorizer.v1.AuthorizerAdminService.AddTrustedIssuer:input_type -> authorizer.v1.AddTrustedIssuerRequest
-	87, // 84: authorizer.v1.AuthorizerAdminService.UpdateTrustedIssuer:input_type -> authorizer.v1.UpdateTrustedIssuerRequest
-	89, // 85: authorizer.v1.AuthorizerAdminService.DeleteTrustedIssuer:input_type -> authorizer.v1.DeleteTrustedIssuerRequest
-	91, // 86: authorizer.v1.AuthorizerAdminService.GetTrustedIssuer:input_type -> authorizer.v1.GetTrustedIssuerRequest
-	93, // 87: authorizer.v1.AuthorizerAdminService.TrustedIssuers:input_type -> authorizer.v1.TrustedIssuersRequest
-	1,  // 88: authorizer.v1.AuthorizerAdminService.AdminLogin:output_type -> authorizer.v1.AdminLoginResponse
-	3,  // 89: authorizer.v1.AuthorizerAdminService.AdminLogout:output_type -> authorizer.v1.AdminLogoutResponse
-	5,  // 90: authorizer.v1.AuthorizerAdminService.AdminSession:output_type -> authorizer.v1.AdminSessionResponse
-	7,  // 91: authorizer.v1.AuthorizerAdminService.AdminMeta:output_type -> authorizer.v1.AdminMetaResponse
-	10, // 92: authorizer.v1.AuthorizerAdminService.Users:output_type -> authorizer.v1.UsersResponse
-	12, // 93: authorizer.v1.AuthorizerAdminService.User:output_type -> authorizer.v1.UserResponse
-	14, // 94: authorizer.v1.AuthorizerAdminService.UpdateUser:output_type -> authorizer.v1.UpdateUserResponse
-	16, // 95: authorizer.v1.AuthorizerAdminService.DeleteUser:output_type -> authorizer.v1.DeleteUserResponse
-	18, // 96: authorizer.v1.AuthorizerAdminService.VerificationRequests:output_type -> authorizer.v1.VerificationRequestsResponse
-	21, // 97: authorizer.v1.AuthorizerAdminService.RevokeAccess:output_type -> authorizer.v1.RevokeAccessResponse
-	23, // 98: authorizer.v1.AuthorizerAdminService.EnableAccess:output_type -> authorizer.v1.EnableAccessResponse
-	25, // 99: authorizer.v1.AuthorizerAdminService.InviteMembers:output_type -> authorizer.v1.InviteMembersResponse
-	29, // 100: authorizer.v1.AuthorizerAdminService.AddWebhook:output_type -> authorizer.v1.AddWebhookResponse
-	31, // 101: authorizer.v1.AuthorizerAdminService.UpdateWebhook:output_type -> authorizer.v1.UpdateWebhookResponse
-	33, // 102: authorizer.v1.AuthorizerAdminService.DeleteWebhook:output_type -> authorizer.v1.DeleteWebhookResponse
-	35, // 103: authorizer.v1.AuthorizerAdminService.GetWebhook:output_type -> authorizer.v1.GetWebhookResponse
-	37, // 104: authorizer.v1.AuthorizerAdminService.Webhooks:output_type -> authorizer.v1.WebhooksResponse
-	39, // 105: authorizer.v1.AuthorizerAdminService.WebhookLogs:output_type -> authorizer.v1.WebhookLogsResponse
-	41, // 106: authorizer.v1.AuthorizerAdminService.TestEndpoint:output_type -> authorizer.v1.TestEndpointResponse
-	44, // 107: authorizer.v1.AuthorizerAdminService.AddEmailTemplate:output_type -> authorizer.v1.AddEmailTemplateResponse
-	46, // 108: authorizer.v1.AuthorizerAdminService.UpdateEmailTemplate:output_type -> authorizer.v1.UpdateEmailTemplateResponse
-	48, // 109: authorizer.v1.AuthorizerAdminService.DeleteEmailTemplate:output_type -> authorizer.v1.DeleteEmailTemplateResponse
-	50, // 110: authorizer.v1.AuthorizerAdminService.EmailTemplates:output_type -> authorizer.v1.EmailTemplatesResponse
-	53, // 111: authorizer.v1.AuthorizerAdminService.AuditLogs:output_type -> authorizer.v1.AuditLogsResponse
-	57, // 112: authorizer.v1.AuthorizerAdminService.FgaGetModel:output_type -> authorizer.v1.FgaGetModelResponse
-	59, // 113: authorizer.v1.AuthorizerAdminService.FgaWriteModel:output_type -> authorizer.v1.FgaWriteModelResponse
-	61, // 114: authorizer.v1.AuthorizerAdminService.FgaWriteTuples:output_type -> authorizer.v1.FgaWriteTuplesResponse
-	63, // 115: authorizer.v1.AuthorizerAdminService.FgaDeleteTuples:output_type -> authorizer.v1.FgaDeleteTuplesResponse
-	65, // 116: authorizer.v1.AuthorizerAdminService.FgaReadTuples:output_type -> authorizer.v1.FgaReadTuplesResponse
-	67, // 117: authorizer.v1.AuthorizerAdminService.FgaListUsers:output_type -> authorizer.v1.FgaListUsersResponse
-	69, // 118: authorizer.v1.AuthorizerAdminService.FgaExpand:output_type -> authorizer.v1.FgaExpandResponse
-	71, // 119: authorizer.v1.AuthorizerAdminService.FgaReset:output_type -> authorizer.v1.FgaResetResponse
-	74, // 120: authorizer.v1.AuthorizerAdminService.CreateClient:output_type -> authorizer.v1.CreateClientResponse
-	76, // 121: authorizer.v1.AuthorizerAdminService.UpdateClient:output_type -> authorizer.v1.UpdateClientResponse
-	78, // 122: authorizer.v1.AuthorizerAdminService.DeleteClient:output_type -> authorizer.v1.DeleteClientResponse
-	74, // 123: authorizer.v1.AuthorizerAdminService.RotateClientSecret:output_type -> authorizer.v1.CreateClientResponse
-	81, // 124: authorizer.v1.AuthorizerAdminService.GetClient:output_type -> authorizer.v1.GetClientResponse
-	83, // 125: authorizer.v1.AuthorizerAdminService.Clients:output_type -> authorizer.v1.ClientsResponse
-	86, // 126: authorizer.v1.AuthorizerAdminService.AddTrustedIssuer:output_type -> authorizer.v1.AddTrustedIssuerResponse
-	88, // 127: authorizer.v1.AuthorizerAdminService.UpdateTrustedIssuer:output_type -> authorizer.v1.UpdateTrustedIssuerResponse
-	90, // 128: authorizer.v1.AuthorizerAdminService.DeleteTrustedIssuer:output_type -> authorizer.v1.DeleteTrustedIssuerResponse
-	92, // 129: authorizer.v1.AuthorizerAdminService.GetTrustedIssuer:output_type -> authorizer.v1.GetTrustedIssuerResponse
-	94, // 130: authorizer.v1.AuthorizerAdminService.TrustedIssuers:output_type -> authorizer.v1.TrustedIssuersResponse
-	88, // [88:131] is the sub-list for method output_type
-	45, // [45:88] is the sub-list for method input_type
-	45, // [45:45] is the sub-list for extension type_name
-	45, // [45:45] is the sub-list for extension extendee
-	0,  // [0:45] is the sub-list for field type_name
+	8,   // 0: authorizer.v1.AdminMetaResponse.admin_meta:type_name -> authorizer.v1.AdminMeta
+	116, // 1: authorizer.v1.UsersRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	117, // 2: authorizer.v1.UsersResponse.users:type_name -> authorizer.v1.User
+	118, // 3: authorizer.v1.UsersResponse.pagination:type_name -> authorizer.v1.Pagination
+	117, // 4: authorizer.v1.UserResponse.user:type_name -> authorizer.v1.User
+	119, // 5: authorizer.v1.UpdateUserRequest.app_data:type_name -> authorizer.v1.AppData
+	117, // 6: authorizer.v1.UpdateUserResponse.user:type_name -> authorizer.v1.User
+	116, // 7: authorizer.v1.VerificationRequestsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	19,  // 8: authorizer.v1.VerificationRequestsResponse.verification_requests:type_name -> authorizer.v1.VerificationRequest
+	118, // 9: authorizer.v1.VerificationRequestsResponse.pagination:type_name -> authorizer.v1.Pagination
+	117, // 10: authorizer.v1.InviteMembersResponse.users:type_name -> authorizer.v1.User
+	119, // 11: authorizer.v1.Webhook.headers:type_name -> authorizer.v1.AppData
+	119, // 12: authorizer.v1.AddWebhookRequest.headers:type_name -> authorizer.v1.AppData
+	119, // 13: authorizer.v1.UpdateWebhookRequest.headers:type_name -> authorizer.v1.AppData
+	26,  // 14: authorizer.v1.GetWebhookResponse.webhook:type_name -> authorizer.v1.Webhook
+	116, // 15: authorizer.v1.WebhooksRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	26,  // 16: authorizer.v1.WebhooksResponse.webhooks:type_name -> authorizer.v1.Webhook
+	118, // 17: authorizer.v1.WebhooksResponse.pagination:type_name -> authorizer.v1.Pagination
+	116, // 18: authorizer.v1.WebhookLogsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	27,  // 19: authorizer.v1.WebhookLogsResponse.webhook_logs:type_name -> authorizer.v1.WebhookLog
+	118, // 20: authorizer.v1.WebhookLogsResponse.pagination:type_name -> authorizer.v1.Pagination
+	119, // 21: authorizer.v1.TestEndpointRequest.headers:type_name -> authorizer.v1.AppData
+	116, // 22: authorizer.v1.EmailTemplatesRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	42,  // 23: authorizer.v1.EmailTemplatesResponse.email_templates:type_name -> authorizer.v1.EmailTemplate
+	118, // 24: authorizer.v1.EmailTemplatesResponse.pagination:type_name -> authorizer.v1.Pagination
+	116, // 25: authorizer.v1.AuditLogsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	51,  // 26: authorizer.v1.AuditLogsResponse.audit_logs:type_name -> authorizer.v1.AuditLog
+	118, // 27: authorizer.v1.AuditLogsResponse.pagination:type_name -> authorizer.v1.Pagination
+	54,  // 28: authorizer.v1.FgaGetModelResponse.model:type_name -> authorizer.v1.FgaModel
+	54,  // 29: authorizer.v1.FgaWriteModelResponse.model:type_name -> authorizer.v1.FgaModel
+	120, // 30: authorizer.v1.FgaWriteTuplesRequest.tuples:type_name -> authorizer.v1.FgaTupleInput
+	120, // 31: authorizer.v1.FgaDeleteTuplesRequest.tuples:type_name -> authorizer.v1.FgaTupleInput
+	55,  // 32: authorizer.v1.FgaReadTuplesResponse.tuples:type_name -> authorizer.v1.FgaTuple
+	72,  // 33: authorizer.v1.CreateClientResponse.client:type_name -> authorizer.v1.Client
+	72,  // 34: authorizer.v1.UpdateClientResponse.client:type_name -> authorizer.v1.Client
+	72,  // 35: authorizer.v1.GetClientResponse.client:type_name -> authorizer.v1.Client
+	116, // 36: authorizer.v1.ClientsRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	72,  // 37: authorizer.v1.ClientsResponse.clients:type_name -> authorizer.v1.Client
+	118, // 38: authorizer.v1.ClientsResponse.pagination:type_name -> authorizer.v1.Pagination
+	84,  // 39: authorizer.v1.AddTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
+	84,  // 40: authorizer.v1.UpdateTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
+	84,  // 41: authorizer.v1.GetTrustedIssuerResponse.trusted_issuer:type_name -> authorizer.v1.TrustedIssuer
+	116, // 42: authorizer.v1.TrustedIssuersRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	84,  // 43: authorizer.v1.TrustedIssuersResponse.trusted_issuers:type_name -> authorizer.v1.TrustedIssuer
+	118, // 44: authorizer.v1.TrustedIssuersResponse.pagination:type_name -> authorizer.v1.Pagination
+	95,  // 45: authorizer.v1.CreateSamlServiceProviderResponse.saml_service_provider:type_name -> authorizer.v1.SamlServiceProvider
+	95,  // 46: authorizer.v1.UpdateSamlServiceProviderResponse.saml_service_provider:type_name -> authorizer.v1.SamlServiceProvider
+	95,  // 47: authorizer.v1.GetSamlServiceProviderResponse.saml_service_provider:type_name -> authorizer.v1.SamlServiceProvider
+	116, // 48: authorizer.v1.ListSamlServiceProvidersRequest.pagination:type_name -> authorizer.v1.PaginationRequest
+	95,  // 49: authorizer.v1.ListSamlServiceProvidersResponse.saml_service_providers:type_name -> authorizer.v1.SamlServiceProvider
+	118, // 50: authorizer.v1.ListSamlServiceProvidersResponse.pagination:type_name -> authorizer.v1.Pagination
+	96,  // 51: authorizer.v1.RotateSamlIdpCertResponse.saml_idp_key:type_name -> authorizer.v1.SamlIdpKey
+	96,  // 52: authorizer.v1.ListSamlIdpKeysResponse.saml_idp_keys:type_name -> authorizer.v1.SamlIdpKey
+	97,  // 53: authorizer.v1.ImportSamlSpMetadataResponse.result:type_name -> authorizer.v1.SamlSpMetadataParseResult
+	0,   // 54: authorizer.v1.AuthorizerAdminService.AdminLogin:input_type -> authorizer.v1.AdminLoginRequest
+	2,   // 55: authorizer.v1.AuthorizerAdminService.AdminLogout:input_type -> authorizer.v1.AdminLogoutRequest
+	4,   // 56: authorizer.v1.AuthorizerAdminService.AdminSession:input_type -> authorizer.v1.AdminSessionRequest
+	6,   // 57: authorizer.v1.AuthorizerAdminService.AdminMeta:input_type -> authorizer.v1.AdminMetaRequest
+	9,   // 58: authorizer.v1.AuthorizerAdminService.Users:input_type -> authorizer.v1.UsersRequest
+	11,  // 59: authorizer.v1.AuthorizerAdminService.User:input_type -> authorizer.v1.UserRequest
+	13,  // 60: authorizer.v1.AuthorizerAdminService.UpdateUser:input_type -> authorizer.v1.UpdateUserRequest
+	15,  // 61: authorizer.v1.AuthorizerAdminService.DeleteUser:input_type -> authorizer.v1.DeleteUserRequest
+	17,  // 62: authorizer.v1.AuthorizerAdminService.VerificationRequests:input_type -> authorizer.v1.VerificationRequestsRequest
+	20,  // 63: authorizer.v1.AuthorizerAdminService.RevokeAccess:input_type -> authorizer.v1.RevokeAccessRequest
+	22,  // 64: authorizer.v1.AuthorizerAdminService.EnableAccess:input_type -> authorizer.v1.EnableAccessRequest
+	24,  // 65: authorizer.v1.AuthorizerAdminService.InviteMembers:input_type -> authorizer.v1.InviteMembersRequest
+	28,  // 66: authorizer.v1.AuthorizerAdminService.AddWebhook:input_type -> authorizer.v1.AddWebhookRequest
+	30,  // 67: authorizer.v1.AuthorizerAdminService.UpdateWebhook:input_type -> authorizer.v1.UpdateWebhookRequest
+	32,  // 68: authorizer.v1.AuthorizerAdminService.DeleteWebhook:input_type -> authorizer.v1.DeleteWebhookRequest
+	34,  // 69: authorizer.v1.AuthorizerAdminService.GetWebhook:input_type -> authorizer.v1.GetWebhookRequest
+	36,  // 70: authorizer.v1.AuthorizerAdminService.Webhooks:input_type -> authorizer.v1.WebhooksRequest
+	38,  // 71: authorizer.v1.AuthorizerAdminService.WebhookLogs:input_type -> authorizer.v1.WebhookLogsRequest
+	40,  // 72: authorizer.v1.AuthorizerAdminService.TestEndpoint:input_type -> authorizer.v1.TestEndpointRequest
+	43,  // 73: authorizer.v1.AuthorizerAdminService.AddEmailTemplate:input_type -> authorizer.v1.AddEmailTemplateRequest
+	45,  // 74: authorizer.v1.AuthorizerAdminService.UpdateEmailTemplate:input_type -> authorizer.v1.UpdateEmailTemplateRequest
+	47,  // 75: authorizer.v1.AuthorizerAdminService.DeleteEmailTemplate:input_type -> authorizer.v1.DeleteEmailTemplateRequest
+	49,  // 76: authorizer.v1.AuthorizerAdminService.EmailTemplates:input_type -> authorizer.v1.EmailTemplatesRequest
+	52,  // 77: authorizer.v1.AuthorizerAdminService.AuditLogs:input_type -> authorizer.v1.AuditLogsRequest
+	56,  // 78: authorizer.v1.AuthorizerAdminService.FgaGetModel:input_type -> authorizer.v1.FgaGetModelRequest
+	58,  // 79: authorizer.v1.AuthorizerAdminService.FgaWriteModel:input_type -> authorizer.v1.FgaWriteModelRequest
+	60,  // 80: authorizer.v1.AuthorizerAdminService.FgaWriteTuples:input_type -> authorizer.v1.FgaWriteTuplesRequest
+	62,  // 81: authorizer.v1.AuthorizerAdminService.FgaDeleteTuples:input_type -> authorizer.v1.FgaDeleteTuplesRequest
+	64,  // 82: authorizer.v1.AuthorizerAdminService.FgaReadTuples:input_type -> authorizer.v1.FgaReadTuplesRequest
+	66,  // 83: authorizer.v1.AuthorizerAdminService.FgaListUsers:input_type -> authorizer.v1.FgaListUsersRequest
+	68,  // 84: authorizer.v1.AuthorizerAdminService.FgaExpand:input_type -> authorizer.v1.FgaExpandRequest
+	70,  // 85: authorizer.v1.AuthorizerAdminService.FgaReset:input_type -> authorizer.v1.FgaResetRequest
+	73,  // 86: authorizer.v1.AuthorizerAdminService.CreateClient:input_type -> authorizer.v1.CreateClientRequest
+	75,  // 87: authorizer.v1.AuthorizerAdminService.UpdateClient:input_type -> authorizer.v1.UpdateClientRequest
+	77,  // 88: authorizer.v1.AuthorizerAdminService.DeleteClient:input_type -> authorizer.v1.DeleteClientRequest
+	79,  // 89: authorizer.v1.AuthorizerAdminService.RotateClientSecret:input_type -> authorizer.v1.RotateClientSecretRequest
+	80,  // 90: authorizer.v1.AuthorizerAdminService.GetClient:input_type -> authorizer.v1.GetClientRequest
+	82,  // 91: authorizer.v1.AuthorizerAdminService.Clients:input_type -> authorizer.v1.ClientsRequest
+	85,  // 92: authorizer.v1.AuthorizerAdminService.AddTrustedIssuer:input_type -> authorizer.v1.AddTrustedIssuerRequest
+	87,  // 93: authorizer.v1.AuthorizerAdminService.UpdateTrustedIssuer:input_type -> authorizer.v1.UpdateTrustedIssuerRequest
+	89,  // 94: authorizer.v1.AuthorizerAdminService.DeleteTrustedIssuer:input_type -> authorizer.v1.DeleteTrustedIssuerRequest
+	91,  // 95: authorizer.v1.AuthorizerAdminService.GetTrustedIssuer:input_type -> authorizer.v1.GetTrustedIssuerRequest
+	93,  // 96: authorizer.v1.AuthorizerAdminService.TrustedIssuers:input_type -> authorizer.v1.TrustedIssuersRequest
+	98,  // 97: authorizer.v1.AuthorizerAdminService.CreateSamlServiceProvider:input_type -> authorizer.v1.CreateSamlServiceProviderRequest
+	100, // 98: authorizer.v1.AuthorizerAdminService.UpdateSamlServiceProvider:input_type -> authorizer.v1.UpdateSamlServiceProviderRequest
+	102, // 99: authorizer.v1.AuthorizerAdminService.DeleteSamlServiceProvider:input_type -> authorizer.v1.DeleteSamlServiceProviderRequest
+	104, // 100: authorizer.v1.AuthorizerAdminService.GetSamlServiceProvider:input_type -> authorizer.v1.GetSamlServiceProviderRequest
+	106, // 101: authorizer.v1.AuthorizerAdminService.ListSamlServiceProviders:input_type -> authorizer.v1.ListSamlServiceProvidersRequest
+	108, // 102: authorizer.v1.AuthorizerAdminService.RotateSamlIdpCert:input_type -> authorizer.v1.RotateSamlIdpCertRequest
+	110, // 103: authorizer.v1.AuthorizerAdminService.RetireSamlIdpKey:input_type -> authorizer.v1.RetireSamlIdpKeyRequest
+	112, // 104: authorizer.v1.AuthorizerAdminService.ListSamlIdpKeys:input_type -> authorizer.v1.ListSamlIdpKeysRequest
+	114, // 105: authorizer.v1.AuthorizerAdminService.ImportSamlSpMetadata:input_type -> authorizer.v1.ImportSamlSpMetadataRequest
+	1,   // 106: authorizer.v1.AuthorizerAdminService.AdminLogin:output_type -> authorizer.v1.AdminLoginResponse
+	3,   // 107: authorizer.v1.AuthorizerAdminService.AdminLogout:output_type -> authorizer.v1.AdminLogoutResponse
+	5,   // 108: authorizer.v1.AuthorizerAdminService.AdminSession:output_type -> authorizer.v1.AdminSessionResponse
+	7,   // 109: authorizer.v1.AuthorizerAdminService.AdminMeta:output_type -> authorizer.v1.AdminMetaResponse
+	10,  // 110: authorizer.v1.AuthorizerAdminService.Users:output_type -> authorizer.v1.UsersResponse
+	12,  // 111: authorizer.v1.AuthorizerAdminService.User:output_type -> authorizer.v1.UserResponse
+	14,  // 112: authorizer.v1.AuthorizerAdminService.UpdateUser:output_type -> authorizer.v1.UpdateUserResponse
+	16,  // 113: authorizer.v1.AuthorizerAdminService.DeleteUser:output_type -> authorizer.v1.DeleteUserResponse
+	18,  // 114: authorizer.v1.AuthorizerAdminService.VerificationRequests:output_type -> authorizer.v1.VerificationRequestsResponse
+	21,  // 115: authorizer.v1.AuthorizerAdminService.RevokeAccess:output_type -> authorizer.v1.RevokeAccessResponse
+	23,  // 116: authorizer.v1.AuthorizerAdminService.EnableAccess:output_type -> authorizer.v1.EnableAccessResponse
+	25,  // 117: authorizer.v1.AuthorizerAdminService.InviteMembers:output_type -> authorizer.v1.InviteMembersResponse
+	29,  // 118: authorizer.v1.AuthorizerAdminService.AddWebhook:output_type -> authorizer.v1.AddWebhookResponse
+	31,  // 119: authorizer.v1.AuthorizerAdminService.UpdateWebhook:output_type -> authorizer.v1.UpdateWebhookResponse
+	33,  // 120: authorizer.v1.AuthorizerAdminService.DeleteWebhook:output_type -> authorizer.v1.DeleteWebhookResponse
+	35,  // 121: authorizer.v1.AuthorizerAdminService.GetWebhook:output_type -> authorizer.v1.GetWebhookResponse
+	37,  // 122: authorizer.v1.AuthorizerAdminService.Webhooks:output_type -> authorizer.v1.WebhooksResponse
+	39,  // 123: authorizer.v1.AuthorizerAdminService.WebhookLogs:output_type -> authorizer.v1.WebhookLogsResponse
+	41,  // 124: authorizer.v1.AuthorizerAdminService.TestEndpoint:output_type -> authorizer.v1.TestEndpointResponse
+	44,  // 125: authorizer.v1.AuthorizerAdminService.AddEmailTemplate:output_type -> authorizer.v1.AddEmailTemplateResponse
+	46,  // 126: authorizer.v1.AuthorizerAdminService.UpdateEmailTemplate:output_type -> authorizer.v1.UpdateEmailTemplateResponse
+	48,  // 127: authorizer.v1.AuthorizerAdminService.DeleteEmailTemplate:output_type -> authorizer.v1.DeleteEmailTemplateResponse
+	50,  // 128: authorizer.v1.AuthorizerAdminService.EmailTemplates:output_type -> authorizer.v1.EmailTemplatesResponse
+	53,  // 129: authorizer.v1.AuthorizerAdminService.AuditLogs:output_type -> authorizer.v1.AuditLogsResponse
+	57,  // 130: authorizer.v1.AuthorizerAdminService.FgaGetModel:output_type -> authorizer.v1.FgaGetModelResponse
+	59,  // 131: authorizer.v1.AuthorizerAdminService.FgaWriteModel:output_type -> authorizer.v1.FgaWriteModelResponse
+	61,  // 132: authorizer.v1.AuthorizerAdminService.FgaWriteTuples:output_type -> authorizer.v1.FgaWriteTuplesResponse
+	63,  // 133: authorizer.v1.AuthorizerAdminService.FgaDeleteTuples:output_type -> authorizer.v1.FgaDeleteTuplesResponse
+	65,  // 134: authorizer.v1.AuthorizerAdminService.FgaReadTuples:output_type -> authorizer.v1.FgaReadTuplesResponse
+	67,  // 135: authorizer.v1.AuthorizerAdminService.FgaListUsers:output_type -> authorizer.v1.FgaListUsersResponse
+	69,  // 136: authorizer.v1.AuthorizerAdminService.FgaExpand:output_type -> authorizer.v1.FgaExpandResponse
+	71,  // 137: authorizer.v1.AuthorizerAdminService.FgaReset:output_type -> authorizer.v1.FgaResetResponse
+	74,  // 138: authorizer.v1.AuthorizerAdminService.CreateClient:output_type -> authorizer.v1.CreateClientResponse
+	76,  // 139: authorizer.v1.AuthorizerAdminService.UpdateClient:output_type -> authorizer.v1.UpdateClientResponse
+	78,  // 140: authorizer.v1.AuthorizerAdminService.DeleteClient:output_type -> authorizer.v1.DeleteClientResponse
+	74,  // 141: authorizer.v1.AuthorizerAdminService.RotateClientSecret:output_type -> authorizer.v1.CreateClientResponse
+	81,  // 142: authorizer.v1.AuthorizerAdminService.GetClient:output_type -> authorizer.v1.GetClientResponse
+	83,  // 143: authorizer.v1.AuthorizerAdminService.Clients:output_type -> authorizer.v1.ClientsResponse
+	86,  // 144: authorizer.v1.AuthorizerAdminService.AddTrustedIssuer:output_type -> authorizer.v1.AddTrustedIssuerResponse
+	88,  // 145: authorizer.v1.AuthorizerAdminService.UpdateTrustedIssuer:output_type -> authorizer.v1.UpdateTrustedIssuerResponse
+	90,  // 146: authorizer.v1.AuthorizerAdminService.DeleteTrustedIssuer:output_type -> authorizer.v1.DeleteTrustedIssuerResponse
+	92,  // 147: authorizer.v1.AuthorizerAdminService.GetTrustedIssuer:output_type -> authorizer.v1.GetTrustedIssuerResponse
+	94,  // 148: authorizer.v1.AuthorizerAdminService.TrustedIssuers:output_type -> authorizer.v1.TrustedIssuersResponse
+	99,  // 149: authorizer.v1.AuthorizerAdminService.CreateSamlServiceProvider:output_type -> authorizer.v1.CreateSamlServiceProviderResponse
+	101, // 150: authorizer.v1.AuthorizerAdminService.UpdateSamlServiceProvider:output_type -> authorizer.v1.UpdateSamlServiceProviderResponse
+	103, // 151: authorizer.v1.AuthorizerAdminService.DeleteSamlServiceProvider:output_type -> authorizer.v1.DeleteSamlServiceProviderResponse
+	105, // 152: authorizer.v1.AuthorizerAdminService.GetSamlServiceProvider:output_type -> authorizer.v1.GetSamlServiceProviderResponse
+	107, // 153: authorizer.v1.AuthorizerAdminService.ListSamlServiceProviders:output_type -> authorizer.v1.ListSamlServiceProvidersResponse
+	109, // 154: authorizer.v1.AuthorizerAdminService.RotateSamlIdpCert:output_type -> authorizer.v1.RotateSamlIdpCertResponse
+	111, // 155: authorizer.v1.AuthorizerAdminService.RetireSamlIdpKey:output_type -> authorizer.v1.RetireSamlIdpKeyResponse
+	113, // 156: authorizer.v1.AuthorizerAdminService.ListSamlIdpKeys:output_type -> authorizer.v1.ListSamlIdpKeysResponse
+	115, // 157: authorizer.v1.AuthorizerAdminService.ImportSamlSpMetadata:output_type -> authorizer.v1.ImportSamlSpMetadataResponse
+	106, // [106:158] is the sub-list for method output_type
+	54,  // [54:106] is the sub-list for method input_type
+	54,  // [54:54] is the sub-list for extension type_name
+	54,  // [54:54] is the sub-list for extension extendee
+	0,   // [0:54] is the sub-list for field type_name
 }
 
 func init() { file_authorizer_v1_admin_proto_init() }
@@ -7034,13 +8637,15 @@ func file_authorizer_v1_admin_proto_init() {
 	file_authorizer_v1_admin_proto_msgTypes[85].OneofWrappers = []any{}
 	file_authorizer_v1_admin_proto_msgTypes[87].OneofWrappers = []any{}
 	file_authorizer_v1_admin_proto_msgTypes[93].OneofWrappers = []any{}
+	file_authorizer_v1_admin_proto_msgTypes[98].OneofWrappers = []any{}
+	file_authorizer_v1_admin_proto_msgTypes[100].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authorizer_v1_admin_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   95,
+			NumMessages:   116,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

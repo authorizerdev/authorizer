@@ -6,9 +6,18 @@ import { BookOpen, ExternalLink } from 'lucide-react';
 const LINKS = [
 	{ label: 'What is FGA / ReBAC', href: 'https://openfga.dev/docs/fga' },
 	{ label: 'Concepts', href: 'https://openfga.dev/docs/concepts' },
-	{ label: 'Modeling guide', href: 'https://openfga.dev/docs/modeling/getting-started' },
-	{ label: 'Model DSL', href: 'https://openfga.dev/docs/configuration-language' },
-	{ label: 'Relationship tuples', href: 'https://openfga.dev/docs/concepts#what-is-a-relationship-tuple' },
+	{
+		label: 'Modeling guide',
+		href: 'https://openfga.dev/docs/modeling/getting-started',
+	},
+	{
+		label: 'Model DSL',
+		href: 'https://openfga.dev/docs/configuration-language',
+	},
+	{
+		label: 'Relationship tuples',
+		href: 'https://openfga.dev/docs/concepts#what-is-a-relationship-tuple',
+	},
 ];
 
 const DocsLinks = () => (

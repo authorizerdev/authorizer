@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import { toast } from 'sonner';
 import UpdateOrgOIDCConnectionModal from '../components/UpdateOrgOIDCConnectionModal';
 import UpdateOrgSAMLConnectionModal from '../components/UpdateOrgSAMLConnectionModal';
+import SAMLServiceProviders from '../components/SAMLServiceProviders';
 import ClientSecretDialog from '../components/ClientSecretDialog';
 import { UpdateModalViews } from '../constants';
 import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
@@ -735,6 +736,9 @@ const OrganizationDetail = () => {
 					)}
 				</CardContent>
 			</Card>
+
+			{/* SAML IdP: downstream service providers + signing keys */}
+			<SAMLServiceProviders orgId={orgId} orgSlug={org?.name || ''} />
 
 			{/* SCIM */}
 			<Card>

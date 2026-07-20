@@ -366,3 +366,41 @@ export const ScimEndpointQuery = `
     }
   }
 `;
+
+export const ListSAMLServiceProvidersQuery = `
+  query listSAMLServiceProviders($params: ListSAMLServiceProvidersRequest!) {
+    _list_saml_service_providers(params: $params) {
+      pagination {
+        total
+      }
+      saml_service_providers {
+        id
+        org_id
+        name
+        entity_id
+        acs_url
+        sp_cert_pem
+        name_id_format
+        mapped_attributes
+        allow_idp_initiated
+        is_active
+        created_at
+        updated_at
+      }
+    }
+  }
+`;
+
+export const ListSAMLIDPKeysQuery = `
+  query listSAMLIDPKeys($params: ListSAMLIDPKeysRequest!) {
+    _list_saml_idp_keys(params: $params) {
+      id
+      org_id
+      cert_pem
+      algorithm
+      status
+      created_at
+      updated_at
+    }
+  }
+`;

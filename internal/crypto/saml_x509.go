@@ -37,10 +37,10 @@ func NewSAMLSigningKeypair(commonName string) (privateKeyPEM string, certPEM str
 
 	now := time.Now()
 	template := x509.Certificate{
-		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: commonName},
-		NotBefore:             now.Add(-1 * time.Minute),
-		NotAfter:              now.Add(samlIDPCertValidity),
+		SerialNumber: serial,
+		Subject:      pkix.Name{CommonName: commonName},
+		NotBefore:    now.Add(-1 * time.Minute),
+		NotAfter:     now.Add(samlIDPCertValidity),
 		// Least privilege: a leaf assertion-signing cert, not a CA. Some strict SP
 		// validators reject a signing cert whose KeyUsage isn't digitalSignature.
 		KeyUsage:              x509.KeyUsageDigitalSignature,

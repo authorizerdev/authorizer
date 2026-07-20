@@ -28,49 +28,58 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizerAdminService_AdminLogin_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
-	AuthorizerAdminService_AdminLogout_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
-	AuthorizerAdminService_AdminSession_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/AdminSession"
-	AuthorizerAdminService_AdminMeta_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
-	AuthorizerAdminService_Users_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/Users"
-	AuthorizerAdminService_User_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/User"
-	AuthorizerAdminService_UpdateUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
-	AuthorizerAdminService_DeleteUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
-	AuthorizerAdminService_VerificationRequests_FullMethodName = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
-	AuthorizerAdminService_RevokeAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
-	AuthorizerAdminService_EnableAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
-	AuthorizerAdminService_InviteMembers_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
-	AuthorizerAdminService_AddWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AddWebhook"
-	AuthorizerAdminService_UpdateWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateWebhook"
-	AuthorizerAdminService_DeleteWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteWebhook"
-	AuthorizerAdminService_GetWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetWebhook"
-	AuthorizerAdminService_Webhooks_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/Webhooks"
-	AuthorizerAdminService_WebhookLogs_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
-	AuthorizerAdminService_TestEndpoint_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
-	AuthorizerAdminService_AddEmailTemplate_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/AddEmailTemplate"
-	AuthorizerAdminService_UpdateEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/UpdateEmailTemplate"
-	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
-	AuthorizerAdminService_EmailTemplates_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
-	AuthorizerAdminService_AuditLogs_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
-	AuthorizerAdminService_FgaGetModel_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/FgaGetModel"
-	AuthorizerAdminService_FgaWriteModel_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaWriteModel"
-	AuthorizerAdminService_FgaWriteTuples_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/FgaWriteTuples"
-	AuthorizerAdminService_FgaDeleteTuples_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/FgaDeleteTuples"
-	AuthorizerAdminService_FgaReadTuples_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/FgaReadTuples"
-	AuthorizerAdminService_FgaListUsers_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/FgaListUsers"
-	AuthorizerAdminService_FgaExpand_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/FgaExpand"
-	AuthorizerAdminService_FgaReset_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaReset"
-	AuthorizerAdminService_CreateClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/CreateClient"
-	AuthorizerAdminService_UpdateClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/UpdateClient"
-	AuthorizerAdminService_DeleteClient_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/DeleteClient"
-	AuthorizerAdminService_RotateClientSecret_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/RotateClientSecret"
-	AuthorizerAdminService_GetClient_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/GetClient"
-	AuthorizerAdminService_Clients_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/Clients"
-	AuthorizerAdminService_AddTrustedIssuer_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer"
-	AuthorizerAdminService_UpdateTrustedIssuer_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer"
-	AuthorizerAdminService_DeleteTrustedIssuer_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer"
-	AuthorizerAdminService_GetTrustedIssuer_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer"
-	AuthorizerAdminService_TrustedIssuers_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/TrustedIssuers"
+	AuthorizerAdminService_AdminLogin_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
+	AuthorizerAdminService_AdminLogout_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
+	AuthorizerAdminService_AdminSession_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/AdminSession"
+	AuthorizerAdminService_AdminMeta_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
+	AuthorizerAdminService_Users_FullMethodName                     = "/authorizer.v1.AuthorizerAdminService/Users"
+	AuthorizerAdminService_User_FullMethodName                      = "/authorizer.v1.AuthorizerAdminService/User"
+	AuthorizerAdminService_UpdateUser_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
+	AuthorizerAdminService_DeleteUser_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
+	AuthorizerAdminService_VerificationRequests_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
+	AuthorizerAdminService_RevokeAccess_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
+	AuthorizerAdminService_EnableAccess_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
+	AuthorizerAdminService_InviteMembers_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
+	AuthorizerAdminService_AddWebhook_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/AddWebhook"
+	AuthorizerAdminService_UpdateWebhook_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/UpdateWebhook"
+	AuthorizerAdminService_DeleteWebhook_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/DeleteWebhook"
+	AuthorizerAdminService_GetWebhook_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/GetWebhook"
+	AuthorizerAdminService_Webhooks_FullMethodName                  = "/authorizer.v1.AuthorizerAdminService/Webhooks"
+	AuthorizerAdminService_WebhookLogs_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
+	AuthorizerAdminService_TestEndpoint_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
+	AuthorizerAdminService_AddEmailTemplate_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/AddEmailTemplate"
+	AuthorizerAdminService_UpdateEmailTemplate_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/UpdateEmailTemplate"
+	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
+	AuthorizerAdminService_EmailTemplates_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
+	AuthorizerAdminService_AuditLogs_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
+	AuthorizerAdminService_FgaGetModel_FullMethodName               = "/authorizer.v1.AuthorizerAdminService/FgaGetModel"
+	AuthorizerAdminService_FgaWriteModel_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaWriteModel"
+	AuthorizerAdminService_FgaWriteTuples_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/FgaWriteTuples"
+	AuthorizerAdminService_FgaDeleteTuples_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/FgaDeleteTuples"
+	AuthorizerAdminService_FgaReadTuples_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/FgaReadTuples"
+	AuthorizerAdminService_FgaListUsers_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/FgaListUsers"
+	AuthorizerAdminService_FgaExpand_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/FgaExpand"
+	AuthorizerAdminService_FgaReset_FullMethodName                  = "/authorizer.v1.AuthorizerAdminService/FgaReset"
+	AuthorizerAdminService_CreateClient_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/CreateClient"
+	AuthorizerAdminService_UpdateClient_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/UpdateClient"
+	AuthorizerAdminService_DeleteClient_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/DeleteClient"
+	AuthorizerAdminService_RotateClientSecret_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/RotateClientSecret"
+	AuthorizerAdminService_GetClient_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/GetClient"
+	AuthorizerAdminService_Clients_FullMethodName                   = "/authorizer.v1.AuthorizerAdminService/Clients"
+	AuthorizerAdminService_AddTrustedIssuer_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer"
+	AuthorizerAdminService_UpdateTrustedIssuer_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer"
+	AuthorizerAdminService_DeleteTrustedIssuer_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer"
+	AuthorizerAdminService_GetTrustedIssuer_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer"
+	AuthorizerAdminService_TrustedIssuers_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/TrustedIssuers"
+	AuthorizerAdminService_CreateSamlServiceProvider_FullMethodName = "/authorizer.v1.AuthorizerAdminService/CreateSamlServiceProvider"
+	AuthorizerAdminService_UpdateSamlServiceProvider_FullMethodName = "/authorizer.v1.AuthorizerAdminService/UpdateSamlServiceProvider"
+	AuthorizerAdminService_DeleteSamlServiceProvider_FullMethodName = "/authorizer.v1.AuthorizerAdminService/DeleteSamlServiceProvider"
+	AuthorizerAdminService_GetSamlServiceProvider_FullMethodName    = "/authorizer.v1.AuthorizerAdminService/GetSamlServiceProvider"
+	AuthorizerAdminService_ListSamlServiceProviders_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/ListSamlServiceProviders"
+	AuthorizerAdminService_RotateSamlIdpCert_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/RotateSamlIdpCert"
+	AuthorizerAdminService_RetireSamlIdpKey_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/RetireSamlIdpKey"
+	AuthorizerAdminService_ListSamlIdpKeys_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/ListSamlIdpKeys"
+	AuthorizerAdminService_ImportSamlSpMetadata_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/ImportSamlSpMetadata"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -213,6 +222,34 @@ type AuthorizerAdminServiceClient interface {
 	// TrustedIssuers returns a paginated list of trusted issuers, optionally
 	// filtered by service_account_id. Requires super-admin auth.
 	TrustedIssuers(ctx context.Context, in *TrustedIssuersRequest, opts ...grpc.CallOption) (*TrustedIssuersResponse, error)
+	// CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer
+	// (acting as the IdP) issues signed assertions to. Requires super-admin auth.
+	CreateSamlServiceProvider(ctx context.Context, in *CreateSamlServiceProviderRequest, opts ...grpc.CallOption) (*CreateSamlServiceProviderResponse, error)
+	// UpdateSamlServiceProvider updates a downstream SP's name, endpoints,
+	// certificate, attribute mapping, or active state. Requires super-admin auth.
+	UpdateSamlServiceProvider(ctx context.Context, in *UpdateSamlServiceProviderRequest, opts ...grpc.CallOption) (*UpdateSamlServiceProviderResponse, error)
+	// DeleteSamlServiceProvider deletes a downstream SP by id. Requires
+	// super-admin auth.
+	DeleteSamlServiceProvider(ctx context.Context, in *DeleteSamlServiceProviderRequest, opts ...grpc.CallOption) (*DeleteSamlServiceProviderResponse, error)
+	// GetSamlServiceProvider returns a single downstream SP by id. Requires
+	// super-admin auth.
+	GetSamlServiceProvider(ctx context.Context, in *GetSamlServiceProviderRequest, opts ...grpc.CallOption) (*GetSamlServiceProviderResponse, error)
+	// ListSamlServiceProviders returns a paginated list of downstream SPs for an
+	// org. Requires super-admin auth.
+	ListSamlServiceProviders(ctx context.Context, in *ListSamlServiceProvidersRequest, opts ...grpc.CallOption) (*ListSamlServiceProvidersResponse, error)
+	// RotateSamlIdpCert generates a new current signing keypair for an org's SAML
+	// IdP, demoting the previous current key. Requires super-admin auth.
+	RotateSamlIdpCert(ctx context.Context, in *RotateSamlIdpCertRequest, opts ...grpc.CallOption) (*RotateSamlIdpCertResponse, error)
+	// RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.
+	// Requires super-admin auth.
+	RetireSamlIdpKey(ctx context.Context, in *RetireSamlIdpKeyRequest, opts ...grpc.CallOption) (*RetireSamlIdpKeyResponse, error)
+	// ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires
+	// super-admin auth.
+	ListSamlIdpKeys(ctx context.Context, in *ListSamlIdpKeysRequest, opts ...grpc.CallOption) (*ListSamlIdpKeysResponse, error)
+	// ImportSamlSpMetadata parses pasted SP metadata XML and returns the fields to
+	// prefill a create call. It does NOT create a record and performs no remote
+	// fetch. Requires super-admin auth.
+	ImportSamlSpMetadata(ctx context.Context, in *ImportSamlSpMetadataRequest, opts ...grpc.CallOption) (*ImportSamlSpMetadataResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -653,6 +690,96 @@ func (c *authorizerAdminServiceClient) TrustedIssuers(ctx context.Context, in *T
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) CreateSamlServiceProvider(ctx context.Context, in *CreateSamlServiceProviderRequest, opts ...grpc.CallOption) (*CreateSamlServiceProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateSamlServiceProviderResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateSamlServiceProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateSamlServiceProvider(ctx context.Context, in *UpdateSamlServiceProviderRequest, opts ...grpc.CallOption) (*UpdateSamlServiceProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateSamlServiceProviderResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateSamlServiceProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteSamlServiceProvider(ctx context.Context, in *DeleteSamlServiceProviderRequest, opts ...grpc.CallOption) (*DeleteSamlServiceProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSamlServiceProviderResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteSamlServiceProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetSamlServiceProvider(ctx context.Context, in *GetSamlServiceProviderRequest, opts ...grpc.CallOption) (*GetSamlServiceProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSamlServiceProviderResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetSamlServiceProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) ListSamlServiceProviders(ctx context.Context, in *ListSamlServiceProvidersRequest, opts ...grpc.CallOption) (*ListSamlServiceProvidersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSamlServiceProvidersResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_ListSamlServiceProviders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) RotateSamlIdpCert(ctx context.Context, in *RotateSamlIdpCertRequest, opts ...grpc.CallOption) (*RotateSamlIdpCertResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RotateSamlIdpCertResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RotateSamlIdpCert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) RetireSamlIdpKey(ctx context.Context, in *RetireSamlIdpKeyRequest, opts ...grpc.CallOption) (*RetireSamlIdpKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetireSamlIdpKeyResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RetireSamlIdpKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) ListSamlIdpKeys(ctx context.Context, in *ListSamlIdpKeysRequest, opts ...grpc.CallOption) (*ListSamlIdpKeysResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSamlIdpKeysResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_ListSamlIdpKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) ImportSamlSpMetadata(ctx context.Context, in *ImportSamlSpMetadataRequest, opts ...grpc.CallOption) (*ImportSamlSpMetadataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportSamlSpMetadataResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_ImportSamlSpMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -793,6 +920,34 @@ type AuthorizerAdminServiceServer interface {
 	// TrustedIssuers returns a paginated list of trusted issuers, optionally
 	// filtered by service_account_id. Requires super-admin auth.
 	TrustedIssuers(context.Context, *TrustedIssuersRequest) (*TrustedIssuersResponse, error)
+	// CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer
+	// (acting as the IdP) issues signed assertions to. Requires super-admin auth.
+	CreateSamlServiceProvider(context.Context, *CreateSamlServiceProviderRequest) (*CreateSamlServiceProviderResponse, error)
+	// UpdateSamlServiceProvider updates a downstream SP's name, endpoints,
+	// certificate, attribute mapping, or active state. Requires super-admin auth.
+	UpdateSamlServiceProvider(context.Context, *UpdateSamlServiceProviderRequest) (*UpdateSamlServiceProviderResponse, error)
+	// DeleteSamlServiceProvider deletes a downstream SP by id. Requires
+	// super-admin auth.
+	DeleteSamlServiceProvider(context.Context, *DeleteSamlServiceProviderRequest) (*DeleteSamlServiceProviderResponse, error)
+	// GetSamlServiceProvider returns a single downstream SP by id. Requires
+	// super-admin auth.
+	GetSamlServiceProvider(context.Context, *GetSamlServiceProviderRequest) (*GetSamlServiceProviderResponse, error)
+	// ListSamlServiceProviders returns a paginated list of downstream SPs for an
+	// org. Requires super-admin auth.
+	ListSamlServiceProviders(context.Context, *ListSamlServiceProvidersRequest) (*ListSamlServiceProvidersResponse, error)
+	// RotateSamlIdpCert generates a new current signing keypair for an org's SAML
+	// IdP, demoting the previous current key. Requires super-admin auth.
+	RotateSamlIdpCert(context.Context, *RotateSamlIdpCertRequest) (*RotateSamlIdpCertResponse, error)
+	// RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.
+	// Requires super-admin auth.
+	RetireSamlIdpKey(context.Context, *RetireSamlIdpKeyRequest) (*RetireSamlIdpKeyResponse, error)
+	// ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires
+	// super-admin auth.
+	ListSamlIdpKeys(context.Context, *ListSamlIdpKeysRequest) (*ListSamlIdpKeysResponse, error)
+	// ImportSamlSpMetadata parses pasted SP metadata XML and returns the fields to
+	// prefill a create call. It does NOT create a record and performs no remote
+	// fetch. Requires super-admin auth.
+	ImportSamlSpMetadata(context.Context, *ImportSamlSpMetadataRequest) (*ImportSamlSpMetadataResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -930,6 +1085,33 @@ func (UnimplementedAuthorizerAdminServiceServer) GetTrustedIssuer(context.Contex
 }
 func (UnimplementedAuthorizerAdminServiceServer) TrustedIssuers(context.Context, *TrustedIssuersRequest) (*TrustedIssuersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TrustedIssuers not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) CreateSamlServiceProvider(context.Context, *CreateSamlServiceProviderRequest) (*CreateSamlServiceProviderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateSamlServiceProvider not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateSamlServiceProvider(context.Context, *UpdateSamlServiceProviderRequest) (*UpdateSamlServiceProviderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSamlServiceProvider not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteSamlServiceProvider(context.Context, *DeleteSamlServiceProviderRequest) (*DeleteSamlServiceProviderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteSamlServiceProvider not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetSamlServiceProvider(context.Context, *GetSamlServiceProviderRequest) (*GetSamlServiceProviderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSamlServiceProvider not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) ListSamlServiceProviders(context.Context, *ListSamlServiceProvidersRequest) (*ListSamlServiceProvidersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSamlServiceProviders not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RotateSamlIdpCert(context.Context, *RotateSamlIdpCertRequest) (*RotateSamlIdpCertResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateSamlIdpCert not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RetireSamlIdpKey(context.Context, *RetireSamlIdpKeyRequest) (*RetireSamlIdpKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RetireSamlIdpKey not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) ListSamlIdpKeys(context.Context, *ListSamlIdpKeysRequest) (*ListSamlIdpKeysResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSamlIdpKeys not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) ImportSamlSpMetadata(context.Context, *ImportSamlSpMetadataRequest) (*ImportSamlSpMetadataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportSamlSpMetadata not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -1725,6 +1907,168 @@ func _AuthorizerAdminService_TrustedIssuers_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_CreateSamlServiceProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSamlServiceProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).CreateSamlServiceProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_CreateSamlServiceProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).CreateSamlServiceProvider(ctx, req.(*CreateSamlServiceProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateSamlServiceProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSamlServiceProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateSamlServiceProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateSamlServiceProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateSamlServiceProvider(ctx, req.(*UpdateSamlServiceProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteSamlServiceProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSamlServiceProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteSamlServiceProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteSamlServiceProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteSamlServiceProvider(ctx, req.(*DeleteSamlServiceProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetSamlServiceProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSamlServiceProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetSamlServiceProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetSamlServiceProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetSamlServiceProvider(ctx, req.(*GetSamlServiceProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_ListSamlServiceProviders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSamlServiceProvidersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).ListSamlServiceProviders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_ListSamlServiceProviders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).ListSamlServiceProviders(ctx, req.(*ListSamlServiceProvidersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_RotateSamlIdpCert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateSamlIdpCertRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RotateSamlIdpCert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RotateSamlIdpCert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RotateSamlIdpCert(ctx, req.(*RotateSamlIdpCertRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_RetireSamlIdpKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetireSamlIdpKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RetireSamlIdpKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RetireSamlIdpKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RetireSamlIdpKey(ctx, req.(*RetireSamlIdpKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_ListSamlIdpKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSamlIdpKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).ListSamlIdpKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_ListSamlIdpKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).ListSamlIdpKeys(ctx, req.(*ListSamlIdpKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_ImportSamlSpMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportSamlSpMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).ImportSamlSpMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_ImportSamlSpMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).ImportSamlSpMetadata(ctx, req.(*ImportSamlSpMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1903,6 +2247,42 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TrustedIssuers",
 			Handler:    _AuthorizerAdminService_TrustedIssuers_Handler,
+		},
+		{
+			MethodName: "CreateSamlServiceProvider",
+			Handler:    _AuthorizerAdminService_CreateSamlServiceProvider_Handler,
+		},
+		{
+			MethodName: "UpdateSamlServiceProvider",
+			Handler:    _AuthorizerAdminService_UpdateSamlServiceProvider_Handler,
+		},
+		{
+			MethodName: "DeleteSamlServiceProvider",
+			Handler:    _AuthorizerAdminService_DeleteSamlServiceProvider_Handler,
+		},
+		{
+			MethodName: "GetSamlServiceProvider",
+			Handler:    _AuthorizerAdminService_GetSamlServiceProvider_Handler,
+		},
+		{
+			MethodName: "ListSamlServiceProviders",
+			Handler:    _AuthorizerAdminService_ListSamlServiceProviders_Handler,
+		},
+		{
+			MethodName: "RotateSamlIdpCert",
+			Handler:    _AuthorizerAdminService_RotateSamlIdpCert_Handler,
+		},
+		{
+			MethodName: "RetireSamlIdpKey",
+			Handler:    _AuthorizerAdminService_RetireSamlIdpKey_Handler,
+		},
+		{
+			MethodName: "ListSamlIdpKeys",
+			Handler:    _AuthorizerAdminService_ListSamlIdpKeys_Handler,
+		},
+		{
+			MethodName: "ImportSamlSpMetadata",
+			Handler:    _AuthorizerAdminService_ImportSamlSpMetadata_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

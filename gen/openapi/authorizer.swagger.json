@@ -256,6 +256,40 @@
         ]
       }
     },
+    "/v1/admin/create_saml_service_provider": {
+      "post": {
+        "summary": "CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer\n(acting as the IdP) issues signed assertions to. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_CreateSamlServiceProvider",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateSamlServiceProviderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "CreateSamlServiceProviderRequest mirrors model.CreateSAMLServiceProviderRequest.\nsp_cert_pem, name_id_format, mapped_attributes, and allow_idp_initiated are\noptional.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateSamlServiceProviderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/delete_client": {
       "post": {
         "summary": "DeleteClient deletes a service account by id, cascading to its\ntrusted issuers. Requires super-admin auth.",
@@ -316,6 +350,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_saml_service_provider": {
+      "post": {
+        "summary": "DeleteSamlServiceProvider deletes a downstream SP by id. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteSamlServiceProvider",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteSamlServiceProviderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a\nsingle SP id). Kept distinct from GetSamlServiceProviderRequest per buf's\none-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteSamlServiceProviderRequest"
             }
           }
         ],
@@ -752,6 +820,40 @@
         ]
       }
     },
+    "/v1/admin/import_saml_sp_metadata": {
+      "post": {
+        "summary": "ImportSamlSpMetadata parses pasted SP metadata XML and returns the fields to\nprefill a create call. It does NOT create a record and performs no remote\nfetch. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_ImportSamlSpMetadata",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ImportSamlSpMetadataResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "ImportSamlSpMetadataRequest mirrors model.ImportSAMLSPMetadataRequest. The\nmetadata is pasted XML — NOT a URL; no remote fetch is performed.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ImportSamlSpMetadataRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/invite_members": {
       "post": {
         "summary": "InviteMembers creates accounts for new emails and sends invite emails.\nRequires super-admin auth and a configured email service.",
@@ -865,6 +967,40 @@
         ]
       }
     },
+    "/v1/admin/retire_saml_idp_key": {
+      "post": {
+        "summary": "RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_RetireSamlIdpKey",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RetireSamlIdpKeyResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RetireSamlIdpKeyRequest mirrors model.RetireSAMLIDPKeyRequest (a single key id).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RetireSamlIdpKeyRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/revoke_access": {
       "post": {
         "summary": "RevokeAccess revokes a user's access (sets the revoked timestamp), kills\ntheir sessions, and fires the access-revoked webhook. Requires super-admin\nauth.",
@@ -925,6 +1061,142 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1RotateClientSecretRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/rotate_saml_idp_cert": {
+      "post": {
+        "summary": "RotateSamlIdpCert generates a new current signing keypair for an org's SAML\nIdP, demoting the previous current key. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_RotateSamlIdpCert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RotateSamlIdpCertResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RotateSamlIdpCertRequest mirrors model.RotateSAMLIDPCertRequest.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RotateSamlIdpCertRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/saml_idp_keys": {
+      "post": {
+        "summary": "ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_ListSamlIdpKeys",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListSamlIdpKeysResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "ListSamlIdpKeysRequest mirrors model.ListSAMLIDPKeysRequest.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ListSamlIdpKeysRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/saml_service_provider": {
+      "post": {
+        "summary": "GetSamlServiceProvider returns a single downstream SP by id. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_GetSamlServiceProvider",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetSamlServiceProviderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "GetSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a\nsingle SP id). Kept distinct from DeleteSamlServiceProviderRequest per buf's\none-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetSamlServiceProviderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/saml_service_providers": {
+      "post": {
+        "summary": "ListSamlServiceProviders returns a paginated list of downstream SPs for an\norg. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_ListSamlServiceProviders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListSamlServiceProvidersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "ListSamlServiceProvidersRequest mirrors model.ListSAMLServiceProvidersRequest.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ListSamlServiceProvidersRequest"
             }
           }
         ],
@@ -1118,6 +1390,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1UpdateEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_saml_service_provider": {
+      "post": {
+        "summary": "UpdateSamlServiceProvider updates a downstream SP's name, endpoints,\ncertificate, attribute mapping, or active state. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateSamlServiceProvider",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSamlServiceProviderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateSamlServiceProviderRequest mirrors model.UpdateSAMLServiceProviderRequest.\nNullable GraphQL inputs use proto3 `optional` so an unset field is\ndistinguishable from an empty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSamlServiceProviderRequest"
             }
           }
         ],
@@ -2840,6 +3146,47 @@
       },
       "description": "CreateClientResponse carries the created service account plus the\nplaintext client_secret, returned exactly once. This is the ONLY admin\nmessage with a secret field; RotateClientSecret reuses it."
     },
+    "v1CreateSamlServiceProviderRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "sp_cert_pem": {
+          "type": "string"
+        },
+        "name_id_format": {
+          "type": "string",
+          "description": "name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress."
+        },
+        "mapped_attributes": {
+          "type": "string",
+          "description": "mapped_attributes: JSON, e.g. {\"email\":\"email\",\"given_name\":\"firstName\"}."
+        },
+        "allow_idp_initiated": {
+          "type": "boolean",
+          "description": "allow_idp_initiated: default false (SP-initiated only)."
+        }
+      },
+      "description": "CreateSamlServiceProviderRequest mirrors model.CreateSAMLServiceProviderRequest.\nsp_cert_pem, name_id_format, mapped_attributes, and allow_idp_initiated are\noptional."
+    },
+    "v1CreateSamlServiceProviderResponse": {
+      "type": "object",
+      "properties": {
+        "saml_service_provider": {
+          "$ref": "#/definitions/v1SamlServiceProvider"
+        }
+      }
+    },
     "v1DeactivateAccountRequest": {
       "type": "object"
     },
@@ -2878,6 +3225,23 @@
       "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id)."
     },
     "v1DeleteEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteSamlServiceProviderRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a\nsingle SP id). Kept distinct from GetSamlServiceProviderRequest per buf's\none-message-per-RPC rule."
+    },
+    "v1DeleteSamlServiceProviderResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -3287,6 +3651,23 @@
         }
       }
     },
+    "v1GetSamlServiceProviderRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "GetSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a\nsingle SP id). Kept distinct from DeleteSamlServiceProviderRequest per buf's\none-message-per-RPC rule."
+    },
+    "v1GetSamlServiceProviderResponse": {
+      "type": "object",
+      "properties": {
+        "saml_service_provider": {
+          "$ref": "#/definitions/v1SamlServiceProvider"
+        }
+      }
+    },
     "v1GetTrustedIssuerRequest": {
       "type": "object",
       "properties": {
@@ -3318,6 +3699,23 @@
       "properties": {
         "webhook": {
           "$ref": "#/definitions/v1Webhook"
+        }
+      }
+    },
+    "v1ImportSamlSpMetadataRequest": {
+      "type": "object",
+      "properties": {
+        "metadata_xml": {
+          "type": "string"
+        }
+      },
+      "description": "ImportSamlSpMetadataRequest mirrors model.ImportSAMLSPMetadataRequest. The\nmetadata is pasted XML — NOT a URL; no remote fetch is performed."
+    },
+    "v1ImportSamlSpMetadataResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/v1SamlSpMetadataParseResult"
         }
       }
     },
@@ -3390,6 +3788,54 @@
         "truncated": {
           "type": "boolean",
           "description": "True when the result was capped (1000 entries) and more permissions\nexist."
+        }
+      }
+    },
+    "v1ListSamlIdpKeysRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      },
+      "description": "ListSamlIdpKeysRequest mirrors model.ListSAMLIDPKeysRequest."
+    },
+    "v1ListSamlIdpKeysResponse": {
+      "type": "object",
+      "properties": {
+        "saml_idp_keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SamlIdpKey"
+          }
+        }
+      }
+    },
+    "v1ListSamlServiceProvidersRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      },
+      "description": "ListSamlServiceProvidersRequest mirrors model.ListSAMLServiceProvidersRequest."
+    },
+    "v1ListSamlServiceProvidersResponse": {
+      "type": "object",
+      "properties": {
+        "saml_service_providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SamlServiceProvider"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     },
@@ -3647,6 +4093,23 @@
         }
       }
     },
+    "v1RetireSamlIdpKeyRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "RetireSamlIdpKeyRequest mirrors model.RetireSAMLIDPKeyRequest (a single key id)."
+    },
+    "v1RetireSamlIdpKeyResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1RevokeAccessRequest": {
       "type": "object",
       "properties": {
@@ -3688,6 +4151,119 @@
         }
       },
       "description": "RotateClientSecretRequest mirrors model.ClientRequest (a\nsingle service account id). Kept distinct from DeleteClientRequest and\nGetClientRequest per buf's one-message-per-RPC rule."
+    },
+    "v1RotateSamlIdpCertRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      },
+      "description": "RotateSamlIdpCertRequest mirrors model.RotateSAMLIDPCertRequest."
+    },
+    "v1RotateSamlIdpCertResponse": {
+      "type": "object",
+      "properties": {
+        "saml_idp_key": {
+          "$ref": "#/definitions/v1SamlIdpKey"
+        }
+      }
+    },
+    "v1SamlIdpKey": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "cert_pem": {
+          "type": "string",
+          "description": "cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs."
+        },
+        "algorithm": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "description": "status: \"current\" (signs new assertions), \"active\" (published in metadata,\nnot signing), or \"retired\" (neither)."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "SamlIdpKey mirrors model.SAMLIDPKey. The private key is NEVER projected — only\nthe certificate and rotation status."
+    },
+    "v1SamlServiceProvider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string",
+          "description": "entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience)."
+        },
+        "acs_url": {
+          "type": "string",
+          "description": "acs_url: the SP Assertion Consumer Service URL — the only place assertions\nare POSTed."
+        },
+        "sp_cert_pem": {
+          "type": "string",
+          "description": "sp_cert_pem: the SP's optional X.509 signing certificate (PEM)."
+        },
+        "name_id_format": {
+          "type": "string",
+          "description": "name_id_format: SAML NameID format for the Subject (default emailAddress)."
+        },
+        "mapped_attributes": {
+          "type": "string",
+          "description": "mapped_attributes: JSON mapping profile fields to emitted SAML attribute names."
+        },
+        "allow_idp_initiated": {
+          "type": "boolean",
+          "description": "allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted."
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "SamlServiceProvider mirrors model.SAMLServiceProvider field-for-field. It is a\ndownstream SAML 2.0 SP that Authorizer (acting as the IdP) issues signed\nassertions to. Optional pointer fields collapse to zero values on the wire."
+    },
+    "v1SamlSpMetadataParseResult": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "certificate": {
+          "type": "string"
+        }
+      },
+      "description": "SamlSpMetadataParseResult mirrors model.SAMLSPMetadataParseResult. It does NOT\ncreate a record — it returns fields to prefill a create call."
     },
     "v1SessionRequest": {
       "type": "object",
@@ -4046,6 +4622,47 @@
       "properties": {
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "v1UpdateSamlServiceProviderRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "sp_cert_pem": {
+          "type": "string"
+        },
+        "name_id_format": {
+          "type": "string"
+        },
+        "mapped_attributes": {
+          "type": "string"
+        },
+        "allow_idp_initiated": {
+          "type": "boolean"
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      },
+      "description": "UpdateSamlServiceProviderRequest mirrors model.UpdateSAMLServiceProviderRequest.\nNullable GraphQL inputs use proto3 `optional` so an unset field is\ndistinguishable from an empty value."
+    },
+    "v1UpdateSamlServiceProviderResponse": {
+      "type": "object",
+      "properties": {
+        "saml_service_provider": {
+          "$ref": "#/definitions/v1SamlServiceProvider"
         }
       }
     },

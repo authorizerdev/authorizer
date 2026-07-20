@@ -27,8 +27,7 @@ export default function App() {
 		scope,
 	};
 
-	const redirectURL =
-		getParam('redirect_uri') || getParam('redirectURL');
+	const redirectURL = getParam('redirect_uri') || getParam('redirectURL');
 	if (redirectURL) {
 		urlProps.redirectURL = redirectURL;
 	} else {

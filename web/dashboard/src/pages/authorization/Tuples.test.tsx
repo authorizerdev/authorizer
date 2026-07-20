@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import {
+	render,
+	screen,
+	fireEvent,
+	waitFor,
+	cleanup,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Tuples from './Tuples';
 import { FgaGetModelQuery, FgaReadTuplesQuery } from '../../graphql/queries';
@@ -50,9 +56,12 @@ afterEach(cleanup);
 
 beforeEach(() => {
 	mockClient = {
-		query: vi.fn(() => ({ toPromise: () => Promise.resolve(emptyTuplesResponse) })),
+		query: vi.fn(() => ({
+			toPromise: () => Promise.resolve(emptyTuplesResponse),
+		})),
 		mutation: vi.fn(() => ({
-			toPromise: () => Promise.resolve({ data: { _fga_write_tuples: { message: 'ok' } } }),
+			toPromise: () =>
+				Promise.resolve({ data: { _fga_write_tuples: { message: 'ok' } } }),
 		})),
 	};
 });
@@ -63,7 +72,8 @@ beforeEach(() => {
 // the same render, so call count/order isn't deterministic across components.
 function mockQueries(tuplesResponse: unknown) {
 	mockClient.query.mockImplementation((doc: unknown) => {
-		const response = doc === FgaReadTuplesQuery ? tuplesResponse : modelExistsResponse;
+		const response =
+			doc === FgaReadTuplesQuery ? tuplesResponse : modelExistsResponse;
 		return { toPromise: () => Promise.resolve(response) };
 	});
 }

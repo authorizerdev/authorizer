@@ -6,7 +6,8 @@ import { ShieldCheck, Copy, Check, ExternalLink, Database } from 'lucide-react';
 // automatically when it is SQLite/Postgres/MySQL; this screen typically means
 // the main database is not OpenFGA-compatible (e.g. MongoDB, DynamoDB), so a
 // SQL store must be pointed to explicitly via --fga-store.
-const ENABLE_CMD = '--fga-store=postgres --fga-store-url=postgres://user:pass@host:5432/db';
+const ENABLE_CMD =
+	'--fga-store=postgres --fga-store-url=postgres://user:pass@host:5432/db';
 
 const StoreChip = ({ label }: { label: string }) => (
 	<code className="rounded bg-gray-200/70 px-1 py-0.5 text-[11px] font-medium text-gray-700">
@@ -39,7 +40,9 @@ const FgaNotEnabled = () => {
 				</h2>
 				<p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
 					FGA turns on automatically when Authorizer runs on{' '}
-					<span className="font-medium text-gray-700">SQLite, Postgres or MySQL</span>{' '}
+					<span className="font-medium text-gray-700">
+						SQLite, Postgres or MySQL
+					</span>{' '}
 					&mdash; it reuses your database. Your current database isn&rsquo;t
 					supported by OpenFGA, so point FGA at a SQL store to enable it.
 				</p>
@@ -61,7 +64,10 @@ const FgaNotEnabled = () => {
 						>
 							{copied ? (
 								<>
-									<Check className="h-3.5 w-3.5 text-green-400" aria-hidden="true" />
+									<Check
+										className="h-3.5 w-3.5 text-green-400"
+										aria-hidden="true"
+									/>
 									Copied
 								</>
 							) : (

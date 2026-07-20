@@ -322,6 +322,43 @@ export interface ScimEndpoint {
 	updated_at?: number | null;
 }
 
+// SAMLServiceProvider is a downstream SP that Authorizer (as IdP) issues
+// signed assertions to. Inverse of OrgSAMLConnection.
+export interface SAMLServiceProvider {
+	id: string;
+	org_id: string;
+	name: string;
+	entity_id: string;
+	acs_url: string;
+	sp_cert_pem?: string | null;
+	name_id_format?: string | null;
+	mapped_attributes?: string | null;
+	allow_idp_initiated: boolean;
+	is_active: boolean;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+// SAMLIDPKey is a per-org SAML IdP signing keypair. The private key is never
+// projected — only the certificate and rotation status.
+export interface SAMLIDPKey {
+	id: string;
+	org_id: string;
+	cert_pem: string;
+	algorithm: string;
+	// "current" (signs new assertions), "active" (published, not signing) or
+	// "retired" (neither).
+	status: string;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+export interface SAMLSPMetadataParseResult {
+	entity_id: string;
+	acs_url: string;
+	certificate?: string | null;
+}
+
 export interface CreateScimEndpointResponse {
 	scim_endpoint: ScimEndpoint;
 	// Returned exactly once at creation/rotation; never retrievable again.

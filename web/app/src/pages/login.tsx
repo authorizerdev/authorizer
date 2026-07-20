@@ -244,7 +244,11 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 				!config.is_magic_link_login_enabled &&
 				config.is_sign_up_enabled && (
 					<FooterContent>
-						Don't have an account? &nbsp; <Link to={{ pathname: '/app/signup', search: location.search }}> Sign Up</Link>
+						Don't have an account? &nbsp;{' '}
+						<Link to={{ pathname: '/app/signup', search: location.search }}>
+							{' '}
+							Sign Up
+						</Link>
 					</FooterContent>
 				)}
 		</Fragment>
