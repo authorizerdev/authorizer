@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -32,8 +33,11 @@ func testSAMLIDPStorageOperations(t *testing.T, ctx context.Context, p Provider)
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, sp.ID)
+	// The public/API id (arangodb's Add returns the "collection/key" handle;
+	// the service layer always looks records up by the stripped API id).
+	spAPIID := sp.AsAPISAMLServiceProvider().ID
 
-	byID, err := p.GetSAMLServiceProviderByID(ctx, sp.ID)
+	byID, err := p.GetSAMLServiceProviderByID(ctx, spAPIID)
 	require.NoError(t, err)
 	assert.Equal(t, "Zendesk", byID.Name)
 	assert.Equal(t, entityID, byID.EntityID)
@@ -60,7 +64,7 @@ func testSAMLIDPStorageOperations(t *testing.T, ctx context.Context, p Provider)
 	assert.GreaterOrEqual(t, page.Total, int64(1))
 
 	require.NoError(t, p.DeleteSAMLServiceProvider(ctx, updated))
-	_, err = p.GetSAMLServiceProviderByID(ctx, sp.ID)
+	_, err = p.GetSAMLServiceProviderByID(ctx, spAPIID)
 	assert.Error(t, err, "deleted SP must not be retrievable")
 
 	// --- SAMLIDPKey ---
@@ -74,8 +78,9 @@ func testSAMLIDPStorageOperations(t *testing.T, ctx context.Context, p Provider)
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, key.ID)
+	keyAPIID := strings.TrimPrefix(key.ID, schemas.Collections.SAMLIDPKey+"/")
 
-	gotKey, err := p.GetSAMLIDPKeyByID(ctx, key.ID)
+	gotKey, err := p.GetSAMLIDPKeyByID(ctx, keyAPIID)
 	require.NoError(t, err)
 	assert.Equal(t, schemas.SAMLIDPKeyStatusCurrent, gotKey.Status)
 	assert.Equal(t, "encrypted-blob", gotKey.PrivateKeyEnc, "encrypted private key must round-trip")
