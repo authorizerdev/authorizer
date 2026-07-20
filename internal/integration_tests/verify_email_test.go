@@ -223,7 +223,7 @@ func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback")
 		resp, err := httpClient.Get(reqURL)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 		assert.Contains(t, resp.Header.Get("Location"), "access_token=")
