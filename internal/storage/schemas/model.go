@@ -24,6 +24,8 @@ type CollectionList struct {
 	ScimEndpoint           string
 	WebauthnCredential     string
 	OrgDomain              string
+	SAMLServiceProvider    string
+	SAMLIDPKey             string
 }
 
 var (
@@ -53,5 +55,7 @@ var (
 		ScimEndpoint:           Prefix + "scim_endpoints",
 		WebauthnCredential:     Prefix + "webauthn_credentials",
 		OrgDomain:              Prefix + "org_domains",
+		SAMLServiceProvider:    Prefix + "saml_service_providers",
+		SAMLIDPKey:             Prefix + "saml_idp_keys",
 	}
 )

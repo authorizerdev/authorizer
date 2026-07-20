@@ -291,6 +291,14 @@ func getIndex(scopeName string) map[string][]string {
 	trustedIssuerIndex2 := fmt.Sprintf("CREATE INDEX TrustedIssuerClientIdIndex ON %s.%s(client_id)", scopeName, schemas.Collections.TrustedIssuer)
 	indices[schemas.Collections.TrustedIssuer] = []string{trustedIssuerIndex1, trustedIssuerIndex2}
 
+	// SAMLServiceProvider indexes
+	samlServiceProviderIndex1 := fmt.Sprintf("CREATE INDEX SAMLServiceProviderOrgIdEntityIdIndex ON %s.%s(org_id, entity_id)", scopeName, schemas.Collections.SAMLServiceProvider)
+	indices[schemas.Collections.SAMLServiceProvider] = []string{samlServiceProviderIndex1}
+
+	// SAMLIDPKey indexes
+	samlIDPKeyIndex1 := fmt.Sprintf("CREATE INDEX SAMLIDPKeyOrgIdIndex ON %s.%s(org_id)", scopeName, schemas.Collections.SAMLIDPKey)
+	indices[schemas.Collections.SAMLIDPKey] = []string{samlIDPKeyIndex1}
+
 	// WebauthnCredential indexes
 	webauthnCredentialIndex1 := fmt.Sprintf("CREATE INDEX WebauthnCredentialCredentialIdIndex ON %s.%s(credential_id)", scopeName, schemas.Collections.WebauthnCredential)
 	webauthnCredentialIndex2 := fmt.Sprintf("CREATE INDEX WebauthnCredentialUserIdIndex ON %s.%s(user_id)", scopeName, schemas.Collections.WebauthnCredential)

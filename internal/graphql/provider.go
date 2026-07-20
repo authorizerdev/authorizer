@@ -312,6 +312,17 @@ type Provider interface {
 	// OrgSamlConnection returns a per-org SAML connection by id or org_id.
 	// Permissions: authorizer:admin
 	OrgSamlConnection(ctx context.Context, params *model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	// SAML IdP admin surface (Authorizer as Identity Provider).
+	// Permissions: super-admin or org-admin of the target org.
+	CreateSamlServiceProvider(ctx context.Context, params *model.CreateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	UpdateSamlServiceProvider(ctx context.Context, params *model.UpdateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	DeleteSamlServiceProvider(ctx context.Context, params *model.SAMLServiceProviderRequest) (*model.Response, error)
+	SamlServiceProvider(ctx context.Context, params *model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	ListSamlServiceProviders(ctx context.Context, params *model.ListSAMLServiceProvidersRequest) (*model.SAMLServiceProviders, error)
+	RotateSamlIdpCert(ctx context.Context, params *model.RotateSAMLIDPCertRequest) (*model.SAMLIDPKey, error)
+	RetireSamlIdpKey(ctx context.Context, params *model.RetireSAMLIDPKeyRequest) (*model.Response, error)
+	ListSamlIdpKeys(ctx context.Context, params *model.ListSAMLIDPKeysRequest) ([]*model.SAMLIDPKey, error)
+	ImportSamlSpMetadata(ctx context.Context, params *model.ImportSAMLSPMetadataRequest) (*model.SAMLSPMetadataParseResult, error)
 	// CreateOrganization creates a new organization.
 	// Permissions: authorizer:admin
 	CreateOrganization(ctx context.Context, params *model.CreateOrganizationRequest) (*model.Organization, error)

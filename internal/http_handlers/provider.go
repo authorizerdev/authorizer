@@ -120,6 +120,13 @@ type Provider interface {
 	SAMLLoginHandler() gin.HandlerFunc
 	// SAMLACSHandler consumes a per-org SAML assertion (Assertion Consumer Service).
 	SAMLACSHandler() gin.HandlerFunc
+	// SAMLIDPMetadataHandler serves a per-org SAML IdP metadata document
+	// (Authorizer acting as the Identity Provider).
+	SAMLIDPMetadataHandler() gin.HandlerFunc
+	// SAMLIDPSSOHandler handles SP-initiated SAML SSO (Authorizer as IdP).
+	SAMLIDPSSOHandler() gin.HandlerFunc
+	// SAMLIDPInitiatedHandler handles IdP-initiated SAML SSO to a registered SP.
+	SAMLIDPInitiatedHandler() gin.HandlerFunc
 	// OpenIDConfigurationHandler is the main handler that handels all the openid configuration requests
 	OpenIDConfigurationHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests

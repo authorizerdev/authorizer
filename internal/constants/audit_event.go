@@ -152,6 +152,21 @@ const (
 	AuditSAMLACSSuccessEvent = "saml.acs_success"
 	// AuditSAMLACSFailedEvent is logged when an org SAML ACS assertion is rejected.
 	AuditSAMLACSFailedEvent = "saml.acs_failed"
+	// AuditSAMLIDPAssertionIssuedEvent is logged when Authorizer (as SAML IdP)
+	// issues a signed assertion to a registered downstream SP.
+	AuditSAMLIDPAssertionIssuedEvent = "saml.idp_assertion_issued"
+	// AuditSAMLIDPAssertionFailedEvent is logged when an IdP SSO request is
+	// rejected (unknown SP, ACS mismatch, IdP-initiated disabled, etc.).
+	AuditSAMLIDPAssertionFailedEvent = "saml.idp_assertion_failed"
+	// AuditSAMLIDPKeyRotatedEvent is logged when an org's SAML IdP signing key is
+	// rotated (a new current key generated).
+	AuditSAMLIDPKeyRotatedEvent = "saml.idp_key_rotated"
+	// AuditSAMLIDPKeyRetiredEvent is logged when a superseded SAML IdP signing key
+	// is explicitly retired.
+	AuditSAMLIDPKeyRetiredEvent = "saml.idp_key_retired"
+	// AuditSAMLIDPServiceProviderChangedEvent is logged when an admin creates,
+	// updates, or deletes a registered downstream SAML service provider.
+	AuditSAMLIDPServiceProviderChangedEvent = "saml.idp_service_provider_changed"
 
 	// AuditTokenIssuedEvent is logged when a new token is issued.
 	AuditTokenIssuedEvent = "token.issued"

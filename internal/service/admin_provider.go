@@ -76,6 +76,17 @@ type AdminProvider interface {
 	DeleteOrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.Response, *ResponseSideEffects, error)
 	OrgSAMLConnection(ctx context.Context, meta RequestMetadata, params *model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, *ResponseSideEffects, error)
 
+	// SAML IdP: registered downstream SPs, signing-key rotation, SP-metadata import.
+	CreateSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.CreateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error)
+	UpdateSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.UpdateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error)
+	DeleteSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.Response, *ResponseSideEffects, error)
+	SAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error)
+	ListSAMLServiceProviders(ctx context.Context, meta RequestMetadata, params *model.ListSAMLServiceProvidersRequest) (*model.SAMLServiceProviders, *ResponseSideEffects, error)
+	RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, params *model.RotateSAMLIDPCertRequest) (*model.SAMLIDPKey, *ResponseSideEffects, error)
+	RetireSAMLIDPKey(ctx context.Context, meta RequestMetadata, params *model.RetireSAMLIDPKeyRequest) (*model.Response, *ResponseSideEffects, error)
+	ListSAMLIDPKeys(ctx context.Context, meta RequestMetadata, params *model.ListSAMLIDPKeysRequest) ([]*model.SAMLIDPKey, *ResponseSideEffects, error)
+	ImportSAMLSPMetadata(ctx context.Context, meta RequestMetadata, params *model.ImportSAMLSPMetadataRequest) (*model.SAMLSPMetadataParseResult, *ResponseSideEffects, error)
+
 	// Organizations and per-org membership.
 	CreateOrganization(ctx context.Context, meta RequestMetadata, params *model.CreateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)
 	UpdateOrganization(ctx context.Context, meta RequestMetadata, params *model.UpdateOrganizationRequest) (*model.Organization, *ResponseSideEffects, error)

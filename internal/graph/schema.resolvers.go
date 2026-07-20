@@ -267,6 +267,36 @@ func (r *mutationResolver) DeleteOrgSamlConnection(ctx context.Context, params m
 	return r.GraphQLProvider.DeleteOrgSamlConnection(ctx, &params)
 }
 
+// CreateSamlServiceProvider is the resolver for the _create_saml_service_provider field.
+func (r *mutationResolver) CreateSamlServiceProvider(ctx context.Context, params model.CreateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error) {
+	return r.GraphQLProvider.CreateSamlServiceProvider(ctx, &params)
+}
+
+// UpdateSamlServiceProvider is the resolver for the _update_saml_service_provider field.
+func (r *mutationResolver) UpdateSamlServiceProvider(ctx context.Context, params model.UpdateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error) {
+	return r.GraphQLProvider.UpdateSamlServiceProvider(ctx, &params)
+}
+
+// DeleteSamlServiceProvider is the resolver for the _delete_saml_service_provider field.
+func (r *mutationResolver) DeleteSamlServiceProvider(ctx context.Context, params model.SAMLServiceProviderRequest) (*model.Response, error) {
+	return r.GraphQLProvider.DeleteSamlServiceProvider(ctx, &params)
+}
+
+// RotateSamlIdpCert is the resolver for the _rotate_saml_idp_cert field.
+func (r *mutationResolver) RotateSamlIdpCert(ctx context.Context, params model.RotateSAMLIDPCertRequest) (*model.SAMLIDPKey, error) {
+	return r.GraphQLProvider.RotateSamlIdpCert(ctx, &params)
+}
+
+// RetireSamlIdpKey is the resolver for the _retire_saml_idp_key field.
+func (r *mutationResolver) RetireSamlIdpKey(ctx context.Context, params model.RetireSAMLIDPKeyRequest) (*model.Response, error) {
+	return r.GraphQLProvider.RetireSamlIdpKey(ctx, &params)
+}
+
+// ImportSamlSpMetadata is the resolver for the _import_saml_sp_metadata field.
+func (r *mutationResolver) ImportSamlSpMetadata(ctx context.Context, params model.ImportSAMLSPMetadataRequest) (*model.SAMLSPMetadataParseResult, error) {
+	return r.GraphQLProvider.ImportSamlSpMetadata(ctx, &params)
+}
+
 // CreateOrganization is the resolver for the _create_organization field.
 func (r *mutationResolver) CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error) {
 	return r.GraphQLProvider.CreateOrganization(ctx, &params)
@@ -475,6 +505,21 @@ func (r *queryResolver) OrgOidcConnection(ctx context.Context, params model.OrgO
 // OrgSamlConnection is the resolver for the _org_saml_connection field.
 func (r *queryResolver) OrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error) {
 	return r.GraphQLProvider.OrgSamlConnection(ctx, &params)
+}
+
+// SamlServiceProvider is the resolver for the _saml_service_provider field.
+func (r *queryResolver) SamlServiceProvider(ctx context.Context, params model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, error) {
+	return r.GraphQLProvider.SamlServiceProvider(ctx, &params)
+}
+
+// ListSamlServiceProviders is the resolver for the _list_saml_service_providers field.
+func (r *queryResolver) ListSamlServiceProviders(ctx context.Context, params model.ListSAMLServiceProvidersRequest) (*model.SAMLServiceProviders, error) {
+	return r.GraphQLProvider.ListSamlServiceProviders(ctx, &params)
+}
+
+// ListSamlIdpKeys is the resolver for the _list_saml_idp_keys field.
+func (r *queryResolver) ListSamlIdpKeys(ctx context.Context, params model.ListSAMLIDPKeysRequest) ([]*model.SAMLIDPKey, error) {
+	return r.GraphQLProvider.ListSamlIdpKeys(ctx, &params)
 }
 
 // Organization is the resolver for the _organization field.

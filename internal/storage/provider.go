@@ -238,6 +238,41 @@ type Provider interface {
 	// Pass an empty serviceAccountID to list all issuers.
 	ListTrustedIssuers(ctx context.Context, serviceAccountID string, pagination *model.Pagination) ([]*schemas.TrustedIssuer, *model.Pagination, error)
 
+	// SAMLServiceProvider methods (downstream SPs Authorizer issues assertions to,
+	// acting as the SAML IdP). Scoped per Organization.
+
+	// AddSAMLServiceProvider registers a new downstream SP.
+	AddSAMLServiceProvider(ctx context.Context, sp *schemas.SAMLServiceProvider) (*schemas.SAMLServiceProvider, error)
+	// UpdateSAMLServiceProvider writes back a fully-loaded record. Callers MUST
+	// load the existing record and mutate it before calling (Save semantics).
+	UpdateSAMLServiceProvider(ctx context.Context, sp *schemas.SAMLServiceProvider) (*schemas.SAMLServiceProvider, error)
+	// DeleteSAMLServiceProvider removes a registered SP.
+	DeleteSAMLServiceProvider(ctx context.Context, sp *schemas.SAMLServiceProvider) error
+	// GetSAMLServiceProviderByID fetches a registered SP by primary key.
+	GetSAMLServiceProviderByID(ctx context.Context, id string) (*schemas.SAMLServiceProvider, error)
+	// GetSAMLServiceProviderByOrgAndEntityID resolves the single registered SP for
+	// an (orgID, entityID) pair — the lookup that binds an incoming AuthnRequest's
+	// Issuer to a trusted ACS URL. Returns an error when no matching row exists.
+	GetSAMLServiceProviderByOrgAndEntityID(ctx context.Context, orgID, entityID string) (*schemas.SAMLServiceProvider, error)
+	// ListSAMLServiceProviders returns the registered SPs for an org (paginated).
+	ListSAMLServiceProviders(ctx context.Context, orgID string, pagination *model.Pagination) ([]*schemas.SAMLServiceProvider, *model.Pagination, error)
+
+	// SAMLIDPKey methods (per-org SAML IdP signing keypairs with rotation).
+
+	// AddSAMLIDPKey persists a newly-generated signing keypair.
+	AddSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey) (*schemas.SAMLIDPKey, error)
+	// UpdateSAMLIDPKey writes back a fully-loaded record (used to flip rotation
+	// status). Callers MUST load the existing record before calling.
+	UpdateSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey) (*schemas.SAMLIDPKey, error)
+	// DeleteSAMLIDPKey removes a signing key.
+	DeleteSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey) error
+	// GetSAMLIDPKeyByID fetches a signing key by primary key.
+	GetSAMLIDPKeyByID(ctx context.Context, id string) (*schemas.SAMLIDPKey, error)
+	// ListSAMLIDPKeys returns every signing key for an org (typically 1–3). The
+	// caller filters by Status: "current" is the signing key, "current"+"active"
+	// are published in metadata.
+	ListSAMLIDPKeys(ctx context.Context, orgID string) ([]*schemas.SAMLIDPKey, error)
+
 	// WebauthnCredential methods (per-user passkey credentials).
 
 	// AddWebauthnCredential persists a newly registered passkey.
