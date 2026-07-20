@@ -247,6 +247,36 @@ func TestBuildSAMLSessionNameID(t *testing.T) {
 	assert.Equal(t, "user-1", sess.NameID)
 }
 
+func TestSAMLIssuanceDenyReason(t *testing.T) {
+	verified := &schemas.User{ID: "u1", Email: refs.NewStringRef("a@example.com"), EmailVerifiedAt: refs.NewInt64Ref(1)}
+	unverified := &schemas.User{ID: "u1", Email: refs.NewStringRef("a@example.com")}
+	member := &schemas.OrgMembership{ID: "m1"}
+	sp := testSPRecord() // emailAddress NameID format
+
+	// Allowed: a verified member.
+	code, _ := samlIssuanceDenyReason(member, nil, sp, verified)
+	assert.Equal(t, "", code)
+
+	// Denied: storage returned an error (the not-found contract on every DB).
+	code, _ = samlIssuanceDenyReason(nil, assert.AnError, sp, verified)
+	assert.Equal(t, "forbidden", code)
+
+	// Denied: defensive — a provider that ever returns (nil, nil) must still deny.
+	code, _ = samlIssuanceDenyReason(nil, nil, sp, verified)
+	assert.Equal(t, "forbidden", code)
+
+	// Denied: member, but an unverified email would be asserted as NameID.
+	code, _ = samlIssuanceDenyReason(member, nil, sp, unverified)
+	assert.Equal(t, "email_not_verified", code)
+
+	// Allowed: member with unverified email but a NON-email NameID format
+	// (the email is never asserted, so verification is not required).
+	spPersistent := testSPRecord()
+	spPersistent.NameIDFormat = "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+	code, _ = samlIssuanceDenyReason(member, nil, spPersistent, unverified)
+	assert.Equal(t, "", code)
+}
+
 func TestSAMLNameIDWouldBeEmail(t *testing.T) {
 	// emailAddress format (default) + a present email → email is asserted, so it
 	// must be verified before issuance.

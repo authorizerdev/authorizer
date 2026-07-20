@@ -353,17 +353,36 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 //     could register victim@org.com and be asserted as the victim to an SP that
 //     keys on email.
 func (h *httpProvider) authorizeSAMLIssuance(c *gin.Context, orgID, slug string, sp *schemas.SAMLServiceProvider, user *schemas.User, log *zerolog.Logger) bool {
-	if _, err := h.StorageProvider.GetOrgMembership(c.Request.Context(), orgID, user.ID); err != nil {
+	membership, err := h.StorageProvider.GetOrgMembership(c.Request.Context(), orgID, user.ID)
+	code, desc := samlIssuanceDenyReason(membership, err, sp, user)
+	if code == "" {
+		return true
+	}
+	// Distinguish the two denial classes in the security metric.
+	if code == "forbidden" {
 		metrics.RecordSecurityEvent("saml_idp_non_member", slug)
-		h.samlIDPFail(c, log, slug, "forbidden", "not a member of this organization")
-		return false
+	} else {
+		metrics.RecordSecurityEvent("saml_idp_unverified_email", slug)
+	}
+	h.samlIDPFail(c, log, slug, code, desc)
+	return false
+}
+
+// samlIssuanceDenyReason is the pure decision behind authorizeSAMLIssuance,
+// factored out so the guard (including the defensive nil-membership case) is unit
+// testable without a live storage provider. Returns an empty code when issuance
+// is allowed. Membership is treated as absent on EITHER a non-nil error OR a nil
+// record — every storage provider returns an error for a missing membership
+// today, but denying on nil too closes the class of a provider ever returning
+// (nil, nil).
+func samlIssuanceDenyReason(membership *schemas.OrgMembership, membershipErr error, sp *schemas.SAMLServiceProvider, user *schemas.User) (code, desc string) {
+	if membershipErr != nil || membership == nil {
+		return "forbidden", "not a member of this organization"
 	}
 	if samlNameIDWouldBeEmail(sp, user) && user.EmailVerifiedAt == nil {
-		metrics.RecordSecurityEvent("saml_idp_unverified_email", slug)
-		h.samlIDPFail(c, log, slug, "email_not_verified", "email address is not verified")
-		return false
+		return "email_not_verified", "email address is not verified"
 	}
-	return true
+	return "", ""
 }
 
 // samlNameIDWouldBeEmail reports whether the Subject NameID emitted for this SP
