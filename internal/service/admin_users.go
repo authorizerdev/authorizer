@@ -30,7 +30,8 @@ import (
 // MFA state that login would be unable to honor.
 func (p *provider) isMFAServiceAvailable() bool {
 	c := p.Config
-	return c.EnableMFA && ((c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
+	return c.EnableMFA && (c.EnableWebauthnMFA ||
+		(c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
 		(c.EnableSMSOTP && c.IsSMSServiceEnabled) ||
 		c.EnableTOTPLogin)
 }
@@ -124,6 +125,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		params.PhoneNumber == nil &&
 		params.Roles == nil &&
 		params.IsMultiFactorAuthEnabled == nil &&
+		params.ResetMfa == nil &&
 		params.AppData == nil {
 		log.Debug().Msg("please enter atleast one param to update")
 		return nil, nil, fmt.Errorf("please enter atleast one param to update")
@@ -179,6 +181,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
 			log.Debug().Msg("cannot enable multi factor authentication as no mfa method is available")
 			return nil, nil, errors.New("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
+		}
+		// EnforceMFA is absolute: an admin must not be able to persist an opt-out
+		// while the org enforces MFA (same guard self-service update_profile.go
+		// already applies).
+		if p.Config.EnforceMFA && !refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			log.Debug().Msg("cannot disable multi factor authentication as it is enforced by organization")
+			return nil, nil, errors.New("cannot disable multi factor authentication as it is enforced by organization")
 		}
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
@@ -308,6 +317,28 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 	if rolesToSave != "" {
 		user.Roles = rolesToSave
 	}
+
+	if refs.BoolValue(params.ResetMfa) {
+		user.MFALockedAt = nil
+		user.IsMultiFactorAuthEnabled = nil
+		user.HasSkippedMFASetupAt = nil
+		if err := p.StorageProvider.DeleteAuthenticatorsByUserID(ctx, user.ID); err != nil {
+			log.Debug().Err(err).Msg("failed to delete authenticators during MFA reset")
+			return nil, nil, err
+		}
+		creds, err := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+		if err != nil {
+			log.Debug().Err(err).Msg("failed to list webauthn credentials during MFA reset")
+			return nil, nil, err
+		}
+		for _, c := range creds {
+			if err := p.StorageProvider.DeleteWebauthnCredential(ctx, c); err != nil {
+				log.Debug().Err(err).Msg("failed to delete webauthn credential during MFA reset")
+				return nil, nil, err
+			}
+		}
+	}
+
 	user, err = p.StorageProvider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed UpdateUser")

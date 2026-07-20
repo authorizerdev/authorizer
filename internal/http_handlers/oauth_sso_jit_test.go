@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -195,4 +196,26 @@ func TestSSOJIT_SignupDisabledRejected(t *testing.T) {
 	user, _, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), jitClaims("upstream-3", "carol@corp.example.com"))
 	require.Error(t, err)
 	assert.Nil(t, user)
+}
+
+// REGRESSION: a revoked user reaching the SSO callback via the RETURNING-user
+// path (resolved through an existing FederatedIdentity row, not first-time JIT
+// provisioning) must be rejected, not silently handed a session. Confirms
+// jitProvisionFederatedUser's RevokedTimestamp check fires on this path too.
+func TestSSOJIT_RevokedReturningUserRejected(t *testing.T) {
+	store := newJITStore()
+	revokedAt := time.Now().Unix()
+	user := &schemas.User{ID: "revoked-user", Email: refs.NewStringRef("evicted@corp.example.com"), RevokedTimestamp: &revokedAt}
+	store.usersByID[user.ID] = user
+	store.usersByEmail["evicted@corp.example.com"] = user
+	store.federated[fedKey("org-1", ssoTestIssuer, "upstream-revoked")] = &schemas.FederatedIdentity{
+		OrgID: "org-1", Issuer: ssoTestIssuer, Subject: "upstream-revoked", UserID: user.ID,
+	}
+
+	h := newJITProvider(store, true)
+	got, isSignUp, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), jitClaims("upstream-revoked", "evicted@corp.example.com"))
+	require.Error(t, err)
+	assert.Nil(t, got)
+	assert.False(t, isSignUp)
+	assert.Contains(t, err.Error(), "revoked")
 }

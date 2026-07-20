@@ -2,7 +2,8 @@
 // public API. Method names match the GraphQL operation names 1:1
 // (snake_case in GraphQL → PascalCase in proto): Signup, Login,
 // MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
-// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// ResetPassword, VerifyOtp, ResendOtp, SkipMfaSetup, LockMfa,
+// EmailOtpMfaSetup, SmsOtpMfaSetup, UpdateProfile, DeactivateAccount,
 // Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
 // CheckPermissions, ListPermissions, Logout.
 //
@@ -105,6 +106,65 @@ service AuthorizerService {
       body: "*"
     };
     option (authorizer.v1.public) = true;
+  }
+
+  // SkipMfaSetup completes an in-progress, token-withheld MFA offer by
+  // recording that the caller explicitly declined it, then issues the
+  // access token that was withheld. Identified by the MFA session cookie
+  // (set when the offer screen was returned) plus email/phone_number to
+  // resolve the pending user — same identification pattern as VerifyOtp.
+  // Fails with FAILED_PRECONDITION if MFA is organization-enforced
+  // (enforce-mfa) — enforcement is never skippable.
+  rpc SkipMfaSetup(SkipMfaSetupRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/v1/skip_mfa_setup"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // LockMfa records that the caller lost access to their only MFA
+  // factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+  // fallback enrolled — if one exists, use it instead of locking. Does not
+  // issue a token; the account requires admin recovery afterward.
+  rpc LockMfa(LockMfaRequest) returns (LockMfaResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock_mfa"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // EmailOtpMfaSetup sends a one-time code to the caller's own email and
+  // creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+  // (a) an authenticated caller (bearer token) — the settings-screen action
+  // for an ALREADY-logged-in user adding a second factor; the request body is
+  // unused in this mode. (b) a caller in the withheld first-time-offer
+  // state, with no bearer token yet — identified by the MFA session cookie
+  // plus email/phone_number, same pattern as SkipMfaSetup. Either mode
+  // reuses the same underlying Authenticator row once VerifyOtp marks it
+  // verified.
+  rpc EmailOtpMfaSetup(EmailOtpMfaSetupRequest) returns (EmailOtpMfaSetupResponse) {
+    option (google.api.http) = {
+      post: "/v1/email_otp_mfa_setup"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // SmsOtpMfaSetup sends a one-time code to the caller's own phone number
+  // and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+  // permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+  rpc SmsOtpMfaSetup(SmsOtpMfaSetupRequest) returns (SmsOtpMfaSetupResponse) {
+    option (google.api.http) = {
+      post: "/v1/sms_otp_mfa_setup"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
   }
 
   // === Password lifecycle ===
@@ -325,6 +385,43 @@ message ResendOtpRequest {
   string state = 3;
 }
 message ResendOtpResponse {
+  string message = 1;
+}
+
+message SkipMfaSetupRequest {
+  // Either email or phone_number is required, to resolve which user's MFA
+  // session cookie this is.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string state = 3;
+}
+message LockMfaRequest {
+  // Either email or phone_number is required, to resolve which user's MFA
+  // session cookie this is — same pattern as SkipMfaSetupRequest.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+}
+message LockMfaResponse {
+  string message = 1;
+}
+message EmailOtpMfaSetupRequest {
+  // Only used in the MFA-session-cookie mode (a caller in the withheld
+  // first-time-offer state, with no bearer token yet) to resolve which
+  // user's MFA session cookie this is — same pattern as SkipMfaSetupRequest
+  // / LockMfaRequest. Ignored when the caller has a valid bearer
+  // token/session, which already identifies the user.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+}
+message EmailOtpMfaSetupResponse {
+  string message = 1;
+}
+message SmsOtpMfaSetupRequest {
+  // Same dual-mode identification semantics as EmailOtpMfaSetupRequest.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+}
+message SmsOtpMfaSetupResponse {
   string message = 1;
 }
 

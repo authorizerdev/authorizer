@@ -32,6 +32,10 @@ message User {
   bool is_multi_factor_auth_enabled = 19;
   // Free-form key/value bag — same as GraphQL `app_data: Map`.
   AppData app_data = 20;
+  // Mirrors User.has_skipped_mfa_setup_at in GraphQL. 0 means never skipped.
+  int64 has_skipped_mfa_setup_at = 21;
+  // Mirrors User.mfa_locked_at in GraphQL. 0 means not locked.
+  int64 mfa_locked_at = 22;
 }
 
 // AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by
@@ -52,6 +56,14 @@ message AuthResponse {
   string authenticator_scanner_image = 10;
   string authenticator_secret = 11;
   repeated string authenticator_recovery_codes = 12;
+  // Mirrors AuthResponse.should_offer_webauthn_mfa_verify in GraphQL.
+  bool should_offer_webauthn_mfa_verify = 13;
+  // Mirrors AuthResponse.should_offer_webauthn_mfa_setup in GraphQL.
+  bool should_offer_webauthn_mfa_setup = 14;
+  // Mirrors AuthResponse.should_offer_email_otp_mfa_setup in GraphQL.
+  bool should_offer_email_otp_mfa_setup = 15;
+  // Mirrors AuthResponse.should_offer_sms_otp_mfa_setup in GraphQL.
+  bool should_offer_sms_otp_mfa_setup = 16;
 }
 
 // Permission is one (object, relation) pair the subject holds: "subject has
@@ -123,4 +135,6 @@ message Meta {
   bool is_email_otp_mfa_enabled = 23;
   bool is_sms_otp_mfa_enabled = 24;
   bool is_webauthn_enabled = 25;
+  // Mirrors Meta.is_mfa_enforced in GraphQL.
+  bool is_mfa_enforced = 26;
 }

@@ -96,9 +96,30 @@ type Provider interface {
 	// DeactivateAccount is the method to deactivate account.
 	// Permissions: authorized user
 	DeactivateAccount(ctx context.Context) (*model.Response, error)
-	// SkipMFASetup is the method to skip optional MFA setup.
-	// Permissions: authorized user
-	SkipMFASetup(ctx context.Context) (*model.Response, error)
+	// SkipMFASetup completes a token-withheld first-time MFA offer by
+	// recording the decline and issuing the previously-withheld token.
+	// Permissions: none — identified via the MFA session cookie, not a
+	// bearer token.
+	SkipMFASetup(ctx context.Context, params *model.SkipMfaSetupRequest) (*model.AuthResponse, error)
+	// LockMFA records that the caller lost access to their only MFA
+	// factor(s), refusing when a verified OTP fallback exists. Does not
+	// issue a token.
+	// Permissions: none — identified via the MFA session cookie, not a
+	// bearer token.
+	LockMFA(ctx context.Context, params *model.LockMfaRequest) (*model.Response, error)
+	// EmailOTPMFASetup sends a one-time code to the caller's own email and
+	// begins an email-OTP MFA enrollment. Verified via VerifyOtp. Dual-mode:
+	// bearer token (params ignored) or, absent a token, the MFA session
+	// cookie plus params.email/phone_number.
+	// Permissions: authorized user (bearer token) OR MFA session cookie.
+	EmailOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
+	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
+	// Permissions: authorized user (bearer token) OR MFA session cookie.
+	SMSOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error)
+	// TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
+	// caller to enroll as an MFA method. Same dual-mode permissions as
+	// EmailOTPMFASetup/SMSOTPMFASetup.
+	TOTPMFASetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error)
 	// DeleteEmailTemplate is the method to delete email template.
 	// Permissions: authorizer:admin
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)
@@ -140,6 +161,10 @@ type Provider interface {
 	// Profile is the method to get profile.
 	// Permissions: authorized user
 	Profile(ctx context.Context) (*model.User, error)
+	// EnrolledMFAMethods resolves the lazily-computed User.enrolled_mfa_methods
+	// field for a resolved User. Only invoked when the field is selected.
+	// Permissions: inherited from the parent User query.
+	EnrolledMFAMethods(ctx context.Context, user *model.User) ([]string, error)
 	// ResendOTP is the method to resend OTP.
 	// Permissions: none
 	ResendOTP(ctx context.Context, params *model.ResendOTPRequest) (*model.Response, error)
@@ -202,10 +227,10 @@ type Provider interface {
 	VerifyOTP(ctx context.Context, params *model.VerifyOTPRequest) (*model.AuthResponse, error)
 	// WebauthnRegistrationOptions begins a passkey registration ceremony.
 	// Permissions: authenticated:user
-	WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	WebauthnRegistrationOptions(ctx context.Context, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	// WebauthnRegistrationVerify stores a newly registered passkey.
 	// Permissions: authenticated:user
-	WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	WebauthnRegistrationVerify(ctx context.Context, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error)
 	// WebauthnLoginOptions begins a passkey login ceremony.
 	// Permissions: none
 	WebauthnLoginOptions(ctx context.Context, email *string) (*model.WebauthnLoginOptionsResponse, error)

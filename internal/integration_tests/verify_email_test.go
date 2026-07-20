@@ -1,6 +1,8 @@
 package integration_tests
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -119,5 +121,111 @@ func TestVerifyEmail(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, verificationRes)
 		assert.NotEmpty(t, verificationRes.AccessToken)
+	})
+}
+
+// TestVerifyEmailRESTEndpointMFAGate guards GET /verify_email - the actual
+// URL the "verify your email" / magic-link-login email sends users to. It is
+// a separate implementation from the GraphQL verify_email mutation (which
+// TestVerifyEmail and TestMagicLinkLoginMFAGate exercise), and previously
+// issued a full session unconditionally with no MFA gate check and no
+// RevokedTimestamp check at all - a user could complete signup email
+// verification or magic-link login and be handed working tokens regardless
+// of MFA enrollment status or account revocation, entirely bypassing
+// resolveMFAGate. Exercises the real HTTP handler, not the service layer
+// directly, since that's exactly the boundary the bug lived at.
+func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	cfg.EnableMFA = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+	password := "Password@123"
+
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	signupAndGetToken := func(t *testing.T, email string) string {
+		t.Helper()
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email:           &email,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		vreq, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		require.NoError(t, err)
+		require.NotNil(t, vreq)
+		return vreq.Token
+	}
+
+	hitVerifyEmail := func(t *testing.T, token string) *http.Response {
+		t.Helper()
+		reqURL := ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(token) +
+			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback")
+		resp, err := httpClient.Get(reqURL)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = resp.Body.Close() })
+		return resp
+	}
+
+	t.Run("MFA gate withholds tokens, matching the GraphQL mutation", func(t *testing.T) {
+		email := "verify_email_rest_offer_" + uuid.New().String() + "@authorizer.dev"
+		resp := hitVerifyEmail(t, signupAndGetToken(t, email))
+
+		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.NotContains(t, location, "access_token=")
+		assert.Contains(t, location, "mfa_required=1")
+		assert.Contains(t, location, "mfa_methods=")
+	})
+
+	t.Run("revoked user is rejected, not issued a session", func(t *testing.T) {
+		email := "verify_email_rest_revoked_" + uuid.New().String() + "@authorizer.dev"
+		token := signupAndGetToken(t, email)
+
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		now := time.Now().Unix()
+		user.RevokedTimestamp = &now
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		resp := hitVerifyEmail(t, token)
+		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.NotContains(t, location, "access_token=")
+		assert.Contains(t, location, "error=")
+	})
+
+	t.Run("no MFA configured still completes normally with real tokens", func(t *testing.T) {
+		cfgNoMFA := getTestConfig()
+		cfgNoMFA.IsEmailServiceEnabled = true
+		cfgNoMFA.EnableEmailVerification = true
+		tsNoMFA := initTestSetup(t, cfgNoMFA)
+		_, ctxNoMFA := createContext(tsNoMFA)
+
+		email := "verify_email_rest_nomfa_" + uuid.New().String() + "@authorizer.dev"
+		_, err := tsNoMFA.GraphQLProvider.SignUp(ctxNoMFA, &model.SignUpRequest{
+			Email:           &email,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		vreq, err := tsNoMFA.StorageProvider.GetVerificationRequestByEmail(ctxNoMFA, email, constants.VerificationTypeBasicAuthSignup)
+		require.NoError(t, err)
+
+		reqURL := tsNoMFA.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback")
+		resp, err := httpClient.Get(reqURL)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+		assert.Contains(t, resp.Header.Get("Location"), "access_token=")
 	})
 }

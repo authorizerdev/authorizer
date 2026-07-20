@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -110,12 +111,12 @@ func (p *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
-// SetMfaSession sets the mfa session with key and value of userId
-func (p *provider) SetMfaSession(userId, key string, expiration int64) error {
+// SetMfaSession sets the mfa session, storing purpose as its value.
+func (p *provider) SetMfaSession(userId, key, purpose string, expiration int64) error {
 	currentTime := time.Now()
 	expireTime := time.Unix(expiration, 0)
 	duration := expireTime.Sub(currentTime)
-	err := p.store.Set(p.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), userId, duration).Err()
+	err := p.store.Set(p.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), purpose, duration).Err()
 	if err != nil {
 		p.dependencies.Log.Debug().Err(err).Msg("Error saving mfa session to redis")
 		return err
@@ -153,6 +154,29 @@ func (p *provider) DeleteMfaSession(userId, key string) error {
 		// continue
 	}
 	return nil
+}
+
+// GetMfaSessionOwner resolves the userID and purpose for a bare mfa session
+// key, without knowing the owning userID. Session keys are UUIDs (no colons),
+// so the "<prefix>*:<key>" glob matches exactly one user's entry.
+func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
+	res := p.store.Keys(p.ctx, fmt.Sprintf("%s*:%s", mfaSessionPrefix, key))
+	if res.Err() != nil {
+		p.dependencies.Log.Debug().Err(res.Err()).Msg("Error getting mfa session owner from redis")
+		return "", "", res.Err()
+	}
+	keys := res.Val()
+	if len(keys) != 1 {
+		p.dependencies.Log.Debug().Int("matches", len(keys)).Msg("Expected exactly one mfa session owner match")
+		return "", "", fmt.Errorf("not found")
+	}
+	matchedKey := keys[0]
+	userID := strings.TrimSuffix(strings.TrimPrefix(matchedKey, mfaSessionPrefix), ":"+key)
+	purpose, err := p.store.Get(p.ctx, matchedKey).Result()
+	if err != nil {
+		return "", "", err
+	}
+	return userID, purpose, nil
 }
 
 // SetState sets the state in redis store.

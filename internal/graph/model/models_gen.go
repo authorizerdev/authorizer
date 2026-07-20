@@ -84,6 +84,9 @@ type AuthResponse struct {
 	ShouldShowTotpScreen         *bool     `json:"should_show_totp_screen,omitempty"`
 	ShouldOfferWebauthnMfaVerify *bool     `json:"should_offer_webauthn_mfa_verify,omitempty"`
 	ShouldOfferMfaSetup          *bool     `json:"should_offer_mfa_setup,omitempty"`
+	ShouldOfferWebauthnMfaSetup  *bool     `json:"should_offer_webauthn_mfa_setup,omitempty"`
+	ShouldOfferEmailOtpMfaSetup  *bool     `json:"should_offer_email_otp_mfa_setup,omitempty"`
+	ShouldOfferSmsOtpMfaSetup    *bool     `json:"should_offer_sms_otp_mfa_setup,omitempty"`
 	AccessToken                  *string   `json:"access_token,omitempty"`
 	IDToken                      *string   `json:"id_token,omitempty"`
 	RefreshToken                 *string   `json:"refresh_token,omitempty"`
@@ -430,6 +433,11 @@ type ListWebhookLogRequest struct {
 	WebhookID  *string            `json:"webhook_id,omitempty"`
 }
 
+type LockMfaRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+}
+
 type LoginRequest struct {
 	Email       *string  `json:"email,omitempty"`
 	PhoneNumber *string  `json:"phone_number,omitempty"`
@@ -604,6 +612,11 @@ type Organizations struct {
 	Organizations []*Organization `json:"organizations"`
 }
 
+type OtpMfaSetupRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+}
+
 type PaginatedRequest struct {
 	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
@@ -711,6 +724,12 @@ type SignUpRequest struct {
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	State                    *string        `json:"state,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
+}
+
+type SkipMfaSetupRequest struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	State       *string `json:"state,omitempty"`
 }
 
 type TestEndpointRequest struct {
@@ -913,6 +932,7 @@ type UpdateUserRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	Roles                    []*string      `json:"roles,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
+	ResetMfa                 *bool          `json:"reset_mfa,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
@@ -946,6 +966,8 @@ type User struct {
 	RevokedTimestamp         *int64         `json:"revoked_timestamp,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	HasSkippedMfaSetupAt     *int64         `json:"has_skipped_mfa_setup_at,omitempty"`
+	MfaLockedAt              *int64         `json:"mfa_locked_at,omitempty"`
+	EnrolledMfaMethods       []string       `json:"enrolled_mfa_methods"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
@@ -1050,8 +1072,11 @@ type WebauthnRegistrationOptionsResponse struct {
 }
 
 type WebauthnRegistrationVerifyRequest struct {
-	Name       *string `json:"name,omitempty"`
-	Credential string  `json:"credential"`
+	Name        *string `json:"name,omitempty"`
+	Credential  string  `json:"credential"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	State       *string `json:"state,omitempty"`
 }
 
 type Webhook struct {

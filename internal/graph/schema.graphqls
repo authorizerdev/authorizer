@@ -90,6 +90,17 @@ type User {
   # has_skipped_mfa_setup_at is set once the user explicitly skips the
   # optional MFA setup prompt shown at login. Null means never skipped.
   has_skipped_mfa_setup_at: Int64
+  # mfa_locked_at is set once the user reports losing access to their only
+  # MFA factor(s) with no OTP fallback enrolled. Null means not locked. Only
+  # an admin can clear it (_update_user with reset_mfa: true).
+  mfa_locked_at: Int64
+  # enrolled_mfa_methods lists the MFA factors this user has actually
+  # verified/enrolled: any of "totp", "webauthn", "email_otp", "sms_otp".
+  # Distinct from is_multi_factor_auth_enabled (a required-at-login flag) —
+  # this reflects real enrollment rows in storage. Lazily resolved: computed
+  # only when selected, so login/profile/auth responses that don't ask for it
+  # pay nothing. Empty list means nothing enrolled.
+  enrolled_mfa_methods: [String!]!
   app_data: Map
 }
 
@@ -132,12 +143,23 @@ type AuthResponse {
   # webauthn_login_options(email)/webauthn_login_verify mutations — in
   # addition to (or instead of) should_show_totp_screen's code-entry form.
   should_offer_webauthn_mfa_verify: Boolean
-  # should_offer_mfa_setup is true when MFA is available but not enforced,
-  # the user hasn't enrolled, and they haven't skipped setup before. Unlike
-  # should_show_totp_screen, access_token is ALREADY populated alongside
-  # this flag — the frontend should log the user in and separately offer
-  # (not force) MFA setup, e.g. via a dismissible hub with a Skip action.
+  # should_offer_mfa_setup is DEPRECATED and never set to true anymore: the
+  # first-time-offer case now withholds access_token (see
+  # should_show_totp_screen/should_offer_webauthn_mfa_setup) instead of
+  # issuing a token alongside an "offer" flag. Field kept (unset) because
+  # older integration tests still assert its zero value; do not read it.
   should_offer_mfa_setup: Boolean
+  # should_offer_webauthn_mfa_setup is true, alongside should_show_totp_screen,
+  # when this is a first-time optional-MFA offer (mfaGateOfferAll) and
+  # WebAuthn is enabled server-wide as an MFA factor. access_token is NOT
+  # populated alongside this flag — unlike the old should_offer_mfa_setup,
+  # the token is withheld until the user completes a method or skips.
+  should_offer_webauthn_mfa_setup: Boolean
+  # should_offer_email_otp_mfa_setup / should_offer_sms_otp_mfa_setup: same
+  # shape, for email/SMS OTP — true only when that method's provider is
+  # configured AND the user has no verified enrollment for it yet.
+  should_offer_email_otp_mfa_setup: Boolean
+  should_offer_sms_otp_mfa_setup: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -187,6 +209,13 @@ input WebauthnRegistrationVerifyRequest {
   # JSON-encoded PublicKeyCredential attestation response from
   # navigator.credentials.create().
   credential: String!
+  # The following three fields are only used on the MFA-session-cookie path
+  # (mfaGateOfferAll/mfaGateBlockEnroll passkey enrollment) — ignored for an
+  # ordinary bearer-token-authenticated settings-page caller. Same shape as
+  # SkipMfaSetupRequest/VerifyOTPRequest.
+  email: String
+  phone_number: String
+  state: String
 }
 
 input WebauthnLoginVerifyRequest {
@@ -822,6 +851,11 @@ input UpdateUserRequest {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  # reset_mfa, when true, clears the user's entire MFA state: mfa_locked_at,
+  # is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, and deletes all
+  # enrolled authenticators/passkeys. The user's next login lands back on
+  # the first-time setup screen, same as a brand-new account.
+  reset_mfa: Boolean
   app_data: Map
 }
 
@@ -1225,6 +1259,33 @@ input VerifyOTPRequest {
   state: String
 }
 
+input SkipMfaSetupRequest {
+  # either email or phone_number is required, whichever the pending login
+  # used, to resolve which user's MFA session cookie this is.
+  email: String
+  phone_number: String
+  # state is used for authorization code grant flow, same as VerifyOTPRequest.
+  state: String
+}
+
+input LockMfaRequest {
+  # either email or phone_number is required, to resolve which user's MFA
+  # session cookie this is — same pattern as SkipMfaSetupRequest.
+  email: String
+  phone_number: String
+}
+
+input OtpMfaSetupRequest {
+  # Only used in the MFA-session-cookie mode of email_otp_mfa_setup /
+  # sms_otp_mfa_setup (a caller in the withheld first-time-offer state, with
+  # no bearer token yet) to resolve which user's MFA session cookie this is
+  # — same pattern as SkipMfaSetupRequest/LockMfaRequest. Ignored when the
+  # caller has a valid bearer token/session, which already identifies the
+  # user (the existing settings-screen "add a second factor" flow).
+  email: String
+  phone_number: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -1340,17 +1401,57 @@ type Mutation {
   revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  # skip_mfa_setup records that the authenticated caller explicitly declined
-  # the optional MFA setup prompt. Fails with FAILED_PRECONDITION if MFA is
-  # organization-enforced (enforce-mfa) — enforcement is never skippable.
-  skip_mfa_setup: Response!
+  # skip_mfa_setup completes an in-progress, token-withheld MFA offer by
+  # recording that the caller explicitly declined it, then issues the
+  # access token that was withheld. Identified by the MFA session cookie
+  # (set when the offer screen was returned) plus email/phone_number to
+  # resolve the pending user — same identification pattern as verify_otp.
+  # Fails with FAILED_PRECONDITION if MFA is organization-enforced
+  # (enforce-mfa) — enforcement is never skippable.
+  skip_mfa_setup(params: SkipMfaSetupRequest!): AuthResponse!
+  # lock_mfa records that the caller lost access to their only MFA
+  # factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+  # fallback enrolled — if one exists, use it instead of locking. Does not
+  # issue a token; the account requires admin recovery afterward.
+  lock_mfa(params: LockMfaRequest!): Response!
+  # email_otp_mfa_setup sends a one-time code to the caller's own email and
+  # creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+  # (a) an authenticated caller (bearer token) — the settings-screen action
+  # for an ALREADY-logged-in user adding a second factor; params is unused
+  # in this mode. (b) a caller in the withheld first-time-offer state, with
+  # no bearer token yet — identified by the MFA session cookie plus
+  # params.email/phone_number, same pattern as skip_mfa_setup. Either mode
+  # reuses the same underlying Authenticator row once verify_otp marks it
+  # verified.
+  email_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
+  # sms_otp_mfa_setup sends a one-time code to the caller's own phone number
+  # and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+  # permissions and relationship to verify_otp as email_otp_mfa_setup.
+  sms_otp_mfa_setup(params: OtpMfaSetupRequest): Response!
+  # totp_mfa_setup generates a fresh TOTP secret/QR/recovery-codes for the
+  # caller to enroll as an MFA method. Same dual-mode permissions as
+  # email_otp_mfa_setup/sms_otp_mfa_setup. Unlike those, nothing is sent
+  # anywhere - the enrollment payload is returned directly (same
+  # authenticator_scanner_image/authenticator_secret/authenticator_recovery_codes
+  # fields the login/signup gate response uses) so the caller scans the
+  # QR/enters the code, then completes enrollment via verify_otp(is_totp: true).
+  totp_mfa_setup(params: OtpMfaSetupRequest): AuthResponse!
   # WebAuthn / passkey self-service ceremonies (no admin `_` prefix).
+  #
+  # Both also accept an MFA-session-cookie caller in addition to a bearer
+  # token: during a token-withheld mfaGateOfferAll/mfaGateBlockEnroll offer
+  # (see mfa_gate.go), registering a passkey completes the gate the same way
+  # totp_mfa_setup + verify_otp(is_totp: true) does, so
+  # webauthn_registration_verify returns AuthResponse (access_token set only
+  # on that session-resolved path; nil, message-only, for the ordinary
+  # authenticated-settings-page caller).
   webauthn_registration_options(
     email: String
+    phone_number: String
   ): WebauthnRegistrationOptionsResponse!
   webauthn_registration_verify(
     params: WebauthnRegistrationVerifyRequest!
-  ): Response!
+  ): AuthResponse!
   webauthn_login_options(email: String): WebauthnLoginOptionsResponse!
   webauthn_login_verify(params: WebauthnLoginVerifyRequest!): AuthResponse!
   webauthn_delete_credential(id: ID!): Response!

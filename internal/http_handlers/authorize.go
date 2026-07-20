@@ -76,23 +76,31 @@ const (
 func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 	return func(gc *gin.Context) {
-		redirectURI := strings.TrimSpace(gc.Query("redirect_uri"))
-		responseType := strings.TrimSpace(gc.Query("response_type"))
-		state := strings.TrimSpace(gc.Query("state"))
-		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
-		scopeString := strings.TrimSpace(gc.Query("scope"))
-		clientID := strings.TrimSpace(gc.Query("client_id"))
-		responseMode := strings.TrimSpace(gc.Query("response_mode"))
+		// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint
+		// MUST support GET and MAY support POST (form-urlencoded body).
+		// FormValue reads the POST body first, falling back to the query
+		// string, so the same handler serves both methods.
+		param := func(key string) string {
+			return strings.TrimSpace(gc.Request.FormValue(key))
+		}
+
+		redirectURI := param("redirect_uri")
+		responseType := param("response_type")
+		state := param("state")
+		codeChallenge := param("code_challenge")
+		scopeString := param("scope")
+		clientID := param("client_id")
+		responseMode := param("response_mode")
 		rawResponseMode := responseMode
-		nonce := strings.TrimSpace(gc.Query("nonce"))
-		screenHint := strings.TrimSpace(gc.Query("screen_hint"))
+		nonce := param("nonce")
+		screenHint := param("screen_hint")
 
 		// OIDC Core §3.1.2.1 standard authorization request parameters.
-		loginHint := strings.TrimSpace(gc.Query("login_hint"))
-		uiLocales := strings.TrimSpace(gc.Query("ui_locales"))
-		prompt := strings.TrimSpace(gc.Query("prompt"))
-		maxAgeStr := strings.TrimSpace(gc.Query("max_age"))
-		idTokenHint := strings.TrimSpace(gc.Query("id_token_hint"))
+		loginHint := param("login_hint")
+		uiLocales := param("ui_locales")
+		prompt := param("prompt")
+		maxAgeStr := param("max_age")
+		idTokenHint := param("id_token_hint")
 
 		// max_age is advisory. Parse per OIDC Core §3.1.2.1:
 		//   - negative or non-integer → treat as absent (no constraint)
@@ -137,7 +145,27 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			redirectURI = "/app"
 		} else {
 			hostname := parsers.GetHost(gc)
-			if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
+			validRedirect := validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname)
+			// RFC 6749 §3.1.2.3 / OAuth 2.0 Security BCP (RFC 9700): once a
+			// client has registered exact redirect URIs, the presented
+			// redirect_uri MUST exact-match one of them — never a prefix or
+			// origin match. IsValidRedirectURI above only checks
+			// scheme+host+port against the global AllowedOrigins allowlist,
+			// which alone would let any path under an allowed host through
+			// (including a suffix appended to another client's callback);
+			// it remains the fallback for clients with no registered URIs.
+			if client, err := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID); err == nil && client != nil {
+				if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
+					validRedirect = false
+					for _, r := range registered {
+						if r == redirectURI {
+							validRedirect = true
+							break
+						}
+					}
+				}
+			}
+			if !validRedirect {
 				log.Debug().Msg("Invalid redirect URI")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_request",
@@ -147,11 +175,33 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if responseType == "" {
-			responseType = h.Config.DefaultAuthorizeResponseType
+		// OIDCC-3.1.2.6 (JAR, RFC 9101): the server must either process a
+		// `request`/`request_uri` object or reject it with
+		// request_not_supported / request_uri_not_supported. We don't parse
+		// request objects, so reject explicitly rather than silently
+		// ignoring the parameter and falling through to a confusing
+		// generic validation error.
+		if requestObject, requestURI := param("request"), param("request_uri"); requestObject != "" || requestURI != "" {
+			errCode := "request_not_supported"
+			errDesc := "the request parameter is not supported"
+			if requestURI != "" {
+				errCode = "request_uri_not_supported"
+				errDesc = "the request_uri parameter is not supported"
+			}
+			redirectErrorToRP(gc, responseMode, redirectURI, state, errCode, errDesc)
+			return
 		}
 
-		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
+		// RFC 6749 §3.1.1: response_type is REQUIRED. gin's Query() can't
+		// distinguish an absent parameter from an empty one, so both land
+		// here — reject rather than silently defaulting to an implicit-flow
+		// token grant the client never asked for.
+		if responseType == "" {
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "response_type is required")
+			return
+		}
+
+		codeChallengeMethod := param("code_challenge_method")
 		// RFC 7636 §4.2: "If the client is capable of using
 		// "S256", it MUST use "S256" [...] If the server does not
 		// support the transformation, [...] it MUST return [...].
@@ -335,25 +385,43 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if decryptedFingerPrint, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
 				var sd token.SessionData
 				if jsonErr := json.Unmarshal([]byte(decryptedFingerPrint), &sd); jsonErr == nil {
-					if time.Now().Unix()-sd.IssuedAt > int64(maxAge) {
-						log.Debug().Int("max_age", maxAge).Int64("session_age", time.Now().Unix()-sd.IssuedAt).Msg("session exceeds max_age — forcing re-auth")
+					// Measured against AuthTime (the End-User's actual last
+					// authentication), not IssuedAt (which refreshes on
+					// every silent rollover) — otherwise a client can keep
+					// a session alive past max_age indefinitely by polling
+					// faster than the max_age window.
+					authTime := sd.EffectiveAuthTime()
+					if time.Now().Unix()-authTime > int64(maxAge) {
+						log.Debug().Int("max_age", maxAge).Int64("session_age", time.Now().Unix()-authTime).Msg("session exceeds max_age — forcing re-auth")
 						forceReauth = true
 					}
 				}
 			}
 		}
 
-		// When prompt=login and a valid session cookie exists, don't discard
-		// it. The normal flow below validates it, performs a session rollover,
-		// stores the authorization code state, and redirects to the RP.
-		// Discarding the session here would send the user to the login UI
-		// where the React SDK auto-detects the still-valid cookie, redirects
-		// immediately, but the authorization code state is never stored
-		// because the login mutation is never called.
-		//
-		// For max_age=0 or max_age-exceeded, we DO discard the session
-		// because the spec requires actual re-authentication based on time.
-		if forceReauth && (prompt != "login" || err != nil || sessionToken == "") {
+		// OIDC Core §3.1.2.1: prompt=login and an exceeded max_age both
+		// require actually re-authenticating the user, not just ignoring
+		// the local `sessionToken` variable for this one request — the
+		// browser's session cookie stays valid, so the login UI's own
+		// session check (getSession) still sees a logged-in user and
+		// immediately bounces back to /authorize without ever rendering a
+		// login form, and the authorization code state is never stored.
+		// Revoke the session for real (memory store + cookie) so the login
+		// UI genuinely sees a logged-out user and forces fresh credentials.
+		if forceReauth && err == nil && sessionToken != "" {
+			if decryptedFingerPrint, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
+				var sd token.SessionData
+				if jsonErr := json.Unmarshal([]byte(decryptedFingerPrint), &sd); jsonErr == nil {
+					revokeKey := sd.Subject
+					if sd.LoginMethod != "" {
+						revokeKey = sd.LoginMethod + ":" + sd.Subject
+					}
+					_ = h.MemoryStoreProvider.DeleteUserSession(revokeKey, sd.Nonce)
+				}
+			}
+			cookie.DeleteSession(gc, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
+		}
+		if forceReauth {
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
@@ -472,7 +540,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
@@ -564,7 +633,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for id_token token response")
@@ -625,7 +695,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating session token")
@@ -711,7 +781,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -763,7 +834,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
-				AuthTime:    claims.IssuedAt,
+				AuthTime:    claims.EffectiveAuthTime(),
+				ClientID:    clientID,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")

@@ -161,7 +161,7 @@ func TestStorageProvider(t *testing.T) {
 			})
 
 			t.Run("Verification Request Operations", func(t *testing.T) {
-				testVerificationRequestOperations(t, ctx, provider)
+				testVerificationRequestOperations(t, ctx, provider, dbType)
 			})
 
 			t.Run("Webhook Operations", func(t *testing.T) {
@@ -570,7 +570,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 
 }
 
-func testVerificationRequestOperations(t *testing.T, ctx context.Context, provider Provider) {
+func testVerificationRequestOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
 	vr := &schemas.VerificationRequest{
 		Token:       uuid.New().String(),
 		Email:       "test_" + uuid.New().String() + "@test.com",
@@ -620,6 +620,42 @@ func testVerificationRequestOperations(t *testing.T, ctx context.Context, provid
 	assert.Equal(t, vr.Nonce, listed.Nonce)
 	assert.Equal(t, vr.RedirectURI, listed.RedirectURI)
 	assert.Equal(t, vr.ExpiresAt, listed.ExpiresAt)
+
+	// A second AddVerificationRequest for the same (email, identifier) - the
+	// normal resend-verification-email flow always deletes the old request
+	// first (see resend_verify_email.go), so this exercises what happens if
+	// that invariant is ever violated (e.g. a caller bug, or a race between
+	// two concurrent resends). Backend behavior intentionally differs here:
+	// SQL upserts on conflict (clause.OnConflict...DoUpdates, so the second
+	// call succeeds and replaces the pending request in place); Mongo has no
+	// such upsert logic, so its unique index must hard-reject instead, or a
+	// second silent row would accumulate.
+	dupToken := uuid.New().String()
+	dup, dupErr := provider.AddVerificationRequest(ctx, &schemas.VerificationRequest{
+		Token:       dupToken,
+		Email:       vr.Email,
+		ExpiresAt:   time.Now().Add(24 * time.Hour).Unix(),
+		Identifier:  vr.Identifier,
+		Nonce:       uuid.New().String(),
+		RedirectURI: "https://app.example.com/callback",
+	})
+	if isSQLTestDB(dbType) {
+		assert.NoError(t, dupErr, "SQL upserts a duplicate (email, identifier) request rather than erroring")
+		refetched, err := provider.GetVerificationRequestByEmail(ctx, vr.Email, vr.Identifier)
+		require.NoError(t, err)
+		assert.Equal(t, dupToken, refetched.Token, "upsert must replace the pending request, not add a second one")
+	} else if dbType == constants.DbTypeMongoDB {
+		// Regression guard: this compound index used a multi-key bson.M, which
+		// the driver silently rejects at CreateIndexes time - the constraint
+		// was never actually created, so this duplicate would have been
+		// accepted, leaving two pending requests for the same identity.
+		assert.Error(t, dupErr, "duplicate (email, identifier) verification request must be rejected")
+	} else if dupErr == nil {
+		// Cassandra/DynamoDB/ArangoDB/Couchbase: neither upsert nor a unique
+		// constraint exist yet for this pair - known gap, not fixed here.
+		// Clean up the extra row so it doesn't leak into other subtests.
+		_ = provider.DeleteVerificationRequest(ctx, dup)
+	}
 
 	// Test DeleteVerificationRequest
 	err = provider.DeleteVerificationRequest(ctx, vr)

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
 	const [loading, setLoading] = React.useState(false);
@@ -21,6 +22,12 @@ export default function Dashboard() {
 				<a href={`mailto:${user?.email}`} style={{ color: '#3B82F6' }}>
 					{user?.email}
 				</a>
+			</p>
+
+			<p>
+				<Link to="/app/settings" style={{ color: '#3B82F6' }}>
+					Manage MFA
+				</Link>
 			</p>
 
 			<br />

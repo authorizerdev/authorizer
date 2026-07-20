@@ -10,12 +10,19 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Dependencies struct for token provider
 type Dependencies struct {
 	Log                 *zerolog.Logger
 	MemoryStoreProvider memory_store.Provider
+	// StorageProvider backs the revocation re-check in ValidateAccessToken /
+	// ValidateBrowserSession: defense-in-depth so a deprovisioned user
+	// (RevokedTimestamp set — SCIM active:false, account deactivation) loses
+	// request-serving access even if the session-store delete that normally
+	// invalidates the token was missed or failed on this instance.
+	StorageProvider storage.Provider
 }
 
 type provider struct {
@@ -66,8 +73,10 @@ type Provider interface {
 	ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error)
 	// ValidateJWTTokenWithoutNonce validates jwt token without nonce
 	ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error)
-	// ValidateRefreshToken validates refresh token
-	ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error)
+	// ValidateRefreshToken validates refresh token. expectedClientID is the
+	// OAuth client presenting the token at the token endpoint — it MUST match
+	// the token's "aud" claim (the client it was issued to).
+	ValidateRefreshToken(gc *gin.Context, refreshToken string, expectedClientID string) (map[string]interface{}, error)
 	// NotifyBackchannelLogout signs and POSTs an OIDC Back-Channel Logout
 	// 1.0 logout_token to the supplied URI. Intended to be invoked from a
 	// goroutine; remote HTTP failures are not surfaced beyond the local error.

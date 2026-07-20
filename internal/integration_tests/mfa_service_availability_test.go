@@ -67,14 +67,21 @@ func TestMFAServiceAvailability(t *testing.T) {
 		require.True(t, meta.IsMultiFactorAuthServiceEnabled)
 
 		email := "mfa_on_" + uuid.New().String() + "@authorizer.dev"
-		su, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 			Email: &email, Password: "Password@123", ConfirmPassword: "Password@123",
 		})
+		require.NoError(t, err)
+		// cfg.EnableMFA is true here, so SignUp itself now runs the same MFA
+		// gate as Login (Task 7): its response withholds the token and the
+		// User field (matching login.go's own mfaGateOfferAll/BlockEnroll
+		// responses, which never set User either). Look the user up by email
+		// instead of relying on a User field that isn't there for this path.
+		signedUpUser, err := ts.StorageProvider.GetUserByEmail(ctx, email)
 		require.NoError(t, err)
 
 		setAdminCookie(t, ts)
 		res, err := ts.GraphQLProvider.UpdateUser(ctx, &model.UpdateUserRequest{
-			ID: su.User.ID, IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+			ID: signedUpUser.ID, IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
 		require.NoError(t, err)
 		require.True(t, refs.BoolValue(res.IsMultiFactorAuthEnabled))

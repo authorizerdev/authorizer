@@ -1,12 +1,14 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import { AuthorizerMFASetup, AuthorizerVerifyOtp, useAuthorizer } from '@authorizerdev/authorizer-react';
+import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
+const Settings = lazy(() => import('./pages/settings'));
 const SignUp = lazy(() => import('./pages/signup'));
 
 /**
@@ -38,7 +40,16 @@ export default function Root({
 }: {
 	globalState: Record<string, string>;
 }) {
-	const { token, loading, config } = useAuthorizer();
+	const { token, loading, config, setAuthData } = useAuthorizer();
+
+	// The server redirects here with these params, instead of issuing a
+	// token, when its MFA gate withholds one - not just for the OAuth
+	// /authorize flow this originated for, but also the magic-link-login and
+	// signup-email-verification click-through URLs (GET /verify_email),
+	// which redirect to the same place with the same params.
+	const mfaRedirect = hasWindow()
+		? parseMfaRedirectParams(window.location.href)
+		: null;
 
 	const combinedParams = getCombinedParams();
 	const getParam = (key: string): string => combinedParams.get(key) || '';
@@ -58,7 +69,7 @@ export default function Root({
 
 	const rawRedirectURL = getParam('redirect_uri') || getParam('redirectURL');
 	urlProps.redirectURL =
-		rawRedirectURL || (hasWindow() ? window.location.origin : '/app');
+		rawRedirectURL || (hasWindow() ? `${window.location.origin}/app` : '/app');
 
 	urlProps.redirect_uri = urlProps.redirectURL;
 
@@ -106,14 +117,71 @@ export default function Root({
 		window.location.replace(`/authorize?${params.toString()}`);
 	}, [token, isAuthorizeContext, state]);
 
+	// Both MFA gates below are reached via a server redirect carrying the
+	// gate state in the URL, not client-side navigation - there's no prior
+	// SPA screen to pop back to. "Back" here means abandoning the pending
+	// MFA session and returning to a clean /app (fresh login screen).
+	const backToLogin = () => window.location.replace('/app');
+
 	if (loading) {
 		return <h1>Loading...</h1>;
+	}
+	if (mfaRedirect && mfaRedirect.mfaGate === 'verify') {
+		// An already-configured factor must be challenged, not offered setup
+		// again - no email/phone_number in hand (OAuth/magic-link return), but
+		// verify_otp resolves the pending user from the MFA session cookie
+		// alone, same as the passkey-primary-login continuation.
+		return (
+			<AuthorizerVerifyOtp
+				is_totp={mfaRedirect.mfaMethods.includes('totp')}
+				offerWebauthnVerify={mfaRedirect.mfaMethods.includes('webauthn')}
+				hasCodeFactor={
+					mfaRedirect.mfaMethods.includes('totp') ||
+					mfaRedirect.mfaMethods.includes('email_otp') ||
+					mfaRedirect.mfaMethods.includes('sms_otp')
+				}
+				onBack={backToLogin}
+				onLogin={(data: any) => {
+					setAuthData({
+						user: data?.user || null,
+						token: data,
+						config,
+						loading: false,
+					});
+				}}
+			/>
+		);
+	}
+	if (mfaRedirect && mfaRedirect.mfaGate === 'offer') {
+		return (
+			<AuthorizerMFASetup
+				availableMfaMethods={{
+					totp: mfaRedirect.mfaMethods.includes('totp'),
+					passkey: mfaRedirect.mfaMethods.includes('webauthn'),
+					emailOtp: mfaRedirect.mfaMethods.includes('email_otp'),
+					smsOtp: mfaRedirect.mfaMethods.includes('sms_otp'),
+				}}
+				heading="Set up multi-factor authentication"
+				onBack={backToLogin}
+				loginContext={{
+					onComplete: (data: any) => {
+						setAuthData({
+							user: data?.user || null,
+							token: data,
+							config,
+							loading: false,
+						});
+					},
+				}}
+			/>
+		);
 	}
 	if (token) {
 		return (
 			<Suspense fallback={<></>}>
 				<Routes>
 					<Route path="/app" element={<Dashboard />} />
+					<Route path="/app/settings" element={<Settings />} />
 					<Route path="*" element={<Navigate to="/app" replace />} />
 				</Routes>
 			</Suspense>

@@ -1,5 +1,13 @@
 package schemas
 
+// TableName pins the SQL table name to authorizer_oauth_states. Without this,
+// GORM's naming strategy derives "o_auth_states" from the struct name (a known
+// GORM quirk splitting "OAuth" into "O"+"Auth"), diverging from the
+// authorizer_oauth_states name every other storage provider uses.
+func (OAuthState) TableName() string {
+	return Collections.OAuthState
+}
+
 // OAuthState model for storing OAuth state in database
 // This replaces the in-memory storage for OAuth state when Redis is not configured
 type OAuthState struct {

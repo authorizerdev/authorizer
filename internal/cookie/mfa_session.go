@@ -3,6 +3,7 @@ package cookie
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,9 +11,14 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
-// SetMfaSession sets the mfa session cookie in the response.
-func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
-	for _, c := range BuildMfaSessionCookies(parsers.GetHost(gc), sessionID, appCookieSecure) {
+// SetMfaSession sets the mfa session cookie in the response. expiresAt is the
+// same absolute Unix timestamp passed to MemoryStoreProvider.SetMfaSession -
+// the cookie's MaxAge must match the underlying session's actual TTL, or the
+// browser deletes the cookie before the session it points to expires (e.g. a
+// user who takes over a minute to read an MFA offer screen and click "Skip
+// for now" would get a valid session but a browser-deleted cookie).
+func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool, expiresAt int64) {
+	for _, c := range BuildMfaSessionCookies(parsers.GetHost(gc), sessionID, appCookieSecure, expiresAt) {
 		gc.SetSameSite(c.SameSite)
 		gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
 	}
@@ -20,12 +26,13 @@ func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 
 // BuildMfaSessionCookies returns the MFA session cookies (host-scoped and
 // domain-scoped) to set on the response. Transport-agnostic mirror of
-// SetMfaSession.
+// SetMfaSession. expiresAt must match the caller's MemoryStoreProvider.
+// SetMfaSession call - see that function's doc comment for why.
 //
 // SameSite policy mirrors the gin path: Lax when insecure (so cross-site UI
 // can still complete the flow), None when secure. See the SetMfaSession
 // comment for the historical reasoning and the configurability TODO.
-func BuildMfaSessionCookies(hostname, sessionID string, appCookieSecure bool) []*http.Cookie {
+func BuildMfaSessionCookies(hostname, sessionID string, appCookieSecure bool, expiresAt int64) []*http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
@@ -35,8 +42,7 @@ func BuildMfaSessionCookies(hostname, sessionID string, appCookieSecure bool) []
 	if !appCookieSecure {
 		sameSite = http.SameSiteLaxMode
 	}
-	// TODO allow configuring cookie max-age via config
-	age := 60
+	age := int(time.Until(time.Unix(expiresAt, 0)).Seconds())
 	return []*http.Cookie{
 		{
 			Name:     constants.MfaCookieName + "_session",

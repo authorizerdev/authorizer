@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,27 +18,22 @@ import (
 )
 
 // TestSkipMFASetup covers the security-relevant behaviors of the
-// skip_mfa_setup mutation:
-//   - with a valid token and MFA optional, it records HasSkippedMFASetupAt
-//     and a subsequent login no longer offers setup (should_offer_mfa_setup
-//     is false).
-//   - with EnforceMFA=true it is rejected with KindFailedPrecondition even
-//     though the caller is authenticated — enforcement is never skippable,
-//     and this must be re-checked server-side regardless of what the
-//     client believes the gate state to be.
-//   - with no credentials at all, it is rejected with KindUnauthenticated in
-//     both EnforceMFA states — proving authentication is checked before
-//     EnforceMFA, so the response code never leaks org-wide MFA enforcement
-//     to an anonymous caller.
+// skip_mfa_setup mutation under the withheld-token model:
+//   - a valid MFA session + matching email, with MFA optional, records
+//     HasSkippedMFASetupAt and issues the previously-withheld access token.
+//   - with EnforceMFA=true it is rejected with FailedPrecondition even with
+//     a valid MFA session — enforcement is never skippable.
+//   - with no valid MFA session cookie at all, it is rejected with
+//     Unauthenticated in both EnforceMFA states.
 func TestSkipMFASetup(t *testing.T) {
 	const password = "Password@123"
 
-	t.Run("skips setup when MFA is optional and quiets a later login", func(t *testing.T) {
+	t.Run("skips setup, issues the withheld token, and quiets a later login", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
 		cfg.EnableTOTPLogin = true
 		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
+		req, ctx := createContext(ts)
 
 		email := "skip_mfa_" + uuid.NewString() + "@authorizer.dev"
 		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
@@ -54,42 +48,44 @@ func TestSkipMFASetup(t *testing.T) {
 
 		loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
 		require.NoError(t, err)
-		require.NotNil(t, loginRes.AccessToken)
-		assert.True(t, refs.BoolValue(loginRes.ShouldOfferMfaSetup), "first login with optional MFA and no prior enrollment/skip must offer setup")
+		require.Nil(t, loginRes.AccessToken, "first login with optional MFA and no prior enrollment/skip must withhold the token")
+		require.True(t, refs.BoolValue(loginRes.ShouldShowTotpScreen))
 
-		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes.AccessToken)
-		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx)
+		// Login withholds the token behind an MFA session cookie set on the
+		// response (Set-Cookie), not on the request — http.Request cookies
+		// are not auto-updated from responses in this in-process test setup
+		// (see latestAppSessionCookie's doc comment). Every other MFA-session
+		// test in this package (verify_otp_totp_test.go,
+		// verify_otp_totp_lockout_test.go, webauthn_test.go) copies the
+		// cookie onto the request by hand for the same reason; mirror that
+		// here rather than relying on it propagating automatically.
+		mfaSession := latestMfaSessionCookie(ts)
+		require.NotEmpty(t, mfaSession, "login must have set an mfa session cookie on the response")
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
 		require.NoError(t, err)
 		require.NotNil(t, skipRes)
-		assert.Equal(t, "MFA setup skipped", skipRes.Message)
+		require.NotNil(t, skipRes.AccessToken, "skip must issue the token that was withheld at login")
+		assert.NotEmpty(t, *skipRes.AccessToken)
 
 		updated, err := ts.StorageProvider.GetUserByEmail(ctx, email)
 		require.NoError(t, err)
 		assert.NotNil(t, updated.HasSkippedMFASetupAt, "skip_mfa_setup must persist HasSkippedMFASetupAt")
 
-		ts.GinContext.Request.Header.Set("Authorization", "")
 		secondLogin, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
 		require.NoError(t, err)
-		require.NotNil(t, secondLogin.AccessToken)
-		assert.False(t, refs.BoolValue(secondLogin.ShouldOfferMfaSetup), "must not nag a user who already skipped setup")
+		require.NotNil(t, secondLogin.AccessToken, "a user who already skipped setup must log in normally, token issued immediately")
 	})
 
-	t.Run("rejects with FailedPrecondition when MFA is enforced, even with a valid token", func(t *testing.T) {
+	t.Run("rejects with FailedPrecondition when MFA is enforced, even with a valid mfa session", func(t *testing.T) {
 		cfg := getTestConfig()
 		cfg.EnableMFA = true
 		cfg.EnableTOTPLogin = true
 		cfg.EnforceMFA = true
 		ts := initTestSetup(t, cfg)
-		require.NotNil(t, ts.AuthenticatorProvider, "TOTP must be enabled for this test")
 		req, ctx := createContext(ts)
 
-		// Mint a genuinely valid access token the same way a real enforced-MFA
-		// user would end up with one: complete TOTP enrollment and verify it
-		// via the real VerifyOTP path (mirrors
-		// TestVerifyOTPTOTPThroughService), rather than fabricating a token.
-		// This proves the EnforceMFA rejection below is a true server-side
-		// re-check on an authenticated caller, not an artifact of a missing
-		// or invalid token.
 		email := "skip_mfa_enforced_" + uuid.NewString() + "@authorizer.dev"
 		now := time.Now().Unix()
 		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
@@ -100,27 +96,11 @@ func TestSkipMFASetup(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		authConfig, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
-		require.NoError(t, err)
-		require.NotEmpty(t, authConfig.Secret)
-
 		mfaSession := uuid.NewString()
-		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, time.Now().Add(5*time.Minute).Unix()))
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
-		code, err := totp.GenerateCode(authConfig.Secret, time.Now())
-		require.NoError(t, err)
-		verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
-			Email:  &email,
-			Otp:    code,
-			IsTotp: refs.NewBoolRef(true),
-		})
-		require.NoError(t, err)
-		require.NotNil(t, verifyRes)
-		require.NotEmpty(t, verifyRes.AccessToken, "a valid TOTP passcode must mint a real access token")
-
-		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
-		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx)
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
 		require.Error(t, err)
 		assert.Nil(t, skipRes)
 
@@ -129,30 +109,134 @@ func TestSkipMFASetup(t *testing.T) {
 		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "EnforceMFA must reject with FailedPrecondition, not Unauthenticated or any other kind")
 	})
 
-	// An unauthenticated caller (no Authorization header, no session cookie)
-	// must get Unauthenticated regardless of EnforceMFA. Authentication is
-	// checked before EnforceMFA in SkipMFASetup precisely so the response
-	// code never leaks whether MFA is org-enforced to a caller who hasn't
-	// proven who they are. Covering both EnforceMFA states proves the
-	// enforced case no longer leaks FailedPrecondition to an anonymous caller.
 	for _, enforceMFA := range []bool{false, true} {
-		t.Run(fmt.Sprintf("rejects with Unauthenticated when caller has no credentials (EnforceMFA=%v)", enforceMFA), func(t *testing.T) {
+		t.Run(fmt.Sprintf("rejects with Unauthenticated when caller has no valid mfa session (EnforceMFA=%v)", enforceMFA), func(t *testing.T) {
 			cfg := getTestConfig()
 			cfg.EnableMFA = true
 			cfg.EnableTOTPLogin = true
 			cfg.EnforceMFA = enforceMFA
 			ts := initTestSetup(t, cfg)
-			// createContext builds a fresh request with no Authorization
-			// header and no cookies set — a genuinely credential-less caller.
 			_, ctx := createContext(ts)
 
-			skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx)
+			email := "skip_mfa_nosession_" + uuid.NewString() + "@authorizer.dev"
+			now := time.Now().Unix()
+			_, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+				Email:                    refs.NewStringRef(email),
+				EmailVerifiedAt:          &now,
+				SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+				IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+			})
+			require.NoError(t, err)
+
+			skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
 			require.Error(t, err)
 			assert.Nil(t, skipRes)
 
 			var svcErr *service.Error
 			require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
-			assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a caller with no credentials must get Unauthenticated regardless of EnforceMFA")
+			assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a caller with no valid mfa session must get Unauthenticated regardless of EnforceMFA")
 		})
 	}
+
+	t.Run("rejects with Unauthenticated when no identifier is given and the session cookie does not resolve", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		// With no email/phone_number, SkipMFASetup now falls back to resolving
+		// the account from the session cookie alone (the OAuth-return
+		// continuation path — GetMfaSessionOwner). A cookie that resolves to no
+		// stored session therefore fails with Unauthenticated, not
+		// InvalidArgument: there is no longer an "identifier required" path here.
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", uuid.NewString()))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{})
+		require.Error(t, err)
+		assert.Nil(t, skipRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr))
+		assert.Equal(t, service.KindUnauthenticated, svcErr.Kind)
+	})
+
+	t.Run("rejects a Challenge session (ResendOTP/ForgotPassword) with Unauthenticated", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "skip_mfa_challenge_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// A Challenge session is what ResendOTP / ForgotPassword mint for a
+		// caller who only supplied an email/phone number — no first factor. It
+		// must never be tradeable for a token, and must fail with the SAME shape
+		// as a missing session so the two cases are indistinguishable.
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, skipRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindUnauthenticated, svcErr.Kind, "a Challenge session must be rejected like a missing session")
+
+		unchanged, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		assert.Nil(t, unchanged.HasSkippedMFASetupAt, "a rejected Challenge session must not have recorded a skip")
+	})
+
+	t.Run("rejects with FailedPrecondition when the user already has a verified authenticator", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableMFA = true
+		cfg.EnableTOTPLogin = true
+		ts := initTestSetup(t, cfg)
+		req, ctx := createContext(ts)
+
+		email := "skip_mfa_verified_" + uuid.NewString() + "@authorizer.dev"
+		now := time.Now().Unix()
+		user, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:                    refs.NewStringRef(email),
+			EmailVerifiedAt:          &now,
+			SignupMethods:            constants.AuthRecipeMethodBasicAuth,
+			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+
+		// A verified TOTP authenticator puts the user in mfaGateBlockVerify —
+		// their own opted-in second factor. Even with a genuine Verified
+		// session, skip_mfa_setup must not let them bypass it.
+		_, err = ts.StorageProvider.AddAuthenticator(ctx, &schemas.Authenticator{
+			UserID:     user.ID,
+			Method:     constants.EnvKeyTOTPAuthenticator,
+			Secret:     "test-secret",
+			VerifiedAt: &now,
+		})
+		require.NoError(t, err)
+
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		skipRes, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, skipRes)
+
+		var svcErr *service.Error
+		require.True(t, errors.As(err, &svcErr), "expected a *service.Error, got %T: %v", err, err)
+		assert.Equal(t, service.KindFailedPrecondition, svcErr.Kind, "a user with a verified second factor must not be able to skip it")
+	})
 }

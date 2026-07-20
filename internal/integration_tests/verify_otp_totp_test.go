@@ -51,6 +51,7 @@ func TestVerifyOTPTOTPThroughService(t *testing.T) {
 	armMfaSession := func() {
 		mfaSession := uuid.NewString()
 		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession,
+			constants.MFASessionPurposeVerified,
 			time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 	}

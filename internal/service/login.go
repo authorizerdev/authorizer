@@ -14,7 +14,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -38,10 +37,13 @@ const loginGenericErrMsg = "invalid credentials"
 // WebauthnLoginVerify's EnforceMFA gate.
 func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64) error {
 	mfaSession := uuid.NewString()
-	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, expiresAt); err != nil {
+	// Every caller of this helper (login, webauthn-verify, oauth callback) has
+	// already confirmed a first factor for userID, so the session is Verified —
+	// the only purpose skip_mfa_setup/lock_mfa will act on.
+	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, constants.MFASessionPurposeVerified, expiresAt); err != nil {
 		return err
 	}
-	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
+	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 		side.AddCookie(c)
 	}
 	return nil
@@ -70,7 +72,7 @@ func loginPerformDummyPasswordCheck(password string) {
 
 // totpEnrollment is a freshly generated (unverified) TOTP enrollment
 // payload, shared by both the mfaGateBlockEnroll (forced) and
-// mfaGateOfferSetup (optional) paths of the TOTP MFA branch below.
+// mfaGateOfferAll (optional) paths of the TOTP MFA branch below.
 type totpEnrollment struct {
 	ScannerImage  string
 	Secret        string
@@ -153,32 +155,6 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	}
 	isEmailServiceEnabled := p.Config.IsEmailServiceEnabled
 	isSMSServiceEnabled := p.Config.IsSMSServiceEnabled
-	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
-	generateOTP := func(expiresAt int64) (*schemas.OTP, error) {
-		otp, err := utils.GenerateOTP()
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to generate OTP")
-			return nil, err
-		}
-		// Store the HMAC digest (defence-in-depth: an offline DB dump no
-		// longer reveals usable codes). The plaintext is held in the
-		// returned struct's Otp field for the caller's email/SMS body.
-		otpData, err := p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
-			Email:       refs.StringValue(user.Email),
-			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         crypto.HashOTP(otp, p.Config.JWTSecret),
-			ExpiresAt:   expiresAt,
-		})
-		if err != nil {
-			log.Debug().Msg("Failed to upsert otp")
-			return nil, err
-		}
-		// Replace the persisted hash with the plaintext on the returned
-		// struct so the caller can read otpData.Otp for email/SMS without
-		// having to thread two values through the closure.
-		otpData.Otp = otp
-		return otpData, nil
-	}
 	if isEmailLogin {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 			log.Debug().Str("reason", "wrong_signup_method").Msg("login failed")
@@ -211,7 +187,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					}
 				}
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
-				otpData, err := generateOTP(expiresAt)
+				otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 				if err != nil {
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
@@ -252,7 +228,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				return nil, nil, Unauthenticated(loginGenericErrMsg)
 			} else {
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
-				otpData, err := generateOTP(expiresAt)
+				otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 				if err != nil {
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
@@ -322,10 +298,36 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	isMailOTPEnabled := p.Config.EnableEmailOTP
 	isSMSOTPEnabled := p.Config.EnableSMSOTP
 
-	// If multi factor authentication is enabled and is email based login and email otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin {
+	// A single check protecting all three MFA branches below (email-OTP,
+	// SMS-OTP, TOTP/resolveMFAGate) — not one check per branch. Lockout is
+	// set only by explicit user action (lock_mfa), never inferred here.
+	if user.MFALockedAt != nil {
+		log.Debug().Msg("User's MFA is locked, refusing login")
+		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
+	}
+
+	// Computed up-front (not just inside the TOTP/resolveMFAGate branch below)
+	// so the email-OTP and SMS-OTP branches can offer it too: a registered
+	// passkey satisfies MFA on its own (see webauthn.go's WebauthnLoginVerify),
+	// so it must be offered as an alternative alongside whichever OTP method
+	// gets challenged first — the same way it's already offered alongside
+	// TOTP. Ignore a list error the same way the TOTP/resolveMFAGate branch
+	// does: treat "couldn't check" as "found none" rather than failing login.
+	webauthnCreds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+	hasWebauthnCredential := len(webauthnCreds) > 0
+
+	// A verified Email-OTP second factor is challenged on enrollment alone,
+	// independent of which identifier (email or phone) the caller logged in
+	// with: a user who signed up with email, later verified a phone number,
+	// and picked SMS/Email-OTP as their factor must still be challenged for it
+	// on an email+password login. The code is sent to the account's own stored
+	// contact (user.Email), not the login params, which may be empty for the
+	// non-matching identifier.
+	emailOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyEmailOTPAuthenticator)
+	emailOTPEnrolled := emailOTPAuthenticator != nil && emailOTPAuthenticator.VerifiedAt != nil
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && emailOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
-		otpData, err := generateOTP(expiresAt)
+		otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 		if err != nil {
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
@@ -337,7 +339,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		go func() {
 			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
-			if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
+			if err := p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeOTP, map[string]any{
 				"user":         user.ToMap(),
 				"organization": utils.GetOrganization(p.Config),
 				"otp":          otpData.Otp,
@@ -346,15 +348,24 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			}
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
-		return &model.AuthResponse{
+		res := &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
-			ShouldShowEmailOtpScreen: refs.NewBoolRef(isEmailLogin),
-		}, side, nil
+			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
+		}
+		if hasWebauthnCredential {
+			res.ShouldOfferWebauthnMfaVerify = refs.NewBoolRef(true)
+		}
+		return res, side, nil
 	}
-	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && isMobileLogin {
+	// SMS-OTP twin of the email branch above: challenged on enrollment alone,
+	// sent to user.PhoneNumber regardless of the login identifier. Email wins
+	// deterministically if a user somehow enrolled both (email branch returns
+	// first).
+	smsOTPAuthenticator, _ := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeySMSOTPAuthenticator)
+	smsOTPEnrolled := smsOTPAuthenticator != nil && smsOTPAuthenticator.VerifiedAt != nil
+	if effectiveMFAEnabled(p.Config, user) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && smsOTPEnrolled {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
-		otpData, err := generateOTP(expiresAt)
+		otpData, err := p.generateAndStoreOTP(ctx, user, expiresAt)
 		if err != nil {
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
@@ -369,29 +380,34 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-			if err := p.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
+			if err := p.SMSProvider.SendSMS(refs.StringValue(user.PhoneNumber), smsBody.String()); err != nil {
 				log.Debug().Msg("Failed to send sms")
 			}
 		}()
-		return &model.AuthResponse{
+		res := &model.AuthResponse{
 			Message:                   "Please check text message for the OTP",
-			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
-		}, side, nil
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
+		}
+		if hasWebauthnCredential {
+			res.ShouldOfferWebauthnMfaVerify = refs.NewBoolRef(true)
+		}
+		return res, side, nil
 	}
-	// If mfa enabled and also totp enabled
-	if isMFAEnabled && isTOTPLoginEnabled {
+	// Gate runs whenever MFA applies at all -- NOT scoped to "TOTP
+	// specifically is available" (that was the I1 bypass: a WebAuthn-only
+	// enforced-MFA server, EnableTOTPLogin=false, skipped this block
+	// entirely and issued tokens unconditionally). Mirrors webauthn.go's
+	// WebauthnLoginVerify, which calls resolveMFAGate unconditionally and
+	// only conditions the TOTP-specific parts of the response on
+	// isTOTPLoginEnabled below.
+	if isMFAEnabled {
 		authenticator, authErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 		totpVerified := authErr == nil && authenticator != nil && authenticator.VerifiedAt != nil
-		// A WebAuthn credential registered for ANY purpose (passwordless
-		// primary login or explicit MFA setup — there is no `purpose` field)
-		// counts as a verified second factor. Ignore a list error rather than
-		// failing login on it: treat "couldn't check" the same as "found
-		// none," matching how a missing TOTP authenticator row is handled.
-		webauthnCreds, _ := p.StorageProvider.ListWebauthnCredentialsByUserID(ctx, user.ID)
-		hasWebauthnCredential := len(webauthnCreds) > 0
+		// hasWebauthnCredential is computed once, up-front (see above) — reused
+		// here rather than re-queried.
 		authenticatorVerified := totpVerified || hasWebauthnCredential
 		gate := resolveMFAGate(
-			refs.BoolValue(user.IsMultiFactorAuthEnabled),
+			effectiveMFAEnabled(p.Config, user),
 			p.Config.EnforceMFA,
 			authenticatorVerified,
 			user.HasSkippedMFASetupAt != nil,
@@ -404,7 +420,11 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				return nil, nil, err
 			}
 			res := &model.AuthResponse{Message: `Proceed to mfa verification`}
-			if totpVerified {
+			// Defense-in-depth: totpVerified can only be true if a TOTP row
+			// exists, but a server could have disabled TOTP login after the
+			// row was created (stale enrollment). Don't offer a screen the
+			// user can no longer complete.
+			if totpVerified && isTOTPLoginEnabled {
 				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
 			}
 			if hasWebauthnCredential {
@@ -417,27 +437,48 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
-			if err != nil {
-				log.Debug().Msg("Failed to generate totp")
+			res := &model.AuthResponse{
+				Message:                     `Proceed to mfa setup`,
+				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
+			}
+			if isTOTPLoginEnabled {
+				enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+				if err != nil {
+					log.Debug().Msg("Failed to generate totp")
+					return nil, nil, err
+				}
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+				res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+				res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+				res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+			}
+			return res, side, nil
+		case mfaGateOfferAll:
+			expiresAt := time.Now().Add(3 * time.Minute).Unix()
+			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
-			return &model.AuthResponse{
-				Message:                    `Proceed to totp verification screen`,
-				ShouldShowTotpScreen:       refs.NewBoolRef(true),
-				AuthenticatorScannerImage:  refs.NewStringRef(enrollment.ScannerImage),
-				AuthenticatorSecret:        refs.NewStringRef(enrollment.Secret),
-				AuthenticatorRecoveryCodes: enrollment.RecoveryCodes,
-			}, side, nil
-		case mfaGateOfferSetup:
-			enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
-			if err != nil {
-				log.Debug().Msg("Failed to generate totp for optional setup")
-				return nil, nil, err
+			res := &model.AuthResponse{
+				Message:                     `Proceed to mfa setup`,
+				ShouldOfferWebauthnMfaSetup: refs.NewBoolRef(p.Config.EnableWebauthnMFA),
+				ShouldOfferEmailOtpMfaSetup: refs.NewBoolRef(p.Config.EnableEmailOTP && p.Config.IsEmailServiceEnabled),
+				ShouldOfferSmsOtpMfaSetup:   refs.NewBoolRef(p.Config.EnableSMSOTP && p.Config.IsSMSServiceEnabled),
 			}
-			// Falls through to normal token issuance below, with the offer
-			// flag and enrollment payload attached after CreateAuthToken.
-			side.PendingTOTPOffer = enrollment
+			if isTOTPLoginEnabled {
+				enrollment, err := p.generateTOTPEnrollment(ctx, user.ID)
+				if err != nil {
+					log.Debug().Msg("Failed to generate totp for optional setup")
+					return nil, nil, err
+				}
+				res.ShouldShowTotpScreen = refs.NewBoolRef(true)
+				res.AuthenticatorScannerImage = refs.NewStringRef(enrollment.ScannerImage)
+				res.AuthenticatorSecret = refs.NewStringRef(enrollment.Secret)
+				res.AuthenticatorRecoveryCodes = enrollment.RecoveryCodes
+			}
+			return res, side, nil
 		case mfaGateSkippedSetup:
 			side.OfferMFASetupQuiet = true
 		case mfaGateNone:
@@ -517,13 +558,6 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
 	}
-	if side.PendingTOTPOffer != nil {
-		res.ShouldOfferMfaSetup = refs.NewBoolRef(true)
-		res.AuthenticatorScannerImage = refs.NewStringRef(side.PendingTOTPOffer.ScannerImage)
-		res.AuthenticatorSecret = refs.NewStringRef(side.PendingTOTPOffer.Secret)
-		res.AuthenticatorRecoveryCodes = side.PendingTOTPOffer.RecoveryCodes
-	}
-
 	for _, c := range cookie.BuildSessionCookies(meta.HostURL, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}

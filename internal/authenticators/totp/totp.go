@@ -18,6 +18,70 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
+const (
+	// totpPendingSecretPrefix namespaces a not-yet-confirmed TOTP secret held
+	// in the memory store during a re-enrollment of an already-verified
+	// authenticator. Deliberately kept out of the DB schema (no storage
+	// provider needs a new column) — the same transient-state pattern the
+	// per-user TOTP lockout counter uses.
+	totpPendingSecretPrefix = "totp_pending_secret:"
+	// totpPendingSecretTTLSeconds bounds how long a generated-but-unconfirmed
+	// secret lingers before the user must restart the re-setup.
+	totpPendingSecretTTLSeconds = 10 * 60
+)
+
+// pendingTOTPSecret is the memory-store payload for a re-enrollment awaiting
+// confirmation: the new at-rest-encrypted secret and its hashed recovery-codes
+// blob, promoted to the live Authenticator row only once the user confirms the
+// new code via Validate.
+type pendingTOTPSecret struct {
+	Secret        string `json:"secret"`
+	RecoveryCodes string `json:"recovery_codes"`
+}
+
+func totpPendingSecretKey(userID string) string {
+	return totpPendingSecretPrefix + userID
+}
+
+// promotePendingSecret checks whether a pending (unconfirmed) re-enrollment
+// secret is staged for userID and whether passcode validates against it. When
+// it does, this call IS the user confirming their re-setup: the pending secret
+// is promoted to the live row (secret, recovery codes, VerifiedAt) and cleared
+// from the store. Returns (true, nil) when promoted. Until this moment the old
+// secret keeps validating (via the normal path in Validate), so an abandoned
+// re-setup never locks anyone out.
+func (p *provider) promotePendingSecret(ctx context.Context, totpModel *schemas.Authenticator, passcode, userID string) (bool, error) {
+	if p.deps.MemoryStoreProvider == nil {
+		return false, nil
+	}
+	blob, err := p.deps.MemoryStoreProvider.GetCache(totpPendingSecretKey(userID))
+	if err != nil || blob == "" {
+		return false, nil
+	}
+	var pending pendingTOTPSecret
+	if err := json.Unmarshal([]byte(blob), &pending); err != nil {
+		return false, nil
+	}
+	plainSecret, err := crypto.DecryptTOTPSecret(pending.Secret, p.deps.EncryptionKey)
+	if err != nil {
+		return false, nil
+	}
+	if !totp.Validate(passcode, plainSecret) {
+		// Not the new code. The caller may be logging in with the still-live old
+		// secret; leave the pending secret staged for a later confirmation.
+		return false, nil
+	}
+	now := time.Now().Unix()
+	totpModel.Secret = pending.Secret
+	totpModel.RecoveryCodes = refs.NewStringRef(pending.RecoveryCodes)
+	totpModel.VerifiedAt = &now
+	if _, err := p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel); err != nil {
+		return false, err
+	}
+	_ = p.deps.MemoryStoreProvider.DeleteCacheByPrefix(totpPendingSecretKey(userID))
+	return true, nil
+}
+
 // Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.
 func (p *provider) Generate(ctx context.Context, id string) (*config.AuthenticatorConfig, error) {
 	log := p.deps.Log.With().Str("func", "Generate (totp provider)").Logger()
@@ -81,18 +145,36 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 		log.Debug().Err(err).Msg("error getting authenticator details")
 		// continue
 	}
-	if authenticator == nil {
-		// if authenticator is nil then create new authenticator
-		_, err = p.deps.StorageProvider.AddAuthenticator(ctx, totpModel)
-		if err != nil {
+	switch {
+	case authenticator != nil && authenticator.VerifiedAt != nil && p.deps.MemoryStoreProvider != nil:
+		// Re-enrollment of an ALREADY-VERIFIED authenticator. Do NOT overwrite
+		// the live secret/recovery-codes/VerifiedAt in place: that would desync
+		// the user's working authenticator app the instant they click "set up",
+		// even if they abandon the flow before confirming the new QR — a real
+		// account-lockout risk. Stash the new secret as pending instead; it is
+		// promoted to the live row only when the user confirms the new code via
+		// Validate. Kept in the memory store (not the DB) so an abandoned or
+		// lost re-setup self-heals: the pending secret simply expires and the
+		// existing authenticator keeps working.
+		blob, mErr := json.Marshal(pendingTOTPSecret{Secret: encryptedSecret, RecoveryCodes: recoveryCodesString})
+		if mErr != nil {
+			return nil, mErr
+		}
+		if err = p.deps.MemoryStoreProvider.SetCache(totpPendingSecretKey(user.ID), string(blob), totpPendingSecretTTLSeconds); err != nil {
 			return nil, err
 		}
-	} else {
+	case authenticator == nil:
+		// First-time enrollment: no working authenticator to protect.
+		if _, err = p.deps.StorageProvider.AddAuthenticator(ctx, totpModel); err != nil {
+			return nil, err
+		}
+	default:
+		// An existing but UNVERIFIED row (a prior enrollment never confirmed, or
+		// a verified row with no memory store wired) — nothing enrolled to lose,
+		// so overwrite it in place.
 		authenticator.Secret = encryptedSecret
 		authenticator.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
-		// if authenticator is not nil then update authenticator
-		_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, authenticator)
-		if err != nil {
+		if _, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, authenticator); err != nil {
 			return nil, err
 		}
 	}
@@ -140,6 +222,17 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
+	}
+
+	// A pending re-enrollment secret takes precedence: if one is staged and the
+	// supplied code matches it, promote it now (the user is confirming their
+	// re-setup). Checked before the live secret so a successful confirmation
+	// switches over atomically; a non-matching code falls through to validate
+	// against the still-live old secret below.
+	if promoted, pErr := p.promotePendingSecret(ctx, totpModel, passcode, userID); pErr != nil {
+		return false, pErr
+	} else if promoted {
+		return true, nil
 	}
 
 	var (

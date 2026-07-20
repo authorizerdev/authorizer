@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -68,6 +69,13 @@ type Provider interface {
 	// Profile returns the authenticated user. Requires session/bearer auth.
 	Profile(ctx context.Context, meta RequestMetadata) (*model.User, *ResponseSideEffects, error)
 
+	// EnrolledMFAMethods returns the MFA method identifiers the user has
+	// verified/enrolled ("totp", "webauthn", "email_otp", "sms_otp"). Read
+	// helper backing the User.enrolled_mfa_methods GraphQL field resolver;
+	// takes a resolved user ID (not caller input), so it carries no meta and
+	// no side effects. Never nil.
+	EnrolledMFAMethods(ctx context.Context, userID string) ([]string, error)
+
 	// CheckPermissions evaluates one or more fine-grained permission checks
 	// for the caller (or, for super-admins, an explicit subject). Requires
 	// session/bearer auth and a configured FGA engine (fail-closed).
@@ -100,9 +108,34 @@ type Provider interface {
 	// and drops all of their sessions. Requires auth.
 	DeactivateAccount(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
 
-	// SkipMFASetup records that the authenticated caller declined optional
-	// MFA setup. Fails if MFA is org-enforced.
-	SkipMFASetup(ctx context.Context, meta RequestMetadata) (*model.Response, *ResponseSideEffects, error)
+	// SkipMFASetup completes a token-withheld first-time MFA offer by
+	// recording the decline and issuing the previously-withheld token.
+	// Identified via the MFA session cookie, not a bearer token — none
+	// exists yet at this point in the flow.
+	SkipMFASetup(ctx context.Context, meta RequestMetadata, params *model.SkipMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// LockMFA records that the authenticated-in-progress caller lost access
+	// to their only MFA factor(s). Requires no verified Email/SMS OTP
+	// fallback exists for the user — otherwise that should be used instead.
+	// Does not issue a token.
+	LockMFA(ctx context.Context, meta RequestMetadata, params *model.LockMfaRequest) (*model.Response, *ResponseSideEffects, error)
+
+	// EmailOTPMFASetup sends a one-time code to the caller's own email and
+	// begins an email-OTP MFA enrollment. Verified via VerifyOTP. Dual-mode:
+	// an authenticated caller (bearer token, params ignored) — the
+	// settings-screen action — OR, absent a token, the MFA session cookie
+	// plus params.email/phone_number for a caller in the withheld
+	// first-time-offer state.
+	EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error)
+	// SMSOTPMFASetup is EmailOTPMFASetup's SMS twin.
+	SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.Response, *ResponseSideEffects, error)
+	// TOTPMFASetup generates a fresh TOTP secret/QR/recovery-codes for the
+	// caller to enroll as an MFA method, same dual-mode permissions as
+	// EmailOTPMFASetup/SMSOTPMFASetup. Unlike those, nothing is sent
+	// anywhere - the enrollment payload is returned directly (same shape
+	// login.go's gate response uses) so the caller scans the QR/enters the
+	// code, then completes enrollment via VerifyOTP(is_totp: true).
+	TOTPMFASetup(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
 	// ResendVerifyEmail re-issues a pending email-verification link. Public —
 	// response is generic to avoid account enumeration.
@@ -143,11 +176,13 @@ type Provider interface {
 	VerifyOTP(ctx context.Context, meta RequestMetadata, params *model.VerifyOTPRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 
 	// WebauthnRegistrationOptions begins a passkey registration ceremony for the
-	// authenticated caller. Requires a session. Public (self-service).
-	WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnRegistrationOptionsResponse, error)
+	// caller: bearer-token authenticated (settings page) or, mid MFA-offer,
+	// MFA-session-cookie authenticated. Public (self-service).
+	WebauthnRegistrationOptions(ctx context.Context, meta RequestMetadata, email, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error)
 	// WebauthnRegistrationVerify verifies the attestation and stores the passkey
-	// for the authenticated caller. Requires a session. Public (self-service).
-	WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.Response, error)
+	// for the caller. When MFA-session authenticated, also completes the MFA
+	// gate and issues the withheld auth token. Public (self-service).
+	WebauthnRegistrationVerify(ctx context.Context, meta RequestMetadata, params *model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, *ResponseSideEffects, error)
 	// WebauthnLoginOptions begins a passkey login ceremony — usernameless when
 	// email is nil, else scoped to that user's credentials. Public.
 	WebauthnLoginOptions(ctx context.Context, meta RequestMetadata, email *string) (*model.WebauthnLoginOptionsResponse, error)
@@ -160,6 +195,17 @@ type Provider interface {
 	// WebauthnDeleteCredential deletes one of the authenticated caller's own
 	// passkeys. Requires a session. Public (self-service).
 	WebauthnDeleteCredential(ctx context.Context, meta RequestMetadata, id string) (*model.Response, error)
+
+	// EvaluateMFAGateForOAuth runs the same MFA gate Login/SignUp/
+	// WebauthnLoginVerify use, for a user who just completed an OAuth/
+	// social-provider callback - or, via VerifyEmailHandler, a magic-link/
+	// email-verification click-through, which needs the identical
+	// gate-then-redirect shape. On a withhold-group outcome it sets the MFA
+	// session cookie via side and returns (true, redirectSuffix) where
+	// redirectSuffix is the query string to append instead of the normal
+	// state/code params. On mfaGateNone/mfaGateSkippedSetup it returns
+	// (false, "") and the caller proceeds with cookie.SetSession as today.
+	EvaluateMFAGateForOAuth(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User) (withheld bool, redirectSuffix string, err error)
 }
 
 // New constructs a new service provider.

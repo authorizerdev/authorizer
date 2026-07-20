@@ -167,6 +167,11 @@ type Config struct {
 	EnableEmailOTP bool
 	// EnableSMSOTP boolean to enable SMS OTP. Derived from DisableSMSOTP.
 	EnableSMSOTP bool
+	// EnableWebauthnMFA is derived from DisableWebauthnMFA — whether a
+	// registered WebAuthn/passkey credential counts as an MFA factor. This is
+	// the ONLY WebAuthn-MFA flag; "webauthn" and "passkey" are the same
+	// credential type in this codebase (see spec), not two separate factors.
+	EnableWebauthnMFA bool
 	// DisableTOTPLogin opts out of TOTP MFA (enabled by default).
 	DisableTOTPLogin bool
 	// DisableEmailOTP opts out of email OTP MFA (enabled by default when the
@@ -175,11 +180,16 @@ type Config struct {
 	// DisableSMSOTP opts out of SMS OTP MFA (enabled by default when the SMS
 	// service is configured).
 	DisableSMSOTP bool
+	// DisableWebauthnMFA opts out of WebAuthn/passkey as an MFA factor
+	// (enabled by default). Does not affect WebAuthn/passkey as a PRIMARY
+	// login method (the passkey button on the login screen) — that is a
+	// separate, pre-existing feature, untouched by this flag.
+	DisableWebauthnMFA bool
 	// DisableMFA is a one-way global kill switch: when set, Finalize forces
 	// EnableMFA and EnforceMFA off regardless of the per-method flags. It can
 	// only ever turn MFA off, so unlike the removed --enable-mfa it cannot
-	// contradict the per-method flags. Does not affect WebAuthn/passkey, which
-	// is a separate login recipe.
+	// contradict the per-method flags. Does not affect WebAuthn/passkey as a
+	// PRIMARY login method — only its role as an MFA factor.
 	DisableMFA bool
 	// EnableSignup boolean to enable signup
 	EnableSignup bool
@@ -390,18 +400,21 @@ func (c *Config) Finalize() {
 	c.EnableTOTPLogin = !c.DisableTOTPLogin
 	c.EnableEmailOTP = !c.DisableEmailOTP
 	c.EnableSMSOTP = !c.DisableSMSOTP
+	c.EnableWebauthnMFA = !c.DisableWebauthnMFA
 
 	// MFA is available when at least one method is usable. Email/SMS OTP need
 	// their provider configured; TOTP has no external dependency. Deriving this
 	// (rather than a standalone --enable-mfa flag) prevents the state where MFA
 	// is "enabled" while every method is unavailable.
 	c.EnableMFA = c.EnableTOTPLogin ||
+		c.EnableWebauthnMFA ||
 		(c.EnableEmailOTP && c.IsEmailServiceEnabled) ||
 		(c.EnableSMSOTP && c.IsSMSServiceEnabled)
 
 	// One-way global kill switch. Wins over everything: no MFA challenge is
 	// possible and enforcement is neutralized so signup cannot flag users for
-	// an MFA they can never complete. WebAuthn/passkey is unaffected.
+	// an MFA they can never complete. Does not affect WebAuthn/passkey as a
+	// primary login method — only its role as an MFA factor.
 	if c.DisableMFA {
 		c.EnableMFA = false
 		c.EnforceMFA = false

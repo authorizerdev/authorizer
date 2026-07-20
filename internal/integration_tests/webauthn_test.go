@@ -62,7 +62,7 @@ func TestWebauthnPasskeyRegistrationAndLogin(t *testing.T) {
 	var credentialID string
 
 	t.Run("register a passkey for the authenticated user", func(t *testing.T) {
-		optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+		optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 		require.NoError(t, err)
 		attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 		require.NoError(t, err)
@@ -105,6 +105,7 @@ func TestWebauthnPasskeyRegistrationAndLogin(t *testing.T) {
 		require.NotNil(t, signupRes.User, "test needs the signed-up user's id to arm a real MFA session")
 		mfaSession := uuid.New().String()
 		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(signupRes.User.ID, mfaSession,
+			constants.MFASessionPurposeVerified,
 			time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 
@@ -169,7 +170,7 @@ func TestWebauthnLoginRequiresVerifiedEmail(t *testing.T) {
 	// Register a passkey while the account is (test-config default) verified,
 	// then flip the account back to unverified directly in storage to isolate
 	// the login-time gate from signup/verification-flow plumbing.
-	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 	require.NoError(t, err)
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 	require.NoError(t, err)
@@ -228,7 +229,7 @@ func TestWebauthnLoginOptionsScopedRequiresMfaSession(t *testing.T) {
 	require.NotNil(t, signupRes.AccessToken)
 	req.Header.Set("Authorization", "Bearer "+*signupRes.AccessToken)
 
-	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil)
+	optRes, err := ts.GraphQLProvider.WebauthnRegistrationOptions(ctx, nil, nil)
 	require.NoError(t, err)
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(optRes.Options)
 	require.NoError(t, err)
@@ -262,6 +263,7 @@ func TestWebauthnLoginOptionsScopedRequiresMfaSession(t *testing.T) {
 		otherUserID := uuid.New().String()
 		mfaSession := uuid.New().String()
 		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(otherUserID, mfaSession,
+			constants.MFASessionPurposeVerified,
 			time.Now().Add(5*time.Minute).Unix()))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 

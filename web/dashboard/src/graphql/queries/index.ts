@@ -42,6 +42,7 @@ export const UserDetailsQuery = `
         created_at
         revoked_timestamp
         is_multi_factor_auth_enabled
+        enrolled_mfa_methods
       }
     }
   }

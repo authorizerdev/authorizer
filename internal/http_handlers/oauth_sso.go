@@ -269,6 +269,16 @@ func (h *httpProvider) SSOCallbackHandler() gin.HandlerFunc {
 			ssoFail(c, &log, "sso_not_configured", "connection unavailable")
 			return
 		}
+		// SSOLoginHandler checked org.Enabled at dispatch time (resolveActiveOIDCConnection),
+		// but the state TTL window (~30-90s) gives an admin time to disable the org
+		// before the callback lands. Re-check here so an in-flight login into a
+		// just-disabled org cannot complete.
+		org, err := h.StorageProvider.GetOrganizationByID(ctx, conn.OrgID)
+		if err != nil || org == nil || !org.Enabled {
+			log.Debug().Err(err).Str("org", slug).Msg("organization disabled or missing since login was initiated")
+			ssoFail(c, &log, "sso_not_configured", "organization disabled")
+			return
+		}
 		secret, err := crypto.DecryptAES(h.Config.ClientSecret, conn.SSOClientSecretEnc)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to decrypt upstream client secret")

@@ -133,6 +133,21 @@ func (s *Client) ParsedAllowedScopes() []string {
 	return scopes
 }
 
+// ParsedRedirectURIs returns RedirectURIs as a slice: comma-separated,
+// whitespace trimmed, empty segments dropped. An empty result means this
+// client has no registered redirect URIs — callers must not treat that as
+// "any redirect_uri is allowed"; it means per-client exact-match enforcement
+// does not apply to this client (see AuthorizeHandler's redirect_uri check).
+func (s *Client) ParsedRedirectURIs() []string {
+	uris := []string{}
+	for _, u := range strings.Split(s.RedirectURIs, ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			uris = append(uris, u)
+		}
+	}
+	return uris
+}
+
 // AsAPIClient converts the storage record into the GraphQL model.
 // It never exposes ClientSecret — there is no client_secret field on
 // model.Client by design; the plaintext is surfaced only once via

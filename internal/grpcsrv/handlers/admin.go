@@ -115,6 +115,7 @@ func (h *AdminHandler) UpdateUser(ctx context.Context, req *authorizerv1.UpdateU
 		Picture:                  req.Picture,
 		Roles:                    protoToModelStringSlice(req.GetRoles()),
 		IsMultiFactorAuthEnabled: req.IsMultiFactorAuthEnabled,
+		ResetMfa:                 req.ResetMfa,
 		AppData:                  appDataToMap(req.GetAppData()),
 	})
 	if err != nil {

@@ -13,15 +13,25 @@ import (
 )
 
 // spaBuildCacheMiddleware sets cache headers for SPA build assets:
-//   - "index.js" / "main.css" (unhashed entry points the shell HTML loads
-//     by name) → no-cache, so browsers always pick up new chunk references
-//     after a deploy.
+//   - the unhashed entry points the shell HTML loads by name → no-cache, so
+//     browsers always pick up new chunk references after a deploy. Shared
+//     across web/app and web/dashboard, whose Vite configs disagree on the
+//     entry CSS filename: web/dashboard emits main.css, web/app emits
+//     index.css (its assetFileNames names the CSS after the entry chunk,
+//     "index", not a fixed "main") — both must be listed, or the app whose
+//     name doesn't match falls into the immutable branch below and its CSS
+//     gets cached for a year past any style fix.
 //   - everything else (content-hashed chunks, immutable assets) → long-lived
 //     immutable cache, since a content change produces a new filename.
 func spaBuildCacheMiddleware() gin.HandlerFunc {
+	noCacheEntryFiles := map[string]bool{
+		"index.js":  true,
+		"index.css": true,
+		"main.css":  true,
+	}
 	return func(c *gin.Context) {
 		base := path.Base(c.Request.URL.Path)
-		if base == "index.js" || base == "main.css" {
+		if noCacheEntryFiles[base] {
 			c.Header("Cache-Control", "no-cache, must-revalidate")
 		} else {
 			c.Header("Cache-Control", "public, max-age=31536000, immutable")
@@ -78,8 +88,13 @@ func (s *server) NewRouter() *gin.Engine {
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", s.Dependencies.HTTPProvider.JWKsHandler())
+	// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint MUST
+	// support GET and MAY support POST.
 	router.GET("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())
+	router.POST("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())
+	// OIDC Core §5.3.1: the UserInfo Endpoint MUST support both GET and POST.
 	router.GET("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
+	router.POST("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
 	router.GET("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())

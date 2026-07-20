@@ -3,12 +3,20 @@ package cookie
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 )
+
+// mfaCookieTestExpiry is a fixed, comfortably-in-the-future expiry the MFA
+// cookie tests use to compute an expected MaxAge without a flaky exact-second
+// comparison against time.Now() inside the assertion.
+func mfaCookieTestExpiry(d time.Duration) int64 {
+	return time.Now().Add(d).Unix()
+}
 
 func TestBuildSessionCookies(t *testing.T) {
 	tests := []struct {
@@ -46,21 +54,37 @@ func TestBuildSessionCookies(t *testing.T) {
 }
 
 func TestBuildMfaSessionCookies(t *testing.T) {
-	cookies := BuildMfaSessionCookies("https://auth.example.com", "mfa-id", true)
+	expiresAt := mfaCookieTestExpiry(3 * time.Minute)
+	cookies := BuildMfaSessionCookies("https://auth.example.com", "mfa-id", true, expiresAt)
 	require.Len(t, cookies, 2)
 	for _, c := range cookies {
 		assert.Equal(t, "mfa-id", c.Value)
 		assert.True(t, c.Secure)
 		assert.True(t, c.HttpOnly)
 		assert.Equal(t, http.SameSiteNoneMode, c.SameSite, "secure → SameSite=None")
-		assert.Equal(t, 60, c.MaxAge, "MFA cookies are short-lived (60s)")
+		assert.InDelta(t, 180, c.MaxAge, 2, "MaxAge must track the caller's actual session expiry, not a hardcoded value")
 	}
 	assert.Equal(t, constants.MfaCookieName+"_session", cookies[0].Name)
 	assert.Equal(t, constants.MfaCookieName+"_session_domain", cookies[1].Name)
 }
 
+// TestBuildMfaSessionCookies_MaxAgeTracksExpiry guards the fix for a real bug
+// this caught: the cookie's MaxAge used to be hardcoded to 60s regardless of
+// the expiresAt passed to MemoryStoreProvider.SetMfaSession (1-3 minutes
+// depending on caller). A user who took longer than 60s to act on an MFA
+// offer/verify screen would get "invalid session" even though the underlying
+// session was still valid - the cookie carrying it to the browser had already
+// been deleted. MaxAge must vary with expiresAt, not stay constant.
+func TestBuildMfaSessionCookies_MaxAgeTracksExpiry(t *testing.T) {
+	oneMinute := BuildMfaSessionCookies("https://auth.example.com", "mfa-id", true, mfaCookieTestExpiry(1*time.Minute))
+	threeMinutes := BuildMfaSessionCookies("https://auth.example.com", "mfa-id", true, mfaCookieTestExpiry(3*time.Minute))
+	assert.InDelta(t, 60, oneMinute[0].MaxAge, 2)
+	assert.InDelta(t, 180, threeMinutes[0].MaxAge, 2)
+	assert.Greater(t, threeMinutes[0].MaxAge, oneMinute[0].MaxAge, "a longer session expiry must produce a longer-lived cookie")
+}
+
 func TestBuildMfaSessionCookies_InsecureLaxSameSite(t *testing.T) {
-	cookies := BuildMfaSessionCookies("http://localhost:8080", "mfa-id", false)
+	cookies := BuildMfaSessionCookies("http://localhost:8080", "mfa-id", false, mfaCookieTestExpiry(3*time.Minute))
 	require.Len(t, cookies, 2)
 	for _, c := range cookies {
 		assert.False(t, c.Secure)

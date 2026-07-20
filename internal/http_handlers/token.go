@@ -52,6 +52,18 @@ type RequestBody struct {
 	ActorTokenType   string `form:"actor_token_type" json:"actor_token_type"`
 }
 
+// formURLDecodeOrKeep undoes the application/x-www-form-urlencoded encoding
+// RFC 6749 §2.3.1 requires clients to apply to client_id/client_secret before
+// placing them in the HTTP Basic Authorization header. Returns the decoded
+// value, or the original string unchanged if it isn't validly encoded (a raw
+// secret may legitimately contain a literal "%").
+func formURLDecodeOrKeep(s string) string {
+	if decoded, err := url.QueryUnescape(s); err == nil {
+		return decoded
+	}
+	return s
+}
+
 // TokenHandler to handle /oauth/token requests
 // grant type required
 func (h *httpProvider) TokenHandler() gin.HandlerFunc {
@@ -104,7 +116,16 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// / refresh_token treat a missing secret as "no secret presented" and let
 		// the PKCE checks below gate the request. secretPresented drives the
 		// no-PKCE "secret required" rule further down.
+		// RFC 6749 §2.3.1: the client_id and client_secret carried in HTTP Basic
+		// credentials MUST each be encoded with the application/x-www-form-urlencoded
+		// algorithm before being placed in the Authorization header. Go's
+		// BasicAuth() only base64-decodes the header — it does not undo that
+		// encoding — so a secret containing a character the encoder escapes
+		// (e.g. "!", "*", "'", "(", ")", space) arrives here still percent-encoded
+		// and fails comparison against the stored plaintext/hash. Undo it here.
 		basicClientID, basicClientSecret, hasBasicAuth := gc.Request.BasicAuth()
+		basicClientID = formURLDecodeOrKeep(basicClientID)
+		basicClientSecret = formURLDecodeOrKeep(basicClientSecret)
 		secretPresented := bodyClientSecret != "" || (hasBasicAuth && basicClientSecret != "")
 		clientAssertion := strings.TrimSpace(reqBody.ClientAssertion)
 		clientAssertionType := strings.TrimSpace(reqBody.ClientAssertionType)
@@ -156,7 +177,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		var roles, scope []string
 		loginMethod := ""
 		sessionKey := ""
-		oidcNonce := "" // OIDC nonce from the original /authorize request
+		oidcNonce := ""      // OIDC nonce from the original /authorize request
+		authTime := int64(0) // End-User's actual last authentication (OIDC Core §2 auth_time); 0 = unknown, CreateIDToken falls back to time.Now()
 
 		if isAuthorizationCodeGrant {
 			if code == "" {
@@ -306,6 +328,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			roles = claims.Roles
 			scope = claims.Scope
 			loginMethod = claims.LoginMethod
+			authTime = claims.EffectiveAuthTime()
 
 			// Extract OIDC nonce from stored code data (third @@-separated part).
 			if len(sessionDataSplit) > 2 {
@@ -336,10 +359,14 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			claims, err := h.TokenProvider.ValidateRefreshToken(gc, refreshToken)
+			// RFC 6749 §5.2: an invalid_grant error (expired/tampered token, or
+			// — via the audience check inside ValidateRefreshToken — a token
+			// bound to a different client, RFC 6749 §6) MUST be returned with
+			// HTTP 400, not 401.
+			claims, err := h.TokenProvider.ValidateRefreshToken(gc, refreshToken, resolvedClient.ClientID)
 			if err != nil {
 				log.Debug().Err(err).Msg("Error validating refresh token")
-				gc.JSON(http.StatusUnauthorized, gin.H{
+				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_grant",
 					"error_description": "The refresh token is invalid or has expired",
 				})
@@ -408,6 +435,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				loginMethod = lm
 			}
 
+			// auth_time survives token refresh unchanged — a refresh must
+			// not reset "when the user last actually authenticated".
+			// JWT numeric claims decode as float64.
+			if at, ok := claims["auth_time"].(float64); ok {
+				authTime = int64(at)
+			}
+
 			nonce, ok := claims["nonce"].(string)
 			if !ok || nonce == "" {
 				log.Debug().Msg("Invalid nonce in refresh token")
@@ -417,6 +451,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
+
+			// RFC 6749 §6: "the authorization server MUST verify the binding
+			// between the refresh token and client identity whenever
+			// possible." Enforced above via ValidateRefreshToken's audience
+			// check (the token's "aud" claim, set to the issuing client, must
+			// match resolvedClient.ClientID) — a token issued to one client
+			// is rejected before reaching this point if presented by another.
 
 			// remove older refresh token and rotate it for security
 			if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce); err != nil {
@@ -467,6 +508,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			Nonce:       nonce,
 			OIDCNonce:   oidcNonce,
 			HostName:    hostname,
+			AuthTime:    authTime,
+			ClientID:    resolvedClient.ClientID,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")

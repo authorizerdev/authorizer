@@ -46,9 +46,14 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":           issuer + "/oauth/token",
-			"userinfo_endpoint":        issuer + "/userinfo",
-			"scopes_supported":         []string{"openid", "email", "profile", "offline_access"},
+			"token_endpoint":    issuer + "/oauth/token",
+			"userinfo_endpoint": issuer + "/userinfo",
+			// "phone" is advertised because phone_number/phone_number_verified
+			// are real, populated claims (see claims_supported below). "address"
+			// is deliberately omitted — the User schema has no address fields
+			// (street_address/locality/region/postal_code/country), so claiming
+			// support for it would be false advertising.
+			"scopes_supported":         []string{"openid", "email", "profile", "phone", "offline_access"},
 			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
 			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
 			"grant_types_supported":    grantTypes,

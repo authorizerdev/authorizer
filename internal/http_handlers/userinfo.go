@@ -77,18 +77,20 @@ func filterUserInfoByScopes(full map[string]interface{}, scopes map[string]struc
 		"sub": full["sub"],
 	}
 	// allow copies every claim key from the granted scope group into the
-	// filtered response. Per OIDC Core §5.4 the keys associated with a
-	// granted scope are part of the response shape; if the underlying user
-	// object has no value for a claim we still emit the key with a JSON
-	// null (explicitly permitted by OIDC Core §5.3.2) so callers can rely
-	// on a stable schema.
+	// filtered response, but only when there's an actual value. Per OIDC
+	// Core §5.3.2/§5.1 a claim with no value must be OMITTED, not emitted
+	// as JSON null or an empty string — conformance validators reject both
+	// as "not a string with content".
 	allow := func(group []string) {
 		for _, k := range group {
-			if v, ok := full[k]; ok {
-				filtered[k] = v
-			} else {
-				filtered[k] = nil
+			v, ok := full[k]
+			if !ok || v == nil {
+				continue
 			}
+			if s, isStr := v.(string); isStr && strings.TrimSpace(s) == "" {
+				continue
+			}
+			filtered[k] = v
 		}
 	}
 	if _, ok := scopes["profile"]; ok {

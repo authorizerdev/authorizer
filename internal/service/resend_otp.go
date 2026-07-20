@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -27,12 +27,44 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 	phoneNumber := strings.Trim(refs.StringValue(params.PhoneNumber), " ")
 	log := p.Log.With().Str("func", "ResendOTP").Str("email", email).Str("phone_number", phoneNumber).Logger()
 	side := &ResponseSideEffects{}
-	if email == "" && phoneNumber == "" {
-		log.Debug().Msg("Email or phone number is required")
-		return nil, nil, InvalidArgument("email or phone number is required")
-	}
 	var user *schemas.User
 	var err error
+	// The identifier-supplied path mints a Challenge session (the C1-fix
+	// behavior); the session-only fallback below upgrades this to Verified.
+	mfaSessionPurpose := constants.MFASessionPurposeChallenge
+	if email == "" && phoneNumber == "" {
+		// Session-only fallback: an OAuth-return caller has a Verified MFA
+		// session cookie but no identifier (email/phone never travels in the
+		// redirect, to avoid referrer/log/history leakage). Resolve the account
+		// from the session alone, then run the normal resend body. Only a
+		// Verified session qualifies — a bare Challenge session must not spawn
+		// further resends without an identifier (preserves the C1-fix
+		// invariant), so anything short of a resolvable Verified session is
+		// treated exactly as if no identifier was supplied.
+		gc := &gin.Context{Request: meta.Request}
+		mfaSession, cErr := cookie.GetMfaSession(gc)
+		if cErr != nil {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		user, err = p.StorageProvider.GetUserByID(ctx, ownerID)
+		if user == nil || err != nil {
+			log.Debug().Msg("Email or phone number is required")
+			return nil, nil, InvalidArgument("email or phone number is required")
+		}
+		// Drive the rest of the flow off the resolved account, preferring email.
+		email = strings.ToLower(strings.Trim(refs.StringValue(user.Email), " "))
+		phoneNumber = strings.Trim(refs.StringValue(user.PhoneNumber), " ")
+		if email != "" {
+			phoneNumber = ""
+		}
+		mfaSessionPurpose = constants.MFASessionPurposeVerified
+	}
 	var isEmailServiceEnabled, isSMSServiceEnabled bool
 	if email != "" {
 		isEmailServiceEnabled = p.Config.IsEmailServiceEnabled
@@ -105,42 +137,25 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 			Message: "Failed to get for given email",
 		}, nil, errors.New("failed to get otp for given email")
 	}
-	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
-	generateOTP := func(expiresAt int64) (*schemas.OTP, error) {
-		otp, err := utils.GenerateOTP()
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to generate OTP")
-			return nil, err
-		}
-		// Store HMAC digest; the plaintext is restored on the returned
-		// struct so the caller's email/SMS body can read otpData.Otp.
-		otpData, err := p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
-			Email:       refs.StringValue(user.Email),
-			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         crypto.HashOTP(otp, p.Config.JWTSecret),
-			ExpiresAt:   expiresAt,
-		})
-		if err != nil {
-			log.Debug().Msg("Failed to upsert otp")
-			return nil, err
-		}
-		otpData.Otp = otp
-		return otpData, nil
-	}
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		// Identifier-supplied callers only proved they can trigger an OTP send
+		// to this email/phone — no first factor — so they get a Challenge
+		// session that can never skip MFA setup or lock the account. The
+		// session-only fallback above resolved an already-Verified caller, so
+		// it keeps that Verified status (mfaSessionPurpose).
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, mfaSessionPurpose, expiresAt)
 		if err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return err
 		}
-		for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure) {
+		for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 			side.AddCookie(c)
 		}
 		return nil
 	}
 	expiresAt := time.Now().Add(1 * time.Minute).Unix()
-	otpData, err = generateOTP(expiresAt)
+	otpData, err = p.generateAndStoreOTP(ctx, user, expiresAt)
 	if err != nil {
 		log.Debug().Msg("Failed to generate otp")
 		return nil, nil, err

@@ -55,16 +55,34 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 
 	email := strings.TrimSpace(refs.StringValue(params.Email))
 	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
-	if email == "" && phoneNumber == "" {
-		log.Debug().Msg("Email or phone number is required")
-		return nil, nil, InvalidArgument(`email or phone number is required`)
-	}
 	isEmailVerification := email != ""
 	isMobileVerification := phoneNumber != ""
 	log = log.With().Str("email", email).Str("phone_number", phoneNumber).Logger()
 	// Get user by email or phone number
 	var user *schemas.User
-	if isEmailVerification {
+	// sessionResolved is true when the caller supplied no identifier and the
+	// account was resolved from the MFA session cookie alone (OAuth-return MFA
+	// continuation, where the frontend never learns the account's email/phone).
+	// Session ownership is then already proven by GetMfaSessionOwner, so the
+	// later GetMfaSession re-check is skipped for this path.
+	sessionResolved := false
+	if email == "" && phoneNumber == "" {
+		ownerID, _, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil {
+			log.Debug().Err(oErr).Msg("Failed to resolve mfa session owner")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
+		user, err = p.StorageProvider.GetUserByID(ctx, ownerID)
+		if user == nil || err != nil {
+			log.Debug().Err(err).Msg("Failed to resolve user from mfa session")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
+		email = strings.TrimSpace(refs.StringValue(user.Email))
+		phoneNumber = strings.TrimSpace(refs.StringValue(user.PhoneNumber))
+		isEmailVerification = email != ""
+		isMobileVerification = !isEmailVerification && phoneNumber != ""
+		sessionResolved = true
+	} else if isEmailVerification {
 		user, err = p.StorageProvider.GetUserByEmail(ctx, refs.StringValue(params.Email))
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get user by email")
@@ -92,9 +110,11 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	// attacker who only knows a victim's email - with no valid session - is
 	// rejected before they can touch (and so exhaust) the victim's lockout
 	// counter, closing an unauthenticated account-lockout DoS.
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
-		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, nil, Unauthenticated(`invalid session`)
+	if !sessionResolved {
+		if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+			log.Debug().Err(err).Msg("Failed to get mfa session")
+			return nil, nil, Unauthenticated(`invalid session`)
+		}
 	}
 
 	// Verify OTP based on TOPT or OTP
@@ -151,12 +171,12 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	} else {
 		var otp *schemas.OTP
 		if isEmailVerification {
-			otp, err = p.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
+			otp, err = p.StorageProvider.GetOTPByEmail(ctx, email)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to get otp request for email")
 			}
 		} else {
-			otp, err = p.StorageProvider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+			otp, err = p.StorageProvider.GetOTPByPhoneNumber(ctx, phoneNumber)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to get otp request for phone number")
 			}
@@ -180,6 +200,26 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		}
 		if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 			log.Debug().Err(err).Msg("Failed to delete otp")
+		}
+
+		// Mark the corresponding email/SMS-OTP MFA enrollment verified, but
+		// ONLY when a pending (unverified) Authenticator row already exists
+		// for this method — i.e. the caller went through
+		// EmailOTPMFASetup/SMSOTPMFASetup first. A plain login-time OTP
+		// send/verify (login.go's pre-enrollment challenge, or a signup
+		// email/phone verification) never created that row, so this is a
+		// no-op for those: routine login-time OTP must not silently
+		// "enroll" anyone as MFA.
+		method := constants.EnvKeyEmailOTPAuthenticator
+		if isMobileVerification {
+			method = constants.EnvKeySMSOTPAuthenticator
+		}
+		if authenticator, aErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, method); aErr == nil && authenticator != nil && authenticator.VerifiedAt == nil {
+			now := time.Now().Unix()
+			authenticator.VerifiedAt = &now
+			if _, err := p.StorageProvider.UpdateAuthenticator(ctx, authenticator); err != nil {
+				log.Debug().Err(err).Msg("Failed to mark otp authenticator verified")
+			}
 		}
 	}
 
@@ -228,6 +268,10 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			UserAgent:    meta.UserAgent,
 		})
 	}
+
+	// Single-use: the OTP is verified, so drop the session to prevent replay of
+	// a captured cookie within its remaining TTL.
+	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 
 	res, err := p.issueAuthResponse(ctx, meta, side, user, loginMethod, `OTP verified successfully.`, params.State, isSignUp)
 	if err != nil {

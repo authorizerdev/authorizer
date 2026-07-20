@@ -89,12 +89,32 @@ func TestDBMemoryStoreProvider(t *testing.T) {
 			assert.Empty(t, key)
 			assert.Error(t, err)
 
-			err = p.SetMfaSession("auth_provider:123", "session123", time.Now().Add(60*time.Second).Unix())
+			err = p.SetMfaSession("auth_provider:123", "session123", "test-purpose", time.Now().Add(60*time.Second).Unix())
 			assert.NoError(t, err)
 
 			key, err = p.GetMfaSession("auth_provider:123", "session123")
 			assert.NoError(t, err)
-			assert.Equal(t, "auth_provider:123", key)
+			assert.Equal(t, "test-purpose", key)
+
+			// GetMfaSessionOwner resolves the owning userID and purpose from a
+			// bare session key, without the caller knowing the userID.
+			ownerID, ownerPurpose, err := p.GetMfaSessionOwner("session123")
+			assert.NoError(t, err)
+			assert.Equal(t, "auth_provider:123", ownerID)
+			assert.Equal(t, "test-purpose", ownerPurpose)
+			// Unknown session key is not found.
+			ownerID, ownerPurpose, err = p.GetMfaSessionOwner("does-not-exist")
+			assert.Error(t, err)
+			assert.Empty(t, ownerID)
+			assert.Empty(t, ownerPurpose)
+
+			// Expired session is cleaned and not resolvable.
+			err = p.SetMfaSession("auth_provider:999", "expiredsession", "test-purpose", time.Now().Add(-60*time.Second).Unix())
+			assert.NoError(t, err)
+			ownerID, ownerPurpose, err = p.GetMfaSessionOwner("expiredsession")
+			assert.Error(t, err)
+			assert.Empty(t, ownerID)
+			assert.Empty(t, ownerPurpose)
 
 			err = p.DeleteMfaSession("auth_provider:123", "session123")
 			assert.NoError(t, err)

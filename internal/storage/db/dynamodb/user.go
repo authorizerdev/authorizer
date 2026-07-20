@@ -115,6 +115,9 @@ func userDynamoRemoveAttrsIfNil(u *schemas.User) []string {
 	if u.HasSkippedMFASetupAt == nil {
 		remove = append(remove, "has_skipped_mfa_setup_at")
 	}
+	if u.MFALockedAt == nil {
+		remove = append(remove, "mfa_locked_at")
+	}
 	if u.AppData == nil {
 		remove = append(remove, "app_data")
 	}

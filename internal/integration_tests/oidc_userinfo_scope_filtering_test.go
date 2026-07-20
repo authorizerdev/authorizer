@@ -126,16 +126,15 @@ func TestUserInfoScopeFiltering(t *testing.T) {
 		require.Equal(t, http.StatusOK, code)
 
 		assert.NotEmpty(t, body["sub"])
-		// Profile claims may legitimately be empty/nil values on a freshly
-		// signed-up user, but the KEYS must be present in the response.
-		_, hasGiven := body["given_name"]
-		_, hasFamily := body["family_name"]
-		_, hasNickname := body["nickname"]
-		_, hasPreferred := body["preferred_username"]
-		assert.True(t, hasGiven, "profile scope → given_name key present")
-		assert.True(t, hasFamily, "profile scope → family_name key present")
-		assert.True(t, hasNickname, "profile scope → nickname key present")
-		assert.True(t, hasPreferred, "profile scope → preferred_username key present")
+		// OIDC Core §5.3.2/§5.1: a claim with no value must be OMITTED, not
+		// returned as null — this user signed up with no name, so these
+		// stay unset and must be omitted.
+		assert.Nil(t, body["given_name"], "unset profile claim must be omitted, not null")
+		assert.Nil(t, body["family_name"], "unset profile claim must be omitted, not null")
+		assert.Nil(t, body["nickname"], "unset profile claim must be omitted, not null")
+		// preferred_username defaults to the signup email, so it IS set —
+		// the key must be present (with the profile scope granted).
+		assert.Equal(t, email, body["preferred_username"])
 		assert.Nil(t, body["email"], "email scope not requested → email omitted")
 	})
 
@@ -146,8 +145,6 @@ func TestUserInfoScopeFiltering(t *testing.T) {
 
 		assert.NotEmpty(t, body["sub"])
 		assert.Equal(t, email, body["email"])
-		_, hasGiven := body["given_name"]
-		assert.True(t, hasGiven)
 	})
 
 	t.Run("sub_is_always_present_for_unknown_scope_combo", func(t *testing.T) {

@@ -66,12 +66,27 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, options.CreateIndexes())
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(schemas.Collections.VerificationRequest, options.Collection())
-	_, _ = verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	if _, err := verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"email": 1, "identifier": 1},
+			// Compound index keys MUST use the ordered bson.D — the driver
+			// rejects a multi-key bson.M ("multi-key map passed in for ordered
+			// parameter keys"), so this unique constraint was silently never
+			// created; same bug already found and fixed for the authenticator
+			// index below.
+			Keys:    bson.D{{Key: "email", Value: 1}, {Key: "identifier", Value: 1}},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
-	}, options.CreateIndexes())
+	}, options.CreateIndexes()); err != nil {
+		// Unlike the rest of this file's index creation, this one is worth a
+		// loud warning rather than a silent discard: a database that already
+		// accumulated duplicate (email, identifier) rows from the bson.M bug
+		// this replaces will fail this unique-index build and stay
+		// unprotected until an operator dedupes and retries - swallowing the
+		// error would hide that a fresh install still needs attention.
+		if deps != nil && deps.Log != nil {
+			deps.Log.Warn().Err(err).Msg("failed to create unique index on verification_requests(email, identifier) - if this database has pre-existing duplicates, dedupe them and restart")
+		}
+	}
 	_, _ = verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.M{"token": 1},
@@ -151,7 +166,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	sessionTokenCollection := mongodb.Collection(schemas.Collections.SessionToken, options.Collection())
 	_, _ = sessionTokenCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			// bson.D, not bson.M - see the verification-request index comment above.
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "key_name", Value: 1}},
 			Options: options.Index().SetSparse(true),
 		},
 		{
@@ -165,7 +181,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	mfaSessionCollection := mongodb.Collection(schemas.Collections.MFASession, options.Collection())
 	_, _ = mfaSessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			// bson.D, not bson.M - see the verification-request index comment above.
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "key_name", Value: 1}},
 			Options: options.Index().SetSparse(true),
 		},
 		{

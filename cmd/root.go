@@ -188,9 +188,10 @@ func init() {
 	// the effective Enable* / EnableMFA values from these flags.
 	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", false, "Enforce MFA for all users")
 	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP-based MFA (enabled by default)")
+	f.BoolVar(&rootArgs.config.DisableWebauthnMFA, "disable-webauthn-mfa", false, "Disable WebAuthn/passkey as an MFA factor (enabled by default); does not affect WebAuthn/passkey as a primary login method")
 	f.BoolVar(&rootArgs.config.DisableEmailOTP, "disable-email-otp", false, "Disable email OTP MFA (enabled by default when email service is configured)")
 	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP MFA (enabled by default when SMS service is configured)")
-	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Globally disable MFA (TOTP/email/SMS OTP), overriding the per-method flags; does not affect WebAuthn/passkey")
+	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Globally disable MFA (TOTP/email/SMS OTP), overriding the per-method flags; does not affect WebAuthn/passkey as a primary login method")
 	f.BoolVar(&rootArgs.config.EnableSignup, "enable-signup", true, "Enable signup")
 
 	// Cookies flags
@@ -449,15 +450,6 @@ func runRoot(c *cobra.Command, args []string) {
 	// auth from this row.
 	seedReservedClient(context.Background(), storageProvider, &rootArgs.config, &log)
 
-	// Authenticator provider
-	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
-		Log:             &log,
-		StorageProvider: storageProvider,
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create authenticator provider")
-	}
-
 	// Email provider
 	emailProvider, err := email.New(&rootArgs.config, &email.Dependencies{
 		Log:             &log,
@@ -483,6 +475,17 @@ func runRoot(c *cobra.Command, args []string) {
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create memory store provider")
+	}
+
+	// Authenticator provider — depends on the memory store for the transient
+	// pending-secret used by safe TOTP re-enrollment (see totp.Generate).
+	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
+		Log:                 &log,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authenticator provider")
 	}
 
 	// WebAuthn/passkey provider
@@ -535,6 +538,7 @@ func runRoot(c *cobra.Command, args []string) {
 	tokenProvider, err := token.New(&rootArgs.config, &token.Dependencies{
 		Log:                 &log,
 		MemoryStoreProvider: memoryStoreProvider,
+		StorageProvider:     storageProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create token provider")

@@ -159,10 +159,16 @@ func (p *provider) DeleteOrganization(ctx context.Context, meta RequestMetadata,
 	}, nil, nil
 }
 
-// Organization returns a single organization by id. Requires super-admin auth.
+// Organization returns a single organization by id. Requires super-admin, or
+// org-admin of this specific org.
 func (p *provider) Organization(ctx context.Context, meta RequestMetadata, params *model.OrganizationRequest) (*model.Organization, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Organization").Logger()
-	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+	// Super-admin or an org-admin of this specific org — same gating as
+	// OrgMembers/AddOrgMember, so an org-scoped admin can view their own
+	// org's detail page (the dashboard's OrganizationDetail view) without
+	// needing instance-wide super-admin rights. requireOrgAdmin rejects
+	// access to any OTHER org.
+	if err := p.requireOrgAdmin(ctx, meta, params.ID); err != nil {
 		return nil, nil, err
 	}
 

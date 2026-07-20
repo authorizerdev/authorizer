@@ -501,6 +501,11 @@ message UpdateUserRequest {
   repeated string roles = 13;
   optional bool is_multi_factor_auth_enabled = 14;
   AppData app_data = 15;
+  // Mirrors UpdateUserRequest.reset_mfa in GraphQL — see schema.graphqls'
+  // doc comment on that field for exact semantics (clears mfa_locked_at,
+  // is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, deletes all
+  // authenticators/passkeys).
+  optional bool reset_mfa = 16;
 }
 message UpdateUserResponse {
   User user = 1;

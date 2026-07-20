@@ -244,9 +244,15 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	require.NoError(t, err)
 
 	// Initialize other providers
+	memoryStoreProvider, err := memory_store.New(cfg, &memory_store.Dependencies{
+		Log: &logger,
+	})
+	require.NoError(t, err)
+
 	authProvider, err := authenticators.New(cfg, &authenticators.Dependencies{
-		Log:             &logger,
-		StorageProvider: storageProvider,
+		Log:                 &logger,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
 	})
 	require.NoError(t, err)
 
@@ -259,11 +265,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	eventsProvider, err := events.New(cfg, &events.Dependencies{
 		Log:             &logger,
 		StorageProvider: storageProvider,
-	})
-	require.NoError(t, err)
-
-	memoryStoreProvider, err := memory_store.New(cfg, &memory_store.Dependencies{
-		Log: &logger,
 	})
 	require.NoError(t, err)
 
@@ -282,6 +283,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	tokenProvider, err := token.New(cfg, &token.Dependencies{
 		Log:                 &logger,
 		MemoryStoreProvider: memoryStoreProvider,
+		StorageProvider:     storageProvider,
 	})
 	require.NoError(t, err)
 
@@ -365,6 +367,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	r.Use(httpProvider.LoggerMiddleware())
 
 	r.POST("/graphql", httpProvider.GraphqlHandler())
+	r.GET("/verify_email", httpProvider.VerifyEmailHandler())
 
 	server := httptest.NewServer(r)
 
@@ -413,6 +416,29 @@ func latestAppSessionCookie(s *testSetup) string {
 		// first segment is the name/value pair. The "_session_domain" cookie
 		// uses a different name so HasPrefix on "_session=" is sufficient
 		// to disambiguate.
+		first := h
+		if i := strings.IndexByte(h, ';'); i >= 0 {
+			first = h[:i]
+		}
+		first = strings.TrimSpace(first)
+		if strings.HasPrefix(first, prefix) {
+			latest = strings.TrimPrefix(first, prefix)
+		}
+	}
+	return latest
+}
+
+// latestMfaSessionCookie returns the most recent value of the
+// MfaCookieName+"_session" cookie written to the gin response writer in this
+// test — same rationale as latestAppSessionCookie: a token-withheld MFA
+// offer (e.g. Login) sets this cookie only on the response, and
+// http.Request cookies are not auto-updated from responses in this
+// in-process test setup, so a caller that needs to act on that session (e.g.
+// skip_mfa_setup) must copy it onto the next request by hand.
+func latestMfaSessionCookie(s *testSetup) string {
+	prefix := constants.MfaCookieName + "_session="
+	latest := ""
+	for _, h := range s.GinContext.Writer.Header().Values("Set-Cookie") {
 		first := h
 		if i := strings.IndexByte(h, ';'); i >= 0 {
 			first = h[:i]

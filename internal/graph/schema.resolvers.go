@@ -83,17 +83,37 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 }
 
 // SkipMfaSetup is the resolver for the skip_mfa_setup field.
-func (r *mutationResolver) SkipMfaSetup(ctx context.Context) (*model.Response, error) {
-	return r.GraphQLProvider.SkipMFASetup(ctx)
+func (r *mutationResolver) SkipMfaSetup(ctx context.Context, params model.SkipMfaSetupRequest) (*model.AuthResponse, error) {
+	return r.GraphQLProvider.SkipMFASetup(ctx, &params)
+}
+
+// LockMfa is the resolver for the lock_mfa field.
+func (r *mutationResolver) LockMfa(ctx context.Context, params model.LockMfaRequest) (*model.Response, error) {
+	return r.GraphQLProvider.LockMFA(ctx, &params)
+}
+
+// EmailOtpMfaSetup is the resolver for the email_otp_mfa_setup field.
+func (r *mutationResolver) EmailOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
+	return r.GraphQLProvider.EmailOTPMFASetup(ctx, params)
+}
+
+// SmsOtpMfaSetup is the resolver for the sms_otp_mfa_setup field.
+func (r *mutationResolver) SmsOtpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.Response, error) {
+	return r.GraphQLProvider.SMSOTPMFASetup(ctx, params)
+}
+
+// TotpMfaSetup is the resolver for the totp_mfa_setup field.
+func (r *mutationResolver) TotpMfaSetup(ctx context.Context, params *model.OtpMfaSetupRequest) (*model.AuthResponse, error) {
+	return r.GraphQLProvider.TOTPMFASetup(ctx, params)
 }
 
 // WebauthnRegistrationOptions is the resolver for the webauthn_registration_options field.
-func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string) (*model.WebauthnRegistrationOptionsResponse, error) {
-	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email)
+func (r *mutationResolver) WebauthnRegistrationOptions(ctx context.Context, email *string, phoneNumber *string) (*model.WebauthnRegistrationOptionsResponse, error) {
+	return r.GraphQLProvider.WebauthnRegistrationOptions(ctx, email, phoneNumber)
 }
 
 // WebauthnRegistrationVerify is the resolver for the webauthn_registration_verify field.
-func (r *mutationResolver) WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.Response, error) {
+func (r *mutationResolver) WebauthnRegistrationVerify(ctx context.Context, params model.WebauthnRegistrationVerifyRequest) (*model.AuthResponse, error) {
 	return r.GraphQLProvider.WebauthnRegistrationVerify(ctx, &params)
 }
 
@@ -522,11 +542,20 @@ func (r *queryResolver) ListPermissions(ctx context.Context, params model.ListPe
 	return r.GraphQLProvider.ListPermissions(ctx, &params)
 }
 
+// EnrolledMfaMethods is the resolver for the enrolled_mfa_methods field.
+func (r *userResolver) EnrolledMfaMethods(ctx context.Context, obj *model.User) ([]string, error) {
+	return r.GraphQLProvider.EnrolledMFAMethods(ctx, obj)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }

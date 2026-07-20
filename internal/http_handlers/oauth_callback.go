@@ -24,6 +24,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -333,15 +334,6 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Code challenge could be optional if PKCE flow is not used
-		if code != "" {
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
-				log.Debug().Err(err).Msg("Failed to set state")
-				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
-				return
-			}
-		}
-
 		// expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		// if expiresIn <= 0 { expiresIn = 1 }
 		// params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
@@ -349,6 +341,49 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		params := "state=" + stateValue + "&nonce=" + nonce
 		if code != "" {
 			params += "&code=" + code
+		}
+
+		// MFA gate: matches password/passkey login (resolveMFAGate) before the
+		// browser session cookie is established. A withheld-group outcome sets
+		// the MFA session cookie (via `side`) instead and redirects with
+		// mfa_required=1 rather than the normal state/code params.
+		side := &service.ResponseSideEffects{}
+		meta := service.RequestMetadata{
+			HostURL:   hostname,
+			IPAddress: utils.GetIP(ctx.Request),
+			UserAgent: utils.GetUserAgent(ctx.Request),
+			Request:   ctx.Request,
+		}
+		withheld, redirectSuffix, gateErr := h.ServiceProvider.EvaluateMFAGateForOAuth(ctx, meta, side, user)
+		if gateErr != nil {
+			log.Debug().Err(gateErr).Msg("MFA gate rejected OAuth callback")
+			ctx.JSON(400, gin.H{"error": gateErr.Error()})
+			return
+		}
+		if withheld {
+			service.ApplyToGin(ctx, side)
+			if strings.Contains(redirectURL, "?") {
+				redirectURL = redirectURL + "&" + redirectSuffix
+			} else {
+				redirectURL = redirectURL + "?" + strings.TrimPrefix(redirectSuffix, "&")
+			}
+			ctx.Redirect(http.StatusFound, redirectURL)
+			return
+		}
+
+		// Code challenge could be optional if PKCE flow is not used. Set only on
+		// the normal (non-withheld) path: the `code` is never disclosed to the
+		// browser on a withheld redirect (it carries mfa_required=1, not
+		// state/code), so setting this state entry before the gate check would
+		// leave an orphaned, unreachable entry that just self-expires — not
+		// exploitable, but there's no reason to write it before we know the
+		// login actually proceeds.
+		if code != "" {
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
+				log.Debug().Err(err).Msg("Failed to set state")
+				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
+				return
+			}
 		}
 
 		sessionKey := provider + ":" + user.ID

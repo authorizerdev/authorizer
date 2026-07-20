@@ -80,6 +80,9 @@ const (
 	AuditMFAEnabledEvent = "user.mfa_enabled"
 	// AuditMFADisabledEvent is logged when a user disables multi-factor authentication.
 	AuditMFADisabledEvent = "user.mfa_disabled"
+	// AuditMFALockedEvent is logged when a user locks their own account
+	// after losing access to their MFA factor(s).
+	AuditMFALockedEvent = "user.mfa_locked"
 	// AuditProfileUpdatedEvent is logged when a user updates their profile.
 	AuditProfileUpdatedEvent = "user.profile_updated"
 	// AuditUserDeactivatedEvent is logged when a user deactivates their account.

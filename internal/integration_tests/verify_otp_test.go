@@ -196,6 +196,7 @@ func TestVerifyOTPNoRecord(t *testing.T) {
 	// itself rather than reaching the no-OTP-record path this test guards.
 	mfaSession := uuid.New().String()
 	require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(signupRes.User.ID, mfaSession,
+		constants.MFASessionPurposeVerified,
 		time.Now().Add(5*time.Minute).Unix()))
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
 

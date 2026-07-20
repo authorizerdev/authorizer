@@ -77,6 +77,13 @@ type AuthTokenConfig struct {
 	// token claim. If zero, CreateIDToken falls back to time.Now() so
 	// existing callers continue to work unchanged (backward compat).
 	AuthTime int64
+	// ClientID is the OAuth client the refresh token is being minted for —
+	// the client that authenticated at /oauth/token when the token was
+	// issued or last rotated. CreateRefreshToken embeds it as the
+	// "client_id" claim so a later refresh_token redemption can be bound
+	// to the same client (RFC 6749 §6). Empty is valid (client_credentials
+	// / machine paths that never mint a refresh token).
+	ClientID string
 }
 
 // loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
@@ -121,14 +128,32 @@ type AuthToken struct {
 }
 
 // SessionData holds the session claims persisted for a user session.
+//
+// IssuedAt is stamped fresh on every CreateSessionToken call, including
+// silent rollovers of an already-authenticated session. AuthTime is the
+// timestamp of the End-User's actual last authentication (OIDC Core §2's
+// auth_time) and MUST survive rollovers unchanged — conflating the two
+// previously caused auth_time and max_age staleness checks to reset on
+// every silent /authorize call, defeating both.
 type SessionData struct {
 	Subject     string   `json:"sub"`
 	Roles       []string `json:"roles"`
 	Scope       []string `json:"scope"`
 	Nonce       string   `json:"nonce"`
 	IssuedAt    int64    `json:"iat"`
+	AuthTime    int64    `json:"auth_time"`
 	ExpiresAt   int64    `json:"exp"`
 	LoginMethod string   `json:"login_method"`
+}
+
+// EffectiveAuthTime returns AuthTime, falling back to IssuedAt for session
+// cookies minted before AuthTime existed (unmarshal leaves it at the zero
+// value with no error).
+func (sd *SessionData) EffectiveAuthTime() int64 {
+	if sd.AuthTime != 0 {
+		return sd.AuthTime
+	}
+	return sd.IssuedAt
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
@@ -185,6 +210,10 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 // CreateSessionToken creates a new session token
 func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
 	expiresAt := time.Now().Add(24 * time.Hour).Unix()
+	authTime := cfg.AuthTime
+	if authTime == 0 {
+		authTime = time.Now().Unix()
+	}
 	fingerPrintMap := &SessionData{
 		Nonce:       cfg.Nonce,
 		Roles:       cfg.Roles,
@@ -192,6 +221,7 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 		Scope:       cfg.Scope,
 		LoginMethod: cfg.LoginMethod,
 		IssuedAt:    time.Now().Unix(),
+		AuthTime:    authTime,
 		ExpiresAt:   expiresAt,
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
@@ -201,6 +231,19 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 	}
 
 	return fingerPrintMap, fingerPrintHash, expiresAt, nil
+}
+
+// audience returns the OIDC "aud" claim value: the OAuth client the token is
+// being issued to. cfg.ClientID carries the actual requesting client for the
+// /authorize and /oauth/token flows; callers that mint a token for
+// Authorizer's own hosted app (GraphQL login/signup, social/SAML/SSO
+// callbacks establishing the browser session) leave it unset, and the
+// reserved bootstrap client_id remains the audience — unchanged behavior.
+func (p *provider) audience(cfg *AuthTokenConfig) string {
+	if cfg.ClientID != "" {
+		return cfg.ClientID
+	}
+	return p.config.ClientID
 }
 
 // CreateRefreshToken util to create JWT token
@@ -213,18 +256,24 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 	}
 	expiryBound := time.Duration(expirySeconds) * time.Second
 	expiresAt := time.Now().Add(expiryBound).Unix()
+	authTime := cfg.AuthTime
+	if authTime == 0 {
+		authTime = time.Now().Unix()
+	}
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
-		"aud":           p.config.ClientID,
+		"aud":           p.audience(cfg),
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
+		"auth_time":     authTime,
 		"token_type":    constants.TokenTypeRefreshToken,
 		"roles":         cfg.Roles,
 		"scope":         cfg.Scope,
 		"nonce":         cfg.Nonce,
 		"login_method":  cfg.LoginMethod,
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
+		"client_id":     cfg.ClientID,
 	}
 
 	token, err := p.SignJWTToken(customClaims)
@@ -252,7 +301,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
-		"aud":           p.config.ClientID,
+		"aud":           p.audience(cfg),
 		"nonce":         cfg.Nonce,
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
@@ -383,11 +432,24 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
+	if p.userIsRevoked(gc, userID) {
+		p.dependencies.Log.Debug().Str("user_id", userID).Msg("access token rejected: user revoked")
+		return res, fmt.Errorf(`unauthorized: user revoked`)
+	}
+
+	// /userinfo and the generic session-or-access-token resolver present no
+	// client credentials — a bearer access token is accepted from whichever
+	// client it was issued to, there being no request-time client identity to
+	// bind it to. Trust the token's own "aud" (set at issuance, protected by
+	// the JWT signature) as the expected value; the checks above already
+	// establish the token is a genuine, unexpired, unrevoked Authorizer token.
+	aud, _ := res["aud"].(string)
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
 		HostName: hostname,
 		Nonce:    nonce,
 		User:     &schemas.User{ID: userID},
+		ClientID: aud,
 	}); !ok || err != nil {
 		return res, err
 	}
@@ -399,8 +461,10 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	return res, nil
 }
 
-// Function to validate refreshToken
-func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
+// Function to validate refreshToken. expectedClientID is the OAuth client
+// presenting the token at the token endpoint (RFC 6749 §6 client binding) —
+// it must match the "aud" claim the token was issued with.
+func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string, expectedClientID string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if refreshToken == "" {
@@ -439,6 +503,7 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		HostName: hostname,
 		Nonce:    nonce,
 		User:     &schemas.User{ID: userID},
+		ClientID: expectedClientID,
 	}); !ok || err != nil {
 		return res, err
 	}
@@ -484,7 +549,33 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
 
+	if p.userIsRevoked(gc, res.Subject) {
+		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: user revoked")
+		return nil, fmt.Errorf(`unauthorized: user revoked`)
+	}
+
 	return &res, nil
+}
+
+// userIsRevoked re-checks the DB RevokedTimestamp for a user resolved from an
+// already-issued access token or browser session. This is defense-in-depth:
+// the session-store deletion SCIM deactivate() (and account deactivation)
+// perform is the primary revocation mechanism for these stateful tokens, but
+// if that delete was missed or failed on this instance, a held token would
+// otherwise keep authenticating requests until its natural exp. Mirrors the
+// same demote-only pattern used by introspect.go/token.go/login.go: a lookup
+// failure never blocks a request that otherwise validated (fail open on DB
+// errors so a transient storage blip can't take down every authenticated
+// request), only a confirmed RevokedTimestamp does.
+func (p *provider) userIsRevoked(gc *gin.Context, userID string) bool {
+	if p.dependencies.StorageProvider == nil || userID == "" {
+		return false
+	}
+	user, err := p.dependencies.StorageProvider.GetUserByID(gc, userID)
+	if err != nil || user == nil {
+		return false
+	}
+	return user.RevokedTimestamp != nil
 }
 
 // CreateIDToken util to create the OIDC ID token JWT, based on user
@@ -504,7 +595,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 
 	customClaims := jwt.MapClaims{
 		"iss":                 cfg.HostName,
-		"aud":                 p.config.ClientID,
+		"aud":                 p.audience(cfg),
 		"sub":                 cfg.User.ID,
 		"exp":                 expiresAt,
 		"iat":                 time.Now().Unix(),

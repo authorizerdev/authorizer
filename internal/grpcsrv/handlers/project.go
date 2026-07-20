@@ -42,6 +42,8 @@ func projectUser(u *model.User) *authorizerv1.User {
 		UpdatedAt:                refs.Int64Value(u.UpdatedAt),
 		RevokedTimestamp:         refs.Int64Value(u.RevokedTimestamp),
 		IsMultiFactorAuthEnabled: refs.BoolValue(u.IsMultiFactorAuthEnabled),
+		HasSkippedMfaSetupAt:     refs.Int64Value(u.HasSkippedMfaSetupAt),
+		MfaLockedAt:              refs.Int64Value(u.MfaLockedAt),
 	}
 	if u.AppData != nil {
 		out.AppData = mapToAppData(u.AppData)
@@ -59,18 +61,22 @@ func projectAuthResponse(a *model.AuthResponse) *authorizerv1.AuthResponse {
 		return nil
 	}
 	return &authorizerv1.AuthResponse{
-		Message:                    a.Message,
-		ShouldShowEmailOtpScreen:   refs.BoolValue(a.ShouldShowEmailOtpScreen),
-		ShouldShowMobileOtpScreen:  refs.BoolValue(a.ShouldShowMobileOtpScreen),
-		ShouldShowTotpScreen:       refs.BoolValue(a.ShouldShowTotpScreen),
-		AccessToken:                refs.StringValue(a.AccessToken),
-		IdToken:                    refs.StringValue(a.IDToken),
-		RefreshToken:               refs.StringValue(a.RefreshToken),
-		ExpiresIn:                  refs.Int64Value(a.ExpiresIn),
-		User:                       projectUser(a.User),
-		AuthenticatorScannerImage:  refs.StringValue(a.AuthenticatorScannerImage),
-		AuthenticatorSecret:        refs.StringValue(a.AuthenticatorSecret),
-		AuthenticatorRecoveryCodes: derefStringSlice(a.AuthenticatorRecoveryCodes),
+		Message:                      a.Message,
+		ShouldShowEmailOtpScreen:     refs.BoolValue(a.ShouldShowEmailOtpScreen),
+		ShouldShowMobileOtpScreen:    refs.BoolValue(a.ShouldShowMobileOtpScreen),
+		ShouldShowTotpScreen:         refs.BoolValue(a.ShouldShowTotpScreen),
+		AccessToken:                  refs.StringValue(a.AccessToken),
+		IdToken:                      refs.StringValue(a.IDToken),
+		RefreshToken:                 refs.StringValue(a.RefreshToken),
+		ExpiresIn:                    refs.Int64Value(a.ExpiresIn),
+		User:                         projectUser(a.User),
+		AuthenticatorScannerImage:    refs.StringValue(a.AuthenticatorScannerImage),
+		AuthenticatorSecret:          refs.StringValue(a.AuthenticatorSecret),
+		AuthenticatorRecoveryCodes:   derefStringSlice(a.AuthenticatorRecoveryCodes),
+		ShouldOfferWebauthnMfaVerify: refs.BoolValue(a.ShouldOfferWebauthnMfaVerify),
+		ShouldOfferWebauthnMfaSetup:  refs.BoolValue(a.ShouldOfferWebauthnMfaSetup),
+		ShouldOfferEmailOtpMfaSetup:  refs.BoolValue(a.ShouldOfferEmailOtpMfaSetup),
+		ShouldOfferSmsOtpMfaSetup:    refs.BoolValue(a.ShouldOfferSmsOtpMfaSetup),
 	}
 }
 

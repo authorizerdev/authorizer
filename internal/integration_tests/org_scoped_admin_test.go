@@ -248,6 +248,22 @@ func TestOrgScopedAdmin(t *testing.T) {
 		require.NotEmpty(t, conn)
 	})
 
+	t.Run("org-admin can fetch its own org, not another org (dashboard OrganizationDetail)", func(t *testing.T) {
+		orgID := createOrg("viewer")
+		otherOrgID := createOrg("other")
+		adminID, adminTok := signupUser()
+		addMember(orgID, adminID, []string{constants.OrgRoleAdmin})
+
+		asUser(adminTok)
+
+		got, err := ts.GraphQLProvider.Organization(ctx, &model.OrganizationRequest{ID: orgID})
+		require.NoError(t, err, "an org-admin must be able to fetch their own org's detail page")
+		require.Equal(t, orgID, got.ID)
+
+		_, err = ts.GraphQLProvider.Organization(ctx, &model.OrganizationRequest{ID: otherOrgID})
+		require.Error(t, err, "an org-admin must not be able to fetch a different org")
+	})
+
 	t.Run("org-admin cannot create or delete the organization itself", func(t *testing.T) {
 		orgID := createOrg("tenant")
 		adminID, adminTok := signupUser()
