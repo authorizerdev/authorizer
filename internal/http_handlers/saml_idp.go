@@ -181,6 +181,11 @@ func (h *httpProvider) SAMLIDPInitiatedHandler() gin.HandlerFunc {
 		slug := strings.TrimSpace(c.Param("org_slug"))
 		spID := strings.TrimSpace(c.Param("sp_id"))
 		relayState := strings.TrimSpace(c.Query("RelayState"))
+		// Bound RelayState: it is reflected into the delivered response form, so cap
+		// it well above the SAML 80-byte guidance but far below abuse territory.
+		if len(relayState) > 2048 {
+			relayState = ""
+		}
 		orgID, ok := h.resolveSAMLIDPOrg(c, slug, &log)
 		if !ok {
 			return
@@ -284,6 +289,9 @@ func (h *httpProvider) emitSAMLAssertion(c *gin.Context, idp *saml.IdentityProvi
 		h.samlIDPFail(c, log, slug, "unknown_service_provider", "unknown service provider")
 		return
 	}
+	if !h.authorizeSAMLIssuance(c, orgID, slug, sp, user, log) {
+		return
+	}
 	session := buildSAMLSession(user, sp)
 	maker := mappedAssertionMaker{attributes: buildMappedAttributes(user, sp)}
 	if err := maker.MakeAssertion(req, session); err != nil {
@@ -303,6 +311,9 @@ func (h *httpProvider) emitSAMLAssertion(c *gin.Context, idp *saml.IdentityProvi
 // SP's ACS. Mirrors crewjam ServeIDPInitiated, but with our session + mapped
 // attributes. No InResponseTo (there is no request to bind to).
 func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.IdentityProvider, sp *schemas.SAMLServiceProvider, orgID, slug, relayState string, user *schemas.User, log *zerolog.Logger) {
+	if !h.authorizeSAMLIssuance(c, orgID, slug, sp, user, log) {
+		return
+	}
 	spMetadata := buildSPEntityDescriptor(sp)
 	req := &saml.IdpAuthnRequest{
 		IDP:                     idp,
@@ -326,6 +337,45 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 		return
 	}
 	h.auditSAMLIDPIssued(c, slug, sp, user)
+}
+
+// authorizeSAMLIssuance is the single chokepoint that decides whether an
+// authenticated user may receive an assertion for this org's SP. It enforces two
+// invariants that would otherwise let any logged-in user forge a cross-tenant
+// identity:
+//
+//   - Org membership: the user MUST belong to the org the assertion is minted for
+//     (mirrors the SP-side org-membership model in oauth_sso.go). Without this,
+//     any authenticated Authorizer user could drive /saml/idp/{otherOrg}/sso and
+//     obtain an assertion signed by another org's IdP key.
+//   - Verified email: when the Subject NameID would be the user's email address
+//     (the emailAddress format), that email MUST be verified — otherwise a member
+//     could register victim@org.com and be asserted as the victim to an SP that
+//     keys on email.
+func (h *httpProvider) authorizeSAMLIssuance(c *gin.Context, orgID, slug string, sp *schemas.SAMLServiceProvider, user *schemas.User, log *zerolog.Logger) bool {
+	if _, err := h.StorageProvider.GetOrgMembership(c.Request.Context(), orgID, user.ID); err != nil {
+		metrics.RecordSecurityEvent("saml_idp_non_member", slug)
+		h.samlIDPFail(c, log, slug, "forbidden", "not a member of this organization")
+		return false
+	}
+	if samlNameIDWouldBeEmail(sp, user) && user.EmailVerifiedAt == nil {
+		metrics.RecordSecurityEvent("saml_idp_unverified_email", slug)
+		h.samlIDPFail(c, log, slug, "email_not_verified", "email address is not verified")
+		return false
+	}
+	return true
+}
+
+// samlNameIDWouldBeEmail reports whether the Subject NameID emitted for this SP
+// would be the user's email address (emailAddress format with a non-empty email).
+// It is the single source of truth shared by buildSAMLSession (which sets the
+// NameID) and authorizeSAMLIssuance (which requires that email be verified).
+func samlNameIDWouldBeEmail(sp *schemas.SAMLServiceProvider, user *schemas.User) bool {
+	format := strings.TrimSpace(sp.NameIDFormat)
+	if format == "" {
+		format = defaultSAMLNameIDFormat
+	}
+	return format == defaultSAMLNameIDFormat && strings.TrimSpace(refs.StringValue(user.Email)) != ""
 }
 
 // mappedAssertionMaker delegates to crewjam's DefaultAssertionMaker for the
@@ -356,7 +406,7 @@ func buildSAMLSession(user *schemas.User, sp *schemas.SAMLServiceProvider) *saml
 	// NameID: the email address for the emailAddress format, otherwise the stable
 	// user id (persistent/unspecified/transient SPs key off an opaque identifier).
 	nameID := user.ID
-	if format == defaultSAMLNameIDFormat && email != "" {
+	if samlNameIDWouldBeEmail(sp, user) {
 		nameID = email
 	}
 	now := saml.TimeNow()
@@ -579,11 +629,22 @@ func (h *httpProvider) getOrCreateCurrentSAMLKey(ctx context.Context, orgID, slu
 	if err != nil {
 		return nil, err
 	}
+	// Deterministic selection: the newest "current" key wins, so signing never
+	// depends on provider list ordering even if a rotation partial-failure left
+	// two current keys behind.
+	var current *schemas.SAMLIDPKey
 	for _, k := range keys {
-		if k.Status == schemas.SAMLIDPKeyStatusCurrent {
-			return k, nil
+		if k.Status == schemas.SAMLIDPKeyStatusCurrent && (current == nil || k.CreatedAt > current.CreatedAt) {
+			current = k
 		}
 	}
+	if current != nil {
+		return current, nil
+	}
+	// ponytail: two concurrent first-hits on a key-less org could both insert a
+	// "current" key (no cross-DB unique index). Harmless — both are legitimate
+	// org certs and the selection above is deterministic. Add a partial unique
+	// index on (org_id) where status='current' if this ever matters.
 	priv, certPEM, err := crypto.NewSAMLSigningKeypair("Authorizer SAML IdP " + slug)
 	if err != nil {
 		return nil, err

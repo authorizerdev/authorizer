@@ -257,6 +257,19 @@ func (p *provider) RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, 
 	if err != nil {
 		return nil, nil, err
 	}
+	// Demote the previously-current key(s) to "active" BEFORE inserting the new
+	// current, so there is never more than one "current" key. A demotion failure
+	// is fatal (returned) rather than logged-and-ignored. If the insert below then
+	// fails the org is momentarily left with no current key — self-healing, since
+	// the next issuance lazily regenerates one; strictly safer than two currents.
+	for _, k := range keys {
+		if k.Status == schemas.SAMLIDPKeyStatusCurrent {
+			k.Status = schemas.SAMLIDPKeyStatusActive
+			if _, err := p.StorageProvider.UpdateSAMLIDPKey(ctx, k); err != nil {
+				return nil, nil, fmt.Errorf("failed to demote previous signing key: %w", err)
+			}
+		}
+	}
 	newKey, err := p.StorageProvider.AddSAMLIDPKey(ctx, &schemas.SAMLIDPKey{
 		OrgID:         orgID,
 		CertPEM:       certPEM,
@@ -266,15 +279,6 @@ func (p *provider) RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, 
 	})
 	if err != nil {
 		return nil, nil, err
-	}
-	// Demote the previously-current key to "active" (still published, not signing).
-	for _, k := range keys {
-		if k.Status == schemas.SAMLIDPKeyStatusCurrent {
-			k.Status = schemas.SAMLIDPKeyStatusActive
-			if _, err := p.StorageProvider.UpdateSAMLIDPKey(ctx, k); err != nil {
-				p.Log.Debug().Err(err).Msg("failed to demote previous SAML signing key")
-			}
-		}
 	}
 	p.auditSAMLIDP(meta, constants.AuditSAMLIDPKeyRotatedEvent, newKey.ID, orgID)
 	return asAPISAMLIDPKey(newKey), nil, nil

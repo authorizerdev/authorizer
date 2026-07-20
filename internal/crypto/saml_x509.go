@@ -41,9 +41,11 @@ func NewSAMLSigningKeypair(commonName string) (privateKeyPEM string, certPEM str
 		Subject:               pkix.Name{CommonName: commonName},
 		NotBefore:             now.Add(-1 * time.Minute),
 		NotAfter:              now.Add(samlIDPCertValidity),
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		// Least privilege: a leaf assertion-signing cert, not a CA. Some strict SP
+		// validators reject a signing cert whose KeyUsage isn't digitalSignature.
+		KeyUsage:              x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
-		IsCA:                  true,
+		IsCA:                  false,
 	}
 
 	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)

@@ -247,6 +247,20 @@ func TestBuildSAMLSessionNameID(t *testing.T) {
 	assert.Equal(t, "user-1", sess.NameID)
 }
 
+func TestSAMLNameIDWouldBeEmail(t *testing.T) {
+	// emailAddress format (default) + a present email → email is asserted, so it
+	// must be verified before issuance.
+	assert.True(t, samlNameIDWouldBeEmail(testSPRecord(), testUser()))
+
+	// A non-email format never asserts the email as NameID.
+	sp := testSPRecord()
+	sp.NameIDFormat = "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+	assert.False(t, samlNameIDWouldBeEmail(sp, testUser()))
+
+	// emailAddress format but no email → NameID falls back to user id, not email.
+	assert.False(t, samlNameIDWouldBeEmail(testSPRecord(), &schemas.User{ID: "u2"}))
+}
+
 func TestPublishedSAMLKeys(t *testing.T) {
 	keys := []*schemas.SAMLIDPKey{
 		{ID: "a", Status: schemas.SAMLIDPKeyStatusCurrent},
