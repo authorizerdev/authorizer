@@ -285,6 +285,30 @@ type Config struct {
 	// Scopes is the list of scopes for Google OAuth
 	GoogleScopes []string
 
+	// TestOAuthGoogleBaseURL overrides Google's OAuth authorize/token/userinfo
+	// base URL. Only ever set by e2e-playground/docker-compose.yml; empty
+	// (the default) in every real deployment, in which case production
+	// endpoints are used unchanged.
+	TestOAuthGoogleBaseURL string
+	// TestOAuthGithubBaseURL is the e2e-playground override for GitHub. See TestOAuthGoogleBaseURL.
+	TestOAuthGithubBaseURL string
+	// TestOAuthFacebookBaseURL is the e2e-playground override for Facebook. See TestOAuthGoogleBaseURL.
+	TestOAuthFacebookBaseURL string
+	// TestOAuthLinkedinBaseURL is the e2e-playground override for LinkedIn. See TestOAuthGoogleBaseURL.
+	TestOAuthLinkedinBaseURL string
+	// TestOAuthAppleBaseURL is the e2e-playground override for Apple. See TestOAuthGoogleBaseURL.
+	TestOAuthAppleBaseURL string
+	// TestOAuthTwitterBaseURL is the e2e-playground override for Twitter/X. See TestOAuthGoogleBaseURL.
+	TestOAuthTwitterBaseURL string
+	// TestOAuthDiscordBaseURL is the e2e-playground override for Discord. See TestOAuthGoogleBaseURL.
+	TestOAuthDiscordBaseURL string
+	// TestOAuthMicrosoftBaseURL is the e2e-playground override for Microsoft. See TestOAuthGoogleBaseURL.
+	TestOAuthMicrosoftBaseURL string
+	// TestOAuthTwitchBaseURL is the e2e-playground override for Twitch. See TestOAuthGoogleBaseURL.
+	TestOAuthTwitchBaseURL string
+	// TestOAuthRobloxBaseURL is the e2e-playground override for Roblox. See TestOAuthGoogleBaseURL.
+	TestOAuthRobloxBaseURL string
+
 	// GithubClientID is the client ID for Github OAuth
 	GithubClientID string
 	// GithubClientSecret is the client secret for Github OAuth

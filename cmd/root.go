@@ -260,6 +260,18 @@ func init() {
 	f.StringVar(&rootArgs.config.RobloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
 	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", defaultRobloxScopes, "Scopes for Roblox")
 
+	// Test-only OAuth mock-IdP base URL overrides
+	f.StringVar(&rootArgs.config.TestOAuthGoogleBaseURL, "test-oauth-google-base-url", "", "(test-only) override Google OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthGithubBaseURL, "test-oauth-github-base-url", "", "(test-only) override GitHub OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthFacebookBaseURL, "test-oauth-facebook-base-url", "", "(test-only) override Facebook OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthLinkedinBaseURL, "test-oauth-linkedin-base-url", "", "(test-only) override LinkedIn OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthAppleBaseURL, "test-oauth-apple-base-url", "", "(test-only) override Apple OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthTwitterBaseURL, "test-oauth-twitter-base-url", "", "(test-only) override Twitter OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthDiscordBaseURL, "test-oauth-discord-base-url", "", "(test-only) override Discord OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthMicrosoftBaseURL, "test-oauth-microsoft-base-url", "", "(test-only) override Microsoft OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthTwitchBaseURL, "test-oauth-twitch-base-url", "", "(test-only) override Twitch OAuth base URL for e2e mock IdP")
+	f.StringVar(&rootArgs.config.TestOAuthRobloxBaseURL, "test-oauth-roblox-base-url", "", "(test-only) override Roblox OAuth base URL for e2e mock IdP")
+
 	// URLs
 	f.StringVar(&rootArgs.config.AuthorizerURL, "url", "", "Canonical/trusted base URL of this Authorizer instance (e.g. https://auth.example.com). When set, it is the ONLY source used to build verification/reset/magic-link email URLs, the JWT iss claim, and OIDC discovery URLs; all request headers (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored. Leaving it empty keeps legacy header-based derivation but exposes host-header-injection account takeover (CWE-640) — set this in production")
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
