@@ -471,3 +471,82 @@ func projectTrustedIssuers(t *model.TrustedIssuers) *authorizerv1.TrustedIssuers
 		Pagination:     projectPagination(t.Pagination),
 	}
 }
+
+// projectSamlServiceProvider converts a single GraphQL SAMLServiceProvider model
+// into the proto message. Optional pointer fields collapse to zero values.
+func projectSamlServiceProvider(s *model.SAMLServiceProvider) *authorizerv1.SamlServiceProvider {
+	if s == nil {
+		return nil
+	}
+	return &authorizerv1.SamlServiceProvider{
+		Id:                s.ID,
+		OrgId:             s.OrgID,
+		Name:              s.Name,
+		EntityId:          s.EntityID,
+		AcsUrl:            s.AcsURL,
+		SpCertPem:         refs.StringValue(s.SpCertPem),
+		NameIdFormat:      refs.StringValue(s.NameIDFormat),
+		MappedAttributes:  refs.StringValue(s.MappedAttributes),
+		AllowIdpInitiated: s.AllowIdpInitiated,
+		IsActive:          s.IsActive,
+		CreatedAt:         refs.Int64Value(s.CreatedAt),
+		UpdatedAt:         refs.Int64Value(s.UpdatedAt),
+	}
+}
+
+// projectSamlServiceProviders converts the GraphQL SAMLServiceProviders model (a
+// page plus its pagination cursor) into the proto response.
+func projectSamlServiceProviders(s *model.SAMLServiceProviders) *authorizerv1.ListSamlServiceProvidersResponse {
+	if s == nil {
+		return &authorizerv1.ListSamlServiceProvidersResponse{}
+	}
+	sps := make([]*authorizerv1.SamlServiceProvider, 0, len(s.SamlServiceProviders))
+	for _, item := range s.SamlServiceProviders {
+		sps = append(sps, projectSamlServiceProvider(item))
+	}
+	return &authorizerv1.ListSamlServiceProvidersResponse{
+		SamlServiceProviders: sps,
+		Pagination:           projectPagination(s.Pagination),
+	}
+}
+
+// projectSamlIdpKey converts a single GraphQL SAMLIDPKey model into the proto
+// message. The private key is never projected — only the certificate and status.
+func projectSamlIdpKey(k *model.SAMLIDPKey) *authorizerv1.SamlIdpKey {
+	if k == nil {
+		return nil
+	}
+	return &authorizerv1.SamlIdpKey{
+		Id:        k.ID,
+		OrgId:     k.OrgID,
+		CertPem:   k.CertPem,
+		Algorithm: k.Algorithm,
+		Status:    k.Status,
+		CreatedAt: refs.Int64Value(k.CreatedAt),
+		UpdatedAt: refs.Int64Value(k.UpdatedAt),
+	}
+}
+
+// projectSamlIdpKeys converts a slice of GraphQL SAMLIDPKey models into the proto
+// slice. A nil input yields an empty (non-nil) slice.
+func projectSamlIdpKeys(keys []*model.SAMLIDPKey) []*authorizerv1.SamlIdpKey {
+	out := make([]*authorizerv1.SamlIdpKey, 0, len(keys))
+	for _, item := range keys {
+		out = append(out, projectSamlIdpKey(item))
+	}
+	return out
+}
+
+// projectSamlSpMetadataParseResult converts the GraphQL SAMLSPMetadataParseResult
+// model into the proto message. The optional certificate collapses to a zero
+// value.
+func projectSamlSpMetadataParseResult(r *model.SAMLSPMetadataParseResult) *authorizerv1.SamlSpMetadataParseResult {
+	if r == nil {
+		return nil
+	}
+	return &authorizerv1.SamlSpMetadataParseResult{
+		EntityId:    r.EntityID,
+		AcsUrl:      r.AcsURL,
+		Certificate: refs.StringValue(r.Certificate),
+	}
+}

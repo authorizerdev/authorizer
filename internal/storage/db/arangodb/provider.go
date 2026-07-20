@@ -517,6 +517,40 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}
 	_, _, _ = orgDomainCollection.EnsurePersistentIndex(ctx, []string{"org_id"}, &arangoDriver.EnsurePersistentIndexOptions{})
 
+	// SAMLServiceProvider collection and indexes (registered downstream SPs).
+	samlSPCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.SAMLServiceProvider)
+	if err != nil {
+		return nil, err
+	}
+	if !samlSPCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.SAMLServiceProvider, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	samlSPCollection, err := arangodb.Collection(ctx, schemas.Collections.SAMLServiceProvider)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = samlSPCollection.EnsurePersistentIndex(ctx, []string{"org_id"}, &arangoDriver.EnsurePersistentIndexOptions{})
+
+	// SAMLIDPKey collection and indexes (per-org signing keypairs).
+	samlIDPKeyCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.SAMLIDPKey)
+	if err != nil {
+		return nil, err
+	}
+	if !samlIDPKeyCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.SAMLIDPKey, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	samlIDPKeyCollection, err := arangodb.Collection(ctx, schemas.Collections.SAMLIDPKey)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = samlIDPKeyCollection.EnsurePersistentIndex(ctx, []string{"org_id"}, &arangoDriver.EnsurePersistentIndexOptions{})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

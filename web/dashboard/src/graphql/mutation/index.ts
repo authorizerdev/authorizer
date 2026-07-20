@@ -357,3 +357,56 @@ export const DeleteScimEndpoint = `
     }
   }
 `;
+
+export const CreateSAMLServiceProvider = `
+  mutation createSAMLServiceProvider($params: CreateSAMLServiceProviderRequest!) {
+    _create_saml_service_provider(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateSAMLServiceProvider = `
+  mutation updateSAMLServiceProvider($params: UpdateSAMLServiceProviderRequest!) {
+    _update_saml_service_provider(params: $params) {
+      id
+      name
+    }
+  }
+`;
+
+export const DeleteSAMLServiceProvider = `
+  mutation deleteSAMLServiceProvider($params: SAMLServiceProviderRequest!) {
+    _delete_saml_service_provider(params: $params) {
+      message
+    }
+  }
+`;
+
+export const RotateSAMLIDPCert = `
+  mutation rotateSAMLIDPCert($params: RotateSAMLIDPCertRequest!) {
+    _rotate_saml_idp_cert(params: $params) {
+      id
+      status
+    }
+  }
+`;
+
+export const RetireSAMLIDPKey = `
+  mutation retireSAMLIDPKey($params: RetireSAMLIDPKeyRequest!) {
+    _retire_saml_idp_key(params: $params) {
+      message
+    }
+  }
+`;
+
+export const ImportSAMLSPMetadata = `
+  mutation importSAMLSPMetadata($params: ImportSAMLSPMetadataRequest!) {
+    _import_saml_sp_metadata(params: $params) {
+      entity_id
+      acs_url
+      certificate
+    }
+  }
+`;

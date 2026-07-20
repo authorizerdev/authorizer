@@ -506,6 +506,58 @@ type OrgSAMLConnection {
   updated_at: Int64
 }
 
+# SAMLServiceProvider is a downstream SAML 2.0 SP that Authorizer (acting as the
+# IdP) issues signed assertions to. This is the inverse of OrgSAMLConnection.
+type SAMLServiceProvider {
+  id: ID!
+  org_id: String!
+  name: String!
+  # entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience).
+  entity_id: String!
+  # acs_url: the SP Assertion Consumer Service URL — the only place assertions are
+  # POSTed. Never taken from the request.
+  acs_url: String!
+  # sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  sp_cert_pem: String
+  # name_id_format: SAML NameID format for the Subject (default emailAddress).
+  name_id_format: String
+  # mapped_attributes: JSON mapping profile fields to emitted SAML attribute names.
+  mapped_attributes: String
+  # allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted.
+  allow_idp_initiated: Boolean!
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type SAMLServiceProviders {
+  pagination: Pagination!
+  saml_service_providers: [SAMLServiceProvider!]!
+}
+
+# SAMLIDPKey is a per-org SAML IdP signing keypair. The private key is NEVER
+# projected — only the certificate and rotation status.
+type SAMLIDPKey {
+  id: ID!
+  org_id: String!
+  # cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs.
+  cert_pem: String!
+  algorithm: String!
+  # status: "current" (signs new assertions), "active" (published in metadata,
+  # not signing), or "retired" (neither).
+  status: String!
+  created_at: Int64
+  updated_at: Int64
+}
+
+# SAMLSPMetadataParseResult is the parsed output of _import_saml_sp_metadata. It
+# does NOT create a record — it returns fields to prefill a create call.
+type SAMLSPMetadataParseResult {
+  entity_id: String!
+  acs_url: String!
+  certificate: String
+}
+
 type Organization {
   id: ID!
   # name is a unique, URL-safe slug identifying the organization.
@@ -1143,6 +1195,65 @@ input OrgSAMLConnectionRequest {
   org_id: String
 }
 
+# --- SAML IdP: registered downstream service providers ---
+
+input CreateSAMLServiceProviderRequest {
+  org_id: String!
+  name: String!
+  # entity_id: the SP entity ID (unique within the org).
+  entity_id: String!
+  # acs_url: the SP Assertion Consumer Service URL (https recommended).
+  acs_url: String!
+  # sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  sp_cert_pem: String
+  # name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+  name_id_format: String
+  # mapped_attributes: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  mapped_attributes: String
+  # allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated: Boolean
+}
+
+input UpdateSAMLServiceProviderRequest {
+  id: ID!
+  name: String
+  entity_id: String
+  acs_url: String
+  sp_cert_pem: String
+  name_id_format: String
+  mapped_attributes: String
+  allow_idp_initiated: Boolean
+  is_active: Boolean
+}
+
+input SAMLServiceProviderRequest {
+  id: ID!
+}
+
+input ListSAMLServiceProvidersRequest {
+  org_id: String!
+  pagination: PaginatedRequest
+}
+
+# --- SAML IdP: signing key rotation & SP-metadata import ---
+
+input RotateSAMLIDPCertRequest {
+  org_id: String!
+}
+
+input RetireSAMLIDPKeyRequest {
+  id: ID!
+}
+
+input ListSAMLIDPKeysRequest {
+  org_id: String!
+}
+
+input ImportSAMLSPMetadataRequest {
+  # metadata_xml: pasted SP metadata XML (NOT a URL — no remote fetch).
+  metadata_xml: String!
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -1490,6 +1601,20 @@ type Mutation {
   _create_org_saml_connection(params: CreateOrgSAMLConnectionRequest!): OrgSAMLConnection!
   _update_org_saml_connection(params: UpdateOrgSAMLConnectionRequest!): OrgSAMLConnection!
   _delete_org_saml_connection(params: OrgSAMLConnectionRequest!): Response!
+  # Per-organization SAML IdP: registered downstream SPs, signing-key rotation,
+  # and SP-metadata import (Authorizer as Identity Provider).
+  _create_saml_service_provider(params: CreateSAMLServiceProviderRequest!): SAMLServiceProvider!
+  _update_saml_service_provider(params: UpdateSAMLServiceProviderRequest!): SAMLServiceProvider!
+  _delete_saml_service_provider(params: SAMLServiceProviderRequest!): Response!
+  # _rotate_saml_idp_cert generates a new signing keypair (becomes "current");
+  # the previously-current key stays "active" (still published) until retired.
+  _rotate_saml_idp_cert(params: RotateSAMLIDPCertRequest!): SAMLIDPKey!
+  # _retire_saml_idp_key retires a published-but-superseded key so it stops
+  # appearing in IdP metadata. Cannot retire the current key.
+  _retire_saml_idp_key(params: RetireSAMLIDPKeyRequest!): Response!
+  # _import_saml_sp_metadata parses pasted SP metadata XML and returns the
+  # extracted entity_id / acs_url / certificate. It does NOT create a record.
+  _import_saml_sp_metadata(params: ImportSAMLSPMetadataRequest!): SAMLSPMetadataParseResult!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -1550,6 +1675,10 @@ type Query {
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
   _org_saml_connection(params: OrgSAMLConnectionRequest!): OrgSAMLConnection!
+  # Per-organization SAML IdP admin reads.
+  _saml_service_provider(params: SAMLServiceProviderRequest!): SAMLServiceProvider!
+  _list_saml_service_providers(params: ListSAMLServiceProvidersRequest!): SAMLServiceProviders!
+  _list_saml_idp_keys(params: ListSAMLIDPKeysRequest!): [SAMLIDPKey!]!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!

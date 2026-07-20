@@ -164,6 +164,17 @@ type CreateOrganizationRequest struct {
 	DisplayName *string `json:"display_name,omitempty"`
 }
 
+type CreateSAMLServiceProviderRequest struct {
+	OrgID             string  `json:"org_id"`
+	Name              string  `json:"name"`
+	EntityID          string  `json:"entity_id"`
+	AcsURL            string  `json:"acs_url"`
+	SpCertPem         *string `json:"sp_cert_pem,omitempty"`
+	NameIDFormat      *string `json:"name_id_format,omitempty"`
+	MappedAttributes  *string `json:"mapped_attributes,omitempty"`
+	AllowIdpInitiated *bool   `json:"allow_idp_initiated,omitempty"`
+}
+
 type CreateScimEndpointRequest struct {
 	OrgID string `json:"org_id"`
 }
@@ -368,6 +379,10 @@ type GetUserRequest struct {
 	Email *string `json:"email,omitempty"`
 }
 
+type ImportSAMLSPMetadataRequest struct {
+	MetadataXML string `json:"metadata_xml"`
+}
+
 type InviteMemberRequest struct {
 	Emails      []string `json:"emails"`
 	RedirectURI *string  `json:"redirect_uri,omitempty"`
@@ -416,6 +431,15 @@ type ListPermissionsResponse struct {
 	Objects     []string      `json:"objects"`
 	Permissions []*Permission `json:"permissions"`
 	Truncated   bool          `json:"truncated"`
+}
+
+type ListSAMLIDPKeysRequest struct {
+	OrgID string `json:"org_id"`
+}
+
+type ListSAMLServiceProvidersRequest struct {
+	OrgID      string            `json:"org_id"`
+	Pagination *PaginatedRequest `json:"pagination,omitempty"`
 }
 
 type ListTrustedIssuersRequest struct {
@@ -687,6 +711,54 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type RetireSAMLIDPKeyRequest struct {
+	ID string `json:"id"`
+}
+
+type RotateSAMLIDPCertRequest struct {
+	OrgID string `json:"org_id"`
+}
+
+type SAMLIDPKey struct {
+	ID        string `json:"id"`
+	OrgID     string `json:"org_id"`
+	CertPem   string `json:"cert_pem"`
+	Algorithm string `json:"algorithm"`
+	Status    string `json:"status"`
+	CreatedAt *int64 `json:"created_at,omitempty"`
+	UpdatedAt *int64 `json:"updated_at,omitempty"`
+}
+
+type SAMLSPMetadataParseResult struct {
+	EntityID    string  `json:"entity_id"`
+	AcsURL      string  `json:"acs_url"`
+	Certificate *string `json:"certificate,omitempty"`
+}
+
+type SAMLServiceProvider struct {
+	ID                string  `json:"id"`
+	OrgID             string  `json:"org_id"`
+	Name              string  `json:"name"`
+	EntityID          string  `json:"entity_id"`
+	AcsURL            string  `json:"acs_url"`
+	SpCertPem         *string `json:"sp_cert_pem,omitempty"`
+	NameIDFormat      *string `json:"name_id_format,omitempty"`
+	MappedAttributes  *string `json:"mapped_attributes,omitempty"`
+	AllowIdpInitiated bool    `json:"allow_idp_initiated"`
+	IsActive          bool    `json:"is_active"`
+	CreatedAt         *int64  `json:"created_at,omitempty"`
+	UpdatedAt         *int64  `json:"updated_at,omitempty"`
+}
+
+type SAMLServiceProviderRequest struct {
+	ID string `json:"id"`
+}
+
+type SAMLServiceProviders struct {
+	Pagination           *Pagination            `json:"pagination"`
+	SamlServiceProviders []*SAMLServiceProvider `json:"saml_service_providers"`
+}
+
 type ScimEndpoint struct {
 	ID        string `json:"id"`
 	OrgID     string `json:"org_id"`
@@ -903,6 +975,18 @@ type UpdateProfileRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
+}
+
+type UpdateSAMLServiceProviderRequest struct {
+	ID                string  `json:"id"`
+	Name              *string `json:"name,omitempty"`
+	EntityID          *string `json:"entity_id,omitempty"`
+	AcsURL            *string `json:"acs_url,omitempty"`
+	SpCertPem         *string `json:"sp_cert_pem,omitempty"`
+	NameIDFormat      *string `json:"name_id_format,omitempty"`
+	MappedAttributes  *string `json:"mapped_attributes,omitempty"`
+	AllowIdpInitiated *bool   `json:"allow_idp_initiated,omitempty"`
+	IsActive          *bool   `json:"is_active,omitempty"`
 }
 
 type UpdateTrustedIssuerRequest struct {

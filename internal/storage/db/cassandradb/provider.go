@@ -466,6 +466,36 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// index (hot path for client_assertion validation) to become queryable.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.TrustedIssuer, "issuer_url", 30*time.Second)
 
+	// SAMLServiceProvider table and indexes (registered downstream SPs; Authorizer as IdP)
+	samlServiceProviderCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, name text, entity_id text, acs_url text, sp_cert_pem text, name_id_format text, mapped_attributes text, allow_idp_initiated boolean, is_active boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.SAMLServiceProvider)
+	if err = session.Query(samlServiceProviderCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	samlServiceProviderOrgIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_saml_service_provider_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.SAMLServiceProvider)
+	if err = session.Query(samlServiceProviderOrgIDIndex).Exec(); err != nil {
+		return nil, err
+	}
+	samlServiceProviderEntityIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_saml_service_provider_entity_id ON %s.%s (entity_id)", KeySpace, schemas.Collections.SAMLServiceProvider)
+	if err = session.Query(samlServiceProviderEntityIDIndex).Exec(); err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the org_id index
+	// (used to resolve an incoming AuthnRequest to its registered SP) to become queryable.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.SAMLServiceProvider, "org_id", 30*time.Second)
+
+	// SAMLIDPKey table and index (per-org signing keypairs with rotation)
+	samlIDPKeyCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, cert_pem text, private_key_enc text, algorithm text, status text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.SAMLIDPKey)
+	if err = session.Query(samlIDPKeyCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	samlIDPKeyOrgIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_saml_idp_key_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.SAMLIDPKey)
+	if err = session.Query(samlIDPKeyOrgIDIndex).Exec(); err != nil {
+		return nil, err
+	}
+	// ScyllaDB builds secondary indexes asynchronously; wait for the org_id index
+	// (used to enumerate an org's signing keys for metadata publishing) to become queryable.
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.SAMLIDPKey, "org_id", 30*time.Second)
+
 	// WebauthnCredential table and indexes
 	webauthnCredentialCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, credential_id text, public_key text, sign_count bigint, flags bigint, transports text, aaguid text, name text, created_at bigint, updated_at bigint, last_used_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.WebauthnCredential)
 	err = session.Query(webauthnCredentialCollectionQuery).Exec()

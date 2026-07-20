@@ -1,6 +1,10 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthorizerMFASetup, AuthorizerVerifyOtp, useAuthorizer } from '@authorizerdev/authorizer-react';
+import {
+	AuthorizerMFASetup,
+	AuthorizerVerifyOtp,
+	useAuthorizer,
+} from '@authorizerdev/authorizer-react';
 import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';

@@ -611,3 +611,130 @@ func (h *AdminHandler) TrustedIssuers(ctx context.Context, req *authorizerv1.Tru
 	}
 	return projectTrustedIssuers(res), nil
 }
+
+// CreateSamlServiceProvider delegates to service.CreateSAMLServiceProvider. The
+// optional proto fields map 1:1 onto the model's nullable pointers. Requires
+// super-admin auth.
+func (h *AdminHandler) CreateSamlServiceProvider(ctx context.Context, req *authorizerv1.CreateSamlServiceProviderRequest) (*authorizerv1.CreateSamlServiceProviderResponse, error) {
+	res, _, err := h.Service.CreateSAMLServiceProvider(ctx, transport.MetaFromGRPC(ctx), &model.CreateSAMLServiceProviderRequest{
+		OrgID:             req.GetOrgId(),
+		Name:              req.GetName(),
+		EntityID:          req.GetEntityId(),
+		AcsURL:            req.GetAcsUrl(),
+		SpCertPem:         req.SpCertPem,
+		NameIDFormat:      req.NameIdFormat,
+		MappedAttributes:  req.MappedAttributes,
+		AllowIdpInitiated: req.AllowIdpInitiated,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.CreateSamlServiceProviderResponse{SamlServiceProvider: projectSamlServiceProvider(res)}, nil
+}
+
+// UpdateSamlServiceProvider delegates to service.UpdateSAMLServiceProvider.
+// Optional proto fields map 1:1 onto the model's nullable pointers. Requires
+// super-admin auth.
+func (h *AdminHandler) UpdateSamlServiceProvider(ctx context.Context, req *authorizerv1.UpdateSamlServiceProviderRequest) (*authorizerv1.UpdateSamlServiceProviderResponse, error) {
+	res, _, err := h.Service.UpdateSAMLServiceProvider(ctx, transport.MetaFromGRPC(ctx), &model.UpdateSAMLServiceProviderRequest{
+		ID:                req.GetId(),
+		Name:              req.Name,
+		EntityID:          req.EntityId,
+		AcsURL:            req.AcsUrl,
+		SpCertPem:         req.SpCertPem,
+		NameIDFormat:      req.NameIdFormat,
+		MappedAttributes:  req.MappedAttributes,
+		AllowIdpInitiated: req.AllowIdpInitiated,
+		IsActive:          req.IsActive,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateSamlServiceProviderResponse{SamlServiceProvider: projectSamlServiceProvider(res)}, nil
+}
+
+// DeleteSamlServiceProvider delegates to service.DeleteSAMLServiceProvider.
+// Requires super-admin auth.
+func (h *AdminHandler) DeleteSamlServiceProvider(ctx context.Context, req *authorizerv1.DeleteSamlServiceProviderRequest) (*authorizerv1.DeleteSamlServiceProviderResponse, error) {
+	res, _, err := h.Service.DeleteSAMLServiceProvider(ctx, transport.MetaFromGRPC(ctx), &model.SAMLServiceProviderRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteSamlServiceProviderResponse{Message: res.Message}, nil
+}
+
+// GetSamlServiceProvider delegates to service.SAMLServiceProvider and projects
+// the result. Requires super-admin auth.
+func (h *AdminHandler) GetSamlServiceProvider(ctx context.Context, req *authorizerv1.GetSamlServiceProviderRequest) (*authorizerv1.GetSamlServiceProviderResponse, error) {
+	res, _, err := h.Service.SAMLServiceProvider(ctx, transport.MetaFromGRPC(ctx), &model.SAMLServiceProviderRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.GetSamlServiceProviderResponse{SamlServiceProvider: projectSamlServiceProvider(res)}, nil
+}
+
+// ListSamlServiceProviders delegates to service.ListSAMLServiceProviders and
+// projects the paginated result. Requires super-admin auth.
+func (h *AdminHandler) ListSamlServiceProviders(ctx context.Context, req *authorizerv1.ListSamlServiceProvidersRequest) (*authorizerv1.ListSamlServiceProvidersResponse, error) {
+	res, _, err := h.Service.ListSAMLServiceProviders(ctx, transport.MetaFromGRPC(ctx), &model.ListSAMLServiceProvidersRequest{
+		OrgID:      req.GetOrgId(),
+		Pagination: modelPaginatedRequest(req.GetPagination()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectSamlServiceProviders(res), nil
+}
+
+// RotateSamlIdpCert delegates to service.RotateSAMLIDPCert and projects the new
+// current signing key. Requires super-admin auth.
+func (h *AdminHandler) RotateSamlIdpCert(ctx context.Context, req *authorizerv1.RotateSamlIdpCertRequest) (*authorizerv1.RotateSamlIdpCertResponse, error) {
+	res, _, err := h.Service.RotateSAMLIDPCert(ctx, transport.MetaFromGRPC(ctx), &model.RotateSAMLIDPCertRequest{
+		OrgID: req.GetOrgId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.RotateSamlIdpCertResponse{SamlIdpKey: projectSamlIdpKey(res)}, nil
+}
+
+// RetireSamlIdpKey delegates to service.RetireSAMLIDPKey. Requires super-admin
+// auth.
+func (h *AdminHandler) RetireSamlIdpKey(ctx context.Context, req *authorizerv1.RetireSamlIdpKeyRequest) (*authorizerv1.RetireSamlIdpKeyResponse, error) {
+	res, _, err := h.Service.RetireSAMLIDPKey(ctx, transport.MetaFromGRPC(ctx), &model.RetireSAMLIDPKeyRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.RetireSamlIdpKeyResponse{Message: res.Message}, nil
+}
+
+// ListSamlIdpKeys delegates to service.ListSAMLIDPKeys and projects the key set.
+// Requires super-admin auth.
+func (h *AdminHandler) ListSamlIdpKeys(ctx context.Context, req *authorizerv1.ListSamlIdpKeysRequest) (*authorizerv1.ListSamlIdpKeysResponse, error) {
+	res, _, err := h.Service.ListSAMLIDPKeys(ctx, transport.MetaFromGRPC(ctx), &model.ListSAMLIDPKeysRequest{
+		OrgID: req.GetOrgId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.ListSamlIdpKeysResponse{SamlIdpKeys: projectSamlIdpKeys(res)}, nil
+}
+
+// ImportSamlSpMetadata delegates to service.ImportSAMLSPMetadata. It parses
+// pasted SP metadata XML and returns prefill fields; it creates no record.
+// Requires super-admin auth.
+func (h *AdminHandler) ImportSamlSpMetadata(ctx context.Context, req *authorizerv1.ImportSamlSpMetadataRequest) (*authorizerv1.ImportSamlSpMetadataResponse, error) {
+	res, _, err := h.Service.ImportSAMLSPMetadata(ctx, transport.MetaFromGRPC(ctx), &model.ImportSAMLSPMetadataRequest{
+		MetadataXML: req.GetMetadataXml(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.ImportSamlSpMetadataResponse{Result: projectSamlSpMetadataParseResult(res)}, nil
+}

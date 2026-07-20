@@ -319,6 +319,28 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// SAMLServiceProvider collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.SAMLServiceProvider, options.CreateCollection())
+	samlServiceProviderCollection := mongodb.Collection(schemas.Collections.SAMLServiceProvider, options.Collection())
+	_, _ = samlServiceProviderCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.M{"org_id": 1},
+		},
+		{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "entity_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	}, options.CreateIndexes())
+
+	// SAMLIDPKey collection and indexes
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.SAMLIDPKey, options.CreateCollection())
+	samlIDPKeyCollection := mongodb.Collection(schemas.Collections.SAMLIDPKey, options.Collection())
+	_, _ = samlIDPKeyCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.M{"org_id": 1},
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

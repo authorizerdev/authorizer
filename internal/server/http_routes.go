@@ -81,6 +81,13 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/oauth/saml/:org_slug/metadata", s.Dependencies.HTTPProvider.SAMLMetadataHandler())
 	router.GET("/oauth/saml/:org_slug/login", s.Dependencies.HTTPProvider.SAMLLoginHandler())
 	router.POST("/oauth/saml/:org_slug/acs", s.Dependencies.HTTPProvider.SAMLACSHandler())
+	// Per-organization enterprise SAML 2.0 SSO (Authorizer as Identity Provider):
+	// serves IdP metadata, SP-initiated SSO (GET redirect / POST bindings), and
+	// IdP-initiated SSO to a registered SP (/sso/:sp_id).
+	router.GET("/saml/idp/:org_slug/metadata", s.Dependencies.HTTPProvider.SAMLIDPMetadataHandler())
+	router.GET("/saml/idp/:org_slug/sso", s.Dependencies.HTTPProvider.SAMLIDPSSOHandler())
+	router.POST("/saml/idp/:org_slug/sso", s.Dependencies.HTTPProvider.SAMLIDPSSOHandler())
+	router.GET("/saml/idp/:org_slug/sso/:sp_id", s.Dependencies.HTTPProvider.SAMLIDPInitiatedHandler())
 	router.GET("/verify_email", s.Dependencies.HTTPProvider.VerifyEmailHandler())
 	// Public home-realm discovery: maps a login email's verified domain to the
 	// owning org's SSO login URL (routing hint only; unauthenticated).

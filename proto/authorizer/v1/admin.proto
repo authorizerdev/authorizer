@@ -421,6 +421,92 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === SAML IdP: downstream service providers ===
+
+  // CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer
+  // (acting as the IdP) issues signed assertions to. Requires super-admin auth.
+  rpc CreateSamlServiceProvider(CreateSamlServiceProviderRequest) returns (CreateSamlServiceProviderResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_saml_service_provider"
+      body: "*"
+    };
+  }
+
+  // UpdateSamlServiceProvider updates a downstream SP's name, endpoints,
+  // certificate, attribute mapping, or active state. Requires super-admin auth.
+  rpc UpdateSamlServiceProvider(UpdateSamlServiceProviderRequest) returns (UpdateSamlServiceProviderResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_saml_service_provider"
+      body: "*"
+    };
+  }
+
+  // DeleteSamlServiceProvider deletes a downstream SP by id. Requires
+  // super-admin auth.
+  rpc DeleteSamlServiceProvider(DeleteSamlServiceProviderRequest) returns (DeleteSamlServiceProviderResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_saml_service_provider"
+      body: "*"
+    };
+  }
+
+  // GetSamlServiceProvider returns a single downstream SP by id. Requires
+  // super-admin auth.
+  rpc GetSamlServiceProvider(GetSamlServiceProviderRequest) returns (GetSamlServiceProviderResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/saml_service_provider"
+      body: "*"
+    };
+  }
+
+  // ListSamlServiceProviders returns a paginated list of downstream SPs for an
+  // org. Requires super-admin auth.
+  rpc ListSamlServiceProviders(ListSamlServiceProvidersRequest) returns (ListSamlServiceProvidersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/saml_service_providers"
+      body: "*"
+    };
+  }
+
+  // === SAML IdP: signing key rotation & SP-metadata import ===
+
+  // RotateSamlIdpCert generates a new current signing keypair for an org's SAML
+  // IdP, demoting the previous current key. Requires super-admin auth.
+  rpc RotateSamlIdpCert(RotateSamlIdpCertRequest) returns (RotateSamlIdpCertResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/rotate_saml_idp_cert"
+      body: "*"
+    };
+  }
+
+  // RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.
+  // Requires super-admin auth.
+  rpc RetireSamlIdpKey(RetireSamlIdpKeyRequest) returns (RetireSamlIdpKeyResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/retire_saml_idp_key"
+      body: "*"
+    };
+  }
+
+  // ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires
+  // super-admin auth.
+  rpc ListSamlIdpKeys(ListSamlIdpKeysRequest) returns (ListSamlIdpKeysResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/saml_idp_keys"
+      body: "*"
+    };
+  }
+
+  // ImportSamlSpMetadata parses pasted SP metadata XML and returns the fields to
+  // prefill a create call. It does NOT create a record and performs no remote
+  // fetch. Requires super-admin auth.
+  rpc ImportSamlSpMetadata(ImportSamlSpMetadataRequest) returns (ImportSamlSpMetadataResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/import_saml_sp_metadata"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -1048,4 +1134,155 @@ message TrustedIssuersRequest {
 message TrustedIssuersResponse {
   repeated TrustedIssuer trusted_issuers = 1;
   Pagination pagination = 2;
+}
+
+// === SAML IdP ===
+
+// SamlServiceProvider mirrors model.SAMLServiceProvider field-for-field. It is a
+// downstream SAML 2.0 SP that Authorizer (acting as the IdP) issues signed
+// assertions to. Optional pointer fields collapse to zero values on the wire.
+message SamlServiceProvider {
+  string id = 1;
+  string org_id = 2;
+  string name = 3;
+  // entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience).
+  string entity_id = 4;
+  // acs_url: the SP Assertion Consumer Service URL — the only place assertions
+  // are POSTed.
+  string acs_url = 5;
+  // sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  string sp_cert_pem = 6;
+  // name_id_format: SAML NameID format for the Subject (default emailAddress).
+  string name_id_format = 7;
+  // mapped_attributes: JSON mapping profile fields to emitted SAML attribute names.
+  string mapped_attributes = 8;
+  // allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted.
+  bool allow_idp_initiated = 9;
+  bool is_active = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}
+
+// SamlIdpKey mirrors model.SAMLIDPKey. The private key is NEVER projected — only
+// the certificate and rotation status.
+message SamlIdpKey {
+  string id = 1;
+  string org_id = 2;
+  // cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs.
+  string cert_pem = 3;
+  string algorithm = 4;
+  // status: "current" (signs new assertions), "active" (published in metadata,
+  // not signing), or "retired" (neither).
+  string status = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// SamlSpMetadataParseResult mirrors model.SAMLSPMetadataParseResult. It does NOT
+// create a record — it returns fields to prefill a create call.
+message SamlSpMetadataParseResult {
+  string entity_id = 1;
+  string acs_url = 2;
+  string certificate = 3;
+}
+
+// CreateSamlServiceProviderRequest mirrors model.CreateSAMLServiceProviderRequest.
+// sp_cert_pem, name_id_format, mapped_attributes, and allow_idp_initiated are
+// optional.
+message CreateSamlServiceProviderRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  string entity_id = 3 [(buf.validate.field).string.min_len = 1];
+  string acs_url = 4 [(buf.validate.field).string.min_len = 1];
+  optional string sp_cert_pem = 5;
+  // name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+  optional string name_id_format = 6;
+  // mapped_attributes: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  optional string mapped_attributes = 7;
+  // allow_idp_initiated: default false (SP-initiated only).
+  optional bool allow_idp_initiated = 8;
+}
+message CreateSamlServiceProviderResponse {
+  SamlServiceProvider saml_service_provider = 1;
+}
+
+// UpdateSamlServiceProviderRequest mirrors model.UpdateSAMLServiceProviderRequest.
+// Nullable GraphQL inputs use proto3 `optional` so an unset field is
+// distinguishable from an empty value.
+message UpdateSamlServiceProviderRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string entity_id = 3;
+  optional string acs_url = 4;
+  optional string sp_cert_pem = 5;
+  optional string name_id_format = 6;
+  optional string mapped_attributes = 7;
+  optional bool allow_idp_initiated = 8;
+  optional bool is_active = 9;
+}
+message UpdateSamlServiceProviderResponse {
+  SamlServiceProvider saml_service_provider = 1;
+}
+
+// DeleteSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a
+// single SP id). Kept distinct from GetSamlServiceProviderRequest per buf's
+// one-message-per-RPC rule.
+message DeleteSamlServiceProviderRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteSamlServiceProviderResponse {
+  string message = 1;
+}
+
+// GetSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a
+// single SP id). Kept distinct from DeleteSamlServiceProviderRequest per buf's
+// one-message-per-RPC rule.
+message GetSamlServiceProviderRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetSamlServiceProviderResponse {
+  SamlServiceProvider saml_service_provider = 1;
+}
+
+// ListSamlServiceProvidersRequest mirrors model.ListSAMLServiceProvidersRequest.
+message ListSamlServiceProvidersRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  PaginationRequest pagination = 2;
+}
+message ListSamlServiceProvidersResponse {
+  repeated SamlServiceProvider saml_service_providers = 1;
+  Pagination pagination = 2;
+}
+
+// RotateSamlIdpCertRequest mirrors model.RotateSAMLIDPCertRequest.
+message RotateSamlIdpCertRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message RotateSamlIdpCertResponse {
+  SamlIdpKey saml_idp_key = 1;
+}
+
+// RetireSamlIdpKeyRequest mirrors model.RetireSAMLIDPKeyRequest (a single key id).
+message RetireSamlIdpKeyRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message RetireSamlIdpKeyResponse {
+  string message = 1;
+}
+
+// ListSamlIdpKeysRequest mirrors model.ListSAMLIDPKeysRequest.
+message ListSamlIdpKeysRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message ListSamlIdpKeysResponse {
+  repeated SamlIdpKey saml_idp_keys = 1;
+}
+
+// ImportSamlSpMetadataRequest mirrors model.ImportSAMLSPMetadataRequest. The
+// metadata is pasted XML — NOT a URL; no remote fetch is performed.
+message ImportSamlSpMetadataRequest {
+  string metadata_xml = 1 [(buf.validate.field).string.min_len = 1];
+}
+message ImportSamlSpMetadataResponse {
+  SamlSpMetadataParseResult result = 1;
 }

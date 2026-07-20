@@ -305,6 +305,7 @@ type ComplexityRoot struct {
 		CreateOrgOidcConnection     func(childComplexity int, params model.CreateOrgOIDCConnectionRequest) int
 		CreateOrgSamlConnection     func(childComplexity int, params model.CreateOrgSAMLConnectionRequest) int
 		CreateOrganization          func(childComplexity int, params model.CreateOrganizationRequest) int
+		CreateSamlServiceProvider   func(childComplexity int, params model.CreateSAMLServiceProviderRequest) int
 		CreateScimEndpoint          func(childComplexity int, params model.CreateScimEndpointRequest) int
 		DeactivateAccount           func(childComplexity int) int
 		DeleteClient                func(childComplexity int, params model.ClientRequest) int
@@ -313,6 +314,7 @@ type ComplexityRoot struct {
 		DeleteOrgOidcConnection     func(childComplexity int, params model.OrgOIDCConnectionRequest) int
 		DeleteOrgSamlConnection     func(childComplexity int, params model.OrgSAMLConnectionRequest) int
 		DeleteOrganization          func(childComplexity int, params model.OrganizationRequest) int
+		DeleteSamlServiceProvider   func(childComplexity int, params model.SAMLServiceProviderRequest) int
 		DeleteScimEndpoint          func(childComplexity int, params model.ScimEndpointRequest) int
 		DeleteTrustedIssuer         func(childComplexity int, params model.TrustedIssuerRequest) int
 		DeleteUser                  func(childComplexity int, params model.DeleteUserRequest) int
@@ -325,6 +327,7 @@ type ComplexityRoot struct {
 		FgaWriteTuples              func(childComplexity int, params model.FgaWriteTuplesInput) int
 		ForgotPassword              func(childComplexity int, params model.ForgotPasswordRequest) int
 		GenerateJwtKeys             func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		ImportSamlSpMetadata        func(childComplexity int, params model.ImportSAMLSPMetadataRequest) int
 		InviteMembers               func(childComplexity int, params model.InviteMemberRequest) int
 		LockMfa                     func(childComplexity int, params model.LockMfaRequest) int
 		Login                       func(childComplexity int, params model.LoginRequest) int
@@ -337,9 +340,11 @@ type ComplexityRoot struct {
 		ResendOtp                   func(childComplexity int, params model.ResendOTPRequest) int
 		ResendVerifyEmail           func(childComplexity int, params model.ResendVerifyEmailRequest) int
 		ResetPassword               func(childComplexity int, params model.ResetPasswordRequest) int
+		RetireSamlIdpKey            func(childComplexity int, params model.RetireSAMLIDPKeyRequest) int
 		Revoke                      func(childComplexity int, params model.OAuthRevokeRequest) int
 		RevokeAccess                func(childComplexity int, param model.UpdateAccessRequest) int
 		RotateClientSecret          func(childComplexity int, params model.ClientRequest) int
+		RotateSamlIdpCert           func(childComplexity int, params model.RotateSAMLIDPCertRequest) int
 		RotateScimToken             func(childComplexity int, params model.ScimEndpointRequest) int
 		Signup                      func(childComplexity int, params model.SignUpRequest) int
 		SkipMfaSetup                func(childComplexity int, params model.SkipMfaSetupRequest) int
@@ -353,6 +358,7 @@ type ComplexityRoot struct {
 		UpdateOrgSamlConnection     func(childComplexity int, params model.UpdateOrgSAMLConnectionRequest) int
 		UpdateOrganization          func(childComplexity int, params model.UpdateOrganizationRequest) int
 		UpdateProfile               func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateSamlServiceProvider   func(childComplexity int, params model.UpdateSAMLServiceProviderRequest) int
 		UpdateTrustedIssuer         func(childComplexity int, params model.UpdateTrustedIssuerRequest) int
 		UpdateUser                  func(childComplexity int, params model.UpdateUserRequest) int
 		UpdateWebhook               func(childComplexity int, params model.UpdateWebhookRequest) int
@@ -464,45 +470,84 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AdminMeta            func(childComplexity int) int
-		AdminSession         func(childComplexity int) int
-		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
-		CheckPermissions     func(childComplexity int, params model.CheckPermissionsInput) int
-		Client               func(childComplexity int, params model.ClientRequest) int
-		Clients              func(childComplexity int, params *model.ListClientsRequest) int
-		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
-		Env                  func(childComplexity int) int
-		FgaExpand            func(childComplexity int, params model.FgaExpandInput) int
-		FgaGetModel          func(childComplexity int) int
-		FgaListUsers         func(childComplexity int, params model.FgaListUsersInput) int
-		FgaReadTuples        func(childComplexity int, params model.FgaReadTuplesInput) int
-		ListPermissions      func(childComplexity int, params model.ListPermissionsInput) int
-		Meta                 func(childComplexity int) int
-		OrgDomains           func(childComplexity int, params model.ListOrgDomainsRequest) int
-		OrgMembers           func(childComplexity int, params model.ListOrgMembersRequest) int
-		OrgOidcConnection    func(childComplexity int, params model.OrgOIDCConnectionRequest) int
-		OrgSamlConnection    func(childComplexity int, params model.OrgSAMLConnectionRequest) int
-		Organization         func(childComplexity int, params model.OrganizationRequest) int
-		Organizations        func(childComplexity int, params *model.ListOrganizationsRequest) int
-		Profile              func(childComplexity int) int
-		ScimEndpoint         func(childComplexity int, params model.ScimEndpointRequest) int
-		Session              func(childComplexity int, params *model.SessionQueryRequest) int
-		TrustedIssuer        func(childComplexity int, params model.TrustedIssuerRequest) int
-		TrustedIssuers       func(childComplexity int, params *model.ListTrustedIssuersRequest) int
-		User                 func(childComplexity int, params model.GetUserRequest) int
-		UserOrganizations    func(childComplexity int, params model.UserOrganizationsRequest) int
-		Users                func(childComplexity int, params *model.ListUsersRequest) int
-		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
-		ValidateSession      func(childComplexity int, params *model.ValidateSessionRequest) int
-		VerificationRequests func(childComplexity int, params *model.PaginatedRequest) int
-		WebauthnCredentials  func(childComplexity int) int
-		Webhook              func(childComplexity int, params model.WebhookRequest) int
-		WebhookLogs          func(childComplexity int, params *model.ListWebhookLogRequest) int
-		Webhooks             func(childComplexity int, params *model.PaginatedRequest) int
+		AdminMeta                func(childComplexity int) int
+		AdminSession             func(childComplexity int) int
+		AuditLogs                func(childComplexity int, params *model.ListAuditLogRequest) int
+		CheckPermissions         func(childComplexity int, params model.CheckPermissionsInput) int
+		Client                   func(childComplexity int, params model.ClientRequest) int
+		Clients                  func(childComplexity int, params *model.ListClientsRequest) int
+		EmailTemplates           func(childComplexity int, params *model.PaginatedRequest) int
+		Env                      func(childComplexity int) int
+		FgaExpand                func(childComplexity int, params model.FgaExpandInput) int
+		FgaGetModel              func(childComplexity int) int
+		FgaListUsers             func(childComplexity int, params model.FgaListUsersInput) int
+		FgaReadTuples            func(childComplexity int, params model.FgaReadTuplesInput) int
+		ListPermissions          func(childComplexity int, params model.ListPermissionsInput) int
+		ListSamlIdpKeys          func(childComplexity int, params model.ListSAMLIDPKeysRequest) int
+		ListSamlServiceProviders func(childComplexity int, params model.ListSAMLServiceProvidersRequest) int
+		Meta                     func(childComplexity int) int
+		OrgDomains               func(childComplexity int, params model.ListOrgDomainsRequest) int
+		OrgMembers               func(childComplexity int, params model.ListOrgMembersRequest) int
+		OrgOidcConnection        func(childComplexity int, params model.OrgOIDCConnectionRequest) int
+		OrgSamlConnection        func(childComplexity int, params model.OrgSAMLConnectionRequest) int
+		Organization             func(childComplexity int, params model.OrganizationRequest) int
+		Organizations            func(childComplexity int, params *model.ListOrganizationsRequest) int
+		Profile                  func(childComplexity int) int
+		SamlServiceProvider      func(childComplexity int, params model.SAMLServiceProviderRequest) int
+		ScimEndpoint             func(childComplexity int, params model.ScimEndpointRequest) int
+		Session                  func(childComplexity int, params *model.SessionQueryRequest) int
+		TrustedIssuer            func(childComplexity int, params model.TrustedIssuerRequest) int
+		TrustedIssuers           func(childComplexity int, params *model.ListTrustedIssuersRequest) int
+		User                     func(childComplexity int, params model.GetUserRequest) int
+		UserOrganizations        func(childComplexity int, params model.UserOrganizationsRequest) int
+		Users                    func(childComplexity int, params *model.ListUsersRequest) int
+		ValidateJwtToken         func(childComplexity int, params model.ValidateJWTTokenRequest) int
+		ValidateSession          func(childComplexity int, params *model.ValidateSessionRequest) int
+		VerificationRequests     func(childComplexity int, params *model.PaginatedRequest) int
+		WebauthnCredentials      func(childComplexity int) int
+		Webhook                  func(childComplexity int, params model.WebhookRequest) int
+		WebhookLogs              func(childComplexity int, params *model.ListWebhookLogRequest) int
+		Webhooks                 func(childComplexity int, params *model.PaginatedRequest) int
 	}
 
 	Response struct {
 		Message func(childComplexity int) int
+	}
+
+	SAMLIDPKey struct {
+		Algorithm func(childComplexity int) int
+		CertPem   func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		OrgID     func(childComplexity int) int
+		Status    func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+	}
+
+	SAMLSPMetadataParseResult struct {
+		AcsURL      func(childComplexity int) int
+		Certificate func(childComplexity int) int
+		EntityID    func(childComplexity int) int
+	}
+
+	SAMLServiceProvider struct {
+		AcsURL            func(childComplexity int) int
+		AllowIdpInitiated func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		EntityID          func(childComplexity int) int
+		ID                func(childComplexity int) int
+		IsActive          func(childComplexity int) int
+		MappedAttributes  func(childComplexity int) int
+		Name              func(childComplexity int) int
+		NameIDFormat      func(childComplexity int) int
+		OrgID             func(childComplexity int) int
+		SpCertPem         func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
+	}
+
+	SAMLServiceProviders struct {
+		Pagination           func(childComplexity int) int
+		SamlServiceProviders func(childComplexity int) int
 	}
 
 	ScimEndpoint struct {
@@ -711,6 +756,12 @@ type MutationResolver interface {
 	CreateOrgSamlConnection(ctx context.Context, params model.CreateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
 	UpdateOrgSamlConnection(ctx context.Context, params model.UpdateOrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
 	DeleteOrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.Response, error)
+	CreateSamlServiceProvider(ctx context.Context, params model.CreateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	UpdateSamlServiceProvider(ctx context.Context, params model.UpdateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	DeleteSamlServiceProvider(ctx context.Context, params model.SAMLServiceProviderRequest) (*model.Response, error)
+	RotateSamlIdpCert(ctx context.Context, params model.RotateSAMLIDPCertRequest) (*model.SAMLIDPKey, error)
+	RetireSamlIdpKey(ctx context.Context, params model.RetireSAMLIDPKeyRequest) (*model.Response, error)
+	ImportSamlSpMetadata(ctx context.Context, params model.ImportSAMLSPMetadataRequest) (*model.SAMLSPMetadataParseResult, error)
 	CreateOrganization(ctx context.Context, params model.CreateOrganizationRequest) (*model.Organization, error)
 	UpdateOrganization(ctx context.Context, params model.UpdateOrganizationRequest) (*model.Organization, error)
 	DeleteOrganization(ctx context.Context, params model.OrganizationRequest) (*model.Response, error)
@@ -755,6 +806,9 @@ type QueryResolver interface {
 	TrustedIssuers(ctx context.Context, params *model.ListTrustedIssuersRequest) (*model.TrustedIssuers, error)
 	OrgOidcConnection(ctx context.Context, params model.OrgOIDCConnectionRequest) (*model.OrgOIDCConnection, error)
 	OrgSamlConnection(ctx context.Context, params model.OrgSAMLConnectionRequest) (*model.OrgSAMLConnection, error)
+	SamlServiceProvider(ctx context.Context, params model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, error)
+	ListSamlServiceProviders(ctx context.Context, params model.ListSAMLServiceProvidersRequest) (*model.SAMLServiceProviders, error)
+	ListSamlIdpKeys(ctx context.Context, params model.ListSAMLIDPKeysRequest) ([]*model.SAMLIDPKey, error)
 	Organization(ctx context.Context, params model.OrganizationRequest) (*model.Organization, error)
 	Organizations(ctx context.Context, params *model.ListOrganizationsRequest) (*model.Organizations, error)
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
@@ -2163,6 +2217,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateOrganization(childComplexity, args["params"].(model.CreateOrganizationRequest)), true
 
+	case "Mutation._create_saml_service_provider":
+		if e.complexity.Mutation.CreateSamlServiceProvider == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__create_saml_service_provider_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateSamlServiceProvider(childComplexity, args["params"].(model.CreateSAMLServiceProviderRequest)), true
+
 	case "Mutation._create_scim_endpoint":
 		if e.complexity.Mutation.CreateScimEndpoint == nil {
 			break
@@ -2253,6 +2319,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteOrganization(childComplexity, args["params"].(model.OrganizationRequest)), true
+
+	case "Mutation._delete_saml_service_provider":
+		if e.complexity.Mutation.DeleteSamlServiceProvider == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_saml_service_provider_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteSamlServiceProvider(childComplexity, args["params"].(model.SAMLServiceProviderRequest)), true
 
 	case "Mutation._delete_scim_endpoint":
 		if e.complexity.Mutation.DeleteScimEndpoint == nil {
@@ -2393,6 +2471,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.GenerateJwtKeys(childComplexity, args["params"].(model.GenerateJWTKeysRequest)), true
 
+	case "Mutation._import_saml_sp_metadata":
+		if e.complexity.Mutation.ImportSamlSpMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__import_saml_sp_metadata_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ImportSamlSpMetadata(childComplexity, args["params"].(model.ImportSAMLSPMetadataRequest)), true
+
 	case "Mutation._invite_members":
 		if e.complexity.Mutation.InviteMembers == nil {
 			break
@@ -2532,6 +2622,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPasswordRequest)), true
 
+	case "Mutation._retire_saml_idp_key":
+		if e.complexity.Mutation.RetireSamlIdpKey == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__retire_saml_idp_key_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RetireSamlIdpKey(childComplexity, args["params"].(model.RetireSAMLIDPKeyRequest)), true
+
 	case "Mutation.revoke":
 		if e.complexity.Mutation.Revoke == nil {
 			break
@@ -2567,6 +2669,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RotateClientSecret(childComplexity, args["params"].(model.ClientRequest)), true
+
+	case "Mutation._rotate_saml_idp_cert":
+		if e.complexity.Mutation.RotateSamlIdpCert == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__rotate_saml_idp_cert_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RotateSamlIdpCert(childComplexity, args["params"].(model.RotateSAMLIDPCertRequest)), true
 
 	case "Mutation._rotate_scim_token":
 		if e.complexity.Mutation.RotateScimToken == nil {
@@ -2723,6 +2837,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateProfile(childComplexity, args["params"].(model.UpdateProfileRequest)), true
+
+	case "Mutation._update_saml_service_provider":
+		if e.complexity.Mutation.UpdateSamlServiceProvider == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_saml_service_provider_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateSamlServiceProvider(childComplexity, args["params"].(model.UpdateSAMLServiceProviderRequest)), true
 
 	case "Mutation._update_trusted_issuer":
 		if e.complexity.Mutation.UpdateTrustedIssuer == nil {
@@ -3419,6 +3545,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.ListPermissions(childComplexity, args["params"].(model.ListPermissionsInput)), true
 
+	case "Query._list_saml_idp_keys":
+		if e.complexity.Query.ListSamlIdpKeys == nil {
+			break
+		}
+
+		args, err := ec.field_Query__list_saml_idp_keys_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListSamlIdpKeys(childComplexity, args["params"].(model.ListSAMLIDPKeysRequest)), true
+
+	case "Query._list_saml_service_providers":
+		if e.complexity.Query.ListSamlServiceProviders == nil {
+			break
+		}
+
+		args, err := ec.field_Query__list_saml_service_providers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListSamlServiceProviders(childComplexity, args["params"].(model.ListSAMLServiceProvidersRequest)), true
+
 	case "Query.meta":
 		if e.complexity.Query.Meta == nil {
 			break
@@ -3504,6 +3654,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Profile(childComplexity), true
+
+	case "Query._saml_service_provider":
+		if e.complexity.Query.SamlServiceProvider == nil {
+			break
+		}
+
+		args, err := ec.field_Query__saml_service_provider_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SamlServiceProvider(childComplexity, args["params"].(model.SAMLServiceProviderRequest)), true
 
 	case "Query._scim_endpoint":
 		if e.complexity.Query.ScimEndpoint == nil {
@@ -3674,6 +3836,174 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Response.Message(childComplexity), true
+
+	case "SAMLIDPKey.algorithm":
+		if e.complexity.SAMLIDPKey.Algorithm == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.Algorithm(childComplexity), true
+
+	case "SAMLIDPKey.cert_pem":
+		if e.complexity.SAMLIDPKey.CertPem == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.CertPem(childComplexity), true
+
+	case "SAMLIDPKey.created_at":
+		if e.complexity.SAMLIDPKey.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.CreatedAt(childComplexity), true
+
+	case "SAMLIDPKey.id":
+		if e.complexity.SAMLIDPKey.ID == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.ID(childComplexity), true
+
+	case "SAMLIDPKey.org_id":
+		if e.complexity.SAMLIDPKey.OrgID == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.OrgID(childComplexity), true
+
+	case "SAMLIDPKey.status":
+		if e.complexity.SAMLIDPKey.Status == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.Status(childComplexity), true
+
+	case "SAMLIDPKey.updated_at":
+		if e.complexity.SAMLIDPKey.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.SAMLIDPKey.UpdatedAt(childComplexity), true
+
+	case "SAMLSPMetadataParseResult.acs_url":
+		if e.complexity.SAMLSPMetadataParseResult.AcsURL == nil {
+			break
+		}
+
+		return e.complexity.SAMLSPMetadataParseResult.AcsURL(childComplexity), true
+
+	case "SAMLSPMetadataParseResult.certificate":
+		if e.complexity.SAMLSPMetadataParseResult.Certificate == nil {
+			break
+		}
+
+		return e.complexity.SAMLSPMetadataParseResult.Certificate(childComplexity), true
+
+	case "SAMLSPMetadataParseResult.entity_id":
+		if e.complexity.SAMLSPMetadataParseResult.EntityID == nil {
+			break
+		}
+
+		return e.complexity.SAMLSPMetadataParseResult.EntityID(childComplexity), true
+
+	case "SAMLServiceProvider.acs_url":
+		if e.complexity.SAMLServiceProvider.AcsURL == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.AcsURL(childComplexity), true
+
+	case "SAMLServiceProvider.allow_idp_initiated":
+		if e.complexity.SAMLServiceProvider.AllowIdpInitiated == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.AllowIdpInitiated(childComplexity), true
+
+	case "SAMLServiceProvider.created_at":
+		if e.complexity.SAMLServiceProvider.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.CreatedAt(childComplexity), true
+
+	case "SAMLServiceProvider.entity_id":
+		if e.complexity.SAMLServiceProvider.EntityID == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.EntityID(childComplexity), true
+
+	case "SAMLServiceProvider.id":
+		if e.complexity.SAMLServiceProvider.ID == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.ID(childComplexity), true
+
+	case "SAMLServiceProvider.is_active":
+		if e.complexity.SAMLServiceProvider.IsActive == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.IsActive(childComplexity), true
+
+	case "SAMLServiceProvider.mapped_attributes":
+		if e.complexity.SAMLServiceProvider.MappedAttributes == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.MappedAttributes(childComplexity), true
+
+	case "SAMLServiceProvider.name":
+		if e.complexity.SAMLServiceProvider.Name == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.Name(childComplexity), true
+
+	case "SAMLServiceProvider.name_id_format":
+		if e.complexity.SAMLServiceProvider.NameIDFormat == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.NameIDFormat(childComplexity), true
+
+	case "SAMLServiceProvider.org_id":
+		if e.complexity.SAMLServiceProvider.OrgID == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.OrgID(childComplexity), true
+
+	case "SAMLServiceProvider.sp_cert_pem":
+		if e.complexity.SAMLServiceProvider.SpCertPem == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.SpCertPem(childComplexity), true
+
+	case "SAMLServiceProvider.updated_at":
+		if e.complexity.SAMLServiceProvider.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProvider.UpdatedAt(childComplexity), true
+
+	case "SAMLServiceProviders.pagination":
+		if e.complexity.SAMLServiceProviders.Pagination == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProviders.Pagination(childComplexity), true
+
+	case "SAMLServiceProviders.saml_service_providers":
+		if e.complexity.SAMLServiceProviders.SamlServiceProviders == nil {
+			break
+		}
+
+		return e.complexity.SAMLServiceProviders.SamlServiceProviders(childComplexity), true
 
 	case "ScimEndpoint.created_at":
 		if e.complexity.ScimEndpoint.CreatedAt == nil {
@@ -4368,6 +4698,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateOrgOIDCConnectionRequest,
 		ec.unmarshalInputCreateOrgSAMLConnectionRequest,
 		ec.unmarshalInputCreateOrganizationRequest,
+		ec.unmarshalInputCreateSAMLServiceProviderRequest,
 		ec.unmarshalInputCreateScimEndpointRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
 		ec.unmarshalInputDeleteOrgDomainRequest,
@@ -4382,6 +4713,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputForgotPasswordRequest,
 		ec.unmarshalInputGenerateJWTKeysRequest,
 		ec.unmarshalInputGetUserRequest,
+		ec.unmarshalInputImportSAMLSPMetadataRequest,
 		ec.unmarshalInputInviteMemberRequest,
 		ec.unmarshalInputListAuditLogRequest,
 		ec.unmarshalInputListClientsRequest,
@@ -4389,6 +4721,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListOrgMembersRequest,
 		ec.unmarshalInputListOrganizationsRequest,
 		ec.unmarshalInputListPermissionsInput,
+		ec.unmarshalInputListSAMLIDPKeysRequest,
+		ec.unmarshalInputListSAMLServiceProvidersRequest,
 		ec.unmarshalInputListTrustedIssuersRequest,
 		ec.unmarshalInputListUsersRequest,
 		ec.unmarshalInputListWebhookLogRequest,
@@ -4410,6 +4744,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputResendOTPRequest,
 		ec.unmarshalInputResendVerifyEmailRequest,
 		ec.unmarshalInputResetPasswordRequest,
+		ec.unmarshalInputRetireSAMLIDPKeyRequest,
+		ec.unmarshalInputRotateSAMLIDPCertRequest,
+		ec.unmarshalInputSAMLServiceProviderRequest,
 		ec.unmarshalInputScimEndpointRequest,
 		ec.unmarshalInputSessionQueryRequest,
 		ec.unmarshalInputSignUpRequest,
@@ -4424,6 +4761,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateOrgSAMLConnectionRequest,
 		ec.unmarshalInputUpdateOrganizationRequest,
 		ec.unmarshalInputUpdateProfileRequest,
+		ec.unmarshalInputUpdateSAMLServiceProviderRequest,
 		ec.unmarshalInputUpdateTrustedIssuerRequest,
 		ec.unmarshalInputUpdateUserRequest,
 		ec.unmarshalInputUpdateWebhookRequest,
@@ -5039,6 +5377,58 @@ type OrgSAMLConnection {
   is_active: Boolean!
   created_at: Int64
   updated_at: Int64
+}
+
+# SAMLServiceProvider is a downstream SAML 2.0 SP that Authorizer (acting as the
+# IdP) issues signed assertions to. This is the inverse of OrgSAMLConnection.
+type SAMLServiceProvider {
+  id: ID!
+  org_id: String!
+  name: String!
+  # entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience).
+  entity_id: String!
+  # acs_url: the SP Assertion Consumer Service URL — the only place assertions are
+  # POSTed. Never taken from the request.
+  acs_url: String!
+  # sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  sp_cert_pem: String
+  # name_id_format: SAML NameID format for the Subject (default emailAddress).
+  name_id_format: String
+  # mapped_attributes: JSON mapping profile fields to emitted SAML attribute names.
+  mapped_attributes: String
+  # allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted.
+  allow_idp_initiated: Boolean!
+  is_active: Boolean!
+  created_at: Int64
+  updated_at: Int64
+}
+
+type SAMLServiceProviders {
+  pagination: Pagination!
+  saml_service_providers: [SAMLServiceProvider!]!
+}
+
+# SAMLIDPKey is a per-org SAML IdP signing keypair. The private key is NEVER
+# projected — only the certificate and rotation status.
+type SAMLIDPKey {
+  id: ID!
+  org_id: String!
+  # cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs.
+  cert_pem: String!
+  algorithm: String!
+  # status: "current" (signs new assertions), "active" (published in metadata,
+  # not signing), or "retired" (neither).
+  status: String!
+  created_at: Int64
+  updated_at: Int64
+}
+
+# SAMLSPMetadataParseResult is the parsed output of _import_saml_sp_metadata. It
+# does NOT create a record — it returns fields to prefill a create call.
+type SAMLSPMetadataParseResult {
+  entity_id: String!
+  acs_url: String!
+  certificate: String
 }
 
 type Organization {
@@ -5678,6 +6068,65 @@ input OrgSAMLConnectionRequest {
   org_id: String
 }
 
+# --- SAML IdP: registered downstream service providers ---
+
+input CreateSAMLServiceProviderRequest {
+  org_id: String!
+  name: String!
+  # entity_id: the SP entity ID (unique within the org).
+  entity_id: String!
+  # acs_url: the SP Assertion Consumer Service URL (https recommended).
+  acs_url: String!
+  # sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  sp_cert_pem: String
+  # name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+  name_id_format: String
+  # mapped_attributes: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  mapped_attributes: String
+  # allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated: Boolean
+}
+
+input UpdateSAMLServiceProviderRequest {
+  id: ID!
+  name: String
+  entity_id: String
+  acs_url: String
+  sp_cert_pem: String
+  name_id_format: String
+  mapped_attributes: String
+  allow_idp_initiated: Boolean
+  is_active: Boolean
+}
+
+input SAMLServiceProviderRequest {
+  id: ID!
+}
+
+input ListSAMLServiceProvidersRequest {
+  org_id: String!
+  pagination: PaginatedRequest
+}
+
+# --- SAML IdP: signing key rotation & SP-metadata import ---
+
+input RotateSAMLIDPCertRequest {
+  org_id: String!
+}
+
+input RetireSAMLIDPKeyRequest {
+  id: ID!
+}
+
+input ListSAMLIDPKeysRequest {
+  org_id: String!
+}
+
+input ImportSAMLSPMetadataRequest {
+  # metadata_xml: pasted SP metadata XML (NOT a URL — no remote fetch).
+  metadata_xml: String!
+}
+
 input CreateOrganizationRequest {
   # name must be a unique, URL-safe slug.
   name: String!
@@ -6025,6 +6474,20 @@ type Mutation {
   _create_org_saml_connection(params: CreateOrgSAMLConnectionRequest!): OrgSAMLConnection!
   _update_org_saml_connection(params: UpdateOrgSAMLConnectionRequest!): OrgSAMLConnection!
   _delete_org_saml_connection(params: OrgSAMLConnectionRequest!): Response!
+  # Per-organization SAML IdP: registered downstream SPs, signing-key rotation,
+  # and SP-metadata import (Authorizer as Identity Provider).
+  _create_saml_service_provider(params: CreateSAMLServiceProviderRequest!): SAMLServiceProvider!
+  _update_saml_service_provider(params: UpdateSAMLServiceProviderRequest!): SAMLServiceProvider!
+  _delete_saml_service_provider(params: SAMLServiceProviderRequest!): Response!
+  # _rotate_saml_idp_cert generates a new signing keypair (becomes "current");
+  # the previously-current key stays "active" (still published) until retired.
+  _rotate_saml_idp_cert(params: RotateSAMLIDPCertRequest!): SAMLIDPKey!
+  # _retire_saml_idp_key retires a published-but-superseded key so it stops
+  # appearing in IdP metadata. Cannot retire the current key.
+  _retire_saml_idp_key(params: RetireSAMLIDPKeyRequest!): Response!
+  # _import_saml_sp_metadata parses pasted SP metadata XML and returns the
+  # extracted entity_id / acs_url / certificate. It does NOT create a record.
+  _import_saml_sp_metadata(params: ImportSAMLSPMetadataRequest!): SAMLSPMetadataParseResult!
   # Organizations and per-org membership
   _create_organization(params: CreateOrganizationRequest!): Organization!
   _update_organization(params: UpdateOrganizationRequest!): Organization!
@@ -6085,6 +6548,10 @@ type Query {
   _trusted_issuers(params: ListTrustedIssuersRequest): TrustedIssuers!
   _org_oidc_connection(params: OrgOIDCConnectionRequest!): OrgOIDCConnection!
   _org_saml_connection(params: OrgSAMLConnectionRequest!): OrgSAMLConnection!
+  # Per-organization SAML IdP admin reads.
+  _saml_service_provider(params: SAMLServiceProviderRequest!): SAMLServiceProvider!
+  _list_saml_service_providers(params: ListSAMLServiceProvidersRequest!): SAMLServiceProviders!
+  _list_saml_idp_keys(params: ListSAMLIDPKeysRequest!): [SAMLIDPKey!]!
   # Organizations and per-org membership
   _organization(params: OrganizationRequest!): Organization!
   _organizations(params: ListOrganizationsRequest): Organizations!
@@ -6420,6 +6887,34 @@ func (ec *executionContext) field_Mutation__create_organization_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__create_saml_service_provider_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__create_saml_service_provider_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__create_saml_service_provider_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CreateSAMLServiceProviderRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CreateSAMLServiceProviderRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCreateSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateSAMLServiceProviderRequest(ctx, tmp)
+	}
+
+	var zeroVal model.CreateSAMLServiceProviderRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__create_scim_endpoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6613,6 +7108,34 @@ func (ec *executionContext) field_Mutation__delete_organization_argsParams(
 	}
 
 	var zeroVal model.OrganizationRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_saml_service_provider_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__delete_saml_service_provider_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__delete_saml_service_provider_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.SAMLServiceProviderRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.SAMLServiceProviderRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviderRequest(ctx, tmp)
+	}
+
+	var zeroVal model.SAMLServiceProviderRequest
 	return zeroVal, nil
 }
 
@@ -6868,6 +7391,34 @@ func (ec *executionContext) field_Mutation__generate_jwt_keys_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__import_saml_sp_metadata_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__import_saml_sp_metadata_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__import_saml_sp_metadata_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ImportSAMLSPMetadataRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ImportSAMLSPMetadataRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNImportSAMLSPMetadataRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐImportSAMLSPMetadataRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ImportSAMLSPMetadataRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6952,6 +7503,34 @@ func (ec *executionContext) field_Mutation__request_org_domain_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__retire_saml_idp_key_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__retire_saml_idp_key_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__retire_saml_idp_key_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.RetireSAMLIDPKeyRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.RetireSAMLIDPKeyRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNRetireSAMLIDPKeyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRetireSAMLIDPKeyRequest(ctx, tmp)
+	}
+
+	var zeroVal model.RetireSAMLIDPKeyRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__revoke_access_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7005,6 +7584,34 @@ func (ec *executionContext) field_Mutation__rotate_client_secret_argsParams(
 	}
 
 	var zeroVal model.ClientRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__rotate_saml_idp_cert_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__rotate_saml_idp_cert_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__rotate_saml_idp_cert_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.RotateSAMLIDPCertRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.RotateSAMLIDPCertRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNRotateSAMLIDPCertRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRotateSAMLIDPCertRequest(ctx, tmp)
+	}
+
+	var zeroVal model.RotateSAMLIDPCertRequest
 	return zeroVal, nil
 }
 
@@ -7229,6 +7836,34 @@ func (ec *executionContext) field_Mutation__update_organization_argsParams(
 	}
 
 	var zeroVal model.UpdateOrganizationRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__update_saml_service_provider_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__update_saml_service_provider_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__update_saml_service_provider_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateSAMLServiceProviderRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateSAMLServiceProviderRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateSAMLServiceProviderRequest(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateSAMLServiceProviderRequest
 	return zeroVal, nil
 }
 
@@ -8235,6 +8870,62 @@ func (ec *executionContext) field_Query__fga_read_tuples_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query__list_saml_idp_keys_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__list_saml_idp_keys_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__list_saml_idp_keys_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ListSAMLIDPKeysRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ListSAMLIDPKeysRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNListSAMLIDPKeysRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListSAMLIDPKeysRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ListSAMLIDPKeysRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__list_saml_service_providers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__list_saml_service_providers_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__list_saml_service_providers_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ListSAMLServiceProvidersRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ListSAMLServiceProvidersRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNListSAMLServiceProvidersRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListSAMLServiceProvidersRequest(ctx, tmp)
+	}
+
+	var zeroVal model.ListSAMLServiceProvidersRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query__org_domains_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -8400,6 +9091,34 @@ func (ec *executionContext) field_Query__organizations_argsParams(
 	}
 
 	var zeroVal *model.ListOrganizationsRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__saml_service_provider_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__saml_service_provider_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__saml_service_provider_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.SAMLServiceProviderRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.SAMLServiceProviderRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviderRequest(ctx, tmp)
+	}
+
+	var zeroVal model.SAMLServiceProviderRequest
 	return zeroVal, nil
 }
 
@@ -20159,6 +20878,420 @@ func (ec *executionContext) fieldContext_Mutation__delete_org_saml_connection(ct
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation__create_saml_service_provider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__create_saml_service_provider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateSamlServiceProvider(rctx, fc.Args["params"].(model.CreateSAMLServiceProviderRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLServiceProvider)
+	fc.Result = res
+	return ec.marshalNSAMLServiceProvider2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__create_saml_service_provider(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLServiceProvider_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLServiceProvider_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SAMLServiceProvider_name(ctx, field)
+			case "entity_id":
+				return ec.fieldContext_SAMLServiceProvider_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_SAMLServiceProvider_acs_url(ctx, field)
+			case "sp_cert_pem":
+				return ec.fieldContext_SAMLServiceProvider_sp_cert_pem(ctx, field)
+			case "name_id_format":
+				return ec.fieldContext_SAMLServiceProvider_name_id_format(ctx, field)
+			case "mapped_attributes":
+				return ec.fieldContext_SAMLServiceProvider_mapped_attributes(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_SAMLServiceProvider_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_SAMLServiceProvider_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLServiceProvider_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLServiceProvider_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLServiceProvider", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__create_saml_service_provider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__update_saml_service_provider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__update_saml_service_provider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateSamlServiceProvider(rctx, fc.Args["params"].(model.UpdateSAMLServiceProviderRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLServiceProvider)
+	fc.Result = res
+	return ec.marshalNSAMLServiceProvider2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__update_saml_service_provider(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLServiceProvider_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLServiceProvider_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SAMLServiceProvider_name(ctx, field)
+			case "entity_id":
+				return ec.fieldContext_SAMLServiceProvider_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_SAMLServiceProvider_acs_url(ctx, field)
+			case "sp_cert_pem":
+				return ec.fieldContext_SAMLServiceProvider_sp_cert_pem(ctx, field)
+			case "name_id_format":
+				return ec.fieldContext_SAMLServiceProvider_name_id_format(ctx, field)
+			case "mapped_attributes":
+				return ec.fieldContext_SAMLServiceProvider_mapped_attributes(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_SAMLServiceProvider_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_SAMLServiceProvider_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLServiceProvider_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLServiceProvider_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLServiceProvider", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__update_saml_service_provider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__delete_saml_service_provider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__delete_saml_service_provider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteSamlServiceProvider(rctx, fc.Args["params"].(model.SAMLServiceProviderRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__delete_saml_service_provider(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__delete_saml_service_provider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__rotate_saml_idp_cert(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__rotate_saml_idp_cert(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RotateSamlIdpCert(rctx, fc.Args["params"].(model.RotateSAMLIDPCertRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLIDPKey)
+	fc.Result = res
+	return ec.marshalNSAMLIDPKey2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKey(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__rotate_saml_idp_cert(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLIDPKey_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLIDPKey_org_id(ctx, field)
+			case "cert_pem":
+				return ec.fieldContext_SAMLIDPKey_cert_pem(ctx, field)
+			case "algorithm":
+				return ec.fieldContext_SAMLIDPKey_algorithm(ctx, field)
+			case "status":
+				return ec.fieldContext_SAMLIDPKey_status(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLIDPKey_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLIDPKey_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLIDPKey", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__rotate_saml_idp_cert_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__retire_saml_idp_key(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__retire_saml_idp_key(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RetireSamlIdpKey(rctx, fc.Args["params"].(model.RetireSAMLIDPKeyRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__retire_saml_idp_key(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__retire_saml_idp_key_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__import_saml_sp_metadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__import_saml_sp_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ImportSamlSpMetadata(rctx, fc.Args["params"].(model.ImportSAMLSPMetadataRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLSPMetadataParseResult)
+	fc.Result = res
+	return ec.marshalNSAMLSPMetadataParseResult2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLSPMetadataParseResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__import_saml_sp_metadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "entity_id":
+				return ec.fieldContext_SAMLSPMetadataParseResult_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_SAMLSPMetadataParseResult_acs_url(ctx, field)
+			case "certificate":
+				return ec.fieldContext_SAMLSPMetadataParseResult_certificate(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLSPMetadataParseResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation__import_saml_sp_metadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__create_organization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__create_organization(ctx, field)
 	if err != nil {
@@ -25765,6 +26898,219 @@ func (ec *executionContext) fieldContext_Query__org_saml_connection(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__saml_service_provider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__saml_service_provider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SamlServiceProvider(rctx, fc.Args["params"].(model.SAMLServiceProviderRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLServiceProvider)
+	fc.Result = res
+	return ec.marshalNSAMLServiceProvider2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__saml_service_provider(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLServiceProvider_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLServiceProvider_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SAMLServiceProvider_name(ctx, field)
+			case "entity_id":
+				return ec.fieldContext_SAMLServiceProvider_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_SAMLServiceProvider_acs_url(ctx, field)
+			case "sp_cert_pem":
+				return ec.fieldContext_SAMLServiceProvider_sp_cert_pem(ctx, field)
+			case "name_id_format":
+				return ec.fieldContext_SAMLServiceProvider_name_id_format(ctx, field)
+			case "mapped_attributes":
+				return ec.fieldContext_SAMLServiceProvider_mapped_attributes(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_SAMLServiceProvider_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_SAMLServiceProvider_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLServiceProvider_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLServiceProvider_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLServiceProvider", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__saml_service_provider_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__list_saml_service_providers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__list_saml_service_providers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ListSamlServiceProviders(rctx, fc.Args["params"].(model.ListSAMLServiceProvidersRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SAMLServiceProviders)
+	fc.Result = res
+	return ec.marshalNSAMLServiceProviders2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviders(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__list_saml_service_providers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pagination":
+				return ec.fieldContext_SAMLServiceProviders_pagination(ctx, field)
+			case "saml_service_providers":
+				return ec.fieldContext_SAMLServiceProviders_saml_service_providers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLServiceProviders", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__list_saml_service_providers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__list_saml_idp_keys(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__list_saml_idp_keys(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ListSamlIdpKeys(rctx, fc.Args["params"].(model.ListSAMLIDPKeysRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SAMLIDPKey)
+	fc.Result = res
+	return ec.marshalNSAMLIDPKey2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKeyᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__list_saml_idp_keys(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLIDPKey_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLIDPKey_org_id(ctx, field)
+			case "cert_pem":
+				return ec.fieldContext_SAMLIDPKey_cert_pem(ctx, field)
+			case "algorithm":
+				return ec.fieldContext_SAMLIDPKey_algorithm(ctx, field)
+			case "status":
+				return ec.fieldContext_SAMLIDPKey_status(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLIDPKey_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLIDPKey_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLIDPKey", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__list_saml_idp_keys_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__organization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__organization(ctx, field)
 	if err != nil {
@@ -26727,6 +28073,1074 @@ func (ec *executionContext) fieldContext_Response_message(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_org_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_cert_pem(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_cert_pem(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CertPem, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_cert_pem(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_algorithm(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_algorithm(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Algorithm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_algorithm(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_status(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_created_at(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLIDPKey_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.SAMLIDPKey) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLIDPKey_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLIDPKey_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLIDPKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLSPMetadataParseResult_entity_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLSPMetadataParseResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLSPMetadataParseResult_entity_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EntityID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLSPMetadataParseResult_entity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLSPMetadataParseResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLSPMetadataParseResult_acs_url(ctx context.Context, field graphql.CollectedField, obj *model.SAMLSPMetadataParseResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLSPMetadataParseResult_acs_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AcsURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLSPMetadataParseResult_acs_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLSPMetadataParseResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLSPMetadataParseResult_certificate(ctx context.Context, field graphql.CollectedField, obj *model.SAMLSPMetadataParseResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLSPMetadataParseResult_certificate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Certificate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLSPMetadataParseResult_certificate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLSPMetadataParseResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_org_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_org_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OrgID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_org_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_name(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_entity_id(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_entity_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EntityID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_entity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_acs_url(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_acs_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AcsURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_acs_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_sp_cert_pem(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_sp_cert_pem(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SpCertPem, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_sp_cert_pem(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_name_id_format(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_name_id_format(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.NameIDFormat, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_name_id_format(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_mapped_attributes(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_mapped_attributes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MappedAttributes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_mapped_attributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_allow_idp_initiated(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_allow_idp_initiated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AllowIdpInitiated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_allow_idp_initiated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_is_active(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_is_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_created_at(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProvider_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProvider) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProvider_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProvider_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProvider",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProviders_pagination(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProviders) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProviders_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProviders_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProviders",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			case "page":
+				return ec.fieldContext_Pagination_page(ctx, field)
+			case "offset":
+				return ec.fieldContext_Pagination_offset(ctx, field)
+			case "total":
+				return ec.fieldContext_Pagination_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SAMLServiceProviders_saml_service_providers(ctx context.Context, field graphql.CollectedField, obj *model.SAMLServiceProviders) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SAMLServiceProviders_saml_service_providers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SamlServiceProviders, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SAMLServiceProvider)
+	fc.Result = res
+	return ec.marshalNSAMLServiceProvider2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviderᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SAMLServiceProviders_saml_service_providers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SAMLServiceProviders",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SAMLServiceProvider_id(ctx, field)
+			case "org_id":
+				return ec.fieldContext_SAMLServiceProvider_org_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SAMLServiceProvider_name(ctx, field)
+			case "entity_id":
+				return ec.fieldContext_SAMLServiceProvider_entity_id(ctx, field)
+			case "acs_url":
+				return ec.fieldContext_SAMLServiceProvider_acs_url(ctx, field)
+			case "sp_cert_pem":
+				return ec.fieldContext_SAMLServiceProvider_sp_cert_pem(ctx, field)
+			case "name_id_format":
+				return ec.fieldContext_SAMLServiceProvider_name_id_format(ctx, field)
+			case "mapped_attributes":
+				return ec.fieldContext_SAMLServiceProvider_mapped_attributes(ctx, field)
+			case "allow_idp_initiated":
+				return ec.fieldContext_SAMLServiceProvider_allow_idp_initiated(ctx, field)
+			case "is_active":
+				return ec.fieldContext_SAMLServiceProvider_is_active(ctx, field)
+			case "created_at":
+				return ec.fieldContext_SAMLServiceProvider_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_SAMLServiceProvider_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SAMLServiceProvider", field.Name)
 		},
 	}
 	return fc, nil
@@ -33636,6 +36050,82 @@ func (ec *executionContext) unmarshalInputCreateOrganizationRequest(ctx context.
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateSAMLServiceProviderRequest(ctx context.Context, obj any) (model.CreateSAMLServiceProviderRequest, error) {
+	var it model.CreateSAMLServiceProviderRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "name", "entity_id", "acs_url", "sp_cert_pem", "name_id_format", "mapped_attributes", "allow_idp_initiated"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entity_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EntityID = data
+		case "acs_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acs_url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcsURL = data
+		case "sp_cert_pem":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sp_cert_pem"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpCertPem = data
+		case "name_id_format":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name_id_format"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NameIDFormat = data
+		case "mapped_attributes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mapped_attributes"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MappedAttributes = data
+		case "allow_idp_initiated":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allow_idp_initiated"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowIdpInitiated = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateScimEndpointRequest(ctx context.Context, obj any) (model.CreateScimEndpointRequest, error) {
 	var it model.CreateScimEndpointRequest
 	asMap := map[string]any{}
@@ -34112,6 +36602,33 @@ func (ec *executionContext) unmarshalInputGetUserRequest(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputImportSAMLSPMetadataRequest(ctx context.Context, obj any) (model.ImportSAMLSPMetadataRequest, error) {
+	var it model.ImportSAMLSPMetadataRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"metadata_xml"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "metadata_xml":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata_xml"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MetadataXML = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputInviteMemberRequest(ctx context.Context, obj any) (model.InviteMemberRequest, error) {
 	var it model.InviteMemberRequest
 	asMap := map[string]any{}
@@ -34372,6 +36889,67 @@ func (ec *executionContext) unmarshalInputListPermissionsInput(ctx context.Conte
 				return it, err
 			}
 			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListSAMLIDPKeysRequest(ctx context.Context, obj any) (model.ListSAMLIDPKeysRequest, error) {
+	var it model.ListSAMLIDPKeysRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListSAMLServiceProvidersRequest(ctx context.Context, obj any) (model.ListSAMLServiceProvidersRequest, error) {
+	var it model.ListSAMLServiceProvidersRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id", "pagination"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		case "pagination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pagination = data
 		}
 	}
 
@@ -35282,6 +37860,87 @@ func (ec *executionContext) unmarshalInputResetPasswordRequest(ctx context.Conte
 				return it, err
 			}
 			it.ConfirmPassword = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRetireSAMLIDPKeyRequest(ctx context.Context, obj any) (model.RetireSAMLIDPKeyRequest, error) {
+	var it model.RetireSAMLIDPKeyRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRotateSAMLIDPCertRequest(ctx context.Context, obj any) (model.RotateSAMLIDPCertRequest, error) {
+	var it model.RotateSAMLIDPCertRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"org_id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "org_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("org_id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrgID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSAMLServiceProviderRequest(ctx context.Context, obj any) (model.SAMLServiceProviderRequest, error) {
+	var it model.SAMLServiceProviderRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
 		}
 	}
 
@@ -36535,6 +39194,89 @@ func (ec *executionContext) unmarshalInputUpdateProfileRequest(ctx context.Conte
 				return it, err
 			}
 			it.AppData = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateSAMLServiceProviderRequest(ctx context.Context, obj any) (model.UpdateSAMLServiceProviderRequest, error) {
+	var it model.UpdateSAMLServiceProviderRequest
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "entity_id", "acs_url", "sp_cert_pem", "name_id_format", "mapped_attributes", "allow_idp_initiated", "is_active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "entity_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entity_id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EntityID = data
+		case "acs_url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("acs_url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AcsURL = data
+		case "sp_cert_pem":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sp_cert_pem"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SpCertPem = data
+		case "name_id_format":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name_id_format"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NameIDFormat = data
+		case "mapped_attributes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mapped_attributes"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MappedAttributes = data
+		case "allow_idp_initiated":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allow_idp_initiated"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowIdpInitiated = data
+		case "is_active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsActive = data
 		}
 	}
 
@@ -38956,6 +41698,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "_create_saml_service_provider":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__create_saml_service_provider(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_update_saml_service_provider":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__update_saml_service_provider(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_delete_saml_service_provider":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__delete_saml_service_provider(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_rotate_saml_idp_cert":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__rotate_saml_idp_cert(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_retire_saml_idp_key":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__retire_saml_idp_key(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_import_saml_sp_metadata":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__import_saml_sp_metadata(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "_create_organization":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__create_organization(ctx, field)
@@ -40272,6 +43056,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_saml_service_provider":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__saml_service_provider(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_list_saml_service_providers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__list_saml_service_providers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_list_saml_idp_keys":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__list_saml_idp_keys(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_organization":
 			field := field
 
@@ -40602,6 +43452,238 @@ func (ec *executionContext) _Response(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = graphql.MarshalString("Response")
 		case "message":
 			out.Values[i] = ec._Response_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sAMLIDPKeyImplementors = []string{"SAMLIDPKey"}
+
+func (ec *executionContext) _SAMLIDPKey(ctx context.Context, sel ast.SelectionSet, obj *model.SAMLIDPKey) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sAMLIDPKeyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SAMLIDPKey")
+		case "id":
+			out.Values[i] = ec._SAMLIDPKey_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._SAMLIDPKey_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cert_pem":
+			out.Values[i] = ec._SAMLIDPKey_cert_pem(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "algorithm":
+			out.Values[i] = ec._SAMLIDPKey_algorithm(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._SAMLIDPKey_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._SAMLIDPKey_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._SAMLIDPKey_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sAMLSPMetadataParseResultImplementors = []string{"SAMLSPMetadataParseResult"}
+
+func (ec *executionContext) _SAMLSPMetadataParseResult(ctx context.Context, sel ast.SelectionSet, obj *model.SAMLSPMetadataParseResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sAMLSPMetadataParseResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SAMLSPMetadataParseResult")
+		case "entity_id":
+			out.Values[i] = ec._SAMLSPMetadataParseResult_entity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "acs_url":
+			out.Values[i] = ec._SAMLSPMetadataParseResult_acs_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "certificate":
+			out.Values[i] = ec._SAMLSPMetadataParseResult_certificate(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sAMLServiceProviderImplementors = []string{"SAMLServiceProvider"}
+
+func (ec *executionContext) _SAMLServiceProvider(ctx context.Context, sel ast.SelectionSet, obj *model.SAMLServiceProvider) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sAMLServiceProviderImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SAMLServiceProvider")
+		case "id":
+			out.Values[i] = ec._SAMLServiceProvider_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "org_id":
+			out.Values[i] = ec._SAMLServiceProvider_org_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._SAMLServiceProvider_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "entity_id":
+			out.Values[i] = ec._SAMLServiceProvider_entity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "acs_url":
+			out.Values[i] = ec._SAMLServiceProvider_acs_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sp_cert_pem":
+			out.Values[i] = ec._SAMLServiceProvider_sp_cert_pem(ctx, field, obj)
+		case "name_id_format":
+			out.Values[i] = ec._SAMLServiceProvider_name_id_format(ctx, field, obj)
+		case "mapped_attributes":
+			out.Values[i] = ec._SAMLServiceProvider_mapped_attributes(ctx, field, obj)
+		case "allow_idp_initiated":
+			out.Values[i] = ec._SAMLServiceProvider_allow_idp_initiated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_active":
+			out.Values[i] = ec._SAMLServiceProvider_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._SAMLServiceProvider_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._SAMLServiceProvider_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sAMLServiceProvidersImplementors = []string{"SAMLServiceProviders"}
+
+func (ec *executionContext) _SAMLServiceProviders(ctx context.Context, sel ast.SelectionSet, obj *model.SAMLServiceProviders) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sAMLServiceProvidersImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SAMLServiceProviders")
+		case "pagination":
+			out.Values[i] = ec._SAMLServiceProviders_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "saml_service_providers":
+			out.Values[i] = ec._SAMLServiceProviders_saml_service_providers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -42238,6 +45320,11 @@ func (ec *executionContext) unmarshalNCreateOrganizationRequest2githubᚗcomᚋa
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateSAMLServiceProviderRequest(ctx context.Context, v any) (model.CreateSAMLServiceProviderRequest, error) {
+	res, err := ec.unmarshalInputCreateSAMLServiceProviderRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateScimEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCreateScimEndpointRequest(ctx context.Context, v any) (model.CreateScimEndpointRequest, error) {
 	res, err := ec.unmarshalInputCreateScimEndpointRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -42573,6 +45660,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNImportSAMLSPMetadataRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐImportSAMLSPMetadataRequest(ctx context.Context, v any) (model.ImportSAMLSPMetadataRequest, error) {
+	res, err := ec.unmarshalInputImportSAMLSPMetadataRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v any) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -42635,6 +45727,16 @@ func (ec *executionContext) marshalNListPermissionsResponse2ᚖgithubᚗcomᚋau
 		return graphql.Null
 	}
 	return ec._ListPermissionsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNListSAMLIDPKeysRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListSAMLIDPKeysRequest(ctx context.Context, v any) (model.ListSAMLIDPKeysRequest, error) {
+	res, err := ec.unmarshalInputListSAMLIDPKeysRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNListSAMLServiceProvidersRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListSAMLServiceProvidersRequest(ctx context.Context, v any) (model.ListSAMLServiceProvidersRequest, error) {
+	res, err := ec.unmarshalInputListSAMLServiceProvidersRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNLockMfaRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLockMfaRequest(ctx context.Context, v any) (model.LockMfaRequest, error) {
@@ -43126,6 +46228,165 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋa
 	return ec._Response(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNRetireSAMLIDPKeyRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRetireSAMLIDPKeyRequest(ctx context.Context, v any) (model.RetireSAMLIDPKeyRequest, error) {
+	res, err := ec.unmarshalInputRetireSAMLIDPKeyRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRotateSAMLIDPCertRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐRotateSAMLIDPCertRequest(ctx context.Context, v any) (model.RotateSAMLIDPCertRequest, error) {
+	res, err := ec.unmarshalInputRotateSAMLIDPCertRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSAMLIDPKey2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKey(ctx context.Context, sel ast.SelectionSet, v model.SAMLIDPKey) graphql.Marshaler {
+	return ec._SAMLIDPKey(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSAMLIDPKey2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKeyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SAMLIDPKey) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSAMLIDPKey2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKey(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSAMLIDPKey2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLIDPKey(ctx context.Context, sel ast.SelectionSet, v *model.SAMLIDPKey) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SAMLIDPKey(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSAMLSPMetadataParseResult2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLSPMetadataParseResult(ctx context.Context, sel ast.SelectionSet, v model.SAMLSPMetadataParseResult) graphql.Marshaler {
+	return ec._SAMLSPMetadataParseResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSAMLSPMetadataParseResult2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLSPMetadataParseResult(ctx context.Context, sel ast.SelectionSet, v *model.SAMLSPMetadataParseResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SAMLSPMetadataParseResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSAMLServiceProvider2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx context.Context, sel ast.SelectionSet, v model.SAMLServiceProvider) graphql.Marshaler {
+	return ec._SAMLServiceProvider(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSAMLServiceProvider2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviderᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SAMLServiceProvider) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSAMLServiceProvider2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSAMLServiceProvider2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProvider(ctx context.Context, sel ast.SelectionSet, v *model.SAMLServiceProvider) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SAMLServiceProvider(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviderRequest(ctx context.Context, v any) (model.SAMLServiceProviderRequest, error) {
+	res, err := ec.unmarshalInputSAMLServiceProviderRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSAMLServiceProviders2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviders(ctx context.Context, sel ast.SelectionSet, v model.SAMLServiceProviders) graphql.Marshaler {
+	return ec._SAMLServiceProviders(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSAMLServiceProviders2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSAMLServiceProviders(ctx context.Context, sel ast.SelectionSet, v *model.SAMLServiceProviders) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SAMLServiceProviders(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNScimEndpoint2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐScimEndpoint(ctx context.Context, sel ast.SelectionSet, v model.ScimEndpoint) graphql.Marshaler {
 	return ec._ScimEndpoint(ctx, sel, &v)
 }
@@ -43334,6 +46595,11 @@ func (ec *executionContext) unmarshalNUpdateOrganizationRequest2githubᚗcomᚋa
 
 func (ec *executionContext) unmarshalNUpdateProfileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileRequest(ctx context.Context, v any) (model.UpdateProfileRequest, error) {
 	res, err := ec.unmarshalInputUpdateProfileRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateSAMLServiceProviderRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateSAMLServiceProviderRequest(ctx context.Context, v any) (model.UpdateSAMLServiceProviderRequest, error) {
+	res, err := ec.unmarshalInputUpdateSAMLServiceProviderRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

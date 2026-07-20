@@ -214,7 +214,8 @@ const Tuples = () => {
 	// grants the relation to literally everyone — the broadest possible tuple.
 	// It gets an extra warning in the confirm dialog rather than silently
 	// going through the same one-click path as a scoped grant.
-	const isWildcardGrant = (user: string): boolean => /^user:\*/.test(user.trim());
+	const isWildcardGrant = (user: string): boolean =>
+		/^user:\*/.test(user.trim());
 
 	const handleAddSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
