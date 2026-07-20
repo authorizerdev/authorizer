@@ -226,6 +226,7 @@ func init() {
 	f.StringVar(&rootArgs.config.TwilioAPIKey, "twilio-api-key", "", "API key for Twilio")
 	f.StringVar(&rootArgs.config.TwilioAPISecret, "twilio-api-secret", "", "API secret for Twilio")
 	f.StringVar(&rootArgs.config.TwilioSender, "twilio-sender", "", "Sender for Twilio")
+	f.StringVar(&rootArgs.config.TestSMSWebhookURL, "test-sms-webhook-url", "", "(test-only) route SMS to this webhook instead of Twilio, for e2e-playground")
 
 	// Oauth provider flags
 	f.StringVar(&rootArgs.config.GoogleClientID, "google-client-id", "", "Client ID for Google")

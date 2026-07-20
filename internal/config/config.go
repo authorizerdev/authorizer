@@ -276,6 +276,10 @@ type Config struct {
 	TwilioSender string
 	// TwilioAccountSID is the account SID for Twilio
 	TwilioAccountSID string
+	// TestSMSWebhookURL, when set, routes SMS sending to a test webhook
+	// instead of Twilio. Only ever set by e2e-playground/docker-compose.yml;
+	// empty (the default) in every real deployment.
+	TestSMSWebhookURL string
 
 	// OAuth providers that authorizer supports
 	// GoogleClientID is the client ID for Google OAuth

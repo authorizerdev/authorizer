@@ -2,6 +2,7 @@ package sms
 
 import (
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/sms/testwebhook"
 	"github.com/authorizerdev/authorizer/internal/sms/twilio"
 	"github.com/rs/zerolog"
 )
@@ -21,6 +22,9 @@ type Provider interface {
 func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	var provider Provider
 	var err error
+	if cfg.TestSMSWebhookURL != "" {
+		return testwebhook.NewTestWebhookProvider(cfg, &testwebhook.Dependencies{Log: deps.Log})
+	}
 	if cfg.TwilioAPIKey != "" && cfg.TwilioAPISecret != "" && cfg.TwilioAccountSID != "" && cfg.TwilioSender != "" {
 		provider, err = twilio.NewTwilioProvider(cfg, &twilio.Dependencies{
 			Log: deps.Log,
