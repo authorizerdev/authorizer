@@ -285,3 +285,12 @@ perf-k6-validate:
 .PHONY: perf-k6-check
 perf-k6-check:
 	k6 run perf/k6/fga_check.js
+
+.PHONY: e2e-playground
+e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/MFA) against an ephemeral docker-compose stack
+	cd e2e-playground && npm ci && npx playwright install --with-deps chromium
+	docker compose -f e2e-playground/docker-compose.yml up -d --wait
+	cd e2e-playground && npx playwright test; \
+	status=$$?; \
+	docker compose -f e2e-playground/docker-compose.yml down -v; \
+	exit $$status
