@@ -436,10 +436,11 @@ func (c *Config) Finalize() {
 	c.IsEmailServiceEnabled = strings.TrimSpace(c.SMTPHost) != "" &&
 		c.SMTPPort > 0 &&
 		strings.TrimSpace(c.SMTPSenderEmail) != ""
-	c.IsSMSServiceEnabled = strings.TrimSpace(c.TwilioAPIKey) != "" &&
+	c.IsSMSServiceEnabled = (strings.TrimSpace(c.TwilioAPIKey) != "" &&
 		strings.TrimSpace(c.TwilioAPISecret) != "" &&
 		strings.TrimSpace(c.TwilioAccountSID) != "" &&
-		strings.TrimSpace(c.TwilioSender) != ""
+		strings.TrimSpace(c.TwilioSender) != "") ||
+		strings.TrimSpace(c.TestSMSWebhookURL) != ""
 
 	// MFA methods are on by default; operators opt out via --disable-*.
 	c.EnableTOTPLogin = !c.DisableTOTPLogin

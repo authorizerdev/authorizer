@@ -135,3 +135,42 @@ func TestFinalizeMFADerivation(t *testing.T) {
 		})
 	}
 }
+
+// TestFinalizeIsSMSServiceEnabled verifies IsSMSServiceEnabled is true when
+// either Twilio is fully configured or TestSMSWebhookURL is set, and false
+// when neither is set.
+func TestFinalizeIsSMSServiceEnabled(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(*Config)
+		want  bool
+	}{
+		{
+			name:  "neither Twilio nor test webhook configured -> false",
+			setup: func(c *Config) {},
+			want:  false,
+		},
+		{
+			name:  "Twilio configured, no test webhook -> true",
+			setup: withTwilio,
+			want:  true,
+		},
+		{
+			name:  "test webhook configured, no Twilio -> true",
+			setup: func(c *Config) { c.TestSMSWebhookURL = "http://localhost:9999/sms" },
+			want:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{}
+			tt.setup(c)
+			c.Finalize()
+
+			if c.IsSMSServiceEnabled != tt.want {
+				t.Errorf("IsSMSServiceEnabled = %v, want %v", c.IsSMSServiceEnabled, tt.want)
+			}
+		})
+	}
+}
