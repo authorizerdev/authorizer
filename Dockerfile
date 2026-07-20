@@ -46,10 +46,7 @@ RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 WORKDIR /authorizer
 COPY web/app/package*.json web/app/
 COPY web/dashboard/package*.json web/dashboard/
-# git is required by `npm ci`: web/app depends on @authorizerdev/authorizer-react
-# via a github: URL, which npm resolves by cloning. Drop once the app pins a
-# published authorizer-react version.
-RUN apk add --no-cache nodejs npm git
+RUN apk add --no-cache nodejs npm
 # Cache npm package tarballs across builds (faster re-installs in CI)
 RUN --mount=type=cache,target=/root/.npm \
     npm config set cache /root/.npm && \
