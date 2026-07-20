@@ -45,10 +45,11 @@ func mustURL(t *testing.T, raw string) url.URL {
 
 func testUser() *schemas.User {
 	return &schemas.User{
-		ID:         "user-1",
-		Email:      refs.NewStringRef("alice@example.com"),
-		GivenName:  refs.NewStringRef("Alice"),
-		FamilyName: refs.NewStringRef("Smith"),
+		ID:              "user-1",
+		Email:           refs.NewStringRef("alice@example.com"),
+		EmailVerifiedAt: refs.NewInt64Ref(1), // a logged-in member has a verified email
+		GivenName:       refs.NewStringRef("Alice"),
+		FamilyName:      refs.NewStringRef("Smith"),
 	}
 }
 
@@ -230,6 +231,14 @@ func TestBuildMappedAttributes(t *testing.T) {
 	// Empty profile fields are skipped.
 	empty := buildMappedAttributes(&schemas.User{ID: "u2"}, testSPRecord())
 	assert.Empty(t, empty, "no attributes when the profile has no mapped values")
+
+	// An UNVERIFIED email is never emitted as an attribute, even for a non-email
+	// NameID format (same spoofing class as the NameID guard).
+	unverified := &schemas.User{ID: "u3", Email: refs.NewStringRef("spoof@corp.example.com"), GivenName: refs.NewStringRef("Eve")}
+	got := buildMappedAttributes(unverified, testSPRecord())
+	for _, a := range got {
+		assert.NotEqual(t, "email", a.Name, "unverified email must not be emitted as an attribute")
+	}
 }
 
 func TestBuildSAMLSessionNameID(t *testing.T) {

@@ -467,7 +467,13 @@ func buildMappedAttributes(user *schemas.User, sp *schemas.SAMLServiceProvider) 
 			Values:     []saml.AttributeValue{{Type: "xs:string", Value: value}},
 		})
 	}
-	add("email", refs.StringValue(user.Email))
+	// Never emit an UNVERIFIED email as an attribute — an SP that keys off the
+	// email attribute (rather than the NameID) must not receive an address
+	// Authorizer has not verified. Same spoofing class the NameID guard in
+	// authorizeSAMLIssuance closes, but independent of the NameID format.
+	if user.EmailVerifiedAt != nil {
+		add("email", refs.StringValue(user.Email))
+	}
 	add("given_name", refs.StringValue(user.GivenName))
 	add("family_name", refs.StringValue(user.FamilyName))
 	add("nickname", refs.StringValue(user.Nickname))
