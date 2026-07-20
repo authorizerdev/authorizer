@@ -208,6 +208,10 @@ func TestStorageProvider(t *testing.T) {
 				testOrgSAMLOperations(t, ctx, provider, dbType)
 			})
 
+			t.Run("SAML IdP Storage Operations", func(t *testing.T) {
+				testSAMLIDPStorageOperations(t, ctx, provider)
+			})
+
 			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
 				testScimEndpointOperations(t, ctx, provider)
 			})
