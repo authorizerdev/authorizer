@@ -36,6 +36,13 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 		// configured a backchannel_logout_uri — avoids lying to RPs.
 		backchannelSupported := h.Config.BackchannelLogoutURI != ""
 
+		// OAuth 2.1 strict mode drops PKCE "plain" (S256 only). RFC 7636 §4.2
+		// otherwise requires advertising both.
+		codeChallengeMethods := []string{"S256", "plain"}
+		if h.Config.OAuth21Strict {
+			codeChallengeMethods = []string{"S256"}
+		}
+
 		resp := gin.H{
 			// REQUIRED fields (OIDC Discovery §3)
 			"issuer":                                issuer,
@@ -62,8 +69,11 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			// code_verifier (PKCE) or client_secret — "none" without PKCE is
 			// rejected with invalid_request. "private_key_jwt" advertises the
 			// RFC 7523 client_assertion (JWT-bearer) workload-identity path.
-			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post", "none", "private_key_jwt"},
-			"code_challenge_methods_supported":              []string{"S256", "plain"},
+			"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none", "private_key_jwt"},
+			"code_challenge_methods_supported":      codeChallengeMethods,
+			// RFC 8707 resource indicators are honored on the authorization_code
+			// flow (resource query param → access token aud) and token-exchange.
+			"resource_indicators_supported":                 true,
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -62,6 +63,128 @@ func formURLDecodeOrKeep(s string) string {
 		return decoded
 	}
 	return s
+}
+
+// refreshFamilyKeyPrefix namespaces the per-lineage reuse-detection index in
+// the session store. The full sub-key is refreshFamilyKeyPrefix+<familyID>,
+// stored under the same session key ("<loginMethod>:<userID>") as the token
+// entries. It can never collide with a token entry (those are
+// "<type>_<nonce>", e.g. "refresh_token_<nonce>") because the literal prefix
+// differs ("refresh_family_" vs "refresh_token_"). DeleteAllUserSessions still
+// sweeps it (substring/glob match on the user id), so logout/reset clear it.
+const refreshFamilyKeyPrefix = "refresh_family_"
+
+// refreshReuseGraceWindow is how long after a rotation a replay of the
+// just-rotated-away (immediate-predecessor) token is treated as a benign
+// double-submit (multi-tab SPA, network retry) rather than a breach. Kept
+// short: long enough to absorb a client retrying with the token it already
+// swapped, short enough that a stolen predecessor replayed later still trips
+// revocation.
+// ponytail: fixed 10s window; make it a CLI flag only if a real client needs longer.
+const refreshReuseGraceWindow = 10 * time.Second
+
+// refreshFamilyRecord is the reuse-detection index for one refresh-token
+// lineage. LiveNonce is the current live token's nonce (the one revoked on a
+// genuine reuse); PrevNonce is the nonce it was just rotated from (the benign
+// double-submit candidate); RotatedAt bounds the grace window.
+type refreshFamilyRecord struct {
+	LiveNonce string `json:"live"`
+	PrevNonce string `json:"prev"`
+	RotatedAt int64  `json:"rotated_at"`
+}
+
+// setRefreshFamilyRecord persists (overwrites) the family index for a lineage.
+// Best-effort: a failure only degrades reuse detection for this family, it must
+// not fail the token issuance the caller just completed.
+func (h *httpProvider) setRefreshFamilyRecord(sessionKey, familyID string, rec refreshFamilyRecord, expiresAt int64) {
+	b, err := json.Marshal(rec)
+	if err != nil {
+		return
+	}
+	if err := h.MemoryStoreProvider.SetUserSession(sessionKey, refreshFamilyKeyPrefix+familyID, string(b), expiresAt); err != nil {
+		h.Log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to persist refresh family record")
+	}
+}
+
+// handleRefreshTokenReuse applies OAuth 2.1 §6.1 / RFC 9700 §4.14.2 reuse
+// revocation, scoped to the compromised refresh token's own lineage (family)
+// rather than the whole user. This closes the unauthenticated forced-logout
+// DoS: replaying any single retired token can no longer wipe a user's other
+// sessions/login-methods. It also applies the benign double-submit grace
+// window so a legitimate multi-tab / retry race does not self-revoke.
+func (h *httpProvider) handleRefreshTokenReuse(gc *gin.Context, claims map[string]interface{}) {
+	log := h.Log.With().Str("func", "handleRefreshTokenReuse").Logger()
+
+	sub, _ := claims["sub"].(string)
+	if sub == "" {
+		return
+	}
+	sessionKey := sub
+	if lm, _ := claims["login_method"].(string); lm != "" {
+		sessionKey = lm + ":" + sub
+	}
+	familyID, _ := claims["family_id"].(string)
+	replayedNonce, _ := claims["nonce"].(string)
+
+	// Legacy tokens (issued before family tracking) carry no family_id, so there
+	// is no lineage to scope to. Do NOT fall back to nuking the whole user —
+	// that is exactly the DoS this fix removes. A family-less replay revokes
+	// nothing; the token is still rejected (invalid_grant) by the caller.
+	if familyID == "" {
+		metrics.RecordSecurityEvent("refresh_token_reuse_no_family", "token_endpoint")
+		log.Warn().Msg("refresh token reuse detected on a family-less (legacy) token — no lineage to revoke")
+		return
+	}
+
+	recRaw, err := h.MemoryStoreProvider.GetUserSession(sessionKey, refreshFamilyKeyPrefix+familyID)
+	if err != nil || recRaw == "" {
+		// No live lineage backing this family: it was never rotated, or was
+		// logged out / expired. Nothing live to revoke — and crucially, no other
+		// session or login-method for this user is touched.
+		metrics.RecordSecurityEvent("refresh_token_reuse_no_live_family", "token_endpoint")
+		return
+	}
+	var rec refreshFamilyRecord
+	if err := json.Unmarshal([]byte(recRaw), &rec); err != nil {
+		log.Debug().Err(err).Msg("Failed to decode refresh family record")
+		return
+	}
+
+	// The presented nonce IS the family's current live token: this is not a
+	// rotated-away token being replayed at all — ValidateRefreshToken's own
+	// session lookup for this exact live nonce must have hit a transient store
+	// error (a timeout, a momentary blip) rather than a genuine "key absent"
+	// (the store layer can't distinguish the two, see GetUserSession). Treat it
+	// as an ordinary failed validation, not a breach: revoking here would nuke
+	// the user's own still-legitimate session over a retryable fault, which is
+	// strictly worse than the plain invalid_grant the caller already returns.
+	if replayedNonce == rec.LiveNonce {
+		metrics.RecordSecurityEvent("refresh_token_reuse_transient", "token_endpoint")
+		log.Debug().Msg("presented nonce matches the family's live token — likely a transient session-store error, not reuse; not revoking")
+		return
+	}
+
+	// Benign double-submit grace window: only when the replayed token is the
+	// IMMEDIATE predecessor of the current live token (rec.PrevNonce) AND the
+	// rotation was within the window. An immediate-predecessor replay means the
+	// live token has not itself been used since (had it been used, the chain
+	// would have advanced and rec.PrevNonce would no longer equal the replayed
+	// nonce) — that is a multi-tab/retry race, not theft. Any older nonce, or a
+	// predecessor replayed after the window, is treated as genuine reuse.
+	if replayedNonce == rec.PrevNonce && time.Now().Unix()-rec.RotatedAt <= int64(refreshReuseGraceWindow.Seconds()) {
+		metrics.RecordSecurityEvent("refresh_token_double_submit", "token_endpoint")
+		log.Debug().Msg("refresh token double-submit within grace window — treated as race, family not revoked")
+		return
+	}
+
+	// Genuine reuse: revoke only this family's live session (session + access +
+	// refresh entries for the current live nonce). DeleteUserSession is scoped to
+	// this exact (sessionKey, nonce), so other lineages/login-methods survive.
+	if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, rec.LiveNonce); err != nil {
+		log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to revoke live session on refresh token reuse")
+	}
+	metrics.RecordSecurityEvent("refresh_token_reuse", "token_endpoint")
+	log.Warn().Msg("refresh token reuse detected — revoked the compromised token family only")
 }
 
 // TokenHandler to handle /oauth/token requests
@@ -177,8 +300,15 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		var roles, scope []string
 		loginMethod := ""
 		sessionKey := ""
+		resource := ""       // RFC 8707 resource bound to the auth code; becomes the access token aud
 		oidcNonce := ""      // OIDC nonce from the original /authorize request
 		authTime := int64(0) // End-User's actual last authentication (OIDC Core §2 auth_time); 0 = unknown, CreateIDToken falls back to time.Now()
+		// Refresh-token family tracking for reuse detection (OAuth 2.1 §6.1).
+		// Populated only on the refresh_token grant: refreshFamilyID is the
+		// lineage id carried forward into the rotated token, oldRefreshNonce is
+		// the nonce being rotated away (recorded as the family's prev_nonce).
+		refreshFamilyID := ""
+		oldRefreshNonce := ""
 
 		if isAuthorizationCodeGrant {
 			if code == "" {
@@ -233,6 +363,28 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				}
 			}
 
+			// RFC 8707 resource binding: sessionDataSplit[4] holds the resource
+			// (url-escaped) the client bound at /authorize, empty when none was
+			// supplied. When bound, the token request MUST echo exactly one
+			// matching resource (same enforcement shape as the PKCE
+			// code_verifier and redirect_uri checks). When present it becomes
+			// the access token's `aud` (see CreateAuthToken / AuthTokenConfig).
+			// When unbound the request `resource` is ignored — clients that
+			// don't use resource indicators are unaffected.
+			if len(sessionDataSplit) > 4 {
+				resource, _ = url.QueryUnescape(sessionDataSplit[4])
+			}
+			if resource != "" {
+				requestResources := gc.PostFormArray("resource")
+				if len(requestResources) != 1 || strings.TrimSpace(requestResources[0]) != resource {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_grant",
+						"error_description": "The resource parameter does not match the authorization request",
+					})
+					return
+				}
+			}
+
 			// Parse code_challenge and method from stored state.
 			// Format: "challenge::method" or just "challenge" (legacy, defaults to plain per RFC 7636 §4.2)
 			// or empty string (no PKCE — confidential client).
@@ -241,6 +393,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if idx := strings.LastIndex(storedChallenge, "::"); idx >= 0 {
 				storedMethod = storedChallenge[idx+2:]
 				storedChallenge = storedChallenge[:idx]
+			}
+
+			// OAuth 2.1 strict mode: reject a "plain" PKCE code. /authorize
+			// already refuses to mint one under strict mode; this closes the
+			// window where the flag was flipped on between authorize and
+			// exchange for a code already in flight.
+			if h.Config.OAuth21Strict && storedChallenge != "" && storedMethod == "plain" {
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_challenge_method=plain is not allowed; use S256",
+				})
+				return
 			}
 
 			// RFC 7636 §4.5: If PKCE was used at /authorize, the token request
@@ -365,7 +529,20 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// HTTP 400, not 401.
 			claims, err := h.TokenProvider.ValidateRefreshToken(gc, refreshToken, resolvedClient.ClientID)
 			if err != nil {
-				log.Debug().Err(err).Msg("Error validating refresh token")
+				// OAuth 2.1 §6.1 / RFC 9700 §4.14.2 refresh-token reuse
+				// response: a genuine, already-rotated refresh token was
+				// replayed. Revoke ONLY the compromised token's lineage
+				// (family) — not the whole user — so replaying one retired
+				// token cannot force-log-out the user's other sessions and
+				// login-methods (an unauthenticated DoS). handleRefreshTokenReuse
+				// also applies the benign double-submit grace window.
+				if errors.Is(err, token.ErrRefreshTokenReuse) {
+					h.handleRefreshTokenReuse(gc, claims)
+				} else {
+					log.Debug().Err(err).Msg("Error validating refresh token")
+				}
+				// Same opaque response either way — never reveal to the caller
+				// whether reuse was detected (no oracle).
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_grant",
 					"error_description": "The refresh token is invalid or has expired",
@@ -452,6 +629,17 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
+			// Carry the refresh-token family forward across this rotation. A
+			// legacy token issued before family tracking has no family_id claim —
+			// mint a fresh one so the rotated token (and its family record) are
+			// consistent from here on. oldRefreshNonce becomes the family's
+			// prev_nonce, used by the reuse grace window.
+			refreshFamilyID, _ = claims["family_id"].(string)
+			if refreshFamilyID == "" {
+				refreshFamilyID = uuid.New().String()
+			}
+			oldRefreshNonce = nonce
+
 			// RFC 6749 §6: "the authorization server MUST verify the binding
 			// between the refresh token and client identity whenever
 			// possible." Enforced above via ValidateRefreshToken's audience
@@ -501,15 +689,17 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String()
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
-			User:        user,
-			Roles:       roles,
-			Scope:       scope,
-			LoginMethod: loginMethod,
-			Nonce:       nonce,
-			OIDCNonce:   oidcNonce,
-			HostName:    hostname,
-			AuthTime:    authTime,
-			ClientID:    resolvedClient.ClientID,
+			User:                 user,
+			Roles:                roles,
+			Scope:                scope,
+			LoginMethod:          loginMethod,
+			Nonce:                nonce,
+			OIDCNonce:            oidcNonce,
+			HostName:             hostname,
+			AuthTime:             authTime,
+			ClientID:             resolvedClient.ClientID,
+			Resource:             resource,
+			RefreshTokenFamilyID: refreshFamilyID,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")
@@ -571,6 +761,20 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 					"error_description": "Could not complete token issuance",
 				})
 				return
+			}
+			// Record/refresh the family index on rotation so reuse detection can
+			// (a) find and revoke only this lineage's live session and (b) tell a
+			// benign double-submit of the just-rotated token from genuine theft.
+			// Only written on the refresh grant — first issuance needs no record
+			// (reuse can only be detected after a rotation or expiry, and a
+			// replay of a never-rotated / logged-out token has no live lineage to
+			// protect, which is exactly when the old whole-user nuke did harm).
+			if isRefreshTokenGrant && refreshFamilyID != "" {
+				h.setRefreshFamilyRecord(sessionKey, refreshFamilyID, refreshFamilyRecord{
+					LiveNonce: authToken.FingerPrint,
+					PrevNonce: oldRefreshNonce,
+					RotatedAt: time.Now().Unix(),
+				}, authToken.RefreshToken.ExpiresAt)
 			}
 		}
 		if isRefreshTokenGrant {

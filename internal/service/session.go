@@ -78,6 +78,7 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	codeChallenge := ""
 	oidcNonce := ""
 	authorizeRedirectURI := ""
+	authorizeResource := ""
 	if params != nil && params.State != nil {
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
 		if authorizeState != "" {
@@ -90,6 +91,10 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 				}
 				if len(parts) > 3 {
 					authorizeRedirectURI = parts[3]
+				}
+				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
+				if len(parts) > 4 {
+					authorizeResource = parts[4]
 				}
 			}
 			_ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
@@ -115,7 +120,7 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	}
 
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
 			log.Debug().Err(err).Msg("Failed to set code state")
 			return nil, nil, err
 		}

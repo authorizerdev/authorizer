@@ -94,6 +94,10 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/api/v1/org-discovery", s.Dependencies.HTTPProvider.OrgDiscoveryHandler())
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
+	// RFC 8414 OAuth 2.0 Authorization Server Metadata. MCP clients probe this
+	// path first; the OIDC discovery document already satisfies RFC 8414's MUSTs,
+	// so serve the same handler as a thin alias (cheap interop win).
+	router.GET("/.well-known/oauth-authorization-server", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", s.Dependencies.HTTPProvider.JWKsHandler())
 	// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint MUST
 	// support GET and MAY support POST.

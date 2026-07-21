@@ -133,6 +133,7 @@ func init() {
 	f.StringVar(&rootArgs.config.ClientSecret, "client-secret", "", "Client secret for the OAuth")
 	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseMode, "default-authorize-response-mode", constants.ResponseModeQuery, "Default response mode for the authorize endpoint")
 	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseType, "default-authorize-response-type", constants.ResponseTypeToken, "Default response type for the authorize endpoint")
+	f.BoolVar(&rootArgs.config.OAuth21Strict, "oauth2-1-strict", false, "Enforce OAuth 2.1 restrictions: reject the implicit/hybrid-with-token response types (token, id_token token) and PKCE plain (require S256). Breaking; opt-in")
 
 	// Admin flags
 	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", "", "Secret for the admin (REQUIRED, must not be empty)")

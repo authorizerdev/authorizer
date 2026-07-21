@@ -491,6 +491,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	nonce := ""
 	oidcNonce := ""
 	authorizeRedirectURI := ""
+	authorizeResource := ""
 	if params.State != nil {
 		// Get state from store
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
@@ -505,6 +506,10 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				// RFC 6749 §4.1.3: redirect_uri from /authorize for validation at /oauth/token
 				if len(authorizeStateSplit) > 3 {
 					authorizeRedirectURI = authorizeStateSplit[3]
+				}
+				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
+				if len(authorizeStateSplit) > 4 {
+					authorizeResource = authorizeStateSplit[4]
 				}
 			} else {
 				nonce = authorizeState
@@ -540,7 +545,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 
 	// Code challenge could be optional if PKCE flow is not used
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
 			log.Debug().Msg("Failed to set state")
 			return nil, nil, err
 		}
