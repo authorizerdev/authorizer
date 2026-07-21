@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -11,6 +12,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
+
+// validateOrgSlug rejects characters that would break the organization name's
+// role as a URL-safe slug and, defense-in-depth, as an FGA object-id component:
+// '/' is the FGA namespace separator this codebase uses (e.g. group:<org>/<id>),
+// ':' and '#' are FGA-reserved, and whitespace/control characters have no place
+// in a slug. FGA namespacing keys off the org UUID, not the slug, so today this
+// is belt-and-suspenders — but the cross-tenant containment argument depends on
+// namespacing keys staying slash-free, so the invariant is enforced by
+// construction here rather than left to assumption.
+func validateOrgSlug(name string) error {
+	for _, r := range name {
+		if r == '/' || r == ':' || r == '#' || unicode.IsSpace(r) || unicode.IsControl(r) {
+			return fmt.Errorf("organization name must be a URL-safe slug: the character %q is not allowed", string(r))
+		}
+	}
+	return nil
+}
 
 // CreateOrganization provisions a new organization. The name must be a
 // unique, non-empty slug. Requires super-admin auth.
@@ -25,6 +43,11 @@ func (p *provider) CreateOrganization(ctx context.Context, meta RequestMetadata,
 		log.Debug().Msg("name is required")
 		p.logOrgFailure(meta, constants.AuditOrganizationCreateFailedEvent, "")
 		return nil, nil, fmt.Errorf("name is required")
+	}
+	if err := validateOrgSlug(name); err != nil {
+		log.Debug().Err(err).Msg("invalid organization name")
+		p.logOrgFailure(meta, constants.AuditOrganizationCreateFailedEvent, "")
+		return nil, nil, err
 	}
 
 	// Unique-name pre-check. The storage layer also enforces uniqueness (unique
@@ -82,6 +105,11 @@ func (p *provider) UpdateOrganization(ctx context.Context, meta RequestMetadata,
 			log.Debug().Msg("name cannot be empty")
 			p.logOrgFailure(meta, constants.AuditOrganizationUpdateFailedEvent, params.ID)
 			return nil, nil, fmt.Errorf("name cannot be empty")
+		}
+		if err := validateOrgSlug(name); err != nil {
+			log.Debug().Err(err).Msg("invalid organization name")
+			p.logOrgFailure(meta, constants.AuditOrganizationUpdateFailedEvent, params.ID)
+			return nil, nil, err
 		}
 		if name != org.Name {
 			if existing, _ := p.StorageProvider.GetOrganizationByName(ctx, name); existing != nil {

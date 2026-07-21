@@ -56,6 +56,17 @@ func TestOrganizationAdmin(t *testing.T) {
 		require.Nil(t, res)
 	})
 
+	t.Run("should reject a name with URL/FGA-unsafe characters", func(t *testing.T) {
+		// The org name is a URL-safe slug and, defense-in-depth, an FGA object-id
+		// component — '/' (the FGA namespace separator), ':'/'#' (FGA-reserved),
+		// and whitespace must be rejected by construction.
+		for _, bad := range []string{"acme/evil", "a:b", "a#b", "has space"} {
+			res, err := ts.GraphQLProvider.CreateOrganization(ctx, &model.CreateOrganizationRequest{Name: bad})
+			require.Error(t, err, "name %q must be rejected", bad)
+			require.Nil(t, res)
+		}
+	})
+
 	t.Run("should create, get and list an organization", func(t *testing.T) {
 		name := "acme-" + uuid.NewString()
 		res, err := ts.GraphQLProvider.CreateOrganization(ctx, &model.CreateOrganizationRequest{
