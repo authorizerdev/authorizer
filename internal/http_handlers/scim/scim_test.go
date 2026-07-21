@@ -27,6 +27,11 @@ type fakeService struct {
 	setErr   error
 	lastOrg  string
 	lastUser string
+
+	createdGroup *schemas.ScimGroup
+	groupErr     error
+	groupMembers []string
+	lastGroup    string
 }
 
 func (f *fakeService) Authenticate(_ context.Context, bearer string) (string, error) {
@@ -60,6 +65,37 @@ func (f *fakeService) SetActive(_ context.Context, orgID, userID string, _ bool)
 		return nil, f.setErr
 	}
 	return f.created, nil
+}
+
+// Group stubs — the handler-level Group tests drive the parser directly
+// (parseGroupPatch); these satisfy the Provider interface for the User tests.
+func (f *fakeService) CreateGroup(_ context.Context, orgID string, _ svcscim.Group) (*schemas.ScimGroup, bool, error) {
+	f.lastOrg = orgID
+	return f.createdGroup, f.existed, f.groupErr
+}
+func (f *fakeService) GetGroup(_ context.Context, orgID, groupID string) (*schemas.ScimGroup, error) {
+	f.lastOrg, f.lastGroup = orgID, groupID
+	return f.createdGroup, f.groupErr
+}
+func (f *fakeService) FindGroupByDisplayName(_ context.Context, orgID, _ string) (*schemas.ScimGroup, error) {
+	f.lastOrg = orgID
+	return f.createdGroup, f.groupErr
+}
+func (f *fakeService) ReplaceGroup(_ context.Context, orgID, groupID string, _ svcscim.Group) (*schemas.ScimGroup, error) {
+	f.lastOrg, f.lastGroup = orgID, groupID
+	return f.createdGroup, f.groupErr
+}
+func (f *fakeService) PatchGroup(_ context.Context, orgID, groupID string, _ *string, _ []svcscim.MemberOp) (*schemas.ScimGroup, error) {
+	f.lastOrg, f.lastGroup = orgID, groupID
+	return f.createdGroup, f.groupErr
+}
+func (f *fakeService) DeleteGroup(_ context.Context, orgID, groupID string) error {
+	f.lastOrg, f.lastGroup = orgID, groupID
+	return f.groupErr
+}
+func (f *fakeService) GroupMembers(_ context.Context, orgID, groupID string) ([]string, error) {
+	f.lastOrg, f.lastGroup = orgID, groupID
+	return f.groupMembers, nil
 }
 
 func newTestServer(svc svcscim.Provider) *gin.Engine {

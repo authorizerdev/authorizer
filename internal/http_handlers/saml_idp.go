@@ -40,6 +40,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -293,7 +294,8 @@ func (h *httpProvider) emitSAMLAssertion(c *gin.Context, idp *saml.IdentityProvi
 		return
 	}
 	session := buildSAMLSession(user, sp)
-	maker := mappedAssertionMaker{attributes: buildMappedAttributes(user, sp)}
+	attrs, groups := h.mappedAttributesWithGroups(ctx, orgID, user, sp, log)
+	maker := mappedAssertionMaker{attributes: attrs}
 	if err := maker.MakeAssertion(req, session); err != nil {
 		log.Debug().Err(err).Msg("failed to build assertion")
 		h.samlIDPFail(c, log, slug, "assertion_error", "could not build assertion")
@@ -304,13 +306,14 @@ func (h *httpProvider) emitSAMLAssertion(c *gin.Context, idp *saml.IdentityProvi
 		h.samlIDPFail(c, log, slug, "assertion_error", "could not deliver assertion")
 		return
 	}
-	h.auditSAMLIDPIssued(c, slug, sp, user)
+	h.auditSAMLIDPIssued(c, slug, sp, user, groups)
 }
 
 // emitIDPInitiatedAssertion produces an unsolicited assertion and POSTs it to the
 // SP's ACS. Mirrors crewjam ServeIDPInitiated, but with our session + mapped
 // attributes. No InResponseTo (there is no request to bind to).
 func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.IdentityProvider, sp *schemas.SAMLServiceProvider, orgID, slug, relayState string, user *schemas.User, log *zerolog.Logger) {
+	ctx := c.Request.Context()
 	if !h.authorizeSAMLIssuance(c, orgID, slug, sp, user, log) {
 		return
 	}
@@ -325,7 +328,8 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 		Now:                     saml.TimeNow(),
 	}
 	session := buildSAMLSession(user, sp)
-	maker := mappedAssertionMaker{attributes: buildMappedAttributes(user, sp)}
+	attrs, groups := h.mappedAttributesWithGroups(ctx, orgID, user, sp, log)
+	maker := mappedAssertionMaker{attributes: attrs}
 	if err := maker.MakeAssertion(req, session); err != nil {
 		log.Debug().Err(err).Msg("failed to build idp-initiated assertion")
 		h.samlIDPFail(c, log, slug, "assertion_error", "could not build assertion")
@@ -336,7 +340,7 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 		h.samlIDPFail(c, log, slug, "assertion_error", "could not deliver assertion")
 		return
 	}
-	h.auditSAMLIDPIssued(c, slug, sp, user)
+	h.auditSAMLIDPIssued(c, slug, sp, user, groups)
 }
 
 // authorizeSAMLIssuance is the single chokepoint that decides whether an
@@ -479,6 +483,106 @@ func buildMappedAttributes(user *schemas.User, sp *schemas.SAMLServiceProvider) 
 	add("nickname", refs.StringValue(user.Nickname))
 	add("picture", refs.StringValue(user.Picture))
 	return attrs
+}
+
+// samlDefaultGroupsAttribute is the SAML attribute name a group set is emitted
+// under when the SP configures no override. "groups" and "memberOf" are the two
+// real-world conventions; "groups" is the default.
+const samlDefaultGroupsAttribute = "groups"
+
+// mappedAttributesWithGroups builds the SP's profile attributes and appends the
+// user's group set as a single multi-valued attribute. It MUST be called only
+// after authorizeSAMLIssuance has passed — the group set is scoped to the issuing
+// org inside assertedGroupsForOrg, which is the cross-tenant containment gate.
+// Returns the attributes plus the asserted group names (for the audit event).
+func (h *httpProvider) mappedAttributesWithGroups(ctx context.Context, orgID string, user *schemas.User, sp *schemas.SAMLServiceProvider, log *zerolog.Logger) ([]saml.Attribute, []string) {
+	attrs := buildMappedAttributes(user, sp)
+	groups := h.assertedGroupsForOrg(ctx, orgID, user, log)
+	if len(groups) > 0 {
+		attrs = append(attrs, buildMultiValuedAttribute(samlGroupsAttributeName(sp), groups))
+	}
+	return attrs, groups
+}
+
+// assertedGroupsForOrg resolves the group displayNames to emit for `user` in an
+// assertion issued for `orgID`, sourced ONLY from that org's namespace.
+//
+// CROSS-TENANT CONTAINMENT (the security-critical invariant): a user may
+// legitimately be a member of groups in several orgs. An assertion issued for
+// org A must NEVER carry a group that belongs to org B — a bare-name SP that
+// grants on "admins" would otherwise let an org-B "admins" membership grant org-A
+// admin. Two independent gates enforce this, both of which must pass:
+//
+//	Gate 1 (namespace): the FGA object id must start with "group:<orgID>/".
+//	                    Group objects are always org-namespaced, so a foreign
+//	                    group cannot match this prefix.
+//	Gate 2 (row of record, defense in depth): the stored ScimGroup row's OrgID
+//	                    must equal orgID. Even if a malformed id slipped past
+//	                    Gate 1, the authoritative row rejects it.
+//
+// Fail-closed: any engine/model/lookup error yields NO groups (never a partial or
+// unscoped set) — omitting groups only ever narrows the SP's view, never widens it.
+func (h *httpProvider) assertedGroupsForOrg(ctx context.Context, orgID string, user *schemas.User, log *zerolog.Logger) []string {
+	if h.AuthzEngine == nil {
+		return nil
+	}
+	objects, err := h.AuthzEngine.ListObjects(ctx, "user:"+user.ID, "member", "group")
+	if err != nil {
+		// No model yet, engine down, etc. — emit no groups (fail-closed).
+		log.Debug().Err(err).Msg("saml idp: group lookup failed, emitting no groups")
+		return nil
+	}
+	prefix := "group:" + orgID + "/"
+	seen := map[string]bool{}
+	var names []string
+	for _, obj := range objects {
+		groupID, ok := strings.CutPrefix(obj, prefix) // Gate 1: namespace.
+		if !ok {
+			continue
+		}
+		group, err := h.StorageProvider.GetScimGroupByID(ctx, groupID)
+		if err != nil || group == nil || group.OrgID != orgID { // Gate 2: row of record.
+			continue
+		}
+		name := strings.TrimSpace(group.DisplayName)
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	return names
+}
+
+// samlGroupsAttributeName returns the SAML attribute name the SP expects its
+// group set under, read from the SP's MappedAttributes "groups" key, defaulting
+// to "groups".
+func samlGroupsAttributeName(sp *schemas.SAMLServiceProvider) string {
+	if sp.MappedAttributes != nil && strings.TrimSpace(*sp.MappedAttributes) != "" {
+		var m map[string]string
+		if err := json.Unmarshal([]byte(*sp.MappedAttributes), &m); err == nil {
+			if name := strings.TrimSpace(m["groups"]); name != "" {
+				return name
+			}
+		}
+	}
+	return samlDefaultGroupsAttribute
+}
+
+// buildMultiValuedAttribute encodes a slice of values as ONE SAML <Attribute>
+// carrying multiple <AttributeValue> children — the correct encoding for a
+// multi-valued attribute (not several <Attribute> elements, not a delimited
+// string).
+func buildMultiValuedAttribute(name string, values []string) saml.Attribute {
+	vals := make([]saml.AttributeValue, 0, len(values))
+	for _, v := range values {
+		vals = append(vals, saml.AttributeValue{Type: "xs:string", Value: v})
+	}
+	return saml.Attribute{
+		Name:       name,
+		NameFormat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+		Values:     vals,
+	}
 }
 
 // samlSPRegistry implements crewjam's ServiceProviderProvider against the org's
@@ -740,8 +844,15 @@ func (h *httpProvider) samlIDPFail(c *gin.Context, log *zerolog.Logger, slug, co
 	c.JSON(http.StatusBadRequest, gin.H{"error": code, "error_description": desc})
 }
 
-func (h *httpProvider) auditSAMLIDPIssued(c *gin.Context, slug string, sp *schemas.SAMLServiceProvider, user *schemas.User) {
+func (h *httpProvider) auditSAMLIDPIssued(c *gin.Context, slug string, sp *schemas.SAMLServiceProvider, user *schemas.User, groups []string) {
 	metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
+	// Record the asserted group set so a later "why did this SP grant admin?"
+	// question is answerable. Count goes in the durable audit metadata; the full
+	// (org-scoped) set is logged at debug for forensics.
+	if len(groups) > 0 {
+		h.Log.Debug().Str("org", slug).Str("sp", sp.EntityID).Str("user_id", user.ID).
+			Strs("asserted_groups", groups).Msg("saml idp: asserted group set")
+	}
 	h.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditSAMLIDPAssertionIssuedEvent,
 		ActorID:      user.ID,
@@ -749,7 +860,7 @@ func (h *httpProvider) auditSAMLIDPIssued(c *gin.Context, slug string, sp *schem
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   sp.ID,
-		Metadata:     slug + ":" + sp.EntityID,
+		Metadata:     slug + ":" + sp.EntityID + ":groups=" + strconv.Itoa(len(groups)),
 		IPAddress:    utils.GetIP(c.Request),
 		UserAgent:    utils.GetUserAgent(c.Request),
 	})
