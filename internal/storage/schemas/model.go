@@ -22,6 +22,7 @@ type CollectionList struct {
 	OrgMembership          string
 	FederatedIdentity      string
 	ScimEndpoint           string
+	ScimGroup              string
 	WebauthnCredential     string
 	OrgDomain              string
 	SAMLServiceProvider    string
@@ -53,6 +54,7 @@ var (
 		OrgMembership:          Prefix + "org_memberships",
 		FederatedIdentity:      Prefix + "federated_identities",
 		ScimEndpoint:           Prefix + "scim_endpoints",
+		ScimGroup:              Prefix + "scim_groups",
 		WebauthnCredential:     Prefix + "webauthn_credentials",
 		OrgDomain:              Prefix + "org_domains",
 		SAMLServiceProvider:    Prefix + "saml_service_providers",

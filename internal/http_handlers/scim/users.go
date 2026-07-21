@@ -24,10 +24,14 @@ type scimEmail struct {
 	Primary bool   `json:"primary,omitempty"`
 }
 
-// scimMeta is the resource metadata block.
+// scimMeta is the resource metadata block (RFC 7643 §3.1). created/lastModified
+// are returned:"default"; they are omitempty so User responses (which do not set
+// them) are unchanged, while Group responses populate them from stored timestamps.
 type scimMeta struct {
 	ResourceType string `json:"resourceType"`
 	Location     string `json:"location,omitempty"`
+	Created      string `json:"created,omitempty"`
+	LastModified string `json:"lastModified,omitempty"`
 }
 
 // scimUserResource is the wire representation of a SCIM User (request + response).

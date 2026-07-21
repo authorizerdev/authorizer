@@ -257,6 +257,15 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			gsi: []types.GlobalSecondaryIndex{gsi("org_id", "org_id")},
 		},
 		{
+			name: schemas.Collections.ScimGroup,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("org_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("org_id", "org_id")},
+		},
+		{
 			// OrgDomain: partition key "id" holds the normalized domain, so a
 			// conditional PutItem (attribute_not_exists) is a race-free unique insert.
 			name: schemas.Collections.OrgDomain,

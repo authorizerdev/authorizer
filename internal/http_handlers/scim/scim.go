@@ -21,6 +21,7 @@ const (
 	contentType = "application/scim+json"
 
 	schemaUser     = "urn:ietf:params:scim:schemas:core:2.0:User"
+	schemaGroup    = "urn:ietf:params:scim:schemas:core:2.0:Group"
 	schemaError    = "urn:ietf:params:scim:api:messages:2.0:Error"
 	schemaListResp = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 	schemaSPConfig = "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
@@ -59,6 +60,13 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.PUT("/Users/:id", h.replaceUser)
 	rg.PATCH("/Users/:id", h.patchUser)
 	rg.DELETE("/Users/:id", h.deleteUser)
+
+	rg.POST("/Groups", h.createGroup)
+	rg.GET("/Groups", h.listGroups)
+	rg.GET("/Groups/:id", h.getGroup)
+	rg.PUT("/Groups/:id", h.replaceGroup)
+	rg.PATCH("/Groups/:id", h.patchGroup)
+	rg.DELETE("/Groups/:id", h.deleteGroup)
 
 	rg.GET("/ServiceProviderConfig", h.serviceProviderConfig)
 	rg.GET("/ResourceTypes", h.resourceTypes)
@@ -119,10 +127,14 @@ func mapServiceError(c *gin.Context, err error) {
 		writeError(c, http.StatusNotFound, "", "resource not found")
 	case errors.Is(err, svcscim.ErrConflict):
 		writeError(c, http.StatusConflict, "uniqueness", "userName already exists")
+	case errors.Is(err, svcscim.ErrGroupConflict):
+		writeError(c, http.StatusConflict, "uniqueness", "a group with this displayName already exists")
 	case errors.Is(err, svcscim.ErrInvalid):
 		writeError(c, http.StatusBadRequest, "invalidValue", "invalid request")
 	case errors.Is(err, svcscim.ErrUnauthorized):
 		writeError(c, http.StatusUnauthorized, "", "authentication failed")
+	case errors.Is(err, svcscim.ErrGroupsUnavailable):
+		writeError(c, http.StatusNotImplemented, "", "group provisioning is not enabled on this server")
 	default:
 		writeError(c, http.StatusInternalServerError, "", "internal error")
 	}

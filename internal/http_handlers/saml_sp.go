@@ -293,7 +293,7 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 			return
 		}
 
-		if err := h.issueSAMLSession(c, slug, appRedirect, appState, user, isSignUp); err != nil {
+		if err := h.issueSAMLSession(c, slug, conn.OrgID, appRedirect, appState, user, isSignUp); err != nil {
 			log.Debug().Err(err).Msg("failed to issue session")
 			h.samlFail(c, &log, slug, "saml_session_failed", "could not establish session")
 			return
@@ -515,9 +515,12 @@ func samlAttr(assertion *saml.Assertion, name string) string {
 // issueSAMLSession mints the Authorizer session/tokens, sets the session cookie,
 // records the session, and redirects to the app's redirect_uri. Mirrors
 // issueSSOSession but with SAML audit semantics and no upstream nonce.
-func (h *httpProvider) issueSAMLSession(c *gin.Context, slug, appRedirect, appState string, user *schemas.User, isSignUp bool) error {
+func (h *httpProvider) issueSAMLSession(c *gin.Context, slug, orgID, appRedirect, appState string, user *schemas.User, isSignUp bool) error {
 	hostname := parsers.GetHost(c)
-	roles := splitRoles(user.Roles)
+	// Org-scoped mint point: augment the user's roles with any role granted in
+	// THIS org through SCIM group membership (issue #692). Additive and
+	// org-namespaced — see orgGroupDerivedRoles.
+	roles := unionRoles(splitRoles(user.Roles), h.orgGroupDerivedRoles(c.Request.Context(), orgID, user, h.Log))
 	authToken, err := h.TokenProvider.CreateAuthToken(c, &token.AuthTokenConfig{
 		User:        user,
 		Roles:       roles,

@@ -22,6 +22,7 @@ type fakeStore struct {
 	endpoints   map[string]*schemas.ScimEndpoint // by id
 	users       map[string]*schemas.User         // by id
 	memberships map[string]bool                  // "orgID|userID"
+	groups      map[string]*schemas.ScimGroup    // by id
 	deletedTok  []string                         // user ids passed to DeleteAllSessionTokensByUserID
 }
 
@@ -30,6 +31,7 @@ func newFakeStore() *fakeStore {
 		endpoints:   map[string]*schemas.ScimEndpoint{},
 		users:       map[string]*schemas.User{},
 		memberships: map[string]bool{},
+		groups:      map[string]*schemas.ScimGroup{},
 	}
 }
 

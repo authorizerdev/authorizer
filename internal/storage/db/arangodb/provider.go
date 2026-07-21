@@ -498,6 +498,24 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Unique: true,
 	})
 
+	// ScimGroup collection and indexes. org_id + display_name is the lookup key;
+	// not unique (service enforces displayName uniqueness within an org).
+	scimGroupCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.ScimGroup)
+	if err != nil {
+		return nil, err
+	}
+	if !scimGroupCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.ScimGroup, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	scimGroupCollection, err := arangodb.Collection(ctx, schemas.Collections.ScimGroup)
+	if err != nil {
+		return nil, err
+	}
+	_, _, _ = scimGroupCollection.EnsurePersistentIndex(ctx, []string{"org_id", "display_name"}, &arangoDriver.EnsurePersistentIndexOptions{})
+
 	// OrgDomain collection and indexes. Uniqueness is enforced by the document
 	// _key being the normalized domain (atomic first-writer-wins); org_id is
 	// indexed (non-unique) for listing an org's domains.

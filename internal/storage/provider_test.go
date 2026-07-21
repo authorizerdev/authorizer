@@ -215,6 +215,9 @@ func TestStorageProvider(t *testing.T) {
 			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
 				testScimEndpointOperations(t, ctx, provider)
 			})
+			t.Run("SCIM Group Operations", func(t *testing.T) {
+				testScimGroupOperations(t, ctx, provider)
+			})
 			t.Run("Org Domain Operations", func(t *testing.T) {
 				testOrgDomainOperations(t, ctx, provider)
 			})
@@ -1976,6 +1979,121 @@ func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Prov
 	require.NoError(t, provider.DeleteScimEndpoint(ctx, afterRotate))
 	_, err = provider.GetScimEndpointByID(ctx, endpointID)
 	assert.Error(t, err, "endpoint should be gone after delete")
+
+	require.NoError(t, provider.DeleteOrganization(ctx, org))
+}
+
+// testScimGroupOperations exercises ScimGroup CRUD: create, id + (org,displayName)
+// lookups, displayName rename round-trip, external-id round-trip, and delete.
+// Membership is NOT stored here (it lives in FGA), so this covers metadata only.
+func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provider) {
+	org, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "scim-grp-org-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgID := org.AsAPIOrganization().ID
+
+	ext := orgID + ":ext-grp-1"
+	created, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: "Engineers",
+		ExternalID:  &ext,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	// ID is the portable bare identifier used in URLs and FGA tuples — every
+	// provider (arango included, after the ID==Key==uuid fix) returns it as the
+	// bare uuid that GetScimGroupByID resolves. Use it directly, not created.Key.
+	groupID := created.ID
+	require.NotEmpty(t, groupID)
+	require.Equal(t, created.Key, created.ID, "ID must equal the bare document key on every provider")
+
+	byID, err := provider.GetScimGroupByID(ctx, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, orgID, byID.OrgID)
+	assert.Equal(t, "Engineers", byID.DisplayName)
+	require.NotNil(t, byID.ExternalID)
+	assert.Equal(t, ext, *byID.ExternalID)
+
+	byName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "Engineers")
+	require.NoError(t, err)
+	assert.Equal(t, byID.OrgID, byName.OrgID)
+	assert.Equal(t, "Engineers", byName.DisplayName)
+
+	// displayName is caseExact:false (RFC 7644 §3.4.2.2): the (org,displayName)
+	// lookup MUST match the value case-insensitively on every backend.
+	for _, probe := range []string{"engineers", "ENGINEERS", "eNgInEeRs"} {
+		ci, ciErr := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, probe)
+		require.NoError(t, ciErr, "case-insensitive displayName lookup must match (%q)", probe)
+		assert.Equal(t, groupID, ci.ID, "case-insensitive lookup must resolve the same group (%q)", probe)
+	}
+	// A genuinely different name must still miss (not a blanket match).
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "Engineering")
+	assert.Error(t, err, "a different displayName must not resolve")
+
+	// A displayName carrying regex/query metacharacters must be compared as a
+	// literal, never interpreted as a pattern (guards the Mongo collation path
+	// and any other engine): look it up case-insensitively by its exact chars.
+	metaName := "R&D (Engineering) [v2]"
+	metaGroup, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: metaName,
+	})
+	require.NoError(t, err)
+	metaByName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "r&d (engineering) [v2]")
+	require.NoError(t, err, "metacharacter displayName must match as a literal, case-insensitively")
+	assert.Equal(t, metaGroup.ID, metaByName.ID)
+	// A regex that WOULD match metaName if interpreted as a pattern must not.
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "R.D .Engineering. .v2.")
+	assert.Error(t, err, "displayName must be a literal, not a regex pattern")
+	require.NoError(t, provider.DeleteScimGroup(ctx, metaGroup))
+
+	// Non-ASCII displayName case-folding must agree across every provider. This
+	// specifically guards against relying on the query engine's own native case
+	// folding (SQL LOWER(), AQL LOWER(), N1QL LOWER()) for the comparison: those
+	// disagree with each other AND with Go's strings.EqualFold on non-ASCII
+	// text (SQLite's LOWER() is ASCII-only, e.g. "CAFÉ" -> "cafÉ", not "café"),
+	// so every provider instead fetches by org and folds with strings.EqualFold
+	// in Go.
+	unicodeName := "CAFÉ"
+	unicodeGroup, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: unicodeName,
+	})
+	require.NoError(t, err)
+	unicodeByName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "café")
+	require.NoError(t, err, "non-ASCII displayName must fold case-insensitively via Go's EqualFold, not the engine's native LOWER()")
+	assert.Equal(t, unicodeGroup.ID, unicodeByName.ID)
+	require.NoError(t, provider.DeleteScimGroup(ctx, unicodeGroup))
+
+	// Cross-org displayName lookup must NOT resolve this org's group.
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, "another-org", "Engineers")
+	assert.Error(t, err, "displayName lookup must be org-scoped")
+
+	// externalId lookup (the IdP correlation key) resolves the same row. The raw
+	// IdP value is passed; the store namespaces it as "<orgID>:<raw>" internally.
+	byExt, err := provider.GetScimGroupByOrgAndExternalID(ctx, orgID, "ext-grp-1")
+	require.NoError(t, err)
+	assert.Equal(t, byID.OrgID, byExt.OrgID)
+	assert.Equal(t, "Engineers", byExt.DisplayName)
+	assert.Equal(t, groupID, byExt.ID, "externalId lookup must return the bare portable id")
+
+	// Cross-org externalId lookup must NOT resolve this org's group.
+	_, err = provider.GetScimGroupByOrgAndExternalID(ctx, "another-org", "ext-grp-1")
+	assert.Error(t, err, "externalId lookup must be org-scoped")
+
+	// Rename (load-then-mutate) round-trips.
+	byID.DisplayName = "Platform"
+	_, err = provider.UpdateScimGroup(ctx, byID)
+	require.NoError(t, err)
+	afterRename, err := provider.GetScimGroupByID(ctx, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, "Platform", afterRename.DisplayName)
+
+	require.NoError(t, provider.DeleteScimGroup(ctx, afterRename))
+	_, err = provider.GetScimGroupByID(ctx, groupID)
+	assert.Error(t, err, "group should be gone after delete")
 
 	require.NoError(t, provider.DeleteOrganization(ctx, org))
 }

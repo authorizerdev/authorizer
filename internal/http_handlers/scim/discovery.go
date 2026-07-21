@@ -31,8 +31,8 @@ func (h *Handler) serviceProviderConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-// resourceTypes lists the provisionable resource types. Only User is supported;
-// Group is deferred (org-namespaced FGA roles, design §4.4 CR2).
+// resourceTypes lists the provisionable resource types: User and Group. Group
+// membership is stored as org-namespaced FGA tuples (RFC 7643 §4.1.2).
 func (h *Handler) resourceTypes(c *gin.Context) {
 	user := gin.H{
 		"schemas":     []string{schemaRestype},
@@ -43,12 +43,21 @@ func (h *Handler) resourceTypes(c *gin.Context) {
 		"schema":      schemaUser,
 		"meta":        gin.H{"resourceType": "ResourceType"},
 	}
+	group := gin.H{
+		"schemas":     []string{schemaRestype},
+		"id":          "Group",
+		"name":        "Group",
+		"endpoint":    "/Groups",
+		"description": "Group",
+		"schema":      schemaGroup,
+		"meta":        gin.H{"resourceType": "ResourceType"},
+	}
 	resp := gin.H{
 		"schemas":      []string{schemaListResp},
-		"totalResults": 1,
+		"totalResults": 2,
 		"startIndex":   1,
-		"itemsPerPage": 1,
-		"Resources":    []gin.H{user},
+		"itemsPerPage": 2,
+		"Resources":    []gin.H{user, group},
 	}
 	c.Header("Content-Type", contentType)
 	c.JSON(http.StatusOK, resp)
@@ -61,6 +70,13 @@ func (h *Handler) schemas(c *gin.Context) {
 		return gin.H{
 			"name": name, "type": typ, "required": required,
 			"multiValued": false, "mutability": "readWrite",
+			"returned": "default", "uniqueness": "none",
+		}
+	}
+	immutableAttr := func(name, typ string) gin.H {
+		return gin.H{
+			"name": name, "type": typ, "required": false,
+			"multiValued": false, "mutability": "immutable",
 			"returned": "default", "uniqueness": "none",
 		}
 	}
@@ -94,12 +110,35 @@ func (h *Handler) schemas(c *gin.Context) {
 		},
 		"meta": gin.H{"resourceType": "Schema"},
 	}
+	groupSchema := gin.H{
+		"schemas":     []string{schemaSchema},
+		"id":          schemaGroup,
+		"name":        "Group",
+		"description": "Group",
+		"attributes": []gin.H{
+			attr("displayName", "string", true),
+			attr("externalId", "string", false),
+			{
+				"name": "members", "type": "complex", "required": false,
+				"multiValued": true, "mutability": "readWrite",
+				"returned": "default", "uniqueness": "none",
+				// RFC 7643 §4.2: the members sub-attributes are immutable.
+				"subAttributes": []gin.H{
+					immutableAttr("value", "string"),
+					immutableAttr("$ref", "reference"),
+					immutableAttr("type", "string"),
+					immutableAttr("display", "string"),
+				},
+			},
+		},
+		"meta": gin.H{"resourceType": "Schema"},
+	}
 	resp := gin.H{
 		"schemas":      []string{schemaListResp},
-		"totalResults": 1,
+		"totalResults": 2,
 		"startIndex":   1,
-		"itemsPerPage": 1,
-		"Resources":    []gin.H{userSchema},
+		"itemsPerPage": 2,
+		"Resources":    []gin.H{userSchema, groupSchema},
 	}
 	c.Header("Content-Type", contentType)
 	c.JSON(http.StatusOK, resp)
