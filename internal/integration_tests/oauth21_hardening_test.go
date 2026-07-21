@@ -248,7 +248,7 @@ func ageFamilyRecordPast(t *testing.T, ts *testSetup, liveRefresh string) {
 		sessionKey, refreshFamilyKeyPrefix+familyID, string(out), 1<<62))
 }
 
-// Item 2 (MEDIUM): --oauth21-strict must reject EVERY response_type that
+// Item 2 (MEDIUM): --oauth2-1-strict must reject EVERY response_type that
 // delivers a bearer access token into the URL fragment, including the
 // front-channel-token hybrids "code token" and "code id_token token" — not
 // only "token" / "id_token token". The check is component-exact so pure

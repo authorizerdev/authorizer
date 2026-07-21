@@ -260,7 +260,7 @@ func TestOAuth21_RefreshTokenReuse_RevokesFamily(t *testing.T) {
 	assert.Equal(t, "invalid_grant", errBody4["error"])
 }
 
-// Item 4: the --oauth21-strict flag. Default (false) leaves the implicit grant
+// Item 4: the --oauth2-1-strict flag. Default (false) leaves the implicit grant
 // and PKCE "plain" working exactly as today; true rejects both.
 func TestOAuth21_StrictMode_Gating(t *testing.T) {
 	cfg := getTestConfig()
