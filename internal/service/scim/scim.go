@@ -45,6 +45,10 @@ var (
 	// ErrGroupsUnavailable — a Group op was attempted but the FGA engine is not
 	// configured (group membership is stored as FGA tuples). Map to 501.
 	ErrGroupsUnavailable = errors.New("scim: group provisioning requires the authorization engine")
+	// ErrGroupConflict — a Group create/rename collides with an existing
+	// displayName in the org (RFC 7644 §3.3 uniqueness). Map to 409/uniqueness.
+	// Distinct from ErrConflict, whose message names userName.
+	ErrGroupConflict = errors.New("scim: displayName already exists")
 )
 
 // tokenCost is the bcrypt cost for SCIM bearer-token secrets. Matches the
@@ -113,9 +117,12 @@ type Provider interface {
 	// --- SCIM Group provisioning (RFC 7643 §4.2 / RFC 7644 §3.5.2). Membership
 	// is stored as FGA tuples, never on the Group row. ---
 
-	// CreateGroup provisions a group into the org. Idempotent: a repeat with the
-	// same displayName (or externalId) returns the existing group with
-	// existed=true. Any in.Members are added (org-membership-gated).
+	// CreateGroup provisions a group into the org. When the payload carries an
+	// externalId that already identifies a group in the org, the create is
+	// idempotent: it adopts a renamed displayName and returns existed=true. A
+	// create that instead clashes on displayName (no matching externalId) is a
+	// uniqueness conflict (ErrGroupConflict → 409), not a silent 200. Any
+	// in.Members are added (org-membership-gated).
 	CreateGroup(ctx context.Context, orgID string, in Group) (group *schemas.ScimGroup, existed bool, err error)
 	// GetGroup fetches an org's group by id (404 if it belongs to another org — H6).
 	GetGroup(ctx context.Context, orgID, groupID string) (*schemas.ScimGroup, error)
@@ -125,9 +132,11 @@ type Provider interface {
 	// ReplaceGroup (PUT) overwrites displayName and sets membership to exactly
 	// in.Members (org-membership-gated).
 	ReplaceGroup(ctx context.Context, orgID, groupID string, in Group) (*schemas.ScimGroup, error)
-	// PatchGroup applies a parsed SCIM PatchOp: an optional displayName change
-	// plus member add/remove/replace ops. Idempotent.
-	PatchGroup(ctx context.Context, orgID, groupID string, displayName *string, ops []MemberOp) (*schemas.ScimGroup, error)
+	// PatchGroup applies a parsed SCIM PatchOp: optional displayName / externalId
+	// changes plus member add/remove/replace ops. A remove op with ClearAll (an
+	// unfiltered "remove members") or a replace with an empty set removes every
+	// member. Idempotent.
+	PatchGroup(ctx context.Context, orgID, groupID string, displayName, externalID *string, ops []MemberOp) (*schemas.ScimGroup, error)
 	// DeleteGroup removes the group row and all its membership + role-binding
 	// tuples.
 	DeleteGroup(ctx context.Context, orgID, groupID string) error

@@ -50,6 +50,16 @@ func (f *fakeStore) GetScimGroupByOrgAndDisplayName(_ context.Context, orgID, di
 	return nil, errNotFound
 }
 
+func (f *fakeStore) GetScimGroupByOrgAndExternalID(_ context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
+	want := orgID + ":" + externalID
+	for _, g := range f.groups {
+		if g.OrgID == orgID && g.ExternalID != nil && *g.ExternalID == want {
+			return g, nil
+		}
+	}
+	return nil, errNotFound
+}
+
 func (f *fakeStore) UpdateScimGroup(_ context.Context, g *schemas.ScimGroup) (*schemas.ScimGroup, error) {
 	f.groups[g.ID] = g
 	return g, nil
@@ -96,14 +106,19 @@ func TestGroupLifecycleAndMembership(t *testing.T) {
 	assert.False(t, existed)
 	assert.Equal(t, "Engineers", g.DisplayName)
 
-	// Idempotent create by displayName.
-	g2, existed2, err := p.CreateGroup(ctx, org, Group{DisplayName: "Engineers"})
+	// Idempotent create by externalId (same correlation key → same group).
+	g2, existed2, err := p.CreateGroup(ctx, org, Group{DisplayName: "Engineers", ExternalID: "ext-1"})
 	require.NoError(t, err)
 	assert.True(t, existed2)
 	assert.Equal(t, g.ID, g2.ID)
 
+	// A create clashing on displayName with no matching externalId is a
+	// uniqueness conflict (RFC 7644 §3.3 → 409), not a silent idempotent 200.
+	_, _, err = p.CreateGroup(ctx, org, Group{DisplayName: "Engineers"})
+	assert.ErrorIs(t, err, ErrGroupConflict)
+
 	// Add u1, u2 (org members) AND intruder (org-b member — must be rejected).
-	_, err = p.PatchGroup(ctx, org, g.ID, nil, []MemberOp{
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{
 		{Op: "add", Members: []string{"u1", "u2", "intruder"}},
 	})
 	require.NoError(t, err)
@@ -114,26 +129,41 @@ func TestGroupLifecycleAndMembership(t *testing.T) {
 	assert.NotContains(t, members, "intruder")
 
 	// Idempotent add (u1 again) — no duplicate, no error.
-	_, err = p.PatchGroup(ctx, org, g.ID, nil, []MemberOp{{Op: "add", Members: []string{"u1"}}})
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "add", Members: []string{"u1"}}})
 	require.NoError(t, err)
 	members, _ = p.GroupMembers(ctx, org, g.ID)
 	assert.ElementsMatch(t, []string{"u1", "u2"}, members)
 
 	// Remove u1 (Entra value-shape already normalised to MemberOp by the parser).
-	_, err = p.PatchGroup(ctx, org, g.ID, nil, []MemberOp{{Op: "remove", Members: []string{"u1"}}})
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "remove", Members: []string{"u1"}}})
 	require.NoError(t, err)
 	members, _ = p.GroupMembers(ctx, org, g.ID)
 	assert.ElementsMatch(t, []string{"u2"}, members)
 
 	// Replace whole set → exactly {u1}.
-	_, err = p.PatchGroup(ctx, org, g.ID, nil, []MemberOp{{Op: "replace", Members: []string{"u1"}}})
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "replace", Members: []string{"u1"}}})
 	require.NoError(t, err)
 	members, _ = p.GroupMembers(ctx, org, g.ID)
 	assert.ElementsMatch(t, []string{"u1"}, members)
 
+	// Clear ALL members via an unfiltered remove (deprovisioning) — must empty
+	// the group, not no-op.
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "remove", ClearAll: true}})
+	require.NoError(t, err)
+	members, _ = p.GroupMembers(ctx, org, g.ID)
+	assert.Empty(t, members, "unfiltered remove must clear every member")
+
+	// Re-add u1, u2 then clear via replace with an empty set → also empties.
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "add", Members: []string{"u1", "u2"}}})
+	require.NoError(t, err)
+	_, err = p.PatchGroup(ctx, org, g.ID, nil, nil, []MemberOp{{Op: "replace", Members: nil}})
+	require.NoError(t, err)
+	members, _ = p.GroupMembers(ctx, org, g.ID)
+	assert.Empty(t, members, "replace with an empty set must clear every member")
+
 	// Rename via PATCH displayName.
 	newName := "Platform"
-	_, err = p.PatchGroup(ctx, org, g.ID, &newName, nil)
+	_, err = p.PatchGroup(ctx, org, g.ID, &newName, nil, nil)
 	require.NoError(t, err)
 	got, err := p.GetGroup(ctx, org, g.ID)
 	require.NoError(t, err)
@@ -155,7 +185,7 @@ func TestGroupOrgIsolation(t *testing.T) {
 	_, err = p.GetGroup(ctx, "org-b", g.ID)
 	assert.ErrorIs(t, err, ErrNotFound, "a cross-org group id must 404, not leak")
 
-	_, err = p.PatchGroup(ctx, "org-b", g.ID, nil, []MemberOp{{Op: "add", Members: []string{"x"}}})
+	_, err = p.PatchGroup(ctx, "org-b", g.ID, nil, nil, []MemberOp{{Op: "add", Members: []string{"x"}}})
 	assert.ErrorIs(t, err, ErrNotFound)
 }
 

@@ -85,7 +85,7 @@ func (f *fakeService) ReplaceGroup(_ context.Context, orgID, groupID string, _ s
 	f.lastOrg, f.lastGroup = orgID, groupID
 	return f.createdGroup, f.groupErr
 }
-func (f *fakeService) PatchGroup(_ context.Context, orgID, groupID string, _ *string, _ []svcscim.MemberOp) (*schemas.ScimGroup, error) {
+func (f *fakeService) PatchGroup(_ context.Context, orgID, groupID string, _, _ *string, _ []svcscim.MemberOp) (*schemas.ScimGroup, error) {
 	f.lastOrg, f.lastGroup = orgID, groupID
 	return f.createdGroup, f.groupErr
 }

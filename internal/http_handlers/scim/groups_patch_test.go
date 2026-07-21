@@ -14,11 +14,13 @@ import (
 // and Entra only ever write membership via PATCH on the group's `members`.
 func TestParseGroupPatch(t *testing.T) {
 	tests := []struct {
-		name         string
-		body         string
-		wantDisplay  *string
-		wantOps      []MemberOpJSON
-		wantParsedOK bool
+		name            string
+		body            string
+		wantDisplay     *string
+		wantExternalID  *string
+		wantOps         []MemberOpJSON
+		wantInvalidPath bool
+		wantParsedOK    bool
 	}{
 		{
 			name:         "RFC/Okta add — path members, value [{value}]",
@@ -87,6 +89,34 @@ func TestParseGroupPatch(t *testing.T) {
 			wantParsedOK: true,
 		},
 		{
+			// The exact deprovisioning op an IdP sends to empty a group: replace
+			// members with an empty array. Must become an explicit clear, not a
+			// silent no-op (the HIGH bug).
+			name:         "clear members — replace with empty array",
+			body:         `{"Operations":[{"op":"replace","path":"members","value":[]}]}`,
+			wantOps:      []MemberOpJSON{{Op: "replace", ClearAll: true}},
+			wantParsedOK: true,
+		},
+		{
+			// The other RFC-valid full clear: remove members with no filter/value.
+			name:         "clear members — remove with no filter",
+			body:         `{"Operations":[{"op":"remove","path":"members"}]}`,
+			wantOps:      []MemberOpJSON{{Op: "remove", ClearAll: true}},
+			wantParsedOK: true,
+		},
+		{
+			name:           "externalId replace with path",
+			body:           `{"Operations":[{"op":"replace","path":"externalId","value":"ext-9"}]}`,
+			wantExternalID: strptr("ext-9"),
+			wantParsedOK:   true,
+		},
+		{
+			name:            "unsupported path -> invalidPath",
+			body:            `{"Operations":[{"op":"replace","path":"emails","value":"x@y.com"}]}`,
+			wantInvalidPath: true,
+			wantParsedOK:    true,
+		},
+		{
 			name:         "malformed JSON fails to parse",
 			body:         `{not json`,
 			wantParsedOK: false,
@@ -95,18 +125,25 @@ func TestParseGroupPatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			display, ops, ok := parseGroupPatch(strings.NewReader(tt.body))
+			patch, ok := parseGroupPatch(strings.NewReader(tt.body))
 			require.Equal(t, tt.wantParsedOK, ok)
 			if !tt.wantParsedOK {
 				return
 			}
 			if tt.wantDisplay == nil {
-				assert.Nil(t, display)
+				assert.Nil(t, patch.DisplayName)
 			} else {
-				require.NotNil(t, display)
-				assert.Equal(t, *tt.wantDisplay, *display)
+				require.NotNil(t, patch.DisplayName)
+				assert.Equal(t, *tt.wantDisplay, *patch.DisplayName)
 			}
-			assert.Equal(t, tt.wantOps, ops)
+			if tt.wantExternalID == nil {
+				assert.Nil(t, patch.ExternalID)
+			} else {
+				require.NotNil(t, patch.ExternalID)
+				assert.Equal(t, *tt.wantExternalID, *patch.ExternalID)
+			}
+			assert.Equal(t, tt.wantInvalidPath, patch.InvalidPath)
+			assert.Equal(t, tt.wantOps, patch.Ops)
 		})
 	}
 }

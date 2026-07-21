@@ -127,6 +127,8 @@ func mapServiceError(c *gin.Context, err error) {
 		writeError(c, http.StatusNotFound, "", "resource not found")
 	case errors.Is(err, svcscim.ErrConflict):
 		writeError(c, http.StatusConflict, "uniqueness", "userName already exists")
+	case errors.Is(err, svcscim.ErrGroupConflict):
+		writeError(c, http.StatusConflict, "uniqueness", "a group with this displayName already exists")
 	case errors.Is(err, svcscim.ErrInvalid):
 		writeError(c, http.StatusBadRequest, "invalidValue", "invalid request")
 	case errors.Is(err, svcscim.ErrUnauthorized):

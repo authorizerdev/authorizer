@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -51,6 +52,15 @@ func toGroupResource(orgID string, g *schemas.ScimGroup, memberIDs []string) sci
 		Members:     []scimGroupMember{},
 		Meta:        scimMeta{ResourceType: "Group"},
 	}
+	// created/lastModified are RFC 7643 §3.1 returned:"default" attributes and are
+	// carried on the stored row — surface them (location is set by the caller,
+	// which holds the request context).
+	if g.CreatedAt > 0 {
+		res.Meta.Created = time.Unix(g.CreatedAt, 0).UTC().Format(time.RFC3339)
+	}
+	if g.UpdatedAt > 0 {
+		res.Meta.LastModified = time.Unix(g.UpdatedAt, 0).UTC().Format(time.RFC3339)
+	}
 	if g.ExternalID != nil {
 		res.ExternalID = strings.TrimPrefix(refs.StringValue(g.ExternalID), orgID+":")
 	}
@@ -58,6 +68,21 @@ func toGroupResource(orgID string, g *schemas.ScimGroup, memberIDs []string) sci
 		res.Members = append(res.Members, scimGroupMember{Value: uid, Ref: "../Users/" + uid, Type: "User"})
 	}
 	return res
+}
+
+// groupLocation builds the absolute SCIM location URI for a group, best-effort
+// from the request (scheme+host, /scim/v2 mount). Returns "" when the host is
+// unknown, in which case meta.location is omitted.
+func groupLocation(c *gin.Context, id string) string {
+	host := c.Request.Host
+	if host == "" {
+		return ""
+	}
+	scheme := "http"
+	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+		scheme = "https"
+	}
+	return scheme + "://" + host + "/scim/v2/Groups/" + id
 }
 
 // parseGroup decodes a SCIM Group create/replace body into the service input.
@@ -105,7 +130,9 @@ func (h *Handler) getGroup(c *gin.Context) {
 }
 
 // listGroups supports only the `displayName eq "..."` filter (the IdP dedup
-// probe), mirroring listUsers. An unfiltered list returns an empty set.
+// probe), mirroring listUsers. An unfiltered list returns an empty set; a filter
+// the parser does not recognize is a 400 invalidFilter (never an empty 200,
+// which a connector reads as "no such group" and then duplicates).
 func (h *Handler) listGroups(c *gin.Context) {
 	orgID := h.orgID(c)
 	resp := scimGroupListResponse{
@@ -113,10 +140,17 @@ func (h *Handler) listGroups(c *gin.Context) {
 		StartIndex: 1,
 		Resources:  []scimGroupResource{},
 	}
-	if displayName, ok := parseDisplayNameEq(c.Query("filter")); ok {
+	if filter := strings.TrimSpace(c.Query("filter")); filter != "" {
+		displayName, ok := parseDisplayNameEq(filter)
+		if !ok {
+			writeError(c, http.StatusBadRequest, "invalidFilter", "unsupported filter; only displayName eq is supported")
+			return
+		}
 		if group, err := h.Service.FindGroupByDisplayName(c.Request.Context(), orgID, displayName); err == nil && group != nil {
 			members, _ := h.Service.GroupMembers(c.Request.Context(), orgID, group.ID)
-			resp.Resources = append(resp.Resources, toGroupResource(orgID, group, members))
+			res := toGroupResource(orgID, group, members)
+			res.Meta.Location = groupLocation(c, group.ID)
+			resp.Resources = append(resp.Resources, res)
 		}
 	}
 	resp.TotalResults = len(resp.Resources)
@@ -140,12 +174,18 @@ func (h *Handler) replaceGroup(c *gin.Context) {
 }
 
 func (h *Handler) patchGroup(c *gin.Context) {
-	displayName, ops, ok := parseGroupPatch(c.Request.Body)
+	patch, ok := parseGroupPatch(c.Request.Body)
 	if !ok {
-		writeError(c, http.StatusBadRequest, "invalidValue", "invalid PatchOp body")
+		writeError(c, http.StatusBadRequest, "invalidSyntax", "invalid PatchOp body")
 		return
 	}
-	group, err := h.Service.PatchGroup(c.Request.Context(), h.orgID(c), c.Param("id"), displayName, ops)
+	if patch.InvalidPath {
+		// RFC 7644 §3.5.2: an op targeting an unsupported path is a 400/invalidPath,
+		// not a silent no-op 200.
+		writeError(c, http.StatusBadRequest, "invalidPath", "unsupported PATCH path")
+		return
+	}
+	group, err := h.Service.PatchGroup(c.Request.Context(), h.orgID(c), c.Param("id"), patch.DisplayName, patch.ExternalID, patch.Ops)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -163,8 +203,10 @@ func (h *Handler) deleteGroup(c *gin.Context) {
 
 func (h *Handler) writeGroup(c *gin.Context, status int, orgID string, group *schemas.ScimGroup) {
 	members, _ := h.Service.GroupMembers(c.Request.Context(), orgID, group.ID)
+	res := toGroupResource(orgID, group, members)
+	res.Meta.Location = groupLocation(c, group.ID)
 	c.Header("Content-Type", contentType)
-	c.JSON(status, toGroupResource(orgID, group, members))
+	c.JSON(status, res)
 }
 
 // parseDisplayNameEq extracts X from `displayName eq "X"` (case-insensitive op).
@@ -175,11 +217,33 @@ func parseDisplayNameEq(filter string) (string, bool) {
 	if !strings.HasPrefix(lower, prefix) {
 		return "", false
 	}
-	val := strings.Trim(strings.TrimSpace(f[len(prefix):]), `"`)
+	val := unquoteFilterValue(f[len(prefix):])
 	if val == "" {
 		return "", false
 	}
 	return val, true
+}
+
+// unquoteFilterValue strips exactly ONE enclosing pair of double quotes from a
+// SCIM filter comparison value and unescapes \" and \\ inside it (RFC 7644
+// §3.4.2.2 values are JSON strings). Unlike strings.Trim(v, `"`) it does not
+// strip repeated quotes, and it honours an escaped quote within the value. A
+// value with no enclosing quote pair is returned trimmed, as-is.
+func unquoteFilterValue(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
+		return s
+	}
+	inner := s[1 : len(s)-1]
+	var b strings.Builder
+	b.Grow(len(inner))
+	for i := 0; i < len(inner); i++ {
+		if inner[i] == '\\' && i+1 < len(inner) {
+			i++
+		}
+		b.WriteByte(inner[i])
+	}
+	return b.String()
 }
 
 // parseGroupPatch parses a SCIM Group PatchOp (RFC 7644 §3.5.2) into an optional
@@ -194,7 +258,7 @@ func parseDisplayNameEq(filter string) (string, bool) {
 //     the member is encoded in the filtered path.
 //   - no-path form: {"op":"add","value":{"members":[{"value":"x"}]}} / displayName.
 //   - member values may be [{"value":"x"}] objects or bare ["x"] strings.
-func parseGroupPatch(r io.Reader) (displayName *string, ops []MemberOpJSON, ok bool) {
+func parseGroupPatch(r io.Reader) (groupPatch, bool) {
 	body := struct {
 		Operations []struct {
 			Op    string          `json:"op"`
@@ -203,8 +267,9 @@ func parseGroupPatch(r io.Reader) (displayName *string, ops []MemberOpJSON, ok b
 		} `json:"Operations"`
 	}{}
 	if err := json.NewDecoder(r).Decode(&body); err != nil {
-		return nil, nil, false
+		return groupPatch{}, false
 	}
+	var out groupPatch
 	for _, raw := range body.Operations {
 		op := strings.ToLower(strings.TrimSpace(raw.Op))
 		if op != "add" && op != "remove" && op != "replace" {
@@ -216,20 +281,29 @@ func parseGroupPatch(r io.Reader) (displayName *string, ops []MemberOpJSON, ok b
 		case strings.HasPrefix(lpath, "members["):
 			// RFC/Okta filtered path: the member id is inside [value eq "x"].
 			if val := extractFilterValue(path); val != "" {
-				ops = append(ops, MemberOpJSON{Op: op, Members: []string{val}})
+				out.Ops = append(out.Ops, MemberOpJSON{Op: op, Members: []string{val}})
 			}
 		case lpath == "members":
 			// Entra remove (member in value) and add/replace all land here.
 			if members := parseMemberValues(raw.Value); len(members) > 0 {
-				ops = append(ops, MemberOpJSON{Op: op, Members: members})
+				out.Ops = append(out.Ops, MemberOpJSON{Op: op, Members: members})
+			} else if op == "remove" || op == "replace" {
+				// "members" present with an empty/absent value is a full clear
+				// (RFC 7644 §3.5.2 — the deprovisioning shape). Distinct from
+				// "members" simply not appearing in the patch (nothing emitted).
+				out.Ops = append(out.Ops, MemberOpJSON{Op: op, ClearAll: true})
 			}
 		case lpath == "displayname":
 			if dn, dok := parseStringValue(raw.Value); dok {
-				displayName = &dn
+				out.DisplayName = &dn
+			}
+		case lpath == "externalid":
+			if ext, eok := parseStringValue(raw.Value); eok {
+				out.ExternalID = &ext
 			}
 		case lpath == "":
 			// No path: value is an attribute map, e.g.
-			// {"members":[...], "displayName":"..."}.
+			// {"members":[...], "displayName":"...", "externalId":"..."}.
 			m := map[string]json.RawMessage{}
 			if err := json.Unmarshal(raw.Value, &m); err != nil {
 				continue
@@ -238,17 +312,37 @@ func parseGroupPatch(r io.Reader) (displayName *string, ops []MemberOpJSON, ok b
 				switch strings.ToLower(strings.TrimSpace(k)) {
 				case "members":
 					if members := parseMemberValues(v); len(members) > 0 {
-						ops = append(ops, MemberOpJSON{Op: op, Members: members})
+						out.Ops = append(out.Ops, MemberOpJSON{Op: op, Members: members})
+					} else if op == "remove" || op == "replace" {
+						out.Ops = append(out.Ops, MemberOpJSON{Op: op, ClearAll: true})
 					}
 				case "displayname":
 					if dn, dok := parseStringValue(v); dok {
-						displayName = &dn
+						out.DisplayName = &dn
+					}
+				case "externalid":
+					if ext, eok := parseStringValue(v); eok {
+						out.ExternalID = &ext
 					}
 				}
 			}
+		default:
+			// A recognized op targeting a path this server does not support
+			// (e.g. "emails", "name.givenName") → RFC 7644 §3.5.2 invalidPath.
+			out.InvalidPath = true
 		}
 	}
-	return displayName, ops, true
+	return out, true
+}
+
+// groupPatch is the parsed result of a SCIM Group PatchOp body: optional
+// displayName / externalId changes plus the member ops. InvalidPath flags an op
+// that targeted an unsupported path so the handler can return 400/invalidPath.
+type groupPatch struct {
+	DisplayName *string
+	ExternalID  *string
+	Ops         []MemberOpJSON
+	InvalidPath bool
 }
 
 // MemberOpJSON is the transport twin of svcscim.MemberOp. Kept in the handler so

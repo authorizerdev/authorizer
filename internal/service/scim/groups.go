@@ -24,6 +24,13 @@ type Group struct {
 type MemberOp struct {
 	Op      string // "add" | "remove" | "replace"
 	Members []string
+	// ClearAll marks an unfiltered full-membership clear: a `remove` op whose
+	// `members` key is present with an empty/absent value (RFC 7644 §3.5.2 — the
+	// deprovisioning shape an IdP sends to empty a group). Without this flag such
+	// an op carries no member ids and would be a silent no-op. (A `replace` with
+	// an empty set already clears via replaceMembers, so ClearAll is only read on
+	// `remove`.)
+	ClearAll bool
 }
 
 // groupMemberRelation is the FGA relation binding a user (or nested group) to a
@@ -52,7 +59,24 @@ func (p *provider) requireGroup(ctx context.Context, orgID, groupID string) (*sc
 	return group, nil
 }
 
-// CreateGroup provisions a group into the org (idempotent by displayName/externalId).
+// ensureDisplayNameFree returns ErrGroupConflict when another group in the org
+// (id != exceptID) already uses displayName. This is the create/rename
+// uniqueness gate — displayName uniqueness within an org is service-enforced,
+// not a DB constraint, so it MUST be checked on every path that sets a name
+// (create AND rename), or two rows could share a name and the LIMIT 1 dedup
+// lookup would then resolve arbitrarily. Pass exceptID="" on create.
+func (p *provider) ensureDisplayNameFree(ctx context.Context, orgID, displayName, exceptID string) error {
+	if existing, err := p.StorageProvider.GetScimGroupByOrgAndDisplayName(ctx, orgID, displayName); err == nil && existing != nil && existing.ID != exceptID {
+		return ErrGroupConflict
+	}
+	return nil
+}
+
+// CreateGroup provisions a group into the org. externalId is the preferred
+// correlation key: a repeat carrying an externalId that already identifies a
+// group is idempotent (adopts a rename, syncs members, existed=true). A create
+// that instead clashes on displayName with no matching externalId is a
+// uniqueness conflict (ErrGroupConflict → 409), never a silent 200.
 func (p *provider) CreateGroup(ctx context.Context, orgID string, in Group) (*schemas.ScimGroup, bool, error) {
 	log := p.Log.With().Str("func", "scim.CreateGroup").Str("org_id", orgID).Logger()
 	if p.AuthzEngine == nil {
@@ -63,13 +87,37 @@ func (p *provider) CreateGroup(ctx context.Context, orgID string, in Group) (*sc
 		return nil, false, ErrInvalid
 	}
 
-	// Dedup: same displayName already provisioned into this org → idempotent.
-	if existing, err := p.StorageProvider.GetScimGroupByOrgAndDisplayName(ctx, orgID, displayName); err == nil && existing != nil {
-		log.Debug().Msg("dedup by displayName within org")
-		if err := p.syncMembers(ctx, orgID, existing.ID, in.Members, nil); err != nil {
-			return nil, false, err
+	// Dedup #1 (correlation key): the same externalId already identifies a group
+	// in this org → the same logical group. Idempotent: adopt a rename from the
+	// IdP and sync members, rather than creating a duplicate row.
+	if in.ExternalID != "" {
+		if existing, err := p.StorageProvider.GetScimGroupByOrgAndExternalID(ctx, orgID, in.ExternalID); err == nil && existing != nil {
+			log.Debug().Msg("dedup by external_id within org")
+			if displayName != existing.DisplayName {
+				if err := p.ensureDisplayNameFree(ctx, orgID, displayName, existing.ID); err != nil {
+					return nil, false, err
+				}
+				existing.DisplayName = displayName
+				existing.UpdatedAt = time.Now().Unix()
+				updated, uErr := p.StorageProvider.UpdateScimGroup(ctx, existing)
+				if uErr != nil {
+					return nil, false, uErr
+				}
+				existing = updated
+			}
+			if err := p.syncMembers(ctx, orgID, existing.ID, in.Members, nil); err != nil {
+				return nil, false, err
+			}
+			return existing, true, nil
 		}
-		return existing, true, nil
+	}
+
+	// Dedup #2 (uniqueness): a group with this displayName already exists in the
+	// org and no externalId matched it → RFC 7644 §3.3 uniqueness conflict (409),
+	// not a silent idempotent 200.
+	if existing, err := p.StorageProvider.GetScimGroupByOrgAndDisplayName(ctx, orgID, displayName); err == nil && existing != nil {
+		log.Debug().Msg("displayName already exists in org")
+		return nil, false, ErrGroupConflict
 	}
 
 	now := time.Now().Unix()
@@ -118,8 +166,25 @@ func (p *provider) ReplaceGroup(ctx context.Context, orgID, groupID string, in G
 	if err != nil {
 		return nil, err
 	}
+	changed := false
 	if dn := strings.TrimSpace(in.DisplayName); dn != "" && dn != group.DisplayName {
+		if err := p.ensureDisplayNameFree(ctx, orgID, dn, group.ID); err != nil {
+			return nil, err
+		}
 		group.DisplayName = dn
+		changed = true
+	}
+	// externalId is an updatable correlation key. Only set it when the payload
+	// carries one — an absent externalId on PUT does not clear a stored value
+	// (many connectors omit it on updates).
+	if ext := strings.TrimSpace(in.ExternalID); ext != "" {
+		nsExt := namespacedExternalID(orgID, ext)
+		if group.ExternalID == nil || *group.ExternalID != nsExt {
+			group.ExternalID = &nsExt
+			changed = true
+		}
+	}
+	if changed {
 		group.UpdatedAt = time.Now().Unix()
 		if group, err = p.StorageProvider.UpdateScimGroup(ctx, group); err != nil {
 			return nil, err
@@ -132,7 +197,7 @@ func (p *provider) ReplaceGroup(ctx context.Context, orgID, groupID string, in G
 	return group, nil
 }
 
-func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displayName *string, ops []MemberOp) (*schemas.ScimGroup, error) {
+func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displayName, externalID *string, ops []MemberOp) (*schemas.ScimGroup, error) {
 	if p.AuthzEngine == nil {
 		return nil, ErrGroupsUnavailable
 	}
@@ -140,13 +205,29 @@ func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displa
 	if err != nil {
 		return nil, err
 	}
+	changed := false
 	if displayName != nil {
 		if dn := strings.TrimSpace(*displayName); dn != "" && dn != group.DisplayName {
-			group.DisplayName = dn
-			group.UpdatedAt = time.Now().Unix()
-			if group, err = p.StorageProvider.UpdateScimGroup(ctx, group); err != nil {
+			if err := p.ensureDisplayNameFree(ctx, orgID, dn, group.ID); err != nil {
 				return nil, err
 			}
+			group.DisplayName = dn
+			changed = true
+		}
+	}
+	if externalID != nil {
+		if ext := strings.TrimSpace(*externalID); ext != "" {
+			nsExt := namespacedExternalID(orgID, ext)
+			if group.ExternalID == nil || *group.ExternalID != nsExt {
+				group.ExternalID = &nsExt
+				changed = true
+			}
+		}
+	}
+	if changed {
+		group.UpdatedAt = time.Now().Unix()
+		if group, err = p.StorageProvider.UpdateScimGroup(ctx, group); err != nil {
+			return nil, err
 		}
 	}
 	for _, op := range ops {
@@ -156,11 +237,18 @@ func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displa
 				return nil, err
 			}
 		case "remove":
-			if err := p.syncMembers(ctx, orgID, groupID, nil, op.Members); err != nil {
+			if op.ClearAll {
+				// Unfiltered "remove members" empties the whole group — the exact
+				// deprovisioning op an IdP sends. Desired set is empty → remove all.
+				if err := p.replaceMembers(ctx, orgID, groupID, nil); err != nil {
+					return nil, err
+				}
+			} else if err := p.syncMembers(ctx, orgID, groupID, nil, op.Members); err != nil {
 				return nil, err
 			}
 		case "replace":
-			// replace on `members` sets membership to exactly this list.
+			// replace on `members` sets membership to exactly this list (an empty
+			// list clears every member — a legitimate full-clear, not a no-op).
 			if err := p.replaceMembers(ctx, orgID, groupID, op.Members); err != nil {
 				return nil, err
 			}

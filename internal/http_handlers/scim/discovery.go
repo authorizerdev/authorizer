@@ -73,6 +73,13 @@ func (h *Handler) schemas(c *gin.Context) {
 			"returned": "default", "uniqueness": "none",
 		}
 	}
+	immutableAttr := func(name, typ string) gin.H {
+		return gin.H{
+			"name": name, "type": typ, "required": false,
+			"multiValued": false, "mutability": "immutable",
+			"returned": "default", "uniqueness": "none",
+		}
+	}
 	userSchema := gin.H{
 		"schemas":     []string{schemaSchema},
 		"id":          schemaUser,
@@ -115,11 +122,12 @@ func (h *Handler) schemas(c *gin.Context) {
 				"name": "members", "type": "complex", "required": false,
 				"multiValued": true, "mutability": "readWrite",
 				"returned": "default", "uniqueness": "none",
+				// RFC 7643 §4.2: the members sub-attributes are immutable.
 				"subAttributes": []gin.H{
-					attr("value", "string", false),
-					attr("$ref", "reference", false),
-					attr("type", "string", false),
-					attr("display", "string", false),
+					immutableAttr("value", "string"),
+					immutableAttr("$ref", "reference"),
+					immutableAttr("type", "string"),
+					immutableAttr("display", "string"),
 				},
 			},
 		},
