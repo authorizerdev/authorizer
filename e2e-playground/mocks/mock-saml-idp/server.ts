@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const app = express();
+export const app = express();
 app.use(express.urlencoded({ extended: true }));
 
 // ponytail: mock IdP only ever builds its own responses (never validates
@@ -59,63 +59,75 @@ app.get('/metadata', (_req, res) => {
 // param — Authorizer never sends one, and the assertion's Audience must
 // match the SP's real entityID or the SP-side validation rejects it.
 app.get('/sso', async (req, res) => {
-  const relayState = String(req.query.RelayState || '');
-  const placeholderSp = samlify.ServiceProvider({ entityID: 'unused-during-parse' });
-  // samlify's own `RequestInfo` and `FlowResult` types aren't exported from
-  // the package, so the boundary between parseLoginRequest's return value
-  // and createLoginResponse's expected input is untyped here.
-  const requestInfo: any = await idp.parseLoginRequest(placeholderSp, 'redirect', { query: req.query });
-  const acsUrl = String((requestInfo.extract.request as { assertionConsumerServiceUrl?: string }).assertionConsumerServiceUrl);
-  const spEntityId = String(requestInfo.extract.issuer);
+  // ponytail: Express 4's async-handler rejections don't reach the default
+  // error handler (that's Express 5 only) and become unhandled promise
+  // rejections, which crash this long-lived shared process. Guard the whole
+  // body so a malformed SAMLRequest 400s instead of taking down every other
+  // in-flight SAML spec.
+  try {
+    const relayState = String(req.query.RelayState || '');
+    const placeholderSp = samlify.ServiceProvider({ entityID: 'unused-during-parse' });
+    // samlify's own `RequestInfo` and `FlowResult` types aren't exported from
+    // the package, so the boundary between parseLoginRequest's return value
+    // and createLoginResponse's expected input is untyped here.
+    const requestInfo: any = await idp.parseLoginRequest(placeholderSp, 'redirect', { query: req.query });
+    const acsUrl = String((requestInfo.extract.request as { assertionConsumerServiceUrl?: string }).assertionConsumerServiceUrl);
+    const spEntityId = String(requestInfo.extract.issuer);
 
-  const sp = samlify.ServiceProvider({
-    entityID: spEntityId,
-    assertionConsumerService: [{ Binding: samlify.Constants.namespace.binding.post, Location: acsUrl }],
-  });
+    const sp = samlify.ServiceProvider({
+      entityID: spEntityId,
+      assertionConsumerService: [{ Binding: samlify.Constants.namespace.binding.post, Location: acsUrl }],
+    });
 
-  // samlify's default (non-custom) response builder always renders an empty
-  // AttributeStatement — the `loginResponseTemplate.attributes` config above
-  // only takes effect when a customTagReplacement callback fills the baked
-  // `{attrX}` placeholders itself. We replicate the same tag values samlify
-  // computes internally (see samlify/build/src/binding-post.js) plus ours.
-  const customTagReplacement = (template: string) => {
-    const now = new Date();
-    const notOnOrAfter = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
-    const tvalue: Record<string, string | number | boolean | null | undefined> = {
-      ID: `_${crypto.randomUUID()}`,
-      AssertionID: `_${crypto.randomUUID()}`,
-      Destination: acsUrl,
-      Audience: spEntityId,
-      EntityID: spEntityId,
-      SubjectRecipient: acsUrl,
-      Issuer: IDP_ENTITY_ID,
-      IssueInstant: now.toISOString(),
-      AssertionConsumerServiceURL: acsUrl,
-      StatusCode: samlify.Constants.StatusCode.Success,
-      ConditionsNotBefore: now.toISOString(),
-      ConditionsNotOnOrAfter: notOnOrAfter,
-      SubjectConfirmationDataNotOnOrAfter: notOnOrAfter,
-      NameIDFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:emailAddress',
-      NameID: nextUser.email,
-      InResponseTo: (requestInfo.extract.request as { id?: string }).id ?? '',
-      AuthnStatement: '',
-      attrEmail: nextUser.email,
-      attrFirstName: nextUser.givenName,
-      attrLastName: nextUser.familyName,
+    // samlify's default (non-custom) response builder always renders an empty
+    // AttributeStatement — the `loginResponseTemplate.attributes` config above
+    // only takes effect when a customTagReplacement callback fills the baked
+    // `{attrX}` placeholders itself. We replicate the same tag values samlify
+    // computes internally (see samlify/build/src/binding-post.js) plus ours.
+    const customTagReplacement = (template: string) => {
+      const now = new Date();
+      const notOnOrAfter = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+      const tvalue: Record<string, string | number | boolean | null | undefined> = {
+        ID: `_${crypto.randomUUID()}`,
+        AssertionID: `_${crypto.randomUUID()}`,
+        Destination: acsUrl,
+        Audience: spEntityId,
+        EntityID: spEntityId,
+        SubjectRecipient: acsUrl,
+        Issuer: IDP_ENTITY_ID,
+        IssueInstant: now.toISOString(),
+        AssertionConsumerServiceURL: acsUrl,
+        StatusCode: samlify.Constants.StatusCode.Success,
+        ConditionsNotBefore: now.toISOString(),
+        ConditionsNotOnOrAfter: notOnOrAfter,
+        SubjectConfirmationDataNotOnOrAfter: notOnOrAfter,
+        NameIDFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:emailAddress',
+        NameID: nextUser.email,
+        InResponseTo: (requestInfo.extract.request as { id?: string }).id ?? '',
+        AuthnStatement: '',
+        attrEmail: nextUser.email,
+        attrFirstName: nextUser.givenName,
+        attrLastName: nextUser.familyName,
+      };
+      return { id: tvalue.ID as string, context: samlify.SamlLib.replaceTagsByValue(template, tvalue) };
     };
-    return { id: tvalue.ID as string, context: samlify.SamlLib.replaceTagsByValue(template, tvalue) };
-  };
 
-  const { context } = await idp.createLoginResponse(sp, requestInfo, 'post', nextUser, customTagReplacement);
+    const { context } = await idp.createLoginResponse(sp, requestInfo, 'post', nextUser, customTagReplacement);
 
-  res.send(`
-    <html><body onload="document.forms[0].submit()">
-      <form method="post" action="${acsUrl}">
-        <input type="hidden" name="SAMLResponse" value="${context}" />
-        <input type="hidden" name="RelayState" value="${relayState}" />
-      </form>
-    </body></html>
-  `);
+    res.send(`
+      <html><body onload="document.forms[0].submit()">
+        <form method="post" action="${acsUrl}">
+          <input type="hidden" name="SAMLResponse" value="${context}" />
+          <input type="hidden" name="RelayState" value="${relayState}" />
+        </form>
+      </body></html>
+    `);
+  } catch (err) {
+    console.error('mock-saml-idp /sso failed:', err);
+    res.sendStatus(400);
+  }
 });
 
-app.listen(4001, () => console.log('mock-saml-idp listening on :4001'));
+if (require.main === module) {
+  app.listen(4001, () => console.log('mock-saml-idp listening on :4001'));
+}
