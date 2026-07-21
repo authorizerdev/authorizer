@@ -361,6 +361,12 @@ type Provider interface {
 	// displayName in an org — the SCIM `displayName eq` filter and the create
 	// dedup probe. Returns an error when no matching row exists.
 	GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error)
+	// GetScimGroupByOrgAndExternalID resolves the single group with the given
+	// externalId in an org — the IdP correlation key that lets a renamed group
+	// (same externalId, new displayName) update in place instead of duplicating.
+	// externalID is the raw IdP value; the store namespaces it as "<orgID>:<raw>"
+	// exactly like GetUserByExternalID. Returns an error when no matching row exists.
+	GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error)
 	// UpdateScimGroup writes back a fully-loaded record (PUT displayName change).
 	// Callers MUST load-then-mutate — Save writes every column.
 	UpdateScimGroup(ctx context.Context, group *schemas.ScimGroup) (*schemas.ScimGroup, error)

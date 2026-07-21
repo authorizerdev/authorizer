@@ -29,7 +29,11 @@ func (p *provider) AddScimGroup(ctx context.Context, group *schemas.ScimGroup) (
 		return nil, err
 	}
 	group.Key = meta.Key
-	group.ID = meta.ID.String()
+	// ID is the portable bare identifier — matching every other provider's
+	// contract (ID == Key == bare uuid) and the _key GetScimGroupByID filters on.
+	// It is what URLs and FGA group-object ids are built from, so it must NOT be
+	// arango's full "collection/key" handle (meta.ID.String()).
+	group.ID = meta.Key
 	return group, nil
 }
 
@@ -52,7 +56,8 @@ func (p *provider) UpdateScimGroup(ctx context.Context, group *schemas.ScimGroup
 		return nil, err
 	}
 	group.Key = meta.Key
-	group.ID = meta.ID.String()
+	// Keep ID as the bare portable identifier (see AddScimGroup).
+	group.ID = meta.Key
 	return group, nil
 }
 
@@ -103,6 +108,37 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 	bindVars := map[string]interface{}{
 		"org_id":       orgID,
 		"display_name": displayName,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = cursor.Close() }()
+	for {
+		if !cursor.HasMore() {
+			if group == nil {
+				return nil, fmt.Errorf("scim group not found")
+			}
+			break
+		}
+		g := &schemas.ScimGroup{}
+		if _, err := readDocument(ctx, cursor, g); err != nil {
+			return nil, err
+		}
+		group = g
+	}
+	return group, nil
+}
+
+// GetScimGroupByOrgAndExternalID resolves the single group with the given
+// externalId within an org. externalId is stored org-namespaced ("<orgID>:<raw>")
+// exactly like User.ExternalID, so this can never resolve another org's group.
+func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
+	var group *schemas.ScimGroup
+	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id AND d.external_id == @external_id LIMIT 1 RETURN d", schemas.Collections.ScimGroup)
+	bindVars := map[string]interface{}{
+		"org_id":      orgID,
+		"external_id": orgID + ":" + externalID,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {

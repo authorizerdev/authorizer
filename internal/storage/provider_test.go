@@ -2002,10 +2002,12 @@ func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provide
 	})
 	require.NoError(t, err)
 	require.NotNil(t, created)
-	// Bare key is the universal by-id lookup key (arango returns ID as the full
-	// "collection/key" handle; every other provider sets Key == ID == uuid).
-	groupID := created.Key
+	// ID is the portable bare identifier used in URLs and FGA tuples — every
+	// provider (arango included, after the ID==Key==uuid fix) returns it as the
+	// bare uuid that GetScimGroupByID resolves. Use it directly, not created.Key.
+	groupID := created.ID
 	require.NotEmpty(t, groupID)
+	require.Equal(t, created.Key, created.ID, "ID must equal the bare document key on every provider")
 
 	byID, err := provider.GetScimGroupByID(ctx, groupID)
 	require.NoError(t, err)
@@ -2022,6 +2024,18 @@ func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provide
 	// Cross-org displayName lookup must NOT resolve this org's group.
 	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, "another-org", "Engineers")
 	assert.Error(t, err, "displayName lookup must be org-scoped")
+
+	// externalId lookup (the IdP correlation key) resolves the same row. The raw
+	// IdP value is passed; the store namespaces it as "<orgID>:<raw>" internally.
+	byExt, err := provider.GetScimGroupByOrgAndExternalID(ctx, orgID, "ext-grp-1")
+	require.NoError(t, err)
+	assert.Equal(t, byID.OrgID, byExt.OrgID)
+	assert.Equal(t, "Engineers", byExt.DisplayName)
+	assert.Equal(t, groupID, byExt.ID, "externalId lookup must return the bare portable id")
+
+	// Cross-org externalId lookup must NOT resolve this org's group.
+	_, err = provider.GetScimGroupByOrgAndExternalID(ctx, "another-org", "ext-grp-1")
+	assert.Error(t, err, "externalId lookup must be org-scoped")
 
 	// Rename (load-then-mutate) round-trips.
 	byID.DisplayName = "Platform"

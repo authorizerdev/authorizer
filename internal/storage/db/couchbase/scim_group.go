@@ -124,3 +124,30 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 	}
 	return group, nil
 }
+
+// GetScimGroupByOrgAndExternalID resolves the single group with the given
+// externalId within an org. externalId is stored org-namespaced ("<orgID>:<raw>")
+// exactly like User.ExternalID, so this can never resolve another org's group.
+func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
+	params := make(map[string]interface{}, 2)
+	params["org_id"] = orgID
+	params["external_id"] = orgID + ":" + externalID
+	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE org_id=$org_id AND external_id=$external_id LIMIT 1`, scimGroupColumns, p.scopeName, schemas.Collections.ScimGroup)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		NamedParameters: params,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var raw json.RawMessage
+	if err := q.One(&raw); err != nil {
+		return nil, err
+	}
+	group := &schemas.ScimGroup{}
+	if err := decodeDocument(raw, group); err != nil {
+		return nil, err
+	}
+	return group, nil
+}

@@ -87,3 +87,25 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 	}
 	return nil, errors.New("no document found")
 }
+
+// GetScimGroupByOrgAndExternalID resolves the single group with the given
+// externalId within an org. externalId is stored org-namespaced ("<orgID>:<raw>")
+// exactly like User.ExternalID. No GSI on external_id, so query the org_id GSI
+// and match in-app (an org's group set is small).
+func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
+	want := orgID + ":" + externalID
+	items, err := p.queryEqLimit(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, nil, groupScanCap)
+	if err != nil {
+		return nil, err
+	}
+	for _, it := range items {
+		var group schemas.ScimGroup
+		if err := unmarshalItem(it, &group); err != nil {
+			return nil, err
+		}
+		if group.ExternalID != nil && *group.ExternalID == want {
+			return &group, nil
+		}
+	}
+	return nil, errors.New("no document found")
+}
