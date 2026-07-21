@@ -40,7 +40,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -846,9 +845,10 @@ func (h *httpProvider) samlIDPFail(c *gin.Context, log *zerolog.Logger, slug, co
 
 func (h *httpProvider) auditSAMLIDPIssued(c *gin.Context, slug string, sp *schemas.SAMLServiceProvider, user *schemas.User, groups []string) {
 	metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
-	// Record the asserted group set so a later "why did this SP grant admin?"
-	// question is answerable. Count goes in the durable audit metadata; the full
-	// (org-scoped) set is logged at debug for forensics.
+	// Record the actual asserted group set (not just its count) in the durable
+	// audit metadata so a later "why did this SP grant admin?" question is
+	// answerable from the audit trail alone — the debug log is typically off in
+	// production. The set is already org-scoped by assertedGroupsForOrg.
 	if len(groups) > 0 {
 		h.Log.Debug().Str("org", slug).Str("sp", sp.EntityID).Str("user_id", user.ID).
 			Strs("asserted_groups", groups).Msg("saml idp: asserted group set")
@@ -860,7 +860,7 @@ func (h *httpProvider) auditSAMLIDPIssued(c *gin.Context, slug string, sp *schem
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   sp.ID,
-		Metadata:     slug + ":" + sp.EntityID + ":groups=" + strconv.Itoa(len(groups)),
+		Metadata:     slug + ":" + sp.EntityID + ":groups=[" + strings.Join(groups, ",") + "]",
 		IPAddress:    utils.GetIP(c.Request),
 		UserAgent:    utils.GetUserAgent(c.Request),
 	})
