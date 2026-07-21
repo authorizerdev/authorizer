@@ -249,6 +249,12 @@ type Config struct {
 	DefaultAuthorizeResponseMode string
 	// Default Authorize response type
 	DefaultAuthorizeResponseType string
+	// OAuth21Strict opts into OAuth 2.1 breaking restrictions (default false).
+	// When true the authorization endpoint rejects the implicit/hybrid-with-token
+	// response types (response_type=token and id_token token) and the PKCE
+	// "plain" code_challenge_method (S256 required). Off keeps all current
+	// behavior unchanged.
+	OAuth21Strict bool
 
 	// Twilio Configurations
 	// TwilioAPISecret is the API secret for Twilio

@@ -177,6 +177,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		var roles, scope []string
 		loginMethod := ""
 		sessionKey := ""
+		resource := ""       // RFC 8707 resource bound to the auth code; becomes the access token aud
 		oidcNonce := ""      // OIDC nonce from the original /authorize request
 		authTime := int64(0) // End-User's actual last authentication (OIDC Core §2 auth_time); 0 = unknown, CreateIDToken falls back to time.Now()
 
@@ -233,6 +234,28 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				}
 			}
 
+			// RFC 8707 resource binding: sessionDataSplit[4] holds the resource
+			// (url-escaped) the client bound at /authorize, empty when none was
+			// supplied. When bound, the token request MUST echo exactly one
+			// matching resource (same enforcement shape as the PKCE
+			// code_verifier and redirect_uri checks). When present it becomes
+			// the access token's `aud` (see CreateAuthToken / AuthTokenConfig).
+			// When unbound the request `resource` is ignored — clients that
+			// don't use resource indicators are unaffected.
+			if len(sessionDataSplit) > 4 {
+				resource, _ = url.QueryUnescape(sessionDataSplit[4])
+			}
+			if resource != "" {
+				requestResources := gc.PostFormArray("resource")
+				if len(requestResources) != 1 || strings.TrimSpace(requestResources[0]) != resource {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_grant",
+						"error_description": "The resource parameter does not match the authorization request",
+					})
+					return
+				}
+			}
+
 			// Parse code_challenge and method from stored state.
 			// Format: "challenge::method" or just "challenge" (legacy, defaults to plain per RFC 7636 §4.2)
 			// or empty string (no PKCE — confidential client).
@@ -241,6 +264,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if idx := strings.LastIndex(storedChallenge, "::"); idx >= 0 {
 				storedMethod = storedChallenge[idx+2:]
 				storedChallenge = storedChallenge[:idx]
+			}
+
+			// OAuth 2.1 strict mode: reject a "plain" PKCE code. /authorize
+			// already refuses to mint one under strict mode; this closes the
+			// window where the flag was flipped on between authorize and
+			// exchange for a code already in flight.
+			if h.Config.OAuth21Strict && storedChallenge != "" && storedMethod == "plain" {
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_challenge_method=plain is not allowed; use S256",
+				})
+				return
 			}
 
 			// RFC 7636 §4.5: If PKCE was used at /authorize, the token request
@@ -365,7 +400,27 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// HTTP 400, not 401.
 			claims, err := h.TokenProvider.ValidateRefreshToken(gc, refreshToken, resolvedClient.ClientID)
 			if err != nil {
-				log.Debug().Err(err).Msg("Error validating refresh token")
+				// OAuth 2.1 §6.1 / RFC 9700 §4.14.2 refresh-token reuse
+				// response: a genuine, already-rotated refresh token was
+				// replayed. Revoke the whole live session family for this
+				// user so the (possibly stolen) live tokens are killed too —
+				// not just a no-op invalid_grant. DeleteAllUserSessions with
+				// the bare user id matches every login-method-namespaced
+				// session key (substring match), mirroring the existing
+				// revocation call sites (reset_password, deactivate_account).
+				if errors.Is(err, token.ErrRefreshTokenReuse) {
+					if sub, _ := claims["sub"].(string); sub != "" {
+						if delErr := h.MemoryStoreProvider.DeleteAllUserSessions(sub); delErr != nil {
+							log.Debug().Err(delErr).Str("user_id", sub).Msg("Failed to revoke sessions on refresh token reuse")
+						}
+					}
+					metrics.RecordSecurityEvent("refresh_token_reuse", "token_endpoint")
+					log.Warn().Msg("refresh token reuse detected — revoked user session family")
+				} else {
+					log.Debug().Err(err).Msg("Error validating refresh token")
+				}
+				// Same opaque response either way — never reveal to the caller
+				// whether reuse was detected (no oracle).
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_grant",
 					"error_description": "The refresh token is invalid or has expired",
@@ -510,6 +565,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			HostName:    hostname,
 			AuthTime:    authTime,
 			ClientID:    resolvedClient.ClientID,
+			Resource:    resource,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")

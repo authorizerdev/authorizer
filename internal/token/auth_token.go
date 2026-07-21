@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,6 +21,16 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
+
+// ErrRefreshTokenReuse signals that a genuine, correctly-signed and
+// client-bound refresh token was presented but no live session record backs
+// it — i.e. it was already rotated away (or the session was logged out /
+// expired) and is now being replayed. OAuth 2.1 §6.1 / RFC 9700 §4.14.2 treat
+// this as a compromise signal: the caller MUST revoke the token family. It is
+// returned instead of a plain unauthorized so the token endpoint can trigger
+// that revocation. A malformed / foreign / wrong-type token yields a plain
+// unauthorized (no side effect) — only a genuine reuse trips this.
+var ErrRefreshTokenReuse = errors.New("refresh token reuse detected")
 
 // reservedClaims are security-critical JWT claims that custom scripts must not override.
 var reservedClaims = map[string]bool{
@@ -84,6 +95,15 @@ type AuthTokenConfig struct {
 	// to the same client (RFC 6749 §6). Empty is valid (client_credentials
 	// / machine paths that never mint a refresh token).
 	ClientID string
+	// Resource is the RFC 8707 resource indicator the client bound to the
+	// authorization request (the target MCP/API server). When non-empty it
+	// becomes the ACCESS token's `aud` claim so the token cannot be replayed
+	// at a different resource server (audience restriction). It intentionally
+	// does NOT change the id_token or refresh_token audience: the id_token
+	// audience is the client (OIDC), and the refresh_token audience is the
+	// client too (RFC 6749 §6 client binding). Empty preserves existing
+	// behavior — aud defaults to the requesting client / bootstrap client_id.
+	Resource string
 }
 
 // loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
@@ -246,6 +266,19 @@ func (p *provider) audience(cfg *AuthTokenConfig) string {
 	return p.config.ClientID
 }
 
+// accessTokenAudience returns the "aud" claim for an ACCESS token. When the
+// client supplied an RFC 8707 resource indicator it is the audience — the
+// token is bound to that resource server and is not replayable elsewhere.
+// Otherwise it falls back to audience() (the requesting client), so callers
+// that don't use resource indicators are unaffected. Only the access token
+// uses this; id_token / refresh_token audiences remain the client.
+func (p *provider) accessTokenAudience(cfg *AuthTokenConfig) string {
+	if cfg.Resource != "" {
+		return cfg.Resource
+	}
+	return p.audience(cfg)
+}
+
 // CreateRefreshToken util to create JWT token
 func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
 	// Lifetime is configurable via --refresh-token-expires-in (seconds).
@@ -301,7 +334,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
-		"aud":           p.audience(cfg),
+		"aud":           p.accessTokenAudience(cfg),
 		"nonce":         cfg.Nonce,
 		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
@@ -490,6 +523,22 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string, ex
 	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
 		p.dependencies.Log.Debug().Err(err).Msgf("invalid refresh token: %v, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
+		// Reuse detection (OAuth 2.1 §6.1 / RFC 9700 §4.14.2): ParseJWTToken
+		// above already verified this token's signature, so it is genuinely
+		// one we issued. If it carries a nonce and is a refresh token bound to
+		// the presenting client, yet no live session record backs the nonce,
+		// it was already rotated away and is being replayed — a compromise
+		// signal. Surface it distinctly so the token endpoint revokes the
+		// family. Anything else (missing nonce, wrong token_type, or a token
+		// bound to a different client) is an ordinary unauthorized with no
+		// side effect, so a forged/foreign token cannot force a revocation.
+		if nonce != "" {
+			tokenType, _ := res["token_type"].(string)
+			aud, _ := res["aud"].(string)
+			if tokenType == constants.TokenTypeRefreshToken && aud == expectedClientID {
+				return res, ErrRefreshTokenReuse
+			}
+		}
 		return res, fmt.Errorf(`unauthorized`)
 	}
 

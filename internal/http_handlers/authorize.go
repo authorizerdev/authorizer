@@ -95,6 +95,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		nonce := param("nonce")
 		screenHint := param("screen_hint")
 
+		// RFC 8707 resource indicator: optional. When present it binds the
+		// issued authorization code (and, at exchange time, the access token's
+		// `aud`) to the target resource server. RFC 8707 §2 permits multiple
+		// resource values, but this flow issues a single-audience access token
+		// (matching token_exchange.go), so exactly one is allowed — reject a
+		// repeated parameter rather than silently picking one.
+		resource := param("resource")
+
 		// OIDC Core §3.1.2.1 standard authorization request parameters.
 		loginHint := param("login_hint")
 		uiLocales := param("ui_locales")
@@ -175,6 +183,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
+		// RFC 8707: reject a repeated resource parameter (single audience only).
+		// redirect_uri is validated above, so redirectErrorToRP is safe here.
+		if vals := gc.Request.Form["resource"]; len(vals) > 1 {
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "only one resource parameter is supported")
+			return
+		}
+
 		// OIDCC-3.1.2.6 (JAR, RFC 9101): the server must either process a
 		// `request`/`request_uri` object or reject it with
 		// request_not_supported / request_uri_not_supported. We don't parse
@@ -221,6 +236,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// OAuth 2.1 strict mode: PKCE "plain" is removed — S256 only.
+		if h.Config.OAuth21Strict && codeChallengeMethod == "plain" && codeChallenge != "" {
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_request",
+				"error_description": "code_challenge_method=plain is not allowed; use S256",
+			})
+			return
+		}
 
 		canonical, ok := supportedResponseTypeSet(responseType)
 		if !ok {
@@ -258,6 +281,16 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if rawResponseMode == "" {
 				responseMode = constants.ResponseModeFragment
 			}
+		}
+
+		// OAuth 2.1 strict mode: the implicit grant is removed. Reject the
+		// response types that return an access token directly from the
+		// authorization endpoint (response_type=token and id_token token).
+		// Pure id_token and the code-based hybrids are left untouched — only
+		// the access-token-in-the-fragment cases are dropped.
+		if h.Config.OAuth21Strict && (responseType == constants.ResponseTypeToken || responseType == "id_token token") {
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "unsupported_response_type", "response_type="+responseType+" is not supported")
+			return
 		}
 
 		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, state); errCode != "" {
@@ -332,7 +365,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if codeChallenge != "" {
 				challengeData = codeChallenge + "::" + codeChallengeMethod
 			}
-			if err := h.MemoryStoreProvider.SetState(state, code+"@@"+challengeData+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)); err != nil {
+			// [4] carries the RFC 8707 resource (url-escaped, empty when absent)
+			// so the login/signup/session/auth_response services can rebind it
+			// to the code state they persist after a fresh login.
+			if err := h.MemoryStoreProvider.SetState(state, code+"@@"+challengeData+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)+"@@"+url.QueryEscape(resource)); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
@@ -715,7 +751,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if codeChallenge != "" {
 				codeChallengeData = codeChallenge + "::" + codeChallengeMethod
 			}
-			if err := h.MemoryStoreProvider.SetState(code, codeChallengeData+"@@"+newSessionToken+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)); err != nil {
+			// [4] binds the RFC 8707 resource to the code (url-escaped, empty
+			// when absent); the token endpoint enforces the echoed resource
+			// matches this and sets the access token `aud` to it.
+			if err := h.MemoryStoreProvider.SetState(code, codeChallengeData+"@@"+newSessionToken+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)+"@@"+url.QueryEscape(resource)); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
