@@ -309,6 +309,16 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// ScimGroup collection and indexes. org_id + display_name is the create dedup
+	// and displayName-eq filter lookup; not unique (service enforces uniqueness).
+	_ = mongodb.CreateCollection(ctx, schemas.Collections.ScimGroup, options.CreateCollection())
+	scimGroupCollection := mongodb.Collection(schemas.Collections.ScimGroup, options.Collection())
+	_, _ = scimGroupCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "display_name", Value: 1}},
+		},
+	}, options.CreateIndexes())
+
 	// OrgDomain collection and indexes. Uniqueness is enforced by _id being the
 	// normalized domain (no unique index needed); org_id is indexed for listing.
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.OrgDomain, options.CreateCollection())

@@ -350,6 +350,23 @@ type Provider interface {
 	// DeleteScimEndpoint removes an endpoint.
 	DeleteScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) error
 
+	// ScimGroup methods (per-org SCIM 2.0 Group metadata; membership lives in FGA).
+
+	// AddScimGroup creates a new SCIM group. DisplayName uniqueness within an org
+	// is enforced by the caller (service layer), not the DB.
+	AddScimGroup(ctx context.Context, group *schemas.ScimGroup) (*schemas.ScimGroup, error)
+	// GetScimGroupByID fetches a group by primary key.
+	GetScimGroupByID(ctx context.Context, id string) (*schemas.ScimGroup, error)
+	// GetScimGroupByOrgAndDisplayName resolves the single group with the given
+	// displayName in an org — the SCIM `displayName eq` filter and the create
+	// dedup probe. Returns an error when no matching row exists.
+	GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error)
+	// UpdateScimGroup writes back a fully-loaded record (PUT displayName change).
+	// Callers MUST load-then-mutate — Save writes every column.
+	UpdateScimGroup(ctx context.Context, group *schemas.ScimGroup) (*schemas.ScimGroup, error)
+	// DeleteScimGroup removes a group.
+	DeleteScimGroup(ctx context.Context, group *schemas.ScimGroup) error
+
 	// OrgDomain methods (verified domain → org mapping for home-realm discovery).
 
 	// AddOrgDomain atomically inserts a verified domain row, keyed by the

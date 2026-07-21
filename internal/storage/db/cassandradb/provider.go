@@ -575,6 +575,18 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	// GetScimEndpointByOrgID and the uniqueness guard) to become queryable.
 	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.ScimEndpoint, "org_id", 30*time.Second)
 
+	// ScimGroup table and index. Membership is NOT stored here (it lives in FGA);
+	// org_id indexes the displayName-eq lookup (org_id + display_name ALLOW FILTERING).
+	scimGroupCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, display_name text, external_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.ScimGroup)
+	if err = session.Query(scimGroupCollectionQuery).Exec(); err != nil {
+		return nil, err
+	}
+	scimGroupOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_scim_group_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.ScimGroup)
+	if err = session.Query(scimGroupOrgIndex).Exec(); err != nil {
+		return nil, err
+	}
+	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.ScimGroup, "org_id", 30*time.Second)
+
 	// OrgDomain table and index. The normalized domain is the partition key, so
 	// INSERT ... IF NOT EXISTS enforces first-writer-wins atomically (LWT).
 	orgDomainCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, domain text, verified_at bigint, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgDomain)
