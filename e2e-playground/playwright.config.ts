@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: '.',
+  testIgnore: ['**/node_modules/**', '**/mocks/**'],
   timeout: 30_000,
   retries: 0,
   reporter: [['html', { outputFolder: 'playwright-report', open: 'never' }]],
@@ -14,7 +15,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mfa-off',
-      testIgnore: /mfa-routing-matrix\.spec\.ts/,
+      testIgnore: [/mfa-routing-matrix\.spec\.ts/, '**/mocks/**', '**/node_modules/**'],
       use: { ...devices['Desktop Chrome'] },
     },
     {

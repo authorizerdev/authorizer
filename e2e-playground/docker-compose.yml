@@ -1,0 +1,80 @@
+# e2e-playground/docker-compose.yml
+services:
+  authorizer:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command:
+      - "--http-port=8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--allowed-origins=http://localhost:8080"
+      - "--google-client-id=mock-client-id"
+      - "--google-client-secret=mock-client-secret"
+      - "--github-client-id=mock-client-id"
+      - "--github-client-secret=mock-client-secret"
+      - "--facebook-client-id=mock-client-id"
+      - "--facebook-client-secret=mock-client-secret"
+      - "--linkedin-client-id=mock-client-id"
+      - "--linkedin-client-secret=mock-client-secret"
+      - "--apple-client-id=mock-client-id"
+      - "--apple-client-secret=mock-client-secret"
+      - "--twitter-client-id=mock-client-id"
+      - "--twitter-client-secret=mock-client-secret"
+      - "--discord-client-id=mock-client-id"
+      - "--discord-client-secret=mock-client-secret"
+      - "--microsoft-client-id=mock-client-id"
+      - "--microsoft-client-secret=mock-client-secret"
+      - "--twitch-client-id=mock-client-id"
+      - "--twitch-client-secret=mock-client-secret"
+      - "--roblox-client-id=mock-client-id"
+      - "--roblox-client-secret=mock-client-secret"
+      - "--test-oauth-google-base-url=http://mock-oauth:4000/google"
+      - "--test-oauth-github-base-url=http://mock-oauth:4000/github"
+      - "--test-oauth-facebook-base-url=http://mock-oauth:4000/facebook"
+      - "--test-oauth-linkedin-base-url=http://mock-oauth:4000/linkedin"
+      - "--test-oauth-apple-base-url=http://mock-oauth:4000/apple"
+      - "--test-oauth-twitter-base-url=http://mock-oauth:4000/twitter"
+      - "--test-oauth-discord-base-url=http://mock-oauth:4000/discord"
+      - "--test-oauth-microsoft-base-url=http://mock-oauth:4000/microsoft"
+      - "--test-oauth-twitch-base-url=http://mock-oauth:4000/twitch"
+      - "--test-oauth-roblox-base-url=http://mock-oauth:4000/roblox"
+      - "--test-sms-webhook-url=http://sms-sink:4100/sms"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+    depends_on:
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  mock-oauth:
+    build: ./mocks/mock-oauth
+    ports: ["4000:4000"]
+
+  mock-saml-idp:
+    build: ./mocks/mock-saml-idp
+    ports: ["4001:4001"]
+
+  sms-sink:
+    build: ./mocks/sms-sink
+    ports: ["4100:4100"]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
