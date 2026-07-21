@@ -634,7 +634,10 @@ func (h *httpProvider) jitProvisionFederatedUser(ctx context.Context, orgID, iss
 // records the session, and redirects to the app's redirect_uri.
 func (h *httpProvider) issueSSOSession(c *gin.Context, flow *ssoFlowState, user *schemas.User, isSignUp bool) error {
 	hostname := parsers.GetHost(c)
-	roles := splitRoles(user.Roles)
+	// Org-scoped mint point: augment the user's roles with any role granted in
+	// THIS org through SCIM group membership (issue #692). Additive and
+	// org-namespaced — see orgGroupDerivedRoles.
+	roles := unionRoles(splitRoles(user.Roles), h.orgGroupDerivedRoles(c.Request.Context(), flow.OrgID, user, h.Log))
 	authToken, err := h.TokenProvider.CreateAuthToken(c, &token.AuthTokenConfig{
 		User:        user,
 		Roles:       roles,
