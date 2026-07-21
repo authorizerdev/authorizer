@@ -22,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -41,6 +42,9 @@ var (
 	ErrConflict = errors.New("scim: userName already exists")
 	// ErrInvalid — malformed input (e.g. missing userName). Map to 400.
 	ErrInvalid = errors.New("scim: invalid request")
+	// ErrGroupsUnavailable — a Group op was attempted but the FGA engine is not
+	// configured (group membership is stored as FGA tuples). Map to 501.
+	ErrGroupsUnavailable = errors.New("scim: group provisioning requires the authorization engine")
 )
 
 // tokenCost is the bcrypt cost for SCIM bearer-token secrets. Matches the
@@ -76,6 +80,10 @@ type Dependencies struct {
 	Log                 *zerolog.Logger
 	StorageProvider     storage.Provider
 	MemoryStoreProvider memory_store.Provider
+	// AuthzEngine is the FGA engine. SCIM Group membership is stored as FGA
+	// relationship tuples (not a DB column), so the Group ops require it. Nil
+	// when FGA is not configured — Group ops then return ErrGroupsUnavailable.
+	AuthzEngine engine.AuthorizationEngine
 }
 
 // Provider is the org-bounded SCIM operation surface. Every method takes the
@@ -101,6 +109,31 @@ type Provider interface {
 	// SetActive (PATCH active / DELETE) flips the active flag. Deactivation
 	// synchronously revokes the user's sessions + refresh tokens.
 	SetActive(ctx context.Context, orgID, userID string, active bool) (*schemas.User, error)
+
+	// --- SCIM Group provisioning (RFC 7643 §4.2 / RFC 7644 §3.5.2). Membership
+	// is stored as FGA tuples, never on the Group row. ---
+
+	// CreateGroup provisions a group into the org. Idempotent: a repeat with the
+	// same displayName (or externalId) returns the existing group with
+	// existed=true. Any in.Members are added (org-membership-gated).
+	CreateGroup(ctx context.Context, orgID string, in Group) (group *schemas.ScimGroup, existed bool, err error)
+	// GetGroup fetches an org's group by id (404 if it belongs to another org — H6).
+	GetGroup(ctx context.Context, orgID, groupID string) (*schemas.ScimGroup, error)
+	// FindGroupByDisplayName returns the org's group with the given displayName,
+	// or nil when none (the IdP's `displayName eq` probe). Never leaks another org.
+	FindGroupByDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error)
+	// ReplaceGroup (PUT) overwrites displayName and sets membership to exactly
+	// in.Members (org-membership-gated).
+	ReplaceGroup(ctx context.Context, orgID, groupID string, in Group) (*schemas.ScimGroup, error)
+	// PatchGroup applies a parsed SCIM PatchOp: an optional displayName change
+	// plus member add/remove/replace ops. Idempotent.
+	PatchGroup(ctx context.Context, orgID, groupID string, displayName *string, ops []MemberOp) (*schemas.ScimGroup, error)
+	// DeleteGroup removes the group row and all its membership + role-binding
+	// tuples.
+	DeleteGroup(ctx context.Context, orgID, groupID string) error
+	// GroupMembers returns the Authorizer user ids that are direct members of an
+	// org's group (for the SCIM `members` response).
+	GroupMembers(ctx context.Context, orgID, groupID string) ([]string, error)
 }
 
 type provider struct {
