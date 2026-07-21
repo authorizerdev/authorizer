@@ -2,6 +2,7 @@ package scim
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -42,8 +43,10 @@ func (f *fakeStore) GetScimGroupByID(_ context.Context, id string) (*schemas.Sci
 }
 
 func (f *fakeStore) GetScimGroupByOrgAndDisplayName(_ context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
+	// Mirror the real storage contract: displayName is caseExact:false
+	// (RFC 7644 §3.4.2.2), so the value is matched case-insensitively.
 	for _, g := range f.groups {
-		if g.OrgID == orgID && g.DisplayName == displayName {
+		if g.OrgID == orgID && strings.EqualFold(g.DisplayName, displayName) {
 			return g, nil
 		}
 	}
@@ -173,6 +176,58 @@ func TestGroupLifecycleAndMembership(t *testing.T) {
 	require.NoError(t, p.DeleteGroup(ctx, org, g.ID))
 	_, err = p.GetGroup(ctx, org, g.ID)
 	assert.ErrorIs(t, err, ErrNotFound)
+}
+
+// TestGroupDisplayNameCaseInsensitive proves that displayName (caseExact:false,
+// RFC 7644 §3.4.2.2) is compared case-insensitively across the three paths that
+// share GetScimGroupByOrgAndDisplayName: create-dedup, the rename-uniqueness
+// gate, and the FindGroupByDisplayName probe.
+func TestGroupDisplayNameCaseInsensitive(t *testing.T) {
+	p, store := newGroupSvc(t)
+	ctx := context.Background()
+	const org = "org-a"
+	store.memberships[org+"|u1"] = true
+	store.memberships[org+"|u2"] = true
+
+	// Create "Engineers" with an externalId + one member.
+	g, existed, err := p.CreateGroup(ctx, org, Group{DisplayName: "Engineers", ExternalID: "ext-eng", Members: []string{"u1"}})
+	require.NoError(t, err)
+	assert.False(t, existed)
+
+	// A create with a case-variant displayName and NO matching externalId is the
+	// SAME group for uniqueness purposes → a 409 conflict, not a second row. This
+	// is the intended reading of caseExact:false: "Engineers" and "engineers" are
+	// one group.
+	_, _, err = p.CreateGroup(ctx, org, Group{DisplayName: "engineers"})
+	assert.ErrorIs(t, err, ErrGroupConflict, "case-variant create must conflict, not duplicate")
+	assert.Len(t, store.groups, 1, "no duplicate row may be created for a case-variant name")
+
+	// Same externalId + a case-variant displayName → idempotent adoption of the
+	// existing row (existed=true, same id), member sync applied to THAT row, and
+	// no duplicate created. The case-only rename passes the uniqueness gate
+	// because it resolves to the group itself (self-exempt).
+	adopted, existed, err := p.CreateGroup(ctx, org, Group{DisplayName: "engineers", ExternalID: "ext-eng", Members: []string{"u1", "u2"}})
+	require.NoError(t, err)
+	assert.True(t, existed, "case-variant name with the same externalId must adopt, not create")
+	assert.Equal(t, g.ID, adopted.ID)
+	assert.Len(t, store.groups, 1, "case-variant externalId create must not duplicate the group")
+	members, err := p.GroupMembers(ctx, org, g.ID)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"u1", "u2"}, members, "members must sync onto the existing row")
+
+	// FindGroupByDisplayName (the listGroups filter probe) is case-insensitive.
+	found, err := p.FindGroupByDisplayName(ctx, org, "eNgInEeRs")
+	require.NoError(t, err)
+	require.NotNil(t, found, "displayName filter must find the group case-insensitively")
+	assert.Equal(t, g.ID, found.ID)
+
+	// The rename-uniqueness gate rejects a case-insensitive collision: a second
+	// group cannot be renamed onto an existing name that differs only in case.
+	other, _, err := p.CreateGroup(ctx, org, Group{DisplayName: "Platform"})
+	require.NoError(t, err)
+	rename := "ENGINEERS"
+	_, err = p.PatchGroup(ctx, org, other.ID, &rename, nil, nil)
+	assert.ErrorIs(t, err, ErrGroupConflict, "rename onto a case-variant of an existing name must conflict")
 }
 
 // TestGroupOrgIsolation proves H6: a group created in org-a is invisible to org-b.

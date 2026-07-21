@@ -85,14 +85,27 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 }
 
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
-// displayName within an org.
+// displayName within an org. displayName is compared case-insensitively:
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2). CQL cannot
+// apply a function like LOWER() to a column in a WHERE clause, so scope the
+// query to the org and compare displayName with strings.EqualFold in Go (an
+// org's group set is small), mirroring the DynamoDB fetch-then-filter shape.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
-	var group schemas.ScimGroup
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? AND display_name = ? LIMIT 1 ALLOW FILTERING", scimGroupColumns, KeySpace+"."+schemas.Collections.ScimGroup)
-	if err := scanScimGroup(p.db.Query(query, orgID, displayName).Consistency(gocql.One).Scan, &group); err != nil {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? ALLOW FILTERING", scimGroupColumns, KeySpace+"."+schemas.Collections.ScimGroup)
+	scanner := p.db.Query(query, orgID).Consistency(gocql.One).Iter().Scanner()
+	for scanner.Next() {
+		var group schemas.ScimGroup
+		if err := scanScimGroup(scanner.Scan, &group); err != nil {
+			return nil, err
+		}
+		if strings.EqualFold(group.DisplayName, displayName) {
+			return &group, nil
+		}
+	}
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	return &group, nil
+	return nil, gocql.ErrNotFound
 }
 
 // GetScimGroupByOrgAndExternalID resolves the single group with the given

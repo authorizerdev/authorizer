@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -100,12 +101,14 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 }
 
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
-// displayName within an org.
+// displayName within an org. displayName is compared case-insensitively:
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2), so N1QL's
+// LOWER() is applied to both sides, mirroring the SQL fix.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	params := make(map[string]interface{}, 2)
 	params["org_id"] = orgID
-	params["display_name"] = displayName
-	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE org_id=$org_id AND display_name=$display_name LIMIT 1`, scimGroupColumns, p.scopeName, schemas.Collections.ScimGroup)
+	params["display_name"] = strings.ToLower(displayName)
+	query := fmt.Sprintf(`SELECT %s FROM %s.%s WHERE org_id=$org_id AND LOWER(display_name)=$display_name LIMIT 1`, scimGroupColumns, p.scopeName, schemas.Collections.ScimGroup)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

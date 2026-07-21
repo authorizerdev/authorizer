@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,6 +72,9 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
 // displayName within an org. There is no GSI on display_name, so query the
 // org_id GSI and match displayName in-app (an org's group set is small).
+// displayName is compared case-insensitively: SCIM Group.displayName is
+// caseExact:false (RFC 7644 §3.4.2.2), and a DynamoDB GSI lookup is exact-match
+// only, so the case-fold happens here in Go with strings.EqualFold.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	items, err := p.queryEqLimit(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, nil, groupScanCap)
 	if err != nil {
@@ -81,7 +85,7 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 		if err := unmarshalItem(it, &group); err != nil {
 			return nil, err
 		}
-		if group.DisplayName == displayName {
+		if strings.EqualFold(group.DisplayName, displayName) {
 			return &group, nil
 		}
 	}

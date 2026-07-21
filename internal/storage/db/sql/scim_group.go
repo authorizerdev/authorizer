@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,10 +59,12 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 }
 
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
-// displayName within an org.
+// displayName within an org. displayName is compared case-insensitively:
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2), so LOWER()
+// is applied to both sides — portable across GORM's SQL dialects.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	var group schemas.ScimGroup
-	res := p.db.Where("org_id = ? AND display_name = ?", orgID, displayName).First(&group)
+	res := p.db.Where("org_id = ? AND LOWER(display_name) = ?", orgID, strings.ToLower(displayName)).First(&group)
 	if res.Error != nil {
 		return nil, res.Error
 	}

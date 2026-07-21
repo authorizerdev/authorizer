@@ -3,6 +3,7 @@ package arangodb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -108,13 +109,15 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 }
 
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
-// displayName within an org.
+// displayName within an org. displayName is compared case-insensitively:
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2), so AQL's
+// LOWER() is applied to both sides, mirroring the SQL fix.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	var group *schemas.ScimGroup
-	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id AND d.display_name == @display_name LIMIT 1 RETURN d", schemas.Collections.ScimGroup)
+	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id AND LOWER(d.display_name) == @display_name LIMIT 1 RETURN d", schemas.Collections.ScimGroup)
 	bindVars := map[string]interface{}{
 		"org_id":       orgID,
-		"display_name": displayName,
+		"display_name": strings.ToLower(displayName),
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {

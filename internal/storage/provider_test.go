@@ -2021,6 +2021,34 @@ func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provide
 	assert.Equal(t, byID.OrgID, byName.OrgID)
 	assert.Equal(t, "Engineers", byName.DisplayName)
 
+	// displayName is caseExact:false (RFC 7644 §3.4.2.2): the (org,displayName)
+	// lookup MUST match the value case-insensitively on every backend.
+	for _, probe := range []string{"engineers", "ENGINEERS", "eNgInEeRs"} {
+		ci, ciErr := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, probe)
+		require.NoError(t, ciErr, "case-insensitive displayName lookup must match (%q)", probe)
+		assert.Equal(t, groupID, ci.ID, "case-insensitive lookup must resolve the same group (%q)", probe)
+	}
+	// A genuinely different name must still miss (not a blanket match).
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "Engineering")
+	assert.Error(t, err, "a different displayName must not resolve")
+
+	// A displayName carrying regex/query metacharacters must be compared as a
+	// literal, never interpreted as a pattern (guards the Mongo collation path
+	// and any other engine): look it up case-insensitively by its exact chars.
+	metaName := "R&D (Engineering) [v2]"
+	metaGroup, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: metaName,
+	})
+	require.NoError(t, err)
+	metaByName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "r&d (engineering) [v2]")
+	require.NoError(t, err, "metacharacter displayName must match as a literal, case-insensitively")
+	assert.Equal(t, metaGroup.ID, metaByName.ID)
+	// A regex that WOULD match metaName if interpreted as a pattern must not.
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "R.D .Engineering. .v2.")
+	assert.Error(t, err, "displayName must be a literal, not a regex pattern")
+	require.NoError(t, provider.DeleteScimGroup(ctx, metaGroup))
+
 	// Cross-org displayName lookup must NOT resolve this org's group.
 	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, "another-org", "Engineers")
 	assert.Error(t, err, "displayName lookup must be org-scoped")

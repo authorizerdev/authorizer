@@ -135,6 +135,18 @@ func TestSCIMGroupsHTTPLifecycle(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, float64(1), decoded["totalResults"])
 
+	// displayName is caseExact:false (RFC 7644 §3.4.2.2): a case-variant filter
+	// value must resolve the group actually named "Engineers".
+	ciFilter := url.QueryEscape(`displayName eq "engineers"`)
+	resp, decoded = scimDo(t, base, http.MethodGet, "/scim/v2/Groups?filter="+ciFilter, token, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, float64(1), decoded["totalResults"], "case-insensitive displayName filter must find the group")
+	ciResources, _ := decoded["Resources"].([]any)
+	require.Len(t, ciResources, 1)
+	ciGroup, _ := ciResources[0].(map[string]any)
+	assert.Equal(t, "Engineers", ciGroup["displayName"], "must return the stored-cased displayName")
+	assert.Equal(t, groupID, ciGroup["id"])
+
 	// --- Unsupported filter → 400 invalidFilter (not an empty 200) ---
 	badFilter := url.QueryEscape(`displayName sw "Eng"`)
 	resp, decoded = scimDo(t, base, http.MethodGet, "/scim/v2/Groups?filter="+badFilter, token, nil)

@@ -68,11 +68,15 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 }
 
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
-// displayName within an org.
+// displayName within an org. displayName is compared case-insensitively:
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2). A strength-2
+// collation makes the equality case-insensitive while comparing the value as a
+// literal — no regex, so a displayName with metacharacters is never interpreted.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	var group *schemas.ScimGroup
 	groupCollection := p.db.Collection(schemas.Collections.ScimGroup, options.Collection())
-	err := groupCollection.FindOne(ctx, bson.M{"org_id": orgID, "display_name": displayName}).Decode(&group)
+	opts := options.FindOne().SetCollation(&options.Collation{Locale: "en", Strength: 2})
+	err := groupCollection.FindOne(ctx, bson.M{"org_id": orgID, "display_name": displayName}, opts).Decode(&group)
 	if err != nil {
 		return nil, err
 	}
