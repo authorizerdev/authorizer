@@ -92,9 +92,16 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 			break
 		}
 		g := &schemas.ScimGroup{}
-		if _, err := readDocument(ctx, cursor, g); err != nil {
-			return nil, err
+		meta, rErr := readDocument(ctx, cursor, g)
+		if rErr != nil {
+			return nil, rErr
 		}
+		// readDocument decodes ID from the document's _id (the full
+		// "collection/key" handle), but the group ID contract is the bare uuid
+		// (== Key) used in URLs and FGA object ids. Normalize to meta.Key so every
+		// read returns the portable id, matching AddScimGroup/UpdateScimGroup and
+		// the other 5 providers.
+		g.ID = meta.Key
 		group = g
 	}
 	return group, nil
@@ -122,9 +129,16 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 			break
 		}
 		g := &schemas.ScimGroup{}
-		if _, err := readDocument(ctx, cursor, g); err != nil {
-			return nil, err
+		meta, rErr := readDocument(ctx, cursor, g)
+		if rErr != nil {
+			return nil, rErr
 		}
+		// readDocument decodes ID from the document's _id (the full
+		// "collection/key" handle), but the group ID contract is the bare uuid
+		// (== Key) used in URLs and FGA object ids. Normalize to meta.Key so every
+		// read returns the portable id, matching AddScimGroup/UpdateScimGroup and
+		// the other 5 providers.
+		g.ID = meta.Key
 		group = g
 	}
 	return group, nil
@@ -153,9 +167,16 @@ func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, ex
 			break
 		}
 		g := &schemas.ScimGroup{}
-		if _, err := readDocument(ctx, cursor, g); err != nil {
-			return nil, err
+		meta, rErr := readDocument(ctx, cursor, g)
+		if rErr != nil {
+			return nil, rErr
 		}
+		// readDocument decodes ID from the document's _id (the full
+		// "collection/key" handle), but the group ID contract is the bare uuid
+		// (== Key) used in URLs and FGA object ids. Normalize to meta.Key so every
+		// read returns the portable id, matching AddScimGroup/UpdateScimGroup and
+		// the other 5 providers.
+		g.ID = meta.Key
 		group = g
 	}
 	return group, nil
