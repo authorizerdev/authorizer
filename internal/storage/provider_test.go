@@ -215,6 +215,9 @@ func TestStorageProvider(t *testing.T) {
 			t.Run("SCIM Endpoint Operations", func(t *testing.T) {
 				testScimEndpointOperations(t, ctx, provider)
 			})
+			t.Run("SCIM Group Operations", func(t *testing.T) {
+				testScimGroupOperations(t, ctx, provider)
+			})
 			t.Run("Org Domain Operations", func(t *testing.T) {
 				testOrgDomainOperations(t, ctx, provider)
 			})
@@ -1976,6 +1979,61 @@ func testScimEndpointOperations(t *testing.T, ctx context.Context, provider Prov
 	require.NoError(t, provider.DeleteScimEndpoint(ctx, afterRotate))
 	_, err = provider.GetScimEndpointByID(ctx, endpointID)
 	assert.Error(t, err, "endpoint should be gone after delete")
+
+	require.NoError(t, provider.DeleteOrganization(ctx, org))
+}
+
+// testScimGroupOperations exercises ScimGroup CRUD: create, id + (org,displayName)
+// lookups, displayName rename round-trip, external-id round-trip, and delete.
+// Membership is NOT stored here (it lives in FGA), so this covers metadata only.
+func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provider) {
+	org, err := provider.AddOrganization(ctx, &schemas.Organization{
+		Name:    "scim-grp-org-" + uuid.New().String(),
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	orgID := org.AsAPIOrganization().ID
+
+	ext := orgID + ":ext-grp-1"
+	created, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: "Engineers",
+		ExternalID:  &ext,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	// Bare key is the universal by-id lookup key (arango returns ID as the full
+	// "collection/key" handle; every other provider sets Key == ID == uuid).
+	groupID := created.Key
+	require.NotEmpty(t, groupID)
+
+	byID, err := provider.GetScimGroupByID(ctx, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, orgID, byID.OrgID)
+	assert.Equal(t, "Engineers", byID.DisplayName)
+	require.NotNil(t, byID.ExternalID)
+	assert.Equal(t, ext, *byID.ExternalID)
+
+	byName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "Engineers")
+	require.NoError(t, err)
+	assert.Equal(t, byID.OrgID, byName.OrgID)
+	assert.Equal(t, "Engineers", byName.DisplayName)
+
+	// Cross-org displayName lookup must NOT resolve this org's group.
+	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, "another-org", "Engineers")
+	assert.Error(t, err, "displayName lookup must be org-scoped")
+
+	// Rename (load-then-mutate) round-trips.
+	byID.DisplayName = "Platform"
+	_, err = provider.UpdateScimGroup(ctx, byID)
+	require.NoError(t, err)
+	afterRename, err := provider.GetScimGroupByID(ctx, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, "Platform", afterRename.DisplayName)
+
+	require.NoError(t, provider.DeleteScimGroup(ctx, afterRename))
+	_, err = provider.GetScimGroupByID(ctx, groupID)
+	assert.Error(t, err, "group should be gone after delete")
 
 	require.NoError(t, provider.DeleteOrganization(ctx, org))
 }
