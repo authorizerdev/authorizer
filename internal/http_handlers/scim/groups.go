@@ -2,6 +2,7 @@ package scim
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -139,7 +140,7 @@ func (h *Handler) replaceGroup(c *gin.Context) {
 }
 
 func (h *Handler) patchGroup(c *gin.Context) {
-	displayName, ops, ok := parseGroupPatch(c)
+	displayName, ops, ok := parseGroupPatch(c.Request.Body)
 	if !ok {
 		writeError(c, http.StatusBadRequest, "invalidValue", "invalid PatchOp body")
 		return
@@ -193,7 +194,7 @@ func parseDisplayNameEq(filter string) (string, bool) {
 //     the member is encoded in the filtered path.
 //   - no-path form: {"op":"add","value":{"members":[{"value":"x"}]}} / displayName.
 //   - member values may be [{"value":"x"}] objects or bare ["x"] strings.
-func parseGroupPatch(c *gin.Context) (displayName *string, ops []MemberOpJSON, ok bool) {
+func parseGroupPatch(r io.Reader) (displayName *string, ops []MemberOpJSON, ok bool) {
 	body := struct {
 		Operations []struct {
 			Op    string          `json:"op"`
@@ -201,7 +202,7 @@ func parseGroupPatch(c *gin.Context) (displayName *string, ops []MemberOpJSON, o
 			Value json.RawMessage `json:"value"`
 		} `json:"Operations"`
 	}{}
-	if err := json.NewDecoder(c.Request.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(r).Decode(&body); err != nil {
 		return nil, nil, false
 	}
 	for _, raw := range body.Operations {
