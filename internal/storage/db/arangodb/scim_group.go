@@ -108,29 +108,37 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 	return group, nil
 }
 
+// groupScanSafetyCap bounds the org-scoped scan-and-compare-in-app
+// displayName lookup below. It is NOT a realistic ceiling on an org's group
+// count, purely a circuit-breaker against unbounded work on a pathologically
+// large org, mirroring the equivalent cap in the SQL/Cassandra/DynamoDB
+// providers.
+const groupScanSafetyCap = 100_000
+
 // GetScimGroupByOrgAndDisplayName resolves the single group with the given
 // displayName within an org. displayName is compared case-insensitively:
-// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2), so AQL's
-// LOWER() is applied to both sides, mirroring the SQL fix.
+// SCIM Group.displayName is caseExact:false (RFC 7644 §3.4.2.2).
+//
+// This deliberately does NOT use AQL's LOWER() for the comparison, for the
+// same reason the SQL provider doesn't: engine-native case folding is not
+// guaranteed to agree with Go's strings.ToLower/EqualFold for non-ASCII
+// display names, which would make this provider disagree with the others on
+// a "same" displayName. Fetching by org (indexed, cheap) and comparing with
+// strings.EqualFold in Go instead makes every storage backend fold
+// identically, matching the SQL/Cassandra/DynamoDB fetch-then-filter shape.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
-	var group *schemas.ScimGroup
-	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id AND LOWER(d.display_name) == @display_name LIMIT 1 RETURN d", schemas.Collections.ScimGroup)
+	query := fmt.Sprintf("FOR d in %s FILTER d.org_id == @org_id LIMIT @cap RETURN d", schemas.Collections.ScimGroup)
 	bindVars := map[string]interface{}{
-		"org_id":       orgID,
-		"display_name": strings.ToLower(displayName),
+		"org_id": orgID,
+		"cap":    groupScanSafetyCap,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = cursor.Close() }()
-	for {
-		if !cursor.HasMore() {
-			if group == nil {
-				return nil, fmt.Errorf("scim group not found")
-			}
-			break
-		}
+	examined := 0
+	for cursor.HasMore() {
 		g := &schemas.ScimGroup{}
 		meta, rErr := readDocument(ctx, cursor, g)
 		if rErr != nil {
@@ -142,9 +150,16 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 		// read returns the portable id, matching AddScimGroup/UpdateScimGroup and
 		// the other 5 providers.
 		g.ID = meta.Key
-		group = g
+		if strings.EqualFold(g.DisplayName, displayName) {
+			return g, nil
+		}
+		examined++
 	}
-	return group, nil
+	if examined >= groupScanSafetyCap {
+		p.dependencies.Log.Warn().Str("org_id", orgID).Int("examined", examined).
+			Msg("GetScimGroupByOrgAndDisplayName: hit the scan safety cap without a match")
+	}
+	return nil, fmt.Errorf("scim group not found")
 }
 
 // GetScimGroupByOrgAndExternalID resolves the single group with the given

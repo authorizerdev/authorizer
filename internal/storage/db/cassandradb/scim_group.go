@@ -23,6 +23,11 @@ const scimGroupColumns = "id, org_id, display_name, external_id, created_at, upd
 // large partition, mirroring DynamoDB's groupScanSafetyCap.
 const groupScanSafetyCap = 100_000
 
+// cassandraGroupPageSize bounds each fetch of the org-scoped displayName scan
+// to a real page, so an early match doesn't require pulling a large org's
+// entire group set into memory first (see GetScimGroupByOrgAndDisplayName).
+const cassandraGroupPageSize = 1000
+
 // scanScimGroup maps the scimGroupColumns projection onto a struct.
 func scanScimGroup(scan func(...interface{}) error, group *schemas.ScimGroup) error {
 	return scan(&group.ID, &group.OrgID, &group.DisplayName, &group.ExternalID, &group.CreatedAt, &group.UpdatedAt)
@@ -102,12 +107,20 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	// No LIMIT here deliberately: a CQL LIMIT truncates the combined result set
 	// across every page, which would silently drop a match beyond it — the
-	// exact bug groupScanSafetyCap exists to avoid. gocql's Scanner pages
-	// through ALLOW FILTERING lazily as Next() is called, so leaving LIMIT off
-	// lets a real match anywhere in the org's group set still be found; the
-	// safety cap below bounds the Go-side loop instead, not the CQL query.
+	// exact bug groupScanSafetyCap exists to avoid. A real match anywhere in the
+	// org's group set is still found; the safety cap below bounds the Go-side
+	// loop instead of the CQL query.
+	//
+	// PageSize is set explicitly (rather than leaving gocql's session default)
+	// because with none set, ALLOW FILTERING fetches the ENTIRE result in one
+	// frame — the Scanner would just iterate an already-fully-materialized
+	// buffer, not genuinely page. Setting it here makes the driver fetch and
+	// examine the partition incrementally, so an early match (the common case)
+	// avoids pulling the rest of a large org's rows into memory at all, and the
+	// safety cap actually bounds real fetch cost, not just a client-side count
+	// over data that was already all in memory.
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? ALLOW FILTERING", scimGroupColumns, KeySpace+"."+schemas.Collections.ScimGroup)
-	scanner := p.db.Query(query, orgID).Consistency(gocql.One).Iter().Scanner()
+	scanner := p.db.Query(query, orgID).Consistency(gocql.One).PageSize(cassandraGroupPageSize).Iter().Scanner()
 	examined := 0
 	for scanner.Next() {
 		var group schemas.ScimGroup

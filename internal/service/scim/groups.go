@@ -65,6 +65,18 @@ func (p *provider) requireGroup(ctx context.Context, orgID, groupID string) (*sc
 // not a DB constraint, so it MUST be checked on every path that sets a name
 // (create AND rename), or two rows could share a name and the LIMIT 1 dedup
 // lookup would then resolve arbitrarily. Pass exceptID="" on create.
+//
+// Known limitation, not closed here: this is check-then-insert with no unique
+// constraint backing it, so two concurrent creates/renames of the same
+// displayName in the same org can both pass the check and produce a
+// duplicate — there is no atomic conditional-write across all 13 storage
+// backends to lean on instead. On DynamoDB specifically this is compounded by
+// the org_id GSI's eventual consistency: a probe run immediately after a
+// sibling create may not observe that row yet. Low real-world risk (SCIM
+// provisioning is normally one serialized sync job per IdP, not concurrent
+// writers), acceptable for now; a true fix would need a per-backend
+// conditional-write / optimistic-lock scheme, which is a larger undertaking
+// than this uniqueness gate.
 func (p *provider) ensureDisplayNameFree(ctx context.Context, orgID, displayName, exceptID string) error {
 	if existing, err := p.StorageProvider.GetScimGroupByOrgAndDisplayName(ctx, orgID, displayName); err == nil && existing != nil && existing.ID != exceptID {
 		return ErrGroupConflict
@@ -114,7 +126,8 @@ func (p *provider) CreateGroup(ctx context.Context, orgID string, in Group) (*sc
 
 	// Dedup #2 (uniqueness): a group with this displayName already exists in the
 	// org and no externalId matched it → RFC 7644 §3.3 uniqueness conflict (409),
-	// not a silent idempotent 200.
+	// not a silent idempotent 200. Same check-then-insert race as
+	// ensureDisplayNameFree (see its doc comment) — not closed here.
 	if existing, err := p.StorageProvider.GetScimGroupByOrgAndDisplayName(ctx, orgID, displayName); err == nil && existing != nil {
 		log.Debug().Msg("displayName already exists in org")
 		return nil, false, ErrGroupConflict

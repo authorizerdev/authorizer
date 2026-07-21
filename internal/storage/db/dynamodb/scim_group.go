@@ -76,6 +76,12 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 // displayName is compared case-insensitively: SCIM Group.displayName is
 // caseExact:false (RFC 7644 §3.4.2.2), and a DynamoDB GSI lookup is exact-match
 // only, so the case-fold happens here in Go with strings.EqualFold.
+//
+// Note for callers relying on this for uniqueness (service.ensureDisplayNameFree
+// / CreateGroup dedup): the org_id GSI is EVENTUALLY consistent, so a probe run
+// immediately after a sibling create/rename on this org may not observe it yet.
+// Combined with the check-then-insert nature of the callers, this is a known,
+// accepted race — see their doc comments.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	var found schemas.ScimGroup
 	ok, err := p.queryEqUntil(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, groupScanSafetyCap, func(it map[string]types.AttributeValue) (bool, error) {

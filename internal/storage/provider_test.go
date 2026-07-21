@@ -2049,6 +2049,24 @@ func testScimGroupOperations(t *testing.T, ctx context.Context, provider Provide
 	assert.Error(t, err, "displayName must be a literal, not a regex pattern")
 	require.NoError(t, provider.DeleteScimGroup(ctx, metaGroup))
 
+	// Non-ASCII displayName case-folding must agree across every provider. This
+	// specifically guards against relying on the query engine's own native case
+	// folding (SQL LOWER(), AQL LOWER(), N1QL LOWER()) for the comparison: those
+	// disagree with each other AND with Go's strings.EqualFold on non-ASCII
+	// text (SQLite's LOWER() is ASCII-only, e.g. "CAFÉ" -> "cafÉ", not "café"),
+	// so every provider instead fetches by org and folds with strings.EqualFold
+	// in Go.
+	unicodeName := "CAFÉ"
+	unicodeGroup, err := provider.AddScimGroup(ctx, &schemas.ScimGroup{
+		OrgID:       orgID,
+		DisplayName: unicodeName,
+	})
+	require.NoError(t, err)
+	unicodeByName, err := provider.GetScimGroupByOrgAndDisplayName(ctx, orgID, "café")
+	require.NoError(t, err, "non-ASCII displayName must fold case-insensitively via Go's EqualFold, not the engine's native LOWER()")
+	assert.Equal(t, unicodeGroup.ID, unicodeByName.ID)
+	require.NoError(t, provider.DeleteScimGroup(ctx, unicodeGroup))
+
 	// Cross-org displayName lookup must NOT resolve this org's group.
 	_, err = provider.GetScimGroupByOrgAndDisplayName(ctx, "another-org", "Engineers")
 	assert.Error(t, err, "displayName lookup must be org-scoped")
