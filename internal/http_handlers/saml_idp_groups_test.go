@@ -139,3 +139,45 @@ func TestAssertedGroupsGate2RejectsForgedNamespace(t *testing.T) {
 	got := h.assertedGroupsForOrg(ctx, orgA, &schemas.User{ID: "u"}, &logger)
 	assert.Empty(t, got, "gate 2 must reject a group whose stored OrgID != issuing org")
 }
+
+// TestAssertedGroupsFollowMembershipRemoval is the SAML/JWT half of the SCIM
+// clear-members fix (the HIGH bug): a group is asserted only while the member
+// tuple exists. Once membership is cleared — exactly what SCIM clear-members
+// does (replaceMembers with an empty set → engine.DeleteTuples) — a
+// subsequently-issued assertion no longer carries the group, so any SP attribute
+// or group-derived JWT role is dropped. (The SCIM-HTTP → tuple-removed half is
+// proven end-to-end in integration_tests/scim_groups_test.go.)
+func TestAssertedGroupsFollowMembershipRemoval(t *testing.T) {
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+	ctx := context.Background()
+
+	eng, err := fgaengine.New(
+		&fgaengine.Config{Store: fgaengine.StoreMemory, StoreName: "authorizer-groups-removal"},
+		&fgaengine.Dependencies{Log: &logger},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if c, ok := eng.(interface{ Close() }); ok {
+			c.Close()
+		}
+	})
+	_, err = eng.WriteModel(ctx, groupTestModel)
+	require.NoError(t, err)
+
+	const org = "org-a"
+	const userID = "user-1"
+	group := &schemas.ScimGroup{ID: "gid-1", OrgID: org, DisplayName: "admins"}
+	store := groupOnlyStore{groups: map[string]*schemas.ScimGroup{group.ID: group}}
+	h := &httpProvider{Dependencies: Dependencies{Log: &logger, StorageProvider: store, AuthzEngine: eng}}
+	user := &schemas.User{ID: userID}
+	memberTuple := engine.TupleKey{User: "user:" + userID, Relation: "member", Object: "group:" + org + "/" + group.ID}
+
+	// Member present → the group is asserted.
+	require.NoError(t, eng.WriteTuples(ctx, []engine.TupleKey{memberTuple}))
+	assert.Equal(t, []string{"admins"}, h.assertedGroupsForOrg(ctx, org, user, &logger))
+
+	// Membership cleared → the group is no longer asserted.
+	require.NoError(t, eng.DeleteTuples(ctx, []engine.TupleKey{memberTuple}))
+	assert.Empty(t, h.assertedGroupsForOrg(ctx, org, user, &logger),
+		"a cleared group member must not appear in a subsequently-issued SAML assertion")
+}
