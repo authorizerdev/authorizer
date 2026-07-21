@@ -150,6 +150,20 @@ func (h *httpProvider) handleRefreshTokenReuse(gc *gin.Context, claims map[strin
 		return
 	}
 
+	// The presented nonce IS the family's current live token: this is not a
+	// rotated-away token being replayed at all — ValidateRefreshToken's own
+	// session lookup for this exact live nonce must have hit a transient store
+	// error (a timeout, a momentary blip) rather than a genuine "key absent"
+	// (the store layer can't distinguish the two, see GetUserSession). Treat it
+	// as an ordinary failed validation, not a breach: revoking here would nuke
+	// the user's own still-legitimate session over a retryable fault, which is
+	// strictly worse than the plain invalid_grant the caller already returns.
+	if replayedNonce == rec.LiveNonce {
+		metrics.RecordSecurityEvent("refresh_token_reuse_transient", "token_endpoint")
+		log.Debug().Msg("presented nonce matches the family's live token — likely a transient session-store error, not reuse; not revoking")
+		return
+	}
+
 	// Benign double-submit grace window: only when the replayed token is the
 	// IMMEDIATE predecessor of the current live token (rec.PrevNonce) AND the
 	// rotation was within the window. An immediate-predecessor replay means the

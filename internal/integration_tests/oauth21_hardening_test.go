@@ -248,6 +248,70 @@ func ageFamilyRecordPast(t *testing.T, ts *testSetup, liveRefresh string) {
 		sessionKey, refreshFamilyKeyPrefix+familyID, string(out), 1<<62))
 }
 
+// A transient failure looking up the CURRENT live refresh token's own session
+// record (a store timeout/blip — GetUserSession cannot distinguish that from
+// "key genuinely absent") must NOT be treated as reuse. Simulated here by
+// deleting the live token's session entry directly (without a second
+// rotation), so the presented nonce still equals the family record's
+// LiveNonce — the exact signal handleRefreshTokenReuse uses to recognize
+// "this is not a rotated-away token, something else went wrong" and skip
+// revocation.
+//
+// One real rotation happens first and is load-bearing for the test, not
+// incidental: a family record only exists once a refresh has actually
+// happened (the initial authorization_code exchange writes none), so the
+// LiveNonce-guard path can't be reached at all without it.
+func TestOAuth21_RefreshTokenReuse_TransientLookupFailureNotRevoked(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	registerTestClient(t, ts, "transient-client", "transient-secret")
+	basic := []string{"transient-client", "transient-secret"}
+
+	email := signupUser(t, ts)
+	router, code, verifier := offlineAccessSessionForEmail(t, ts, "transient-client", email)
+	original := exchangeForRefresh(t, router, code, verifier, basic)
+	live := refreshOK(t, router, original, basic) // rotate once: establishes the family record
+
+	claims := decodeJWTPayloadUnverified(t, live)
+	nonce, _ := claims["nonce"].(string)
+	sub, _ := claims["sub"].(string)
+	loginMethod, _ := claims["login_method"].(string)
+	require.NotEmpty(t, nonce)
+	sessionKey := sub
+	if loginMethod != "" {
+		sessionKey = loginMethod + ":" + sub
+	}
+
+	// Simulate the transient blip: ONLY the live token's own refresh_token_
+	// session entry vanishes out from under it (a store timeout mid-lookup) —
+	// nothing rotated, so this is still the family's LiveNonce. Overwrite just
+	// that one sub-key's expiry to the past (the db-backed store's
+	// GetUserSession treats an expired row as "not found" and deletes it on
+	// read) rather than DeleteUserSession, which cascades to session_token_/
+	// access_token_/refresh_token_ TOGETHER for the nonce and would erase the
+	// very sibling entry this test needs intact to prove the point below.
+	refreshTokenKey := "refresh_token_" + nonce
+	accessTokenKey := "access_token_" + nonce
+	require.NoError(t, ts.MemoryStoreProvider.SetUserSession(sessionKey, refreshTokenKey, live, 1))
+	preAccess, err := ts.MemoryStoreProvider.GetUserSession(sessionKey, accessTokenKey)
+	require.NoError(t, err)
+	require.NotEmpty(t, preAccess, "test setup: the access token entry must still be present before the replay")
+
+	// Presenting the (now-orphaned-but-still-live-per-the-family-record) token
+	// fails validation as an ordinary invalid_grant...
+	replay := doRefresh(router, live, basic)
+	assert.Equal(t, http.StatusBadRequest, replay.Code, "replay body: %s", replay.Body.String())
+
+	// ...but must NOT have been treated as a breach. If handleRefreshTokenReuse
+	// incorrectly ran the genuine-reuse branch, DeleteUserSession(sessionKey,
+	// rec.LiveNonce) would have wiped this SAME nonce's access token too — even
+	// though nothing about it actually rotated or was stolen.
+	postAccess, err := ts.MemoryStoreProvider.GetUserSession(sessionKey, accessTokenKey)
+	require.NoError(t, err)
+	assert.NotEmpty(t, postAccess,
+		"a transient lookup failure on the live token must not revoke the live session (access token entry was wiped)")
+}
+
 // Item 2 (MEDIUM): --oauth2-1-strict must reject EVERY response_type that
 // delivers a bearer access token into the URL fragment, including the
 // front-channel-token hybrids "code token" and "code id_token token" — not
