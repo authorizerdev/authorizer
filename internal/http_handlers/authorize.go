@@ -190,6 +190,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
+		// RFC 8707 §2: the resource indicator MUST be an absolute URI and MUST
+		// NOT include a fragment component. The RFC-conventional error code for
+		// a rejected resource is invalid_target.
+		if resource != "" && !isValidResourceIndicator(resource) {
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_target", "resource must be an absolute URI without a fragment")
+			return
+		}
+
 		// OIDCC-3.1.2.6 (JAR, RFC 9101): the server must either process a
 		// `request`/`request_uri` object or reject it with
 		// request_not_supported / request_uri_not_supported. We don't parse
@@ -283,12 +291,17 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		// OAuth 2.1 strict mode: the implicit grant is removed. Reject the
-		// response types that return an access token directly from the
-		// authorization endpoint (response_type=token and id_token token).
-		// Pure id_token and the code-based hybrids are left untouched — only
-		// the access-token-in-the-fragment cases are dropped.
-		if h.Config.OAuth21Strict && (responseType == constants.ResponseTypeToken || responseType == "id_token token") {
+		// OAuth 2.1 strict mode: the implicit grant is removed. Reject EVERY
+		// response type that delivers a bearer access token into the URL
+		// fragment — not just "token" and "id_token token" but also the
+		// front-channel-token hybrids "code token" and "code id_token token",
+		// which equally return an access_token in the fragment (see the
+		// hasAccessToken dispatch below). responseType is already canonical
+		// (sorted/deduped/lowercased), so a bearer access token is present iff
+		// the space-separated components include the exact component "token".
+		// The check is component-exact (not a substring) so "id_token" — which
+		// contains "token" only as a substring — is NOT matched.
+		if h.Config.OAuth21Strict && responseTypeHasBareToken(responseType) {
 			redirectErrorToRP(gc, responseMode, redirectURI, state, "unsupported_response_type", "response_type="+responseType+" is not supported")
 			return
 		}
@@ -973,6 +986,47 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 		return canonical, true
 	}
 	return "", false
+}
+
+// isValidResourceIndicator enforces RFC 8707 §2 on a resource indicator: it
+// MUST be an absolute URI (scheme + hierarchical part) and MUST NOT contain a
+// fragment component. A relative reference, an opaque non-URI string, or any
+// value carrying a "#" is rejected. Callers must pass a non-empty value.
+func isValidResourceIndicator(resource string) bool {
+	// A fragment delimiter is forbidden outright — check the raw string so a
+	// trailing "#" (empty fragment) is also rejected, not just a populated one.
+	if strings.Contains(resource, "#") {
+		return false
+	}
+	u, err := url.Parse(resource)
+	if err != nil {
+		return false
+	}
+	// Absolute URI: has a scheme and is not just an opaque scheme:string. Require
+	// a scheme and either a host or a rooted path so bare "mailto:" style opaque
+	// forms and relative references are rejected.
+	if !u.IsAbs() {
+		return false
+	}
+	if u.Host == "" && !strings.HasPrefix(u.Path, "/") {
+		return false
+	}
+	return true
+}
+
+// responseTypeHasBareToken reports whether the (already canonicalized,
+// space-separated) response_type includes the exact component "token" — i.e.
+// the flow delivers a bearer access token into the front channel (URL
+// fragment). It splits on whitespace and compares each component exactly, so
+// "id_token" (which contains "token" only as a substring) is NOT matched.
+// Matches: "token", "code token", "id_token token", "code id_token token".
+func responseTypeHasBareToken(responseType string) bool {
+	for _, c := range strings.Fields(responseType) {
+		if c == constants.ResponseTypeToken {
+			return true
+		}
+	}
+	return false
 }
 
 // validateAuthorizeRequest validates the authorize request parameters and

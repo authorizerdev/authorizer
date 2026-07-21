@@ -7,11 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/robertkrimen/otto"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -56,6 +58,10 @@ var reservedClaims = map[string]bool{
 	// (RFC 9068) identifies the actor and is likewise reserved.
 	"act":       true,
 	"client_id": true,
+	// family_id binds a refresh token to its rotation lineage for reuse
+	// detection (OAuth 2.1 §6.1). A script that could forge it would let a
+	// stolen token masquerade as a different family and dodge revocation.
+	"family_id": true,
 }
 
 // AuthTokenConfig is the configuration for auth token
@@ -104,6 +110,16 @@ type AuthTokenConfig struct {
 	// client too (RFC 6749 §6 client binding). Empty preserves existing
 	// behavior — aud defaults to the requesting client / bootstrap client_id.
 	Resource string
+	// RefreshTokenFamilyID is the stable identifier of the refresh-token
+	// lineage (family). It is established once at first issuance (a fresh UUID
+	// when empty) and carried forward UNCHANGED across every rotation of the
+	// same lineage — each rotation still gets a fresh Nonce, but the family_id
+	// stays constant. It scopes refresh-token-reuse revocation (OAuth 2.1 §6.1 /
+	// RFC 9700 §4.14.2) to the compromised lineage instead of the whole user,
+	// so replaying one retired token cannot force-log-out a user's other
+	// sessions/login-methods. CreateRefreshToken embeds it as the "family_id"
+	// claim. Empty on non-refresh paths (client_credentials / machine tokens).
+	RefreshTokenFamilyID string
 }
 
 // loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
@@ -293,6 +309,14 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 	if authTime == 0 {
 		authTime = time.Now().Unix()
 	}
+	// Refresh-token family (OAuth 2.1 §6.1 / RFC 9700 §4.14.2). Established once
+	// at first issuance (fresh UUID when the caller supplies none) and carried
+	// forward unchanged by the refresh grant across every rotation, so reuse
+	// detection can revoke exactly this lineage instead of the whole user.
+	familyID := cfg.RefreshTokenFamilyID
+	if familyID == "" {
+		familyID = uuid.NewString()
+	}
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
 		"aud":           p.audience(cfg),
@@ -307,6 +331,7 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"login_method":  cfg.LoginMethod,
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
 		"client_id":     cfg.ClientID,
+		"family_id":     familyID,
 	}
 
 	token, err := p.SignJWTToken(customClaims)
@@ -477,6 +502,23 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	// the JWT signature) as the expected value; the checks above already
 	// establish the token is a genuine, unexpired, unrevoked Authorizer token.
 	aud, _ := res["aud"].(string)
+
+	// RFC 8707 audience restriction. A token minted with a resource indicator
+	// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
+	// its `aud` so it is usable ONLY at that external resource server — which
+	// validates it via /oauth/introspect or JWKS, NOT here. This path guards
+	// Authorizer's OWN protected resources (/userinfo, GraphQL, gRPC). Accepting
+	// a resource-bound token here would defeat the audience restriction the token
+	// was issued with, so reject any `aud` that is an absolute URI (resource
+	// indicator form) other than the configured default audience. Legitimate
+	// client-bound tokens carry an opaque client_id `aud` (not a URI) and are
+	// unaffected. Introspection uses ParseJWTToken directly and is untouched.
+	if aud != "" && aud != p.config.ClientID {
+		if u, err := url.Parse(aud); err == nil && u.IsAbs() {
+			p.dependencies.Log.Debug().Str("aud", aud).Msg("access token rejected: resource-bound audience not valid at authorizer's own endpoints")
+			return res, fmt.Errorf(`unauthorized: token audience is a resource indicator`)
+		}
+	}
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
 		HostName: hostname,

@@ -191,10 +191,14 @@ func TestOAuth21_ResourceIndicator_MismatchRejected(t *testing.T) {
 	})
 }
 
-// Item 1: OAuth 2.1 refresh-token rotation with reuse invalidation. After a
-// refresh rotates the token, replaying the OLD refresh token must be rejected
-// invalid_grant AND trigger the breach response — the whole live session
-// family is revoked, so the freshly-issued refresh token stops working too.
+// Item 1: OAuth 2.1 refresh-token rotation with reuse invalidation, scoped to
+// the compromised token's own lineage (family). Genuine reuse — replaying a
+// stale token AFTER the chain has advanced past it, so it is not the immediate
+// predecessor caught by the double-submit grace window — must be rejected
+// invalid_grant AND revoke the family's live token. (That reuse revokes ONLY
+// this family and not the user's other sessions is proved by
+// TestOAuth21_RefreshTokenReuse_ScopedToFamily; the benign double-submit grace
+// window by TestOAuth21_RefreshTokenReuse_GraceWindow.)
 func TestOAuth21_RefreshTokenReuse_RevokesFamily(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
@@ -215,7 +219,6 @@ func TestOAuth21_RefreshTokenReuse_RevokesFamily(t *testing.T) {
 	oldRefresh, _ := body["refresh_token"].(string)
 	require.NotEmpty(t, oldRefresh, "offline_access scope must yield a refresh_token")
 
-	// Rotate once — a new refresh token is issued and the old one is retired.
 	refresh := func(rt string) *httptest.ResponseRecorder {
 		f := url.Values{}
 		f.Set("grant_type", "refresh_token")
@@ -223,29 +226,38 @@ func TestOAuth21_RefreshTokenReuse_RevokesFamily(t *testing.T) {
 		return exchangeCode(router, f, []string{"reuse-client", "reuse-secret"})
 	}
 
+	// Rotate TWICE so oldRefresh is no longer the immediate predecessor of the
+	// live token — its replay is unambiguous theft-after-advance, not a race.
 	w1 := refresh(oldRefresh)
 	require.Equal(t, http.StatusOK, w1.Code, "first refresh body: %s", w1.Body.String())
 	var body1 map[string]interface{}
 	require.NoError(t, json.Unmarshal(w1.Body.Bytes(), &body1))
-	newRefresh, _ := body1["refresh_token"].(string)
-	require.NotEmpty(t, newRefresh)
-	require.NotEqual(t, oldRefresh, newRefresh, "rotation must mint a fresh refresh token")
+	refresh2, _ := body1["refresh_token"].(string)
+	require.NotEmpty(t, refresh2)
+	require.NotEqual(t, oldRefresh, refresh2, "rotation must mint a fresh refresh token")
 
-	// Replay the OLD (already-rotated) refresh token: reuse detected.
-	w2 := refresh(oldRefresh)
-	assert.Equal(t, http.StatusBadRequest, w2.Code, "reuse body: %s", w2.Body.String())
+	w2 := refresh(refresh2)
+	require.Equal(t, http.StatusOK, w2.Code, "second refresh body: %s", w2.Body.String())
+	var body2 map[string]interface{}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &body2))
+	liveRefresh, _ := body2["refresh_token"].(string)
+	require.NotEmpty(t, liveRefresh)
+
+	// Replay the ORIGINAL (now two rotations stale) refresh token: genuine reuse.
+	w3 := refresh(oldRefresh)
+	assert.Equal(t, http.StatusBadRequest, w3.Code, "reuse body: %s", w3.Body.String())
 	var errBody map[string]interface{}
-	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &errBody))
+	require.NoError(t, json.Unmarshal(w3.Body.Bytes(), &errBody))
 	assert.Equal(t, "invalid_grant", errBody["error"])
 
-	// Breach response: the reuse revoked the whole family, so the token that
-	// was legitimately rotated in is now dead too.
-	w3 := refresh(newRefresh)
-	assert.Equal(t, http.StatusBadRequest, w3.Code,
-		"the live refresh token must be revoked after reuse of its rotated predecessor: %s", w3.Body.String())
-	var errBody3 map[string]interface{}
-	require.NoError(t, json.Unmarshal(w3.Body.Bytes(), &errBody3))
-	assert.Equal(t, "invalid_grant", errBody3["error"])
+	// Breach response: the reuse revoked this family's live session, so the
+	// token that was legitimately rotated in is now dead too.
+	w4 := refresh(liveRefresh)
+	assert.Equal(t, http.StatusBadRequest, w4.Code,
+		"the live refresh token must be revoked after genuine reuse in its family: %s", w4.Body.String())
+	var errBody4 map[string]interface{}
+	require.NoError(t, json.Unmarshal(w4.Body.Bytes(), &errBody4))
+	assert.Equal(t, "invalid_grant", errBody4["error"])
 }
 
 // Item 4: the --oauth21-strict flag. Default (false) leaves the implicit grant
