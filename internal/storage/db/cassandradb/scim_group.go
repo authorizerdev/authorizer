@@ -14,6 +14,15 @@ import (
 
 const scimGroupColumns = "id, org_id, display_name, external_id, created_at, updated_at"
 
+// groupScanSafetyCap bounds the org-scoped scan-and-compare-in-app
+// displayName lookup below. It is NOT a realistic ceiling on an org's group
+// count — gocql's Scanner already pages through the full ALLOW FILTERING
+// result set as Next() is called, so a normal lookup runs to full exhaustion
+// (or an early match) regardless of how many pages that takes. This exists
+// purely as a circuit-breaker against unbounded work on a pathologically
+// large partition, mirroring DynamoDB's groupScanSafetyCap.
+const groupScanSafetyCap = 100_000
+
 // scanScimGroup maps the scimGroupColumns projection onto a struct.
 func scanScimGroup(scan func(...interface{}) error, group *schemas.ScimGroup) error {
 	return scan(&group.ID, &group.OrgID, &group.DisplayName, &group.ExternalID, &group.CreatedAt, &group.UpdatedAt)
@@ -91,8 +100,15 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 // query to the org and compare displayName with strings.EqualFold in Go (an
 // org's group set is small), mirroring the DynamoDB fetch-then-filter shape.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
+	// No LIMIT here deliberately: a CQL LIMIT truncates the combined result set
+	// across every page, which would silently drop a match beyond it — the
+	// exact bug groupScanSafetyCap exists to avoid. gocql's Scanner pages
+	// through ALLOW FILTERING lazily as Next() is called, so leaving LIMIT off
+	// lets a real match anywhere in the org's group set still be found; the
+	// safety cap below bounds the Go-side loop instead, not the CQL query.
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE org_id = ? ALLOW FILTERING", scimGroupColumns, KeySpace+"."+schemas.Collections.ScimGroup)
 	scanner := p.db.Query(query, orgID).Consistency(gocql.One).Iter().Scanner()
+	examined := 0
 	for scanner.Next() {
 		var group schemas.ScimGroup
 		if err := scanScimGroup(scanner.Scan, &group); err != nil {
@@ -100,6 +116,12 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 		}
 		if strings.EqualFold(group.DisplayName, displayName) {
 			return &group, nil
+		}
+		examined++
+		if examined >= groupScanSafetyCap {
+			p.dependencies.Log.Warn().Str("org_id", orgID).Int("examined", examined).
+				Msg("GetScimGroupByOrgAndDisplayName: hit the scan safety cap without a match")
+			return nil, gocql.ErrNotFound
 		}
 	}
 	if err := scanner.Err(); err != nil {

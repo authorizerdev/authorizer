@@ -7,16 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// groupScanCap bounds the org_id query used to resolve a group by displayName.
-// An org's group count is small; this closes over the realistic range without
-// paginating.
-// ponytail: cap at 1000; add pagination if an org ever exceeds it.
-const groupScanCap = 1000
+// groupScanSafetyCap bounds the org-scoped scan-and-compare-in-app lookups
+// below (queryEqUntil). It is NOT a realistic ceiling on an org's group
+// count — normal lookups page through the whole partition — it exists purely
+// as a circuit-breaker against unbounded work on a pathologically large one.
+const groupScanSafetyCap = 100_000
 
 // AddScimGroup creates a new SCIM group record.
 func (p *provider) AddScimGroup(ctx context.Context, group *schemas.ScimGroup) (*schemas.ScimGroup, error) {
@@ -76,20 +77,25 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 // caseExact:false (RFC 7644 §3.4.2.2), and a DynamoDB GSI lookup is exact-match
 // only, so the case-fold happens here in Go with strings.EqualFold.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
-	items, err := p.queryEqLimit(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, nil, groupScanCap)
+	var found schemas.ScimGroup
+	ok, err := p.queryEqUntil(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, groupScanSafetyCap, func(it map[string]types.AttributeValue) (bool, error) {
+		var group schemas.ScimGroup
+		if err := unmarshalItem(it, &group); err != nil {
+			return false, err
+		}
+		if !strings.EqualFold(group.DisplayName, displayName) {
+			return false, nil
+		}
+		found = group
+		return true, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	for _, it := range items {
-		var group schemas.ScimGroup
-		if err := unmarshalItem(it, &group); err != nil {
-			return nil, err
-		}
-		if strings.EqualFold(group.DisplayName, displayName) {
-			return &group, nil
-		}
+	if !ok {
+		return nil, errors.New("no document found")
 	}
-	return nil, errors.New("no document found")
+	return &found, nil
 }
 
 // GetScimGroupByOrgAndExternalID resolves the single group with the given
@@ -98,18 +104,23 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 // and match in-app (an org's group set is small).
 func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
 	want := orgID + ":" + externalID
-	items, err := p.queryEqLimit(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, nil, groupScanCap)
+	var found schemas.ScimGroup
+	ok, err := p.queryEqUntil(ctx, schemas.Collections.ScimGroup, "org_id", "org_id", orgID, groupScanSafetyCap, func(it map[string]types.AttributeValue) (bool, error) {
+		var group schemas.ScimGroup
+		if err := unmarshalItem(it, &group); err != nil {
+			return false, err
+		}
+		if group.ExternalID == nil || *group.ExternalID != want {
+			return false, nil
+		}
+		found = group
+		return true, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	for _, it := range items {
-		var group schemas.ScimGroup
-		if err := unmarshalItem(it, &group); err != nil {
-			return nil, err
-		}
-		if group.ExternalID != nil && *group.ExternalID == want {
-			return &group, nil
-		}
+	if !ok {
+		return nil, errors.New("no document found")
 	}
-	return nil, errors.New("no document found")
+	return &found, nil
 }

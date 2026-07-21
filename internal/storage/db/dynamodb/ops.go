@@ -211,6 +211,59 @@ func (p *provider) queryEqLimit(ctx context.Context, table, indexName, pkAttr, p
 	return res.Items, nil
 }
 
+// queryEqUntil pages through the pkAttr=pkVal partition (like queryEq) but
+// stops as soon as match reports a hit, instead of materializing every page
+// before filtering. maxItems is a defensive circuit-breaker against unbounded
+// scan cost on a pathologically large partition — NOT a realistic ceiling;
+// normal callers exhaust the partition long before reaching it. match may
+// return an error (e.g. a decode failure), which aborts the scan immediately
+// rather than being swallowed as a non-match; on a hit it is responsible for
+// capturing whatever it needs from the item (queryEqUntil only reports found/
+// not-found, it does not return the raw item — callers already decode it
+// inside match to test it, so returning it again would be redundant).
+func (p *provider) queryEqUntil(ctx context.Context, table, indexName, pkAttr, pkVal string, maxItems int, match func(map[string]types.AttributeValue) (bool, error)) (bool, error) {
+	kc := expression.Key(pkAttr).Equal(expression.Value(pkVal))
+	expr, err := expression.NewBuilder().WithKeyCondition(kc).Build()
+	if err != nil {
+		return false, err
+	}
+	var start map[string]types.AttributeValue
+	examined := 0
+	for {
+		in := &dynamodb.QueryInput{
+			TableName:                 aws.String(table),
+			IndexName:                 aws.String(indexName),
+			KeyConditionExpression:    expr.KeyCondition(),
+			ExpressionAttributeNames:  expr.Names(),
+			ExpressionAttributeValues: expr.Values(),
+			ExclusiveStartKey:         start,
+		}
+		res, err := p.client.Query(ctx, in)
+		if err != nil {
+			return false, err
+		}
+		for _, it := range res.Items {
+			ok, err := match(it)
+			if err != nil {
+				return false, err
+			}
+			if ok {
+				return true, nil
+			}
+			examined++
+			if examined >= maxItems {
+				p.dependencies.Log.Warn().Str("table", table).Str("partition_key", pkVal).Int("examined", examined).
+					Msg("queryEqUntil: hit the scan safety cap without a match")
+				return false, nil
+			}
+		}
+		if res.LastEvaluatedKey == nil {
+			return false, nil
+		}
+		start = res.LastEvaluatedKey
+	}
+}
+
 func (p *provider) scanFilteredLimit(ctx context.Context, table string, index *string, filter *expression.ConditionBuilder, limit int32) ([]map[string]types.AttributeValue, error) {
 	in := &dynamodb.ScanInput{
 		TableName: aws.String(table),
