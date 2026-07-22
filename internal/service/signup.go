@@ -156,15 +156,15 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		user.Picture = params.Picture
 	}
 
-	// params.IsMultiFactorAuthEnabled is deliberately NOT honored here. Signup
-	// is unauthenticated and public (authorizer.v1.public = true) — letting the
-	// caller creating their own account also decide whether MFA applies to it
-	// defeats the server's MFA-on-by-default policy. The field's one
-	// legitimate use is the authenticated admin `_update_user` path (see
+	// SignUpRequest has no is_multi_factor_auth_enabled field (removed from
+	// the GraphQL schema and proto — security fix): signup is unauthenticated
+	// and public (authorizer.v1.public = true), so the caller creating their
+	// own account must never be able to also decide whether MFA applies to
+	// it. user.IsMultiFactorAuthEnabled stays nil here, so effectiveMFAEnabled
+	// falls back to the server's own --enable-*-mfa config — the only
+	// override is the authenticated admin `_update_user` path (see
 	// web/dashboard's Users page), which sets it directly on an existing
-	// schemas.User, not through this struct. Leaving it nil here means
-	// effectiveMFAEnabled falls back to the server's own --enable-*-mfa
-	// config, which is exactly the desired behavior for a brand-new account.
+	// schemas.User.
 
 	isMFAEnforced := p.Config.EnforceMFA
 	if isMFAEnforced {

@@ -324,7 +324,12 @@ message SignupRequest {
   repeated string roles = 12;
   repeated string scope = 13;
   string redirect_uri = 14;
-  bool is_multi_factor_auth_enabled = 15;
+  // 15 (is_multi_factor_auth_enabled) removed (security fix): an
+  // unauthenticated signup caller must not be able to decide whether MFA
+  // applies to their own new account — that defeated the MFA-on-by-default
+  // policy. See UpdateUserRequest for the authenticated admin override.
+  reserved 15;
+  reserved "is_multi_factor_auth_enabled";
   string state = 16;
   AppData app_data = 17;
 }

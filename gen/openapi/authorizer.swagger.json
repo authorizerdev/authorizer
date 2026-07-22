@@ -4344,9 +4344,6 @@
         "redirect_uri": {
           "type": "string"
         },
-        "is_multi_factor_auth_enabled": {
-          "type": "boolean"
-        },
         "state": {
           "type": "string"
         },

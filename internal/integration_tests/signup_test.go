@@ -205,7 +205,6 @@ func TestSignUpGatesToken(t *testing.T) {
 		email := "signup_gate_offer_" + uuid.New().String() + "@authorizer.dev"
 		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 			Email: &email, Password: password, ConfirmPassword: password,
-			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
@@ -229,28 +228,15 @@ func TestSignUpGatesToken(t *testing.T) {
 		require.NotNil(t, res.AccessToken)
 	})
 
-	// Security regression: signup is unauthenticated (authorizer.v1.public =
-	// true). A caller explicitly setting IsMultiFactorAuthEnabled: false on
-	// their own signup request must NOT be able to opt their new account out
-	// of the server's MFA-on-by-default policy — that field is honored only
-	// on the authenticated admin _update_user path, never here.
-	t.Run("MFA available, caller sets IsMultiFactorAuthEnabled=false -> gate still applies", func(t *testing.T) {
-		cfg := getTestConfig()
-		cfg.EnableMFA = true
-		cfg.EnableTOTPLogin = true
-		ts := initTestSetup(t, cfg)
-		_, ctx := createContext(ts)
-
-		email := "signup_gate_bypass_attempt_" + uuid.New().String() + "@authorizer.dev"
-		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email: &email, Password: password, ConfirmPassword: password,
-			IsMultiFactorAuthEnabled: refs.NewBoolRef(false),
-		})
-		require.NoError(t, err)
-		require.NotNil(t, res)
-		assert.Nil(t, res.AccessToken, "a client-supplied IsMultiFactorAuthEnabled=false must not bypass the server's MFA-on-by-default policy")
-		assert.True(t, refs.BoolValue(res.ShouldShowTotpScreen))
-	})
+	// Security regression, superseded by a compile-time guarantee: signup is
+	// unauthenticated (authorizer.v1.public = true), so a caller must never be
+	// able to opt their own new account out of the server's MFA-on-by-default
+	// policy. is_multi_factor_auth_enabled was removed entirely from
+	// SignUpRequest (GraphQL schema + proto) rather than merely ignored —
+	// there is no longer a field to set, so the bypass this test used to
+	// prove closed can no longer even be expressed in a request. The
+	// authenticated admin _update_user path remains the only way to override
+	// MFA for an existing user.
 
 	// Regression guard for finding I1 (final whole-branch review): this
 	// block used to be guarded by `p.Config.EnableMFA && p.Config.EnableTOTPLogin`,

@@ -5672,7 +5672,12 @@ input MobileSignUpRequest {
   roles: [String!]
   scope: [String!]
   redirect_uri: String
-  is_multi_factor_auth_enabled: Boolean
+  # is_multi_factor_auth_enabled removed (security fix): letting an
+  # unauthenticated signup caller decide whether MFA applies to their own new
+  # account defeated the server's MFA-on-by-default policy. That decision is
+  # server-config-driven for new accounts; the authenticated admin
+  # ` + "`" + `_update_user` + "`" + ` path remains the only way to override it for an existing
+  # user.
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -5695,7 +5700,12 @@ input SignUpRequest {
   roles: [String!]
   scope: [String!]
   redirect_uri: String
-  is_multi_factor_auth_enabled: Boolean
+  # is_multi_factor_auth_enabled removed (security fix): letting an
+  # unauthenticated signup caller decide whether MFA applies to their own new
+  # account defeated the server's MFA-on-by-default policy. That decision is
+  # server-config-driven for new accounts; the authenticated admin
+  # ` + "`" + `_update_user` + "`" + ` path remains the only way to override it for an existing
+  # user.
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -37271,7 +37281,7 @@ func (ec *executionContext) unmarshalInputMobileSignUpRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -37376,13 +37386,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpRequest(ctx context.Contex
 				return it, err
 			}
 			it.RedirectURI = data
-		case "is_multi_factor_auth_enabled":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IsMultiFactorAuthEnabled = data
 		case "state":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -38029,7 +38032,7 @@ func (ec *executionContext) unmarshalInputSignUpRequest(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -38134,13 +38137,6 @@ func (ec *executionContext) unmarshalInputSignUpRequest(ctx context.Context, obj
 				return it, err
 			}
 			it.RedirectURI = data
-		case "is_multi_factor_auth_enabled":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IsMultiFactorAuthEnabled = data
 		case "state":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)

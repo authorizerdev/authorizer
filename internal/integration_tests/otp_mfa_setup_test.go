@@ -35,7 +35,6 @@ func TestTOTPMFAEnrollment(t *testing.T) {
 	email := "totp_mfa_" + uuid.NewString() + "@authorizer.dev"
 	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email: &email, Password: password, ConfirmPassword: password,
-		IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 	})
 	require.NoError(t, err)
 	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
@@ -139,7 +138,6 @@ func TestEmailOTPMFAEnrollment(t *testing.T) {
 	email := "email_otp_mfa_" + uuid.NewString() + "@authorizer.dev"
 	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email: &email, Password: password, ConfirmPassword: password,
-		IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 	})
 	require.NoError(t, err)
 	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
@@ -240,7 +238,6 @@ func TestEmailOTPMFASetupViaMfaSessionCookie(t *testing.T) {
 	email := "cookie_email_otp_mfa_" + uuid.NewString() + "@authorizer.dev"
 	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email: &email, Password: password, ConfirmPassword: password,
-		IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 	})
 	require.NoError(t, err)
 	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
@@ -314,7 +311,6 @@ func TestSMSOTPMFASetupViaMfaSessionCookie(t *testing.T) {
 	mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
 	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		PhoneNumber: &mobile, Password: password, ConfirmPassword: password,
-		IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 	})
 	require.NoError(t, err)
 	user, err := ts.StorageProvider.GetUserByPhoneNumber(ctx, mobile)
