@@ -45,7 +45,7 @@ func asAPIOrgSAMLConnection(t *schemas.TrustedIssuer) *model.OrgSAMLConnection {
 func validateSAMLHTTPSURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return fmt.Errorf("must be a valid https URL")
+		return InvalidArgument("must be a valid https URL")
 	}
 	return nil
 }
@@ -56,10 +56,10 @@ func validateSAMLHTTPSURL(raw string) error {
 func validateSAMLCertPEM(raw string) error {
 	block, _ := pem.Decode([]byte(strings.TrimSpace(raw)))
 	if block == nil {
-		return fmt.Errorf("idp_certificate must be a PEM-encoded X.509 certificate")
+		return InvalidArgument("idp_certificate must be a PEM-encoded X.509 certificate")
 	}
 	if _, err := x509.ParseCertificate(block.Bytes); err != nil {
-		return fmt.Errorf("idp_certificate is not a valid X.509 certificate: %w", err)
+		return InvalidArgument(fmt.Sprintf("idp_certificate is not a valid X.509 certificate: %v", err))
 	}
 	return nil
 }
@@ -72,7 +72,7 @@ func validateSAMLAttributeMapping(raw string) error {
 	}
 	var m map[string]string
 	if err := json.Unmarshal([]byte(raw), &m); err != nil {
-		return fmt.Errorf("attribute_mapping must be a JSON object of string values: %w", err)
+		return InvalidArgument(fmt.Sprintf("attribute_mapping must be a JSON object of string values: %v", err))
 	}
 	return nil
 }
@@ -93,7 +93,7 @@ func (p *provider) CreateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	idpSSOURL := strings.TrimSpace(params.IdpSsoURL)
 	idpCert := strings.TrimSpace(params.IdpCertificate)
 	if orgID == "" || name == "" || idpEntityID == "" || idpSSOURL == "" || idpCert == "" {
-		return nil, nil, fmt.Errorf("org_id, name, idp_entity_id, idp_sso_url and idp_certificate are required")
+		return nil, nil, InvalidArgument("org_id, name, idp_entity_id, idp_sso_url and idp_certificate are required")
 	}
 	if err := validateSAMLHTTPSURL(idpSSOURL); err != nil {
 		return nil, nil, fmt.Errorf("idp_sso_url %w", err)
@@ -109,17 +109,17 @@ func (p *provider) CreateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	// The organization must exist.
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Str("org_id", orgID).Msg("organization not found")
-		return nil, nil, fmt.Errorf("organization not found: %s", orgID)
+		return nil, nil, NotFound(fmt.Sprintf("organization not found: %s", orgID))
 	}
 	// At most one SAML connection per org.
 	if existing, _ := p.StorageProvider.GetTrustedIssuerByOrgIDAndKind(ctx, orgID, constants.TrustKindSSOSAML); existing != nil {
-		return nil, nil, fmt.Errorf("a SAML connection already exists for this organization")
+		return nil, nil, AlreadyExists("a SAML connection already exists for this organization")
 	}
 	// idp_entity_id is stored in the globally-unique IssuerURL column — this also
 	// prevents a SAML row from shadowing an OIDC/client_assertion_trust row at the
 	// same issuer value, and vice-versa.
 	if existing, _ := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, idpEntityID); existing != nil {
-		return nil, nil, fmt.Errorf("idp_entity_id already registered: %s", idpEntityID)
+		return nil, nil, AlreadyExists(fmt.Sprintf("idp_entity_id already registered: %s", idpEntityID))
 	}
 
 	allowIDPInitiated := params.AllowIdpInitiated != nil && *params.AllowIdpInitiated
@@ -205,7 +205,7 @@ func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	}
 	// Guard: this op only edits sso_saml rows — never a client_assertion row.
 	if issuer.EffectiveKind() != constants.TrustKindSSOSAML {
-		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("not a SAML connection"))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound("not a SAML connection"))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
 		return nil, nil, err
@@ -217,12 +217,12 @@ func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	if params.IdpEntityID != nil {
 		v := strings.TrimSpace(*params.IdpEntityID)
 		if v == "" {
-			return nil, nil, fmt.Errorf("idp_entity_id cannot be empty")
+			return nil, nil, InvalidArgument("idp_entity_id cannot be empty")
 		}
 		// Preserve global issuer_url (idp_entity_id) uniqueness on change.
 		if v != issuer.IssuerURL {
 			if existing, _ := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, v); existing != nil {
-				return nil, nil, fmt.Errorf("idp_entity_id already registered: %s", v)
+				return nil, nil, AlreadyExists(fmt.Sprintf("idp_entity_id already registered: %s", v))
 			}
 		}
 		issuer.IssuerURL = v
@@ -307,13 +307,13 @@ func (p *provider) resolveOrgSAMLConnection(ctx context.Context, id, orgID *stri
 			return nil, err
 		}
 		if issuer.EffectiveKind() != constants.TrustKindSSOSAML {
-			return nil, fmt.Errorf("not a SAML connection")
+			return nil, NotFound("not a SAML connection")
 		}
 		return issuer, nil
 	case orgID != nil && strings.TrimSpace(*orgID) != "":
 		return p.StorageProvider.GetTrustedIssuerByOrgIDAndKind(ctx, strings.TrimSpace(*orgID), constants.TrustKindSSOSAML)
 	default:
-		return nil, fmt.Errorf("supply either id or org_id")
+		return nil, InvalidArgument("supply either id or org_id")
 	}
 }
 

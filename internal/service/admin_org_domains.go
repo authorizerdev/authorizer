@@ -17,7 +17,7 @@ import (
 // errDomainOwnedByAnotherOrg is the uniform, stable API error when a domain is
 // already verified by a different org (invariant 2). Kept as one string so the
 // three write paths (verify, trusted-assert) return it identically.
-var errDomainOwnedByAnotherOrg = fmt.Errorf("domain_already_verified_by_another_org")
+var errDomainOwnedByAnotherOrg = AlreadyExists("domain_already_verified_by_another_org")
 
 // RequestOrgDomain mints a DNS TXT challenge proving control of a domain and
 // returns the record to publish. It creates NO durable row — the pending token
@@ -31,7 +31,7 @@ func (p *provider) RequestOrgDomain(ctx context.Context, meta RequestMetadata, p
 	orgID := strings.TrimSpace(params.OrgID)
 	if orgID == "" {
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainRequestFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("org_id is required")
+		return nil, nil, InvalidArgument("org_id is required")
 	}
 	domain, err := normalizeDomain(params.Domain)
 	if err != nil {
@@ -48,13 +48,13 @@ func (p *provider) RequestOrgDomain(ctx context.Context, meta RequestMetadata, p
 		allowed, rlErr := p.RateLimitProvider.Allow(ctx, "org_domain_request:"+orgID)
 		if rlErr == nil && !allowed {
 			log.Debug().Msg("domain request rate limit exceeded")
-			return nil, nil, fmt.Errorf("too many domain requests, please retry later")
+			return nil, nil, TooManyRequests("too many domain requests, please retry later")
 		}
 	}
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Msg("organization not found")
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainRequestFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("organization not found")
+		return nil, nil, NotFound("organization not found")
 	}
 
 	token, err := generateDomainChallengeToken()
@@ -112,7 +112,7 @@ func (p *provider) VerifyOrgDomain(ctx context.Context, meta RequestMetadata, pa
 		allowed, rlErr := p.RateLimitProvider.Allow(ctx, "org_domain_verify:"+orgID)
 		if rlErr == nil && !allowed {
 			log.Debug().Msg("domain verify rate limit exceeded")
-			return nil, nil, fmt.Errorf("too many verification attempts, please retry later")
+			return nil, nil, TooManyRequests("too many verification attempts, please retry later")
 		}
 	}
 
@@ -130,19 +130,19 @@ func (p *provider) VerifyOrgDomain(ctx context.Context, meta RequestMetadata, pa
 	if err != nil || token == "" {
 		log.Debug().Err(err).Msg("no pending domain challenge")
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainVerifyFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("no pending verification challenge for this domain; request one first")
+		return nil, nil, FailedPrecondition("no pending verification challenge for this domain; request one first")
 	}
 
 	matched, dnsErr := p.lookupDomainTXTMatches(ctx, domain, token)
 	if dnsErr != nil {
 		log.Debug().Err(dnsErr).Msg("domain TXT lookup failed")
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainVerifyFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("dns verification failed: could not resolve the challenge TXT record")
+		return nil, nil, FailedPrecondition("dns verification failed: could not resolve the challenge TXT record")
 	}
 	if !matched {
 		// Leave the challenge in place so the tenant can retry after DNS propagates.
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainVerifyFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("dns verification failed: challenge TXT record not found or does not match")
+		return nil, nil, FailedPrecondition("dns verification failed: challenge TXT record not found or does not match")
 	}
 
 	row, err := p.StorageProvider.AddOrgDomain(ctx, &schemas.OrgDomain{
@@ -179,7 +179,7 @@ func (p *provider) AddVerifiedOrgDomain(ctx context.Context, meta RequestMetadat
 	orgID := strings.TrimSpace(params.OrgID)
 	if orgID == "" {
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainVerifyFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("org_id is required")
+		return nil, nil, InvalidArgument("org_id is required")
 	}
 	domain, err := normalizeDomain(params.Domain)
 	if err != nil {
@@ -193,7 +193,7 @@ func (p *provider) AddVerifiedOrgDomain(ctx context.Context, meta RequestMetadat
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Msg("organization not found")
 		p.logOrgDomainFailure(meta, constants.AuditOrgDomainVerifyFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("organization not found")
+		return nil, nil, NotFound("organization not found")
 	}
 
 	row, err := p.StorageProvider.AddOrgDomain(ctx, &schemas.OrgDomain{
@@ -225,7 +225,7 @@ func (p *provider) OrgDomains(ctx context.Context, meta RequestMetadata, params 
 	}
 	orgID := strings.TrimSpace(params.OrgID)
 	if orgID == "" {
-		return nil, nil, fmt.Errorf("org_id is required")
+		return nil, nil, InvalidArgument("org_id is required")
 	}
 	pagination := utils.GetPagination(params.Pagination)
 	domains, pagination, err := p.StorageProvider.ListOrgDomainsByOrg(ctx, orgID, pagination)
@@ -255,7 +255,7 @@ func (p *provider) DeleteOrgDomain(ctx context.Context, meta RequestMetadata, pa
 	row, err := p.StorageProvider.GetOrgDomainByDomain(ctx, domain)
 	if err != nil || row == nil {
 		log.Debug().Err(err).Msg("org domain not found")
-		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("org domain not found"))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound("org domain not found"))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, row.OrgID); err != nil {
 		return nil, nil, err

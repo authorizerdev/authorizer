@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 	"github.com/authorizerdev/authorizer/internal/authctx"
@@ -226,6 +228,48 @@ func TestAuth_LogoutRequiresAuth(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	assert.False(t, called)
+}
+
+// TestAuth_AdminLoginRemainsPublic guards the auth-bootstrap exception: the
+// AdminLogin RPC establishes super-admin auth, so it MUST stay reachable without
+// it. Regression guard that scoping the `public` bypass did not lock admins out.
+func TestAuth_AdminLoginRemainsPublic(t *testing.T) {
+	stub := &stubTokenProvider{superAdmin: false}
+	mw := Auth(stub)
+	called := false
+	_, err := mw(context.Background(), &authorizerv1.AdminLoginRequest{}, info(authorizerv1.AuthorizerAdminService_AdminLogin_FullMethodName), func(ctx context.Context, _ any) (any, error) {
+		called = true
+		_, ok := authctx.FromContext(ctx)
+		assert.False(t, ok, "the public bootstrap login must not attach a principal")
+		return &authorizerv1.AdminLoginResponse{}, nil
+	})
+	require.NoError(t, err)
+	assert.True(t, called, "AdminLogin must bypass auth (it establishes it)")
+	assert.Equal(t, 0, stub.superAdminChecks, "AdminLogin must not require a pre-existing super-admin")
+}
+
+// TestAuth_OnlyAdminLoginIsPublicOnAdminService is the two-layer defense against
+// the latent footgun: (1) the interceptor guard honors `public` on the admin
+// service only for AdminLogin (see Auth), and (2) this invariant ensures no
+// OTHER admin RPC carries `public` in the proto. If a future admin mutation is
+// accidentally annotated public, this fails — and even if it merged, the
+// interceptor guard would still deny it (falling through to the super-admin
+// check), because adminLoginMethodName is an exact allowlist of one.
+func TestAuth_OnlyAdminLoginIsPublicOnAdminService(t *testing.T) {
+	adminSvc, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(adminServiceName))
+	require.NoError(t, err)
+	svc, ok := adminSvc.(protoreflect.ServiceDescriptor)
+	require.True(t, ok)
+	methods := svc.Methods()
+	for i := 0; i < methods.Len(); i++ {
+		m := methods.Get(i)
+		if string(m.Name()) == adminLoginMethodName {
+			assert.Truef(t, isPublicMethod(m), "%s is expected to be public (auth bootstrap)", m.Name())
+			continue
+		}
+		assert.Falsef(t, isPublicMethod(m),
+			"admin RPC %s must never be marked public — only %s may bypass super-admin auth", m.Name(), adminLoginMethodName)
+	}
 }
 
 func TestShouldRejectUnlistedService(t *testing.T) {

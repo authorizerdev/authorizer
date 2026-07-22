@@ -43,7 +43,7 @@ func asAPISAMLIDPKey(k *schemas.SAMLIDPKey) *model.SAMLIDPKey {
 func validateSAMLACSURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-		return fmt.Errorf("acs_url must be a valid http(s) URL")
+		return InvalidArgument("acs_url must be a valid http(s) URL")
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func (p *provider) CreateSAMLServiceProvider(ctx context.Context, meta RequestMe
 	entityID := strings.TrimSpace(params.EntityID)
 	acsURL := strings.TrimSpace(params.AcsURL)
 	if orgID == "" || name == "" || entityID == "" || acsURL == "" {
-		return nil, nil, fmt.Errorf("org_id, name, entity_id and acs_url are required")
+		return nil, nil, InvalidArgument("org_id, name, entity_id and acs_url are required")
 	}
 	if err := validateSAMLACSURL(acsURL); err != nil {
 		return nil, nil, err
@@ -77,10 +77,10 @@ func (p *provider) CreateSAMLServiceProvider(ctx context.Context, meta RequestMe
 		}
 	}
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
-		return nil, nil, fmt.Errorf("organization not found: %s", orgID)
+		return nil, nil, NotFound(fmt.Sprintf("organization not found: %s", orgID))
 	}
 	if existing, _ := p.StorageProvider.GetSAMLServiceProviderByOrgAndEntityID(ctx, orgID, entityID); existing != nil {
-		return nil, nil, fmt.Errorf("a service provider with entity_id %q is already registered for this organization", entityID)
+		return nil, nil, AlreadyExists(fmt.Sprintf("a service provider with entity_id %q is already registered for this organization", entityID))
 	}
 
 	sp := &schemas.SAMLServiceProvider{
@@ -109,11 +109,11 @@ func (p *provider) CreateSAMLServiceProvider(ctx context.Context, meta RequestMe
 func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.UpdateSAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error) {
 	id := strings.TrimSpace(params.ID)
 	if id == "" {
-		return nil, nil, fmt.Errorf("id is required")
+		return nil, nil, InvalidArgument("id is required")
 	}
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, id)
 	if err != nil || existing == nil {
-		return nil, nil, fmt.Errorf("service provider not found: %s", id)
+		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", id))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -128,7 +128,7 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, meta RequestMe
 		v := strings.TrimSpace(*params.EntityID)
 		if v != "" && v != existing.EntityID {
 			if conflict, _ := p.StorageProvider.GetSAMLServiceProviderByOrgAndEntityID(ctx, existing.OrgID, v); conflict != nil && conflict.ID != existing.ID {
-				return nil, nil, fmt.Errorf("a service provider with entity_id %q is already registered for this organization", v)
+				return nil, nil, AlreadyExists(fmt.Sprintf("a service provider with entity_id %q is already registered for this organization", v))
 			}
 			existing.EntityID = v
 		}
@@ -188,7 +188,7 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, meta RequestMe
 func (p *provider) DeleteSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.Response, *ResponseSideEffects, error) {
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || existing == nil {
-		return nil, nil, fmt.Errorf("service provider not found: %s", params.ID)
+		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", params.ID))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -206,7 +206,7 @@ func (p *provider) DeleteSAMLServiceProvider(ctx context.Context, meta RequestMe
 func (p *provider) SAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error) {
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || existing == nil {
-		return nil, nil, fmt.Errorf("service provider not found: %s", params.ID)
+		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", params.ID))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -243,7 +243,7 @@ func (p *provider) RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, 
 		return nil, nil, err
 	}
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
-		return nil, nil, fmt.Errorf("organization not found: %s", orgID)
+		return nil, nil, NotFound(fmt.Sprintf("organization not found: %s", orgID))
 	}
 	keys, err := p.StorageProvider.ListSAMLIDPKeys(ctx, orgID)
 	if err != nil {
@@ -291,13 +291,13 @@ func (p *provider) RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, 
 func (p *provider) RetireSAMLIDPKey(ctx context.Context, meta RequestMetadata, params *model.RetireSAMLIDPKeyRequest) (*model.Response, *ResponseSideEffects, error) {
 	key, err := p.StorageProvider.GetSAMLIDPKeyByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || key == nil {
-		return nil, nil, fmt.Errorf("signing key not found: %s", params.ID)
+		return nil, nil, NotFound(fmt.Sprintf("signing key not found: %s", params.ID))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, key.OrgID); err != nil {
 		return nil, nil, err
 	}
 	if key.Status == schemas.SAMLIDPKeyStatusCurrent {
-		return nil, nil, fmt.Errorf("cannot retire the current signing key; rotate to a new key first")
+		return nil, nil, FailedPrecondition("cannot retire the current signing key; rotate to a new key first")
 	}
 	if key.Status == schemas.SAMLIDPKeyStatusRetired {
 		return &model.Response{Message: "signing key already retired"}, nil, nil
@@ -341,11 +341,11 @@ func (p *provider) ImportSAMLSPMetadata(ctx context.Context, meta RequestMetadat
 	}
 	raw := strings.TrimSpace(params.MetadataXML)
 	if raw == "" {
-		return nil, nil, fmt.Errorf("metadata_xml is required")
+		return nil, nil, InvalidArgument("metadata_xml is required")
 	}
 	ed, err := samlsp.ParseMetadata([]byte(raw))
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not parse SP metadata XML: %w", err)
+		return nil, nil, InvalidArgument(fmt.Sprintf("could not parse SP metadata XML: %v", err))
 	}
 	acsURL := ""
 	certPEM := ""
@@ -364,7 +364,7 @@ func (p *provider) ImportSAMLSPMetadata(ctx context.Context, meta RequestMetadat
 		}
 	}
 	if ed.EntityID == "" || acsURL == "" {
-		return nil, nil, fmt.Errorf("metadata did not contain an SP entity ID and Assertion Consumer Service URL")
+		return nil, nil, InvalidArgument("metadata did not contain an SP entity ID and Assertion Consumer Service URL")
 	}
 	res := &model.SAMLSPMetadataParseResult{EntityID: ed.EntityID, AcsURL: acsURL}
 	if certPEM != "" {

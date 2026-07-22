@@ -45,7 +45,7 @@ func asAPIOrgOIDCConnection(t *schemas.TrustedIssuer) *model.OrgOIDCConnection {
 func validateSSOIssuerURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return fmt.Errorf("issuer_url must be a valid https URL")
+		return InvalidArgument("issuer_url must be a valid https URL")
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func (p *provider) CreateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	clientID := strings.TrimSpace(params.ClientID)
 	clientSecret := params.ClientSecret // preserve verbatim (secret may be non-trimmable)
 	if orgID == "" || name == "" || issuerURL == "" || clientID == "" || strings.TrimSpace(clientSecret) == "" {
-		return nil, nil, fmt.Errorf("org_id, name, issuer_url, client_id and client_secret are required")
+		return nil, nil, InvalidArgument("org_id, name, issuer_url, client_id and client_secret are required")
 	}
 	if err := validateSSOIssuerURL(issuerURL); err != nil {
 		return nil, nil, err
@@ -74,17 +74,17 @@ func (p *provider) CreateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	// The organization must exist.
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Str("org_id", orgID).Msg("organization not found")
-		return nil, nil, fmt.Errorf("organization not found: %s", orgID)
+		return nil, nil, NotFound(fmt.Sprintf("organization not found: %s", orgID))
 	}
 	// At most one OIDC connection per org.
 	if existing, _ := p.StorageProvider.GetTrustedIssuerByOrgIDAndKind(ctx, orgID, constants.TrustKindSSOOIDC); existing != nil {
-		return nil, nil, fmt.Errorf("an OIDC connection already exists for this organization")
+		return nil, nil, AlreadyExists("an OIDC connection already exists for this organization")
 	}
 	// issuer_url is globally unique (DB unique index + service guard) — this also
 	// prevents an SSO row from shadowing a client_assertion_trust row at the same
 	// URL, and vice-versa.
 	if existing, _ := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, issuerURL); existing != nil {
-		return nil, nil, fmt.Errorf("issuer_url already registered: %s", issuerURL)
+		return nil, nil, AlreadyExists(fmt.Sprintf("issuer_url already registered: %s", issuerURL))
 	}
 
 	// The upstream secret is stored AES-encrypted (reversible: replayed to the
@@ -149,7 +149,7 @@ func (p *provider) UpdateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	}
 	// Guard: this op only edits sso_oidc rows — never a client_assertion row.
 	if issuer.EffectiveKind() != constants.TrustKindSSOOIDC {
-		return nil, nil, p.maskNonSuperAdminError(ctx, meta, fmt.Errorf("not an OIDC connection"))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound("not an OIDC connection"))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, issuer.OrgID); err != nil {
 		return nil, nil, err
@@ -166,7 +166,7 @@ func (p *provider) UpdateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 		// Preserve global issuer_url uniqueness on change.
 		if u != issuer.IssuerURL {
 			if existing, _ := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, u); existing != nil {
-				return nil, nil, fmt.Errorf("issuer_url already registered: %s", u)
+				return nil, nil, AlreadyExists(fmt.Sprintf("issuer_url already registered: %s", u))
 			}
 		}
 		issuer.IssuerURL = u
@@ -217,13 +217,13 @@ func (p *provider) resolveOrgOIDCConnection(ctx context.Context, id, orgID *stri
 			return nil, err
 		}
 		if issuer.EffectiveKind() != constants.TrustKindSSOOIDC {
-			return nil, fmt.Errorf("not an OIDC connection")
+			return nil, NotFound("not an OIDC connection")
 		}
 		return issuer, nil
 	case orgID != nil && strings.TrimSpace(*orgID) != "":
 		return p.StorageProvider.GetTrustedIssuerByOrgIDAndKind(ctx, strings.TrimSpace(*orgID), constants.TrustKindSSOOIDC)
 	default:
-		return nil, fmt.Errorf("supply either id or org_id")
+		return nil, InvalidArgument("supply either id or org_id")
 	}
 }
 

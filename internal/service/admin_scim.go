@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -26,17 +25,17 @@ func (p *provider) CreateScimEndpoint(ctx context.Context, meta RequestMetadata,
 	orgID := strings.TrimSpace(params.OrgID)
 	if orgID == "" {
 		p.logScimFailure(meta, constants.AuditScimEndpointCreateFailedEvent, "")
-		return nil, nil, fmt.Errorf("org_id is required")
+		return nil, nil, InvalidArgument("org_id is required")
 	}
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Msg("organization not found")
 		p.logScimFailure(meta, constants.AuditScimEndpointCreateFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("organization not found")
+		return nil, nil, NotFound("organization not found")
 	}
 	if existing, _ := p.StorageProvider.GetScimEndpointByOrgID(ctx, orgID); existing != nil {
 		log.Debug().Msg("scim endpoint already exists for org")
 		p.logScimFailure(meta, constants.AuditScimEndpointCreateFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("a scim endpoint already exists for this organization")
+		return nil, nil, AlreadyExists("a scim endpoint already exists for this organization")
 	}
 
 	// The endpoint id is embedded (non-secret) in the token; generate it first
@@ -89,7 +88,7 @@ func (p *provider) RotateScimToken(ctx context.Context, meta RequestMetadata, pa
 	if err != nil || endpoint == nil {
 		log.Debug().Err(err).Msg("scim endpoint not found")
 		p.logScimFailure(meta, constants.AuditScimTokenRotateFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("scim endpoint not found")
+		return nil, nil, NotFound("scim endpoint not found")
 	}
 	token, hash, err := scim.GenerateToken(endpoint.ID)
 	if err != nil {
@@ -131,7 +130,7 @@ func (p *provider) DeleteScimEndpoint(ctx context.Context, meta RequestMetadata,
 	if err != nil || endpoint == nil {
 		log.Debug().Err(err).Msg("scim endpoint not found")
 		p.logScimFailure(meta, constants.AuditScimEndpointDeleteFailedEvent, orgID)
-		return nil, nil, fmt.Errorf("scim endpoint not found")
+		return nil, nil, NotFound("scim endpoint not found")
 	}
 	if err := p.StorageProvider.DeleteScimEndpoint(ctx, endpoint); err != nil {
 		log.Debug().Err(err).Msg("failed to delete scim endpoint")
@@ -160,7 +159,7 @@ func (p *provider) ScimEndpoint(ctx context.Context, meta RequestMetadata, param
 	endpoint, err := p.StorageProvider.GetScimEndpointByOrgID(ctx, strings.TrimSpace(params.OrgID))
 	if err != nil || endpoint == nil {
 		log.Debug().Err(err).Msg("scim endpoint not found")
-		return nil, nil, fmt.Errorf("scim endpoint not found")
+		return nil, nil, NotFound("scim endpoint not found")
 	}
 	return endpoint.AsAPIScimEndpoint(), nil, nil
 }

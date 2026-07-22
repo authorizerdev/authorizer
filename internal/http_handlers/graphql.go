@@ -49,6 +49,8 @@ func kindToGraphQLCode(kind service.ErrorKind) string {
 		return "FAILED_PRECONDITION"
 	case service.KindTooManyRequests:
 		return "TOO_MANY_REQUESTS"
+	case service.KindAlreadyExists:
+		return "ALREADY_EXISTS"
 	default:
 		return "INTERNAL"
 	}

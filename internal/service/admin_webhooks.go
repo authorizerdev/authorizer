@@ -35,17 +35,17 @@ func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params 
 
 	if !validators.IsValidWebhookEventName(params.EventName) {
 		log.Debug().Str("EventName", params.EventName).Msg("Invalid Event Name")
-		return nil, nil, fmt.Errorf("invalid event name %s", params.EventName)
+		return nil, nil, InvalidArgument(fmt.Sprintf("invalid event name %s", params.EventName))
 	}
 	if strings.TrimSpace(params.Endpoint) == "" {
 		log.Debug().Msg("endpoint is missing")
-		return nil, nil, fmt.Errorf("empty endpoint not allowed")
+		return nil, nil, InvalidArgument("empty endpoint not allowed")
 	}
 	// SSRF protection: validate endpoint URL and resolved IPs (skip in test env).
 	if p.Env != constants.TestEnv {
 		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
-			return nil, nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+			return nil, nil, InvalidArgument(fmt.Sprintf("invalid endpoint: %s", err.Error()))
 		}
 	}
 
@@ -127,20 +127,20 @@ func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, para
 	if params.EventName != nil && webhookDetails.EventName != refs.StringValue(params.EventName) {
 		if isValid := validators.IsValidWebhookEventName(refs.StringValue(params.EventName)); !isValid {
 			log.Debug().Str("event_name", refs.StringValue(params.EventName)).Msg("invalid event name")
-			return nil, nil, fmt.Errorf("invalid event name %s", refs.StringValue(params.EventName))
+			return nil, nil, InvalidArgument(fmt.Sprintf("invalid event name %s", refs.StringValue(params.EventName)))
 		}
 		webhookDetails.EventName = refs.StringValue(params.EventName)
 	}
 	if params.Endpoint != nil && webhookDetails.EndPoint != refs.StringValue(params.Endpoint) {
 		if strings.TrimSpace(refs.StringValue(params.Endpoint)) == "" {
 			log.Debug().Msg("empty endpoint not allowed")
-			return nil, nil, fmt.Errorf("empty endpoint not allowed")
+			return nil, nil, InvalidArgument("empty endpoint not allowed")
 		}
 		// SSRF protection: validate endpoint URL and resolved IPs (skip in test env).
 		if p.Env != constants.TestEnv {
 			if err := validators.ValidateEndpointURL(refs.StringValue(params.Endpoint)); err != nil {
 				log.Debug().Err(err).Str("endpoint", refs.StringValue(params.Endpoint)).Msg("endpoint URL rejected by SSRF filter")
-				return nil, nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+				return nil, nil, InvalidArgument(fmt.Sprintf("invalid endpoint: %s", err.Error()))
 			}
 		}
 		webhookDetails.EndPoint = refs.StringValue(params.Endpoint)
@@ -189,7 +189,7 @@ func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, para
 
 	if params.ID == "" {
 		log.Debug().Msg("Webhook ID required")
-		return nil, nil, fmt.Errorf("webhook ID required")
+		return nil, nil, InvalidArgument("webhook ID required")
 	}
 
 	log = log.With().Str("webhookID", params.ID).Logger()
@@ -306,7 +306,7 @@ func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, param
 
 	if !validators.IsValidWebhookEventName(params.EventName) {
 		log.Debug().Str("event_name", params.EventName).Msg("Invalid event name")
-		return nil, nil, fmt.Errorf("invalid event_name %s", params.EventName)
+		return nil, nil, InvalidArgument(fmt.Sprintf("invalid event_name %s", params.EventName))
 	}
 
 	user := model.User{
@@ -355,7 +355,7 @@ func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, param
 		client, err = validators.SafeHTTPClient(ctx, params.Endpoint, testEndpointHTTPTimeout)
 		if err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
-			return nil, nil, fmt.Errorf("invalid endpoint: %w", err)
+			return nil, nil, InvalidArgument(fmt.Sprintf("invalid endpoint: %v", err))
 		}
 	}
 

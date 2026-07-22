@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -74,7 +73,7 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 	}
 
 	if params.UserID == "" {
-		return nil, nil, fmt.Errorf("user ID is missing")
+		return nil, nil, InvalidArgument("user ID is missing")
 	}
 
 	log = log.With().Str("user_id", params.UserID).Logger()
@@ -110,6 +109,12 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 	}, nil, nil
 }
 
+// maxInviteMembersBatch caps how many emails a single InviteMembers request may
+// carry. Each email drives sequential DB writes and a goroutine email send, so
+// an unbounded list is a self-inflicted DoS vector; reject oversized batches up
+// front.
+const maxInviteMembersBatch = 100
+
 // InviteMembers creates accounts for the supplied emails that do not yet exist
 // and sends each an invite (magic-link or setup-password) email. Requires
 // super-admin auth and a configured email service. Logic migrated from
@@ -120,17 +125,22 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		return nil, nil, err
 	}
 
+	if len(params.Emails) > maxInviteMembersBatch {
+		log.Debug().Int("count", len(params.Emails)).Msg("too many emails in a single invite request")
+		return nil, nil, InvalidArgument(fmt.Sprintf("cannot invite more than %d members in a single request", maxInviteMembersBatch))
+	}
+
 	// this feature is only allowed if email server is configured
 	if !p.Config.IsEmailServiceEnabled {
 		log.Debug().Msg("Email sending is disabled")
-		return nil, nil, errors.New("email sending is disabled")
+		return nil, nil, FailedPrecondition("email sending is disabled")
 	}
 
 	isBasicAuthEnabled := p.Config.EnableBasicAuthentication
 	isMagicLinkLoginEnabled := p.Config.EnableMagicLinkLogin
 	if !isBasicAuthEnabled && !isMagicLinkLoginEnabled {
 		log.Debug().Msg("Either basic authentication or magic link login is required")
-		return nil, nil, errors.New("either basic authentication or magic link login is required")
+		return nil, nil, FailedPrecondition("either basic authentication or magic link login is required")
 	}
 
 	// filter valid emails
@@ -143,7 +153,7 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 
 	if len(emails) == 0 {
 		log.Debug().Msg("No valid emails found")
-		return nil, nil, errors.New("no valid emails found")
+		return nil, nil, InvalidArgument("no valid emails found")
 	}
 
 	// TODO: optimise to use like query instead of looping through emails and getting user individually
@@ -161,13 +171,14 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 
 	if len(newEmails) == 0 {
 		log.Debug().Msg("All emails already exist")
-		return nil, nil, errors.New("all emails already exist")
+		return nil, nil, AlreadyExists("all emails already exist")
 	}
 
 	// gin-shim: parsers.GetHost / GetAppURL still take a *gin.Context.
 	gc := &gin.Context{Request: meta.Request}
 
 	// invite new emails
+	invitedUsers := make([]*model.User, 0, len(newEmails))
 	for _, email := range newEmails {
 		user := &schemas.User{
 			Email: refs.NewStringRef(email),
@@ -182,7 +193,7 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 			redirectURL = *params.RedirectURI
 			if !validators.IsValidRedirectURI(redirectURL, p.Config.AllowedOrigins, hostname) {
 				log.Debug().Msg("Invalid redirect URI")
-				return nil, nil, fmt.Errorf("invalid redirect URI")
+				return nil, nil, InvalidArgument("invalid redirect URI")
 			}
 		}
 
@@ -199,7 +210,9 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		}, redirectURL, constants.VerificationTypeInviteMember)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create verification token")
-			// continue to next email
+			// Skip this email: an empty/broken token must never be persisted or
+			// emailed as an invite.
+			continue
 		}
 
 		verificationRequest := &schemas.VerificationRequest{
@@ -238,6 +251,13 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, err
 		}
 
+		// AddUser returned the persisted user (with its generated ID) above —
+		// reuse it directly for the response instead of re-fetching every email.
+		invitedUsers = append(invitedUsers, &model.User{
+			Email: user.Email,
+			ID:    user.ID,
+		})
+
 		// exec it as go routine so that we can reduce the api latency
 		go func() {
 			_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
@@ -246,19 +266,6 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 				"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
 			})
 		}()
-	}
-
-	invitedUsers := []*model.User{}
-	for _, email := range newEmails {
-		user, err := p.StorageProvider.GetUserByEmail(ctx, email)
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to get user by email")
-			return nil, nil, err
-		}
-		invitedUsers = append(invitedUsers, &model.User{
-			Email: user.Email,
-			ID:    user.ID,
-		})
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
@@ -270,7 +277,7 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 	})
 
 	return &model.InviteMembersResponse{
-		Message: fmt.Sprintf("%d user(s) invited successfully.", len(newEmails)),
+		Message: fmt.Sprintf("%d user(s) invited successfully.", len(invitedUsers)),
 		Users:   invitedUsers,
 	}, nil, nil
 }

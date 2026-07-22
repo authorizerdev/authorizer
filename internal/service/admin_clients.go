@@ -69,13 +69,13 @@ func (p *provider) CreateClient(ctx context.Context, meta RequestMetadata, param
 
 	if strings.TrimSpace(params.Name) == "" {
 		log.Debug().Msg("name is required")
-		return nil, nil, fmt.Errorf("name is required")
+		return nil, nil, InvalidArgument("name is required")
 	}
 
 	scopes := normalizeScopes(params.AllowedScopes)
 	if scopes == "" {
 		log.Debug().Msg("empty allowed_scopes rejected")
-		return nil, nil, fmt.Errorf("at least one allowed scope is required")
+		return nil, nil, InvalidArgument("at least one allowed scope is required")
 	}
 
 	secret, err := generateClientSecret()
@@ -149,7 +149,7 @@ func (p *provider) UpdateClient(ctx context.Context, meta RequestMetadata, param
 		scopes := normalizeScopes(params.AllowedScopes)
 		if scopes == "" {
 			log.Debug().Msg("empty allowed_scopes rejected")
-			return nil, nil, fmt.Errorf("at least one allowed scope is required")
+			return nil, nil, InvalidArgument("at least one allowed scope is required")
 		}
 		sa.AllowedScopes = scopes
 	}
@@ -185,7 +185,7 @@ func (p *provider) DeleteClient(ctx context.Context, meta RequestMetadata, param
 
 	if params.ID == "" {
 		log.Debug().Msg("service account ID required")
-		return nil, nil, fmt.Errorf("service account ID required")
+		return nil, nil, InvalidArgument("service account ID required")
 	}
 
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
@@ -224,7 +224,7 @@ func (p *provider) RotateClientSecret(ctx context.Context, meta RequestMetadata,
 
 	if params.ID == "" {
 		log.Debug().Msg("service account ID required")
-		return nil, nil, fmt.Errorf("service account ID required")
+		return nil, nil, InvalidArgument("service account ID required")
 	}
 
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)

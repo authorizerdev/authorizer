@@ -41,19 +41,19 @@ func validateTokenReviewConfig(enableTokenReview bool, apiServerURL *string) err
 	raw := refs.StringValue(apiServerURL)
 	if raw == "" {
 		if enableTokenReview {
-			return fmt.Errorf("kubernetes_api_server_url is required when enable_token_review is true")
+			return InvalidArgument("kubernetes_api_server_url is required when enable_token_review is true")
 		}
 		return nil
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		return fmt.Errorf("kubernetes_api_server_url is not a valid URL: %w", err)
+		return InvalidArgument(fmt.Sprintf("kubernetes_api_server_url is not a valid URL: %v", err))
 	}
 	if !strings.EqualFold(u.Scheme, "https") {
-		return fmt.Errorf("kubernetes_api_server_url must be an https URL")
+		return InvalidArgument("kubernetes_api_server_url must be an https URL")
 	}
 	if u.Host == "" {
-		return fmt.Errorf("kubernetes_api_server_url must include a host")
+		return InvalidArgument("kubernetes_api_server_url must include a host")
 	}
 	return nil
 }
@@ -67,29 +67,29 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 	}
 
 	if strings.TrimSpace(params.ServiceAccountID) == "" {
-		return nil, nil, fmt.Errorf("service_account_id is required")
+		return nil, nil, InvalidArgument("service_account_id is required")
 	}
 	if strings.TrimSpace(params.Name) == "" {
-		return nil, nil, fmt.Errorf("name is required")
+		return nil, nil, InvalidArgument("name is required")
 	}
 	if strings.TrimSpace(params.IssuerURL) == "" {
-		return nil, nil, fmt.Errorf("issuer_url is required")
+		return nil, nil, InvalidArgument("issuer_url is required")
 	}
 	if strings.TrimSpace(params.KeySourceType) == "" {
-		return nil, nil, fmt.Errorf("key_source_type is required")
+		return nil, nil, InvalidArgument("key_source_type is required")
 	}
 	if strings.TrimSpace(params.ExpectedAud) == "" {
-		return nil, nil, fmt.Errorf("expected_aud is required")
+		return nil, nil, InvalidArgument("expected_aud is required")
 	}
 	if strings.TrimSpace(params.IssuerType) == "" {
-		return nil, nil, fmt.Errorf("issuer_type is required")
+		return nil, nil, InvalidArgument("issuer_type is required")
 	}
 
 	// Reject issuers bound to a non-existent service account — otherwise a typo
 	// creates an orphan that can never be reached via the parent.
 	if _, err := p.StorageProvider.GetClientByID(ctx, params.ServiceAccountID); err != nil {
 		log.Debug().Err(err).Str("service_account_id", params.ServiceAccountID).Msg("service account not found")
-		return nil, nil, fmt.Errorf("service account not found: %s", params.ServiceAccountID)
+		return nil, nil, NotFound(fmt.Sprintf("service account not found: %s", params.ServiceAccountID))
 	}
 
 	// Enforce issuer_url uniqueness at the service layer. Storage providers use a
@@ -99,7 +99,7 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 	// backends uniformly.
 	if existing, err := p.StorageProvider.GetTrustedIssuerByIssuerURL(ctx, params.IssuerURL); err == nil && existing != nil {
 		log.Debug().Str("issuer_url", params.IssuerURL).Msg("issuer_url already registered")
-		return nil, nil, fmt.Errorf("issuer_url already registered: %s", params.IssuerURL)
+		return nil, nil, AlreadyExists(fmt.Sprintf("issuer_url already registered: %s", params.IssuerURL))
 	}
 
 	subjectClaim := defaultSubjectClaim
@@ -185,7 +185,7 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata
 	if params.ExpectedAud != nil {
 		if strings.TrimSpace(*params.ExpectedAud) == "" {
 			log.Debug().Msg("expected_aud cannot be empty")
-			return nil, nil, fmt.Errorf("expected_aud cannot be empty")
+			return nil, nil, InvalidArgument("expected_aud cannot be empty")
 		}
 		issuer.ExpectedAud = *params.ExpectedAud
 	}
@@ -239,7 +239,7 @@ func (p *provider) DeleteTrustedIssuer(ctx context.Context, meta RequestMetadata
 
 	if params.ID == "" {
 		log.Debug().Msg("trusted issuer ID required")
-		return nil, nil, fmt.Errorf("trusted issuer ID required")
+		return nil, nil, InvalidArgument("trusted issuer ID required")
 	}
 
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
