@@ -41,7 +41,12 @@ export default function App() {
 		<div className="app-shell">
 			<header className="app-brand">
 				{globalState.organizationLogo && (
-					<img src={globalState.organizationLogo} alt="logo" />
+					<img
+						src={globalState.organizationLogo}
+						alt="logo"
+						width={56}
+						height={56}
+					/>
 				)}
 				<h1>{globalState.organizationName}</h1>
 			</header>
