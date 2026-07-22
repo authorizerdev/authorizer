@@ -156,9 +156,15 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		user.Picture = params.Picture
 	}
 
-	if params.IsMultiFactorAuthEnabled != nil {
-		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
-	}
+	// params.IsMultiFactorAuthEnabled is deliberately NOT honored here. Signup
+	// is unauthenticated and public (authorizer.v1.public = true) — letting the
+	// caller creating their own account also decide whether MFA applies to it
+	// defeats the server's MFA-on-by-default policy. The field's one
+	// legitimate use is the authenticated admin `_update_user` path (see
+	// web/dashboard's Users page), which sets it directly on an existing
+	// schemas.User, not through this struct. Leaving it nil here means
+	// effectiveMFAEnabled falls back to the server's own --enable-*-mfa
+	// config, which is exactly the desired behavior for a brand-new account.
 
 	isMFAEnforced := p.Config.EnforceMFA
 	if isMFAEnforced {

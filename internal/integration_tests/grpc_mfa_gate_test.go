@@ -235,21 +235,28 @@ func TestEmailOtpMfaSetupGRPC(t *testing.T) {
 	t.Run("bearer-token mode: already authenticated caller, no email param", func(t *testing.T) {
 		email := "grpc_email_otp_bearer_" + uuid.New().String() + "@authorizer.dev"
 
-		// Signup omits is_multi_factor_auth_enabled, which the gRPC handler
-		// still forwards explicitly as false (see AuthorizerHandler.Signup),
-		// so the MFA gate never engages here and the token is issued
-		// directly -- this caller reaches EmailOtpMfaSetup the ordinary
-		// already-logged-in "add a second factor from settings" way.
-		signupResp, err := c.Signup(ctx, &authorizerv1.SignupRequest{
+		_, err := c.Signup(ctx, &authorizerv1.SignupRequest{
 			Email: email, Password: password, ConfirmPassword: password,
 		})
 		require.NoError(t, err)
-		require.NotEmpty(t, signupResp.AccessToken, "no MFA enrolled -> token issued directly")
 
 		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
 		require.NoError(t, err)
+		// Signup no longer honors a client-supplied is_multi_factor_auth_enabled
+		// (security fix — that field is public/unauthenticated input and must
+		// not let a caller opt their own new account out of MFA). To get an
+		// account not subject to MFA for this bearer-token "add a second
+		// factor from settings" scenario, set it directly on the stored user,
+		// the same way the authenticated admin _update_user path would.
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(false)
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
 
-		resp, err := c.EmailOtpMfaSetup(bearerCtx(signupResp.AccessToken), &authorizerv1.EmailOtpMfaSetupRequest{})
+		loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{Email: email, Password: password})
+		require.NoError(t, err)
+		require.NotEmpty(t, loginResp.AccessToken, "no MFA enrolled -> token issued directly")
+
+		resp, err := c.EmailOtpMfaSetup(bearerCtx(loginResp.AccessToken), &authorizerv1.EmailOtpMfaSetupRequest{})
 		require.NoError(t, err, "email_otp_mfa_setup must be reachable via bearer token with no email param")
 		require.NotEmpty(t, resp.Message)
 
@@ -334,12 +341,15 @@ func TestSmsOtpMfaSetupGRPC(t *testing.T) {
 		require.NoError(t, err)
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
+		// Signup no longer honors a client-supplied is_multi_factor_auth_enabled
+		// (security fix — see the email twin's comment). Set it directly on
+		// the stored user, the same way the authenticated admin _update_user
+		// path would, to get an account not subject to MFA for this
+		// bearer-token "add a second factor from settings" scenario.
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(false)
 		_, err = ts.StorageProvider.UpdateUser(ctx, user)
 		require.NoError(t, err)
 
-		// Same reasoning as the email twin: is_multi_factor_auth_enabled is
-		// always forwarded explicitly (false here), so login issues the
-		// token directly instead of hitting the MFA gate.
 		loginResp, err := c.Login(ctx, &authorizerv1.LoginRequest{PhoneNumber: mobile, Password: password})
 		require.NoError(t, err)
 		require.NotEmpty(t, loginResp.AccessToken, "no MFA enrolled -> token issued directly")
