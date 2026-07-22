@@ -135,7 +135,10 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			log.Debug().Err(err).Msg("error un-marshalling headers")
 		}
 		for key, val := range headersMap {
-			req.Header.Set(key, val.(string))
+			// Header values come from admin-configured JSON (a Map scalar), so a
+			// value may be a number/bool/object; coerce instead of asserting to
+			// avoid panicking this bare goroutine (which would crash the process).
+			req.Header.Set(key, headerValueString(val))
 		}
 
 		resp, err := client.Do(req)
@@ -164,4 +167,17 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		}
 	}
 	return nil
+}
+
+// headerValueString coerces a free-form JSON header value to a string without
+// panicking. Mirrors the identically named helper in internal/service used by
+// the webhook TestEndpoint path (kept local to avoid an import cycle).
+func headerValueString(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprint(v)
 }
