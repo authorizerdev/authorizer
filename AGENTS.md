@@ -101,6 +101,18 @@ go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v -run TestSignup ./inte
 
 Use `-p 1` for integration tests (shared state). Storage tests honour `TEST_DBS`.
 
+**Verifying a change before calling it done** — run these, in order, and only report success after they actually pass in this session:
+
+1. `go build ./...` — compiles.
+2. `go vet ./...` — catches suspicious constructs (nil-deref-prone patterns, unreachable code, struct-copy issues).
+3. `make test` (or the single-test command above for a targeted case) — SQLite integration suite passes.
+4. **Storage-layer changes only**: also run at least one non-SQL backend (`make test-mongodb`, `make test-arangodb`, etc.) or `make test-all-db` — a fix verified only on SQLite has not verified cross-DB parity, and this repo's whole storage layer is defined by that parity holding.
+5. `make lint` — must be clean before opening a PR; CI enforces it.
+
+**Smoke tests** (`make smoke` → `internal/e2e/smoke_test.go`, build tag `smoke`): black-box tests that build the real `authorizer` binary, boot it as a subprocess, and exercise every public API surface (GraphQL, REST, gRPC, MCP) end to end, including an authenticated FGA decision on each surface. Excluded from normal `go test ./...` runs (separate build tag) because they compile a binary and bind real ports — run them before a release, or whenever touching startup/wiring (`cmd/root.go`, `internal/server/`, `internal/grpcsrv/`).
+
+**E2E tests**: `internal/e2e/` *is* the e2e suite, run via `make smoke` — there is no separate e2e target in this repo; "e2e" and "release smoke" are the same tests.
+
 ## Architecture (Quick Reference)
 
 **Initialization order** (`cmd/root.go`): Config → Storage → MemoryStore → Token → Email/SMS → OAuth → Events → HTTP/GraphQL → gRPC → Server
@@ -121,6 +133,26 @@ Use `-p 1` for integration tests (shared state). Storage tests honour `TEST_DBS`
 
 **Provider pattern**: Every subsystem uses `Dependencies` struct + `New()` → `Provider` interface.
 
+## Background Work (Goroutines)
+
+Request handlers and service methods fire side effects (email/SMS send, webhook events, audit logs) as detached goroutines so the response isn't blocked. **Never use a bare `go func() { ... }()` for this** — use `asyncutil.Go(log *zerolog.Logger, fn func())` (`internal/asyncutil/`) instead:
+
+- Tracks the goroutine so `internal/server/server.go`'s graceful shutdown (`asyncutil.Wait`) drains in-flight background work before the process exits. A bare `go func()` is invisible to shutdown and gets killed mid-flight.
+- Recovers any panic in `fn` and logs it. A bare `go func()` that panics takes down the **entire process** — Go's default behavior for an unrecovered goroutine panic is to crash the whole binary, not just the request.
+- Pass the call site's `*zerolog.Logger` (`p.Log` / `h.Log`), not a local `log` value, so a recovered panic is still logged correctly.
+
+Only wrap **detached, request-scoped, one-shot** work this way (fire once, no further caller interaction). Do NOT wrap long-running loops already tied to `ctx` (HTTP/gRPC listeners, ticker-based cache eviction) — those have their own lifecycle via `ctx.Done()`/`Shutdown()` and don't need draining.
+
+When the background closure needs a context, use `context.WithoutCancel(ctx)` (not `context.Background()`) so log/trace correlation carries over without inheriting the request's cancellation — this is the existing convention throughout `internal/service/`.
+
+## Database Conventions (GORM / Storage)
+
+- Every `*gorm.DB` call must use `.WithContext(ctx)` — never a bare `p.db.Where(...)` with no context — so cancellation, timeouts, and tracing propagate.
+- **Multi-step writes that must be atomic** (cascade deletes, multi-table inserts) **MUST** be wrapped in `p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { ... })`, and every call inside the callback must use `tx`, never the outer `p.db` — reaching for the outer handle inside a transaction silently escapes it and defeats the atomicity.
+- Bulk operations (e.g. an `UpdateUsers`-style method) must **reject** an empty/unscoped filter rather than silently applying to every row — verify this contract holds identically across **all** provider implementations (SQL, MongoDB, ArangoDB, Cassandra/ScyllaDB, DynamoDB, Couchbase), not just SQL. A safety guard present in one backend and missing in another is a parity bug.
+- Any indexed lookup added to one provider (e.g. `GetUserByExternalID`) needs the matching index/equivalent in every other provider — a method that's O(1) in one backend and a full collection/table scan in another is a parity bug, not a perf nit.
+- Never build a query by string-concatenating or `fmt.Sprintf`-ing request-derived values into a WHERE/SET/CQL clause, even for NoSQL backends — always parameterize/bind, and never let a map of column names sourced from a request reach a query builder without an explicit allow-list.
+
 ## Critical Rules (Top of Mind)
 
 1. **Admin GraphQL ops prefixed with `_`** — not for public use. Same for `AuthorizerAdminService` gRPC.
@@ -128,6 +160,7 @@ Use `-p 1` for integration tests (shared state). Storage tests honour `TEST_DBS`
 3. **Run `make generate-graphql`** after editing `schema.graphqls`.
 4. **Run `make proto-gen`** (or `make proto-check`) after editing `proto/`; commit `gen/`.
 5. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.
+6. **Fire-and-forget side effects go through `asyncutil.Go`, never a bare `go func()`** — see Background Work above.
 
 Detailed rules load via skills (see below) — don't restate them here.
 
