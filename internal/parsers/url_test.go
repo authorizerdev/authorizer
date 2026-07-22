@@ -129,3 +129,50 @@ func TestGetAppURLFromRequest(t *testing.T) {
 	r := &http.Request{Host: "auth.example.com", Header: http.Header{}}
 	assert.Equal(t, "http://auth.example.com/app", GetAppURLFromRequest(r))
 }
+
+// TestGetHostFromRequestTrustedURL is the regression guard for the
+// host-header-injection account-takeover fix (CWE-640): when --url is
+// configured, no request header may control the server's own base URL, and
+// when it is NOT configured the legacy header-based behavior is unchanged.
+func TestGetHostFromRequestTrustedURL(t *testing.T) {
+	// Every attacker-controllable host source points at evil.com.
+	spoofed := func() *http.Request {
+		r := &http.Request{Host: "evil.example.com", Header: http.Header{}}
+		r.Header.Set("X-Authorizer-URL", "https://evil.example.com")
+		r.Header.Set("X-Forwarded-Proto", "https")
+		r.Header.Set("X-Forwarded-Host", "evil.example.com")
+		return r
+	}
+
+	t.Run("trusted URL overrides every spoofed header", func(t *testing.T) {
+		SetTrustedURL("https://auth.example.com")
+		defer SetTrustedURL("")
+
+		assert.Equal(t, "https://auth.example.com", GetHostFromRequest(spoofed()),
+			"a configured trusted URL must win over X-Authorizer-URL / X-Forwarded-Host / Host")
+		// The email-link builder rides on the same helper, so the reset/verify/
+		// magic-link URL host is now the trusted host, not the attacker's.
+		assert.Equal(t, "https://auth.example.com/app", GetAppURLFromRequest(spoofed()))
+	})
+
+	t.Run("trusted URL is normalized to scheme+host", func(t *testing.T) {
+		SetTrustedURL("https://auth.example.com/some/path/")
+		defer SetTrustedURL("")
+		assert.Equal(t, "https://auth.example.com", GetHostFromRequest(spoofed()))
+	})
+
+	t.Run("invalid trusted URL is treated as unset (falls back to headers)", func(t *testing.T) {
+		SetTrustedURL("not-a-url")
+		defer SetTrustedURL("")
+		// sanitizeAuthorizerURL rejects it, so header-based derivation resumes.
+		assert.Equal(t, "https://evil.example.com", GetHostFromRequest(spoofed()))
+	})
+
+	t.Run("no regression: header behavior unchanged when trusted URL is unset", func(t *testing.T) {
+		// Explicitly ensure the global is clear (defaults to empty, but be
+		// robust to test ordering).
+		SetTrustedURL("")
+		assert.Equal(t, "https://evil.example.com", GetHostFromRequest(spoofed()),
+			"with no --url configured, the legacy X-Authorizer-URL priority must be preserved")
+	})
+}
