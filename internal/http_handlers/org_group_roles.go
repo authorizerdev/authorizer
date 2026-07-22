@@ -3,9 +3,11 @@ package http_handlers
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -41,12 +43,16 @@ func (h *httpProvider) orgGroupDerivedRoles(ctx context.Context, orgID string, u
 		return nil
 	}
 	l := log.With().Str("func", "orgGroupDerivedRoles").Logger()
+	start := time.Now()
 	objects, err := h.AuthzEngine.ListObjects(ctx, "user:"+user.ID, "assignee", "role")
+	metrics.ObserveFgaCheckDuration(metrics.FgaOpDerivedRoles, time.Since(start).Seconds())
 	if err != nil {
 		// No model, no role type/relation, engine down — derive nothing.
+		metrics.RecordFgaCheck(metrics.FgaOpDerivedRoles, metrics.FgaResultError)
 		l.Debug().Err(err).Msg("role lookup failed, deriving no roles")
 		return nil
 	}
+	metrics.RecordFgaCheck(metrics.FgaOpDerivedRoles, metrics.FgaResultSuccess)
 	prefix := "role:" + orgID + "/"
 	seen := map[string]bool{}
 	var names []string

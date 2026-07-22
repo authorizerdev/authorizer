@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv/transport"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -42,7 +44,8 @@ var infrastructureServices = map[string]struct{}{
 var methodDescCache sync.Map // map[string]protoreflect.MethodDescriptor
 
 // Auth returns a unary interceptor that enforces proto-declared auth policy.
-func Auth(tp token.Provider) grpc.UnaryServerInterceptor {
+// log may be nil (rejections are then only counted, not logged).
+func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		methodDesc, ok := methodDescriptor(info.FullMethod)
 		if !ok {
@@ -77,6 +80,18 @@ func Auth(tp token.Provider) grpc.UnaryServerInterceptor {
 
 		if serviceName == adminServiceName {
 			if !tp.IsSuperAdmin(gc) {
+				if isPublicMethod(methodDesc) {
+					// This method carries the `public` proto annotation but isn't
+					// AdminLogin, so the bypass above deliberately did not honor it —
+					// it fell through here and is still being blocked. That is a
+					// mis-annotated admin RPC (a real footgun: it means someone marked
+					// a sensitive admin method public by mistake), worth alerting on
+					// distinctly from an ordinary unauthenticated caller.
+					metrics.RecordSecurityEvent("admin_public_bypass_blocked", "grpc_auth")
+					if log != nil {
+						log.Warn().Str("method", string(methodDesc.Name())).Msg("admin RPC marked public but is not AdminLogin — bypass denied, super-admin still required")
+					}
+				}
 				return nil, status.Error(codes.Unauthenticated, "unauthorized")
 			}
 			ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})

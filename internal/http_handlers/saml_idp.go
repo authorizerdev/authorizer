@@ -525,12 +525,16 @@ func (h *httpProvider) assertedGroupsForOrg(ctx context.Context, orgID string, u
 	if h.AuthzEngine == nil {
 		return nil
 	}
+	start := time.Now()
 	objects, err := h.AuthzEngine.ListObjects(ctx, "user:"+user.ID, "member", "group")
+	metrics.ObserveFgaCheckDuration(metrics.FgaOpDerivedRoles, time.Since(start).Seconds())
 	if err != nil {
 		// No model yet, engine down, etc. — emit no groups (fail-closed).
+		metrics.RecordFgaCheck(metrics.FgaOpDerivedRoles, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("saml idp: group lookup failed, emitting no groups")
 		return nil
 	}
+	metrics.RecordFgaCheck(metrics.FgaOpDerivedRoles, metrics.FgaResultSuccess)
 	prefix := "group:" + orgID + "/"
 	seen := map[string]bool{}
 	var names []string

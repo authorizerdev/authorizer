@@ -189,6 +189,18 @@ var (
 		},
 		[]string{"operation", "result"},
 	)
+
+	// PanicsRecoveredTotal counts panics recovered from fire-and-forget
+	// background goroutines (internal/asyncutil.Go). Any nonzero rate means a
+	// background side-effect (email/SMS send, webhook, audit log) hit a bug
+	// that would otherwise have crashed the whole process — always worth
+	// alerting on.
+	PanicsRecoveredTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "authorizer_panics_recovered_total",
+			Help: "Total panics recovered from fire-and-forget background goroutines",
+		},
+	)
 )
 
 // staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
@@ -275,6 +287,7 @@ func Init() {
 		prometheus.MustRegister(FgaChecksTotal)
 		prometheus.MustRegister(FgaCheckDuration)
 		prometheus.MustRegister(FgaOperationsTotal)
+		prometheus.MustRegister(PanicsRecoveredTotal)
 	})
 }
 
@@ -353,6 +366,13 @@ const (
 	FgaOpListUsers        = "list_users"
 	FgaOpExpand           = "expand"
 	FgaOpReset            = "reset"
+	// FgaOpRequiredRelations is the session/token-validation-time gate
+	// (enforceRequiredRelations) — a Check call, decision-family like
+	// check_permissions/list_permissions.
+	FgaOpRequiredRelations = "required_relations"
+	// FgaOpDerivedRoles is the login/SSO-time claim-derivation lookup shared by
+	// SAML group assertion and JWT role derivation (both ListObjects calls).
+	FgaOpDerivedRoles = "derived_roles"
 )
 
 // FGA result labels.
@@ -391,4 +411,10 @@ func ObserveFgaCheckDuration(operation string, seconds float64) {
 // FgaResultError.
 func RecordFgaOperation(operation, result string) {
 	FgaOperationsTotal.WithLabelValues(operation, result).Inc()
+}
+
+// RecordPanicRecovered records a panic recovered from a fire-and-forget
+// background goroutine.
+func RecordPanicRecovered() {
+	PanicsRecoveredTotal.Inc()
 }

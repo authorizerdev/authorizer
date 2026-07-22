@@ -60,7 +60,7 @@ func (s *stubTokenProvider) ValidateBrowserSession(_ *gin.Context, encryptedSess
 
 func TestAuth_PublicMethodPassesThrough(t *testing.T) {
 	stub := &stubTokenProvider{}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
@@ -79,7 +79,7 @@ func TestAuth_PublicMethodPassesThrough(t *testing.T) {
 func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 	t.Run("rejects missing admin auth", func(t *testing.T) {
 		stub := &stubTokenProvider{superAdmin: false}
-		mw := Auth(stub)
+		mw := Auth(stub, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.AdminMetaRequest{}, info(authorizerv1.AuthorizerAdminService_AdminMeta_FullMethodName), func(_ context.Context, _ any) (any, error) {
 			called = true
@@ -94,7 +94,7 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 
 	t.Run("attaches admin principal when authorized", func(t *testing.T) {
 		stub := &stubTokenProvider{superAdmin: true}
-		mw := Auth(stub)
+		mw := Auth(stub, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.AdminMetaRequest{}, info(authorizerv1.AuthorizerAdminService_AdminMeta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 			called = true
@@ -115,7 +115,7 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 	t.Run("rejects unauthenticated user", func(t *testing.T) {
 		stub := &stubTokenProvider{tokenErr: status.Error(codes.Unauthenticated, "bad token")}
-		mw := Auth(stub)
+		mw := Auth(stub, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(_ context.Context, _ any) (any, error) {
 			called = true
@@ -136,7 +136,7 @@ func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 				Nonce:       "nonce-1",
 			},
 		}
-		mw := Auth(stub)
+		mw := Auth(stub, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 			called = true
@@ -158,7 +158,7 @@ func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 
 func TestAuth_InfrastructureServiceSkipsAuth(t *testing.T) {
 	stub := &stubTokenProvider{}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	called := false
 	_, err := mw(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/grpc.health.v1.Health/Check"}, func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -174,7 +174,7 @@ func TestAuth_SessionRequiresCookieRejectsBearer(t *testing.T) {
 	stub := &stubTokenProvider{
 		tokenData: &token.SessionOrAccessTokenData{UserID: "user-1"},
 	}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer access-token",
 	))
@@ -198,7 +198,7 @@ func TestAuth_SessionAcceptsCookie(t *testing.T) {
 			Nonce:       "nonce-1",
 		},
 	}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	cookieName := constants.AppCookieName + "_session"
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"cookie", cookieName+"=sess-token",
@@ -219,7 +219,7 @@ func TestAuth_SessionAcceptsCookie(t *testing.T) {
 
 func TestAuth_LogoutRequiresAuth(t *testing.T) {
 	stub := &stubTokenProvider{tokenErr: status.Error(codes.Unauthenticated, "bad token")}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.LogoutRequest{}, info(authorizerv1.AuthorizerService_Logout_FullMethodName), func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -235,7 +235,7 @@ func TestAuth_LogoutRequiresAuth(t *testing.T) {
 // it. Regression guard that scoping the `public` bypass did not lock admins out.
 func TestAuth_AdminLoginRemainsPublic(t *testing.T) {
 	stub := &stubTokenProvider{superAdmin: false}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.AdminLoginRequest{}, info(authorizerv1.AuthorizerAdminService_AdminLogin_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 		called = true
@@ -282,7 +282,7 @@ func TestShouldRejectUnlistedService(t *testing.T) {
 // TestAuth_NilTokenProviderFailsClosed asserts the interceptor fails closed when
 // no TokenProvider is wired (e.g. during early startup).
 func TestAuth_NilTokenProviderFailsClosed(t *testing.T) {
-	mw := Auth(nil)
+	mw := Auth(nil, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -301,7 +301,7 @@ func TestAuth_SessionOnlyAcceptsPublicService(t *testing.T) {
 	stub := &stubTokenProvider{
 		sessionData: &token.SessionData{Subject: "user-1", LoginMethod: "basic_auth", Nonce: "n"},
 	}
-	mw := Auth(stub)
+	mw := Auth(stub, nil)
 	cookieName := constants.AppCookieName + "_session"
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("cookie", cookieName+"=tok"))
 	_, err := mw(ctx, &authorizerv1.SessionRequest{}, info(authorizerv1.AuthorizerService_Session_FullMethodName), func(ctx context.Context, _ any) (any, error) {

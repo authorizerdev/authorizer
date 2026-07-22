@@ -54,7 +54,7 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 			// Records authorizer_api_operations_total{protocol,operation,status}
 			// for every RPC (covers both gRPC and REST-via-gateway).
 			interceptors.Metrics(),
-			interceptors.Auth(deps.TokenProvider),
+			interceptors.Auth(deps.TokenProvider, deps.Log),
 			validate,
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay
