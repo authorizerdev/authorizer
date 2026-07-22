@@ -157,3 +157,55 @@ func TestRefreshToken_CrossClientRedemption_Rejected(t *testing.T) {
 		assert.NotEmpty(t, okBody["access_token"])
 	})
 }
+
+// TestRefreshToken_WrongSecretPresented_Rejected is the regression test for
+// the refresh-token secret-verification hardening finding: a confidential
+// client presenting an incorrect secret on refresh_token must be rejected
+// instead of silently authenticated on client_id alone, while a public
+// client presenting no secret at all is unaffected.
+func TestRefreshToken_WrongSecretPresented_Rejected(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	registerTestClient(t, ts, "client-secret-check", "correct-secret")
+
+	router, code, codeVerifier := loginForOfflineAccess(t, ts, "client-secret-check")
+
+	exchangeForm := url.Values{}
+	exchangeForm.Set("grant_type", "authorization_code")
+	exchangeForm.Set("code", code)
+	exchangeForm.Set("code_verifier", codeVerifier)
+	exchangeForm.Set("redirect_uri", "http://localhost:3000/callback")
+
+	w := exchangeCode(router, exchangeForm, []string{"client-secret-check", "correct-secret"})
+	require.Equal(t, http.StatusOK, w.Code, "code exchange body: %s", w.Body.String())
+	var body map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	refreshToken, _ := body["refresh_token"].(string)
+	require.NotEmpty(t, refreshToken)
+
+	t.Run("a presented wrong secret is rejected even though client_id matches", func(t *testing.T) {
+		refreshForm := url.Values{}
+		refreshForm.Set("grant_type", "refresh_token")
+		refreshForm.Set("refresh_token", refreshToken)
+
+		w := exchangeCode(router, refreshForm, []string{"client-secret-check", "definitely-wrong-secret"})
+		// 401, not 400: exchangeCode presents credentials via HTTP Basic
+		// (req.SetBasicAuth), and respondClientAuthError maps ErrInvalidClient
+		// to 401 (with WWW-Authenticate) whenever hasBasicAuth is true.
+		assert.Equal(t, http.StatusUnauthorized, w.Code, "body: %s", w.Body.String())
+	})
+
+	t.Run("no secret presented (public client shape) still succeeds", func(t *testing.T) {
+		refreshForm := url.Values{}
+		refreshForm.Set("grant_type", "refresh_token")
+		refreshForm.Set("refresh_token", refreshToken)
+		refreshForm.Set("client_id", "client-secret-check")
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(refreshForm.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+	})
+}
