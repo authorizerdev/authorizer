@@ -75,8 +75,13 @@ const (
 // code_challenge = to prevent CSRF attack
 // code_challenge_method = to prevent CSRF attack [only sh256 is supported]
 func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
-	log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 	return func(gc *gin.Context) {
+		// log is request-scoped (declared inside the closure, not captured from
+		// the enclosing func) so concurrent requests each mutate their own
+		// value when reassigning below (e.g. attaching client_id) — a logger
+		// declared outside the closure and reassigned here would be shared,
+		// mutable state race-read/written by every concurrent request.
+		log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 		// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint
 		// MUST support GET and MAY support POST (form-urlencoded body).
 		// FormValue reads the POST body first, falling back to the query
