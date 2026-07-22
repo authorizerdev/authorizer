@@ -90,6 +90,14 @@ func TestResetPassword(t *testing.T) {
 		user, err := ts2.StorageProvider.GetUserByPhoneNumber(ctx2, mobile)
 		require.NoError(t, err)
 
+		// Mint the password_reset-purpose session via the real ForgotPassword
+		// path (ResetPassword's OTP leg now requires this exact purpose).
+		forgotRes, err := ts2.GraphQLProvider.ForgotPassword(ctx2, &model.ForgotPasswordRequest{
+			PhoneNumber: refs.NewStringRef(mobile),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, forgotRes)
+
 		otpData, err := ts2.StorageProvider.GetOTPByPhoneNumber(ctx2, mobile)
 		require.NoError(t, err)
 
@@ -108,12 +116,18 @@ func TestResetPassword(t *testing.T) {
 		_, err = ts2.StorageProvider.UpsertOTP(ctx2, expiredOTP)
 		require.NoError(t, err)
 
-		// Get MFA session
+		// Get MFA session. SignUp above (EnablePhoneVerification=true) already
+		// minted its own Verified-purpose session for user.ID, and
+		// ForgotPassword mints a second, PasswordReset-purpose one — both
+		// coexist in the memory store, so the scan must filter by purpose or
+		// it can non-deterministically pick the Verified one, which
+		// ResetPassword now rejects before ever reaching the expiry check this
+		// subtest exercises.
 		allData, err := ts2.MemoryStoreProvider.GetAllData()
 		require.NoError(t, err)
 		sessionKey := ""
-		for k := range allData {
-			if strings.Contains(k, user.ID) {
+		for k, v := range allData {
+			if strings.Contains(k, user.ID) && v == constants.MFASessionPurposePasswordReset {
 				splitData := strings.Split(k, ":")
 				if len(splitData) > 1 {
 					sessionKey = splitData[1]
@@ -261,5 +275,112 @@ func TestResetPassword(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
 		assert.NotNil(t, loginRes.AccessToken)
+	})
+
+	t.Run("should reset password via mobile OTP end-to-end", func(t *testing.T) {
+		cfg3 := getTestConfig()
+		cfg3.IsSMSServiceEnabled = true
+		cfg3.EnableMobileBasicAuthentication = true
+		cfg3.EnablePhoneVerification = true
+		ts3 := initTestSetup(t, cfg3)
+		req3, ctx3 := createContext(ts3)
+
+		mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
+		_, err := ts3.GraphQLProvider.SignUp(ctx3, &model.SignUpRequest{
+			PhoneNumber:     &mobile,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+
+		forgotRes, err := ts3.GraphQLProvider.ForgotPassword(ctx3, &model.ForgotPasswordRequest{
+			PhoneNumber: refs.NewStringRef(mobile),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, forgotRes)
+
+		user, err := ts3.StorageProvider.GetUserByPhoneNumber(ctx3, mobile)
+		require.NoError(t, err)
+
+		otpData, err := ts3.StorageProvider.GetOTPByPhoneNumber(ctx3, mobile)
+		require.NoError(t, err)
+		const knownPlainOTP = "222222"
+		otpData.Otp = crypto.HashOTP(knownPlainOTP, cfg3.JWTSecret)
+		otpData.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+		_, err = ts3.StorageProvider.UpsertOTP(ctx3, otpData)
+		require.NoError(t, err)
+
+		// SignUp above (EnablePhoneVerification=true) already minted its own
+		// Verified-purpose session for this user.ID; ForgotPassword mints a
+		// second, PasswordReset-purpose one. Both coexist in the memory store
+		// (distinct keys), so the scan must filter by purpose — a bare
+		// "contains user.ID" match is non-deterministic (Go map iteration
+		// order) and can pick the wrong session, which would now be correctly
+		// rejected by ResetPassword.
+		allData, err := ts3.MemoryStoreProvider.GetAllData()
+		require.NoError(t, err)
+		sessionKey := ""
+		for k, v := range allData {
+			if strings.Contains(k, user.ID) && v == constants.MFASessionPurposePasswordReset {
+				splitData := strings.Split(k, ":")
+				if len(splitData) > 1 {
+					sessionKey = splitData[1]
+					break
+				}
+			}
+		}
+		require.NotEmpty(t, sessionKey, "ForgotPassword must set a password_reset mfa session cookie")
+		req3.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", sessionKey))
+
+		resetRes, err := ts3.GraphQLProvider.ResetPassword(ctx3, &model.ResetPasswordRequest{
+			Otp:             refs.NewStringRef(knownPlainOTP),
+			PhoneNumber:     refs.NewStringRef(mobile),
+			Password:        "NewPassword@123",
+			ConfirmPassword: "NewPassword@123",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resetRes)
+	})
+
+	t.Run("a Challenge session (ResendOTP-style) cannot reset the password", func(t *testing.T) {
+		cfg4 := getTestConfig()
+		cfg4.IsSMSServiceEnabled = true
+		cfg4.EnableMobileBasicAuthentication = true
+		cfg4.EnablePhoneVerification = true
+		ts4 := initTestSetup(t, cfg4)
+		req4, ctx4 := createContext(ts4)
+
+		mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
+		_, err := ts4.GraphQLProvider.SignUp(ctx4, &model.SignUpRequest{
+			PhoneNumber:     &mobile,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		user, err := ts4.StorageProvider.GetUserByPhoneNumber(ctx4, mobile)
+		require.NoError(t, err)
+
+		otpData, err := ts4.StorageProvider.GetOTPByPhoneNumber(ctx4, mobile)
+		require.NoError(t, err)
+		const knownPlainOTP = "333333"
+		otpData.Otp = crypto.HashOTP(knownPlainOTP, cfg4.JWTSecret)
+		otpData.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+		_, err = ts4.StorageProvider.UpsertOTP(ctx4, otpData)
+		require.NoError(t, err)
+
+		// Simulate the session ResendOTP (or a plain login/signup OTP send)
+		// would mint — Challenge purpose, NOT password_reset.
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts4.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, time.Now().Add(5*time.Minute).Unix()))
+		req4.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		resetRes, err := ts4.GraphQLProvider.ResetPassword(ctx4, &model.ResetPasswordRequest{
+			Otp:             refs.NewStringRef(knownPlainOTP),
+			PhoneNumber:     refs.NewStringRef(mobile),
+			Password:        "NewPassword@123",
+			ConfirmPassword: "NewPassword@123",
+		})
+		assert.Error(t, err, "a Challenge-purpose session must not be able to reset a password")
+		assert.Nil(t, resetRes)
 	})
 }

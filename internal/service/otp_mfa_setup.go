@@ -77,9 +77,14 @@ func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta Reque
 	}
 	if email == "" && phoneNumber == "" {
 		// No identifier supplied (OAuth-return first-time-offer): resolve the
-		// account from the session cookie alone.
-		ownerID, _, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
-		if oErr != nil {
+		// account from the session cookie alone. Only a Verified session may
+		// enroll a new MFA factor here — same restriction
+		// resolveWebauthnSetupCaller applies for passkey enrollment. Without
+		// this, a password_reset-purpose session (meant only to authorize a
+		// password change via ResetPassword) could be redeemed here to plant
+		// a new email/SMS/TOTP authenticator on the account instead.
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
 			return nil, Unauthenticated(`unauthorized`)
 		}
 		user, uErr := p.StorageProvider.GetUserByID(ctx, ownerID)
@@ -99,7 +104,8 @@ func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta Reque
 		return nil, Unauthenticated(`unauthorized`)
 	}
 
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+	// Same Verified-only restriction as the no-identifier branch above.
+	if purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil || purpose != constants.MFASessionPurposeVerified {
 		return nil, Unauthenticated(`unauthorized`)
 	}
 

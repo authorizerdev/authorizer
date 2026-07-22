@@ -162,8 +162,11 @@ func (p *provider) ForgotPassword(ctx context.Context, meta RequestMetadata, par
 		}
 		mfaSession := uuid.NewString()
 		// Reached with only a phone number and no first factor, so this session
-		// is a Challenge — it can never skip MFA setup or lock the account.
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, expiresAt)
+		// authorizes exactly one thing: changing the password via ResetPassword.
+		// It must not be redeemable for an access token (VerifyOTP) or for
+		// skipping MFA/locking the account — PasswordReset is a distinct,
+		// narrower purpose than the generic Challenge used by resend/login OTP.
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposePasswordReset, expiresAt)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return nil, nil, err

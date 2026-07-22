@@ -265,11 +265,15 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			ClientAssertion:     clientAssertion,
 			ClientAssertionType: clientAssertionType,
 			// client_credentials always requires a secret; authorization_code
-			// verifies a presented secret (PKCE gates a secret-less request);
-			// refresh_token ignores the secret and authenticates the client_id
-			// only — preserving the pre-registry behavior of each grant.
+			// and refresh_token verify a presented secret (PKCE gates a
+			// secret-less authorization_code request; a public client's
+			// refresh_token request presents no secret and is unaffected —
+			// VerifyPresentedSecret only checks when one is actually
+			// presented, so a confidential/service_account client that does
+			// send its secret on refresh now has it checked instead of
+			// silently ignored).
 			RequireSecret:         isClientCredentialsGrant || isTokenExchangeGrant,
-			VerifyPresentedSecret: isAuthorizationCodeGrant,
+			VerifyPresentedSecret: isAuthorizationCodeGrant || isRefreshTokenGrant,
 			// client_credentials and token-exchange are machine-only: the calling
 			// client is the agent's service account (design §4.1 / §3). The resolver
 			// rejects a non-service_account client before verifying the secret, so an
