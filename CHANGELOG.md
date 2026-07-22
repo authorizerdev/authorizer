@@ -28,6 +28,7 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 - **`--metrics-host`**: bind address for the dedicated `/metrics` listener (default `127.0.0.1`). Use `0.0.0.0` when a scraper on another host/pod must reach the metrics port over the network; keep the metrics port off public ingress.
 - **OIDC Discovery — `grant_types_supported` includes `implicit`**: honestly reflects that `/authorize` accepts `response_type=token` and `response_type=id_token`.
 - **OIDC Discovery caching**: discovery document and JWKS are now cached server-side with strict expiry, reducing external provider request load during token validation for social logins like Twitter ([#668](https://github.com/authorizerdev/authorizer/pull/668)).
+- **Graceful shutdown for background work**: detached goroutines that fire request side effects (email/SMS sends, webhook events, audit log writes) are now tracked and drained on shutdown instead of being silently killed mid-flight, and a panic inside one is recovered and logged instead of crashing the whole process ([#696](https://github.com/authorizerdev/authorizer/pull/696)).
 
 ### Changed
 
