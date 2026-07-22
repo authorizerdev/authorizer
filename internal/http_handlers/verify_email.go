@@ -94,7 +94,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// Resolved once, early: needed both for the MFA-gate-withheld redirect
 		// below and the success redirect further down.
 		if redirectURL == "" {
-			redirectURL = claim["redirect_uri"].(string)
+			redirectURL = claimString(claim, "redirect_uri")
 		}
 		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI in token claim")
