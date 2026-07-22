@@ -87,6 +87,7 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 	const client = useClient();
 
 	const [domains, setDomains] = useState<OrgDomain[]>([]);
+	const [domainsLoading, setDomainsLoading] = useState(true);
 
 	// Add-domain dialog. `challenge` null => domain-entry step; set => DNS step.
 	const [addOpen, setAddOpen] = useState(false);
@@ -103,12 +104,17 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 
 	const fetchDomains = async () => {
 		if (!orgId) return;
+		setDomainsLoading(true);
 		const res = await client
 			.query<{ _org_domains: { org_domains: OrgDomain[] } }>(OrgDomainsQuery, {
-				params: { org_id: orgId },
+				// Verified domains per org are expected to be a handful at most; a
+				// generous single-page limit avoids silently truncating at the
+				// backend's default of 10 without needing full pagination UI.
+				params: { org_id: orgId, pagination: { limit: 100 } },
 			})
 			.toPromise();
 		setDomains(res.data?._org_domains?.org_domains || []);
+		setDomainsLoading(false);
 	};
 
 	useEffect(() => {
@@ -241,7 +247,9 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 					</div>
 				</CardHeader>
 				<CardContent>
-					{domains.length > 0 ? (
+					{domainsLoading ? (
+						<p className="text-sm text-gray-400">Loading verified domains…</p>
+					) : domains.length > 0 ? (
 						<Table>
 							<TableHeader>
 								<TableRow>
@@ -325,8 +333,14 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 					) : (
 						<div className="space-y-3">
 							<div>
-								<label className="text-sm font-medium">Domain</label>
+								<label
+									htmlFor="org-domain-input"
+									className="text-sm font-medium"
+								>
+									Domain
+								</label>
 								<Input
+									id="org-domain-input"
 									placeholder="acme.com"
 									value={domainInput}
 									onChange={(e) => setDomainInput(e.currentTarget.value)}

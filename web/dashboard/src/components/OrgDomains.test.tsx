@@ -60,6 +60,24 @@ beforeEach(() => {
 });
 
 describe('OrgDomains', () => {
+	it('shows a loading state before the initial fetch resolves', async () => {
+		let resolveQuery: (value: typeof listResponse) => void = () => {};
+		mockClient.query = vi.fn(() => ({
+			toPromise: () =>
+				new Promise<typeof listResponse>((resolve) => {
+					resolveQuery = resolve;
+				}),
+		}));
+
+		render(<OrgDomains orgId="org1" orgSlug="Acme" />);
+		expect(screen.getByText('Loading verified domains…')).toBeTruthy();
+		expect(screen.queryByText('No verified domains yet.')).toBeNull();
+
+		resolveQuery({ data: { _org_domains: { org_domains: [] } } });
+		await screen.findByText('No verified domains yet.');
+		expect(screen.queryByText('Loading verified domains…')).toBeNull();
+	});
+
 	it('renders the list of verified domains', async () => {
 		listResponse = {
 			data: { _org_domains: { org_domains: [verifiedDomain] } },
