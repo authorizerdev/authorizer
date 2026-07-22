@@ -58,13 +58,18 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, GitHub, Facebook, LinkedIn, Apple, Discord, Twitter, Twitch, Roblox, Microsoft)
+- ✅ WebAuthn / passkey registration and login (FIDO2 security keys, Windows Hello, Touch ID, Face ID, etc.)
 - ✅ Role-based access management
 - ✅ Fine-grained authorization (ReBAC via embedded OpenFGA)
 - ✅ Password-less login with magic link
 - ✅ TOTP-based multi-factor authentication
 - ✅ SMS OTP via Twilio
+- ✅ Email OTP as an MFA factor
 - ✅ Email templating
 - ✅ Webhooks
+- ✅ Enterprise SSO — SAML 2.0 as Service Provider (upstream IdP) and Identity Provider (downstream SP), OIDC broker, verified email domains, and home realm discovery
+- ✅ SCIM 2.0 user and group provisioning with RFC 7644 compliance
+- ✅ Multi-tenant / org-scoped admin roles and isolation
 - ✅ GraphQL, REST, and gRPC APIs (all transports share the same service layer)
 - ✅ Admin API — user management, webhooks, email templates, audit logs, and FGA model/tuples over all three transports
 - ✅ Rate limiting and security hardening (CSRF, CORS, HSTS, CSP, trusted proxies)
@@ -87,6 +92,7 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 
 **Planned**
 
+- Migration guides for SSO/SAML/SCIM setup (coming soon)
 - React Native SDK
 - Android Native SDK
 - iOS native SDK
