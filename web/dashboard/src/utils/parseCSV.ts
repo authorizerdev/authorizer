@@ -7,8 +7,13 @@ interface DataTypes {
 }
 
 const parseCSV = (file: File, delimiter: string): Promise<DataTypes[]> => {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
+
+		reader.onerror = () => {
+			reader.abort();
+			reject(new Error('Failed to read the selected file'));
+		};
 
 		reader.onload = (e: ProgressEvent<FileReader>) => {
 			const lines = (e.target?.result as string).split('\n');

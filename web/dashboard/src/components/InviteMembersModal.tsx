@@ -125,9 +125,13 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 	};
 
 	const onDrop = useCallback(async (acceptedFiles: File[]) => {
-		const result = await parseCSV(acceptedFiles[0], ',');
-		setEmails(result);
-		setTabIndex(0);
+		try {
+			const result = await parseCSV(acceptedFiles[0], ',');
+			setEmails(result);
+			setTabIndex(0);
+		} catch (error) {
+			toast.error(getGraphQLErrorMessage(error));
+		}
 	}, []);
 
 	const setRedirectURIHandler = (value: string) => {

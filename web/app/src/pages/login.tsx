@@ -36,6 +36,20 @@ const HRDForm = styled.form`
 	width: 100%;
 `;
 
+// Visually hidden but still exposed to screen readers (WCAG 3.3.2) — the HRD
+// email field has only a placeholder otherwise, which assistive tech ignores.
+const VisuallyHiddenLabel = styled.label`
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+`;
+
 const HRDInput = styled.input`
 	width: 100%;
 	padding: 10px;
@@ -151,7 +165,9 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 			<Fragment>
 				<h1 style={{ textAlign: 'center' }}>Login</h1>
 				<HRDForm onSubmit={handleHRDSubmit}>
+					<VisuallyHiddenLabel htmlFor="hrd-email">Email</VisuallyHiddenLabel>
 					<HRDInput
+						id="hrd-email"
 						type="email"
 						placeholder="Enter your email"
 						value={hrdEmail}
