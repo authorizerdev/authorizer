@@ -61,12 +61,24 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 
 ### Adding support for new database
 
-- Run `make generate-db-template dbname=NEW_DB_NAME`
-  - e.g. `make generate-db-template dbname=dynamodb`
+1. Run `make generate-db-template dbname=NEW_DB_NAME`
+   - e.g. `make generate-db-template dbname=dynamodb`
 
-This generates a folder in `internal/storage/db/` with the specified name. Implement the methods in that folder.
+   This copies `internal/storage/db/provider_template/` to `internal/storage/db/NEW_DB_NAME/` and renames the package. The template already stubs every method of `storage.Provider` (`internal/storage/provider.go`) across all feature areas — users, sessions, webhooks, email templates, OTP, authenticators, memory-store (session/MFA/OAuth-state), audit logs, clients, trusted issuers, SAML (SP + IDP keys), SCIM (endpoints + groups), WebAuthn credentials, organizations, org memberships, org domains, and federated identities — plus a compile-time `var _ storage.Provider = (*provider)(nil)` assertion in `provider.go`. If that assertion ever fails to compile, the template has drifted from the interface — fix the template, not just your new provider.
 
-> Note: Database connection and schema changes are in `internal/storage/db/DB_NAME/provider.go`; `NewProvider` is called for the configured database type.
+2. Change the `provider` struct and `NewProvider` in `NEW_DB_NAME/provider.go` to hold and construct your actual database client (the template ships with a placeholder `*gorm.DB` field — replace it).
+
+3. Implement each stubbed method for real, one feature file at a time. Use an existing provider as a reference for the query patterns of a similar backend:
+   - SQL-like/GORM backend → `internal/storage/db/sql/`
+   - Document store → `internal/storage/db/mongodb/` or `internal/storage/db/arangodb/`
+   - Wide-column store → `internal/storage/db/cassandradb/`
+   - Key-value store → `internal/storage/db/dynamodb/` or `internal/storage/db/couchbase/`
+
+4. Wire the new provider into `storage.New()` (`internal/storage/provider.go`) behind its config-selected database type.
+
+5. Add the new provider to the storage test matrix (`TEST_DBS`) and a `make test-NEW_DB_NAME` / `test-cleanup-NEW_DB_NAME` Docker target in the `Makefile`, following the pattern of the existing `test-postgres` / `test-mongodb` targets.
+
+> Note: `go build ./internal/storage/db/NEW_DB_NAME/...` will fail with a `does not implement storage.Provider (missing method ...)` error until every method is implemented — that's the compile-time assertion in `provider.go` doing its job.
 
 ### Testing
 

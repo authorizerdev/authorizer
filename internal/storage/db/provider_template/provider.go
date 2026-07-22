@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Dependencies struct the TODO(replace with new db name) data store provider
@@ -19,21 +20,18 @@ type provider struct {
 	db           *gorm.DB
 }
 
+// Compile-time check: provider must implement every method of storage.Provider.
+// Deleting or renaming a method here without updating the interface (or vice
+// versa) fails the build immediately instead of silently drifting.
+var _ storage.Provider = (*provider)(nil)
+
 // NewProvider returns a new provider for your database type.
 // TODO: change provider struct and NewProvider to use your database client.
 //
-// This provider must implement all methods from storage.Provider, including:
-// - User, VerificationRequest, Session, Webhook, EmailTemplate, OTP, Authenticator
-// - Memory store methods (when Redis is not configured):
-//   - SessionToken: AddSessionToken, GetSessionTokenByUserIDAndKey, DeleteSessionToken,
-//     DeleteSessionTokenByUserIDAndKey, DeleteAllSessionTokensByUserID,
-//     DeleteSessionTokensByNamespace, CleanExpiredSessionTokens, GetAllSessionTokens
-//   - MFASession: AddMFASession, GetMFASessionByUserIDAndKey, DeleteMFASession,
-//     DeleteMFASessionByUserIDAndKey, GetAllMFASessionsByUserID,
-//     CleanExpiredMFASessions, GetAllMFASessions
-//   - OAuthState: AddOAuthState, GetOAuthStateByKey, DeleteOAuthStateByKey, GetAllOAuthStates
-//
-// Use schemas.Collections for table/collection names (e.g., schemas.Collections.SessionToken).
+// This provider must implement every method of storage.Provider — see that
+// interface (internal/storage/provider.go) for the authoritative, documented
+// list. Use schemas.Collections for table/collection names (e.g.,
+// schemas.Collections.SessionToken).
 func NewProvider(
 	config *config.Config,
 	deps *Dependencies,

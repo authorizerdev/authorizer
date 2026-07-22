@@ -63,6 +63,13 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return user, nil
 }
 
+// GetUserByExternalID fetches an IdP-provisioned user by its org-namespaced
+// external id.
+func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
+	var user *schemas.User
+	return user, nil
+}
+
 // UpdateUsers to update multiple users, with parameters of user IDs slice
 // If ids set to nil / empty all the users will be updated
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
