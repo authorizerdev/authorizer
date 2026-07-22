@@ -288,9 +288,8 @@ perf-k6-check:
 
 .PHONY: e2e-playground
 e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/MFA) against an ephemeral docker-compose stack
-	cd e2e-playground && npm ci && npx playwright install --with-deps chromium
-	docker compose -f e2e-playground/docker-compose.yml up -d --wait
-	cd e2e-playground && npx playwright test; \
+	docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso mock-oauth mock-saml-idp mailpit sms-sink
+	docker compose -f e2e-playground/docker-compose.yml run --rm playwright npx playwright test; \
 	status=$$?; \
 	docker compose -f e2e-playground/docker-compose.yml down -v; \
 	exit $$status

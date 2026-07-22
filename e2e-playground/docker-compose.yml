@@ -8,6 +8,7 @@ services:
       - "8080:8080"
     command:
       - "--http-port=8080"
+      - "--url=http://authorizer:8080"
       - "--database-type=sqlite"
       - "--database-url=/authorizer/e2e-test.db"
       - "--admin-secret=e2e-admin-secret"
@@ -16,7 +17,9 @@ services:
       - "--client-id=e2e-client-id"
       - "--client-secret=e2e-client-secret"
       - "--enable-signup=true"
-      - "--allowed-origins=http://localhost:8080"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8080,http://authorizer:8080"
       - "--google-client-id=mock-client-id"
       - "--google-client-secret=mock-client-secret"
       - "--github-client-id=mock-client-id"
@@ -76,6 +79,7 @@ services:
       - "8081:8080"
     command:
       - "--http-port=8080"
+      - "--url=http://authorizer-sso:8080"
       - "--database-type=sqlite"
       - "--database-url=/authorizer/e2e-test-sso.db"
       - "--admin-secret=e2e-admin-secret"
@@ -84,9 +88,11 @@ services:
       - "--client-id=e2e-client-id"
       - "--client-secret=e2e-client-secret"
       - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
       - "--enable-org-discovery=true"
       - "--test-allow-private-sso-hosts=true"
-      - "--allowed-origins=http://localhost:8081"
+      - "--allowed-origins=http://localhost:8081,http://authorizer-sso:8080"
       - "--google-client-id=mock-client-id"
       - "--google-client-secret=mock-client-secret"
       - "--github-client-id=mock-client-id"
@@ -148,3 +154,29 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+
+  # Runs the Playwright test process itself inside the compose network so
+  # browser-driven redirects to mock-oauth/mock-saml-idp resolve the same
+  # docker-internal hostnames as server-side fetches (see Dockerfile).
+  # Never started by `up`; invoked via `docker compose run --rm playwright ...`.
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
+      MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
+      MOCK_SAML_BASE_URL: http://mock-saml-idp:4001
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      MAILPIT_BASE_URL: http://mailpit:8025
+    volumes:
+      - ./playwright-report:/e2e/playwright-report
+      - ./test-results:/e2e/test-results
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-sso: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
