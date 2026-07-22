@@ -440,6 +440,7 @@ func runRoot(c *cobra.Command, args []string) {
 	// the host-header-injection account-takeover class (CWE-640). Empty keeps
 	// the legacy header-based derivation.
 	parsers.SetTrustedURL(rootArgs.config.AuthorizerURL)
+	parsers.SetLogger(&log)
 
 	// Storage provider
 	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{

@@ -377,6 +377,11 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if resource != "" {
 				requestResources := gc.PostFormArray("resource")
 				if len(requestResources) != 1 || strings.TrimSpace(requestResources[0]) != resource {
+					// A mismatched resource here is more than a client bug: it's the
+					// shape of an audience-confusion / token-substitution attempt
+					// against the exact binding RFC 8707 exists to enforce.
+					metrics.RecordSecurityEvent("token_exchange_resource_mismatch", "token_endpoint")
+					log.Warn().Str("client_id", strings.TrimSpace(reqBody.ClientID)).Msg("rejected: resource parameter does not match the authorization request")
 					gc.JSON(http.StatusBadRequest, gin.H{
 						"error":             "invalid_grant",
 						"error_description": "The resource parameter does not match the authorization request",

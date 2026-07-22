@@ -275,6 +275,7 @@ func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displa
 }
 
 func (p *provider) DeleteGroup(ctx context.Context, orgID, groupID string) error {
+	log := p.Log.With().Str("func", "scim.DeleteGroup").Str("org_id", orgID).Str("group_id", groupID).Logger()
 	group, err := p.requireGroup(ctx, orgID, groupID)
 	if err != nil {
 		return err
@@ -294,7 +295,14 @@ func (p *provider) DeleteGroup(ctx context.Context, orgID, groupID string) error
 			for _, subj := range members {
 				tuples = append(tuples, engine.TupleKey{User: subj, Relation: groupMemberRelation, Object: groupObject(orgID, groupID)})
 			}
-			_ = p.AuthzEngine.DeleteTuples(ctx, tuples)
+			// Not fatal to the delete (the group row is still removed below — a
+			// stuck tuple write here does not block deprovisioning), but MUST be
+			// logged: a failure leaves membership tuples pointing at a
+			// soon-to-be-gone group, which is exactly the kind of authorization
+			// drift that needs an operator's attention rather than silent loss.
+			if err := p.AuthzEngine.DeleteTuples(ctx, tuples); err != nil {
+				log.Warn().Err(err).Int("member_count", len(tuples)).Msg("failed to delete group membership tuples on group delete — tuples may be orphaned")
+			}
 		}
 	}
 	if err := p.StorageProvider.DeleteScimGroup(ctx, group); err != nil {
@@ -366,11 +374,13 @@ func (p *provider) syncMembers(ctx context.Context, orgID, groupID string, add, 
 	}
 	if len(writes) > 0 {
 		if err := p.AuthzEngine.WriteTuples(ctx, writes); err != nil {
+			log.Warn().Err(err).Str("group_id", groupID).Int("count", len(writes)).Msg("failed to write group membership tuples")
 			return err
 		}
 	}
 	if len(deletes) > 0 {
 		if err := p.AuthzEngine.DeleteTuples(ctx, deletes); err != nil {
+			log.Warn().Err(err).Str("group_id", groupID).Int("count", len(deletes)).Msg("failed to delete group membership tuples")
 			return err
 		}
 	}

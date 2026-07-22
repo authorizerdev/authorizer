@@ -49,7 +49,7 @@ func (p *provider) UpdateOrganization(ctx context.Context, org *schemas.Organiza
 // single transaction so a mid-cascade failure cannot orphan memberships or
 // domains.
 func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organization) error {
-	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("org_id = ?", org.ID).Delete(&schemas.OrgMembership{}).Error; err != nil {
 			return err
 		}
@@ -60,6 +60,10 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 		}
 		return tx.Delete(org).Error
 	})
+	if err != nil {
+		p.dependencies.Log.Warn().Err(err).Str("org_id", org.ID).Msg("DeleteOrganization: cascade transaction failed, rolled back")
+	}
+	return err
 }
 
 // GetOrganizationByID fetches an organization by primary key.

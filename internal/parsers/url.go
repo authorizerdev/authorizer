@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
 // GetHost returns the authorizer host URL from the gin request context.
@@ -27,6 +28,12 @@ func GetHost(c *gin.Context) string {
 // ever reconfigured this at runtime, which we don't.
 var trustedURL string
 
+// pkgLog is an optional logger for host-header rejection events, set once at
+// startup via SetLogger. Same set-once-before-any-listener convention as
+// trustedURL above — no lock needed. Nil (the default, e.g. in tests) simply
+// means rejections aren't logged.
+var pkgLog *zerolog.Logger
+
 // SetTrustedURL records the operator-configured canonical base URL. Called once
 // from cmd/root at startup. The value is normalized to scheme+host (path,
 // query, fragment, userinfo and trailing slash stripped) so it is a valid,
@@ -34,6 +41,12 @@ var trustedURL string
 // the legacy header-based behavior rather than emitting a broken host.
 func SetTrustedURL(u string) {
 	trustedURL = sanitizeAuthorizerURL(strings.TrimSpace(u))
+}
+
+// SetLogger records the logger used to report rejected X-Authorizer-URL
+// header values. Called once from cmd/root at startup, alongside SetTrustedURL.
+func SetLogger(log *zerolog.Logger) {
+	pkgLog = log
 }
 
 // GetHostFromRequest returns the authorizer host URL from a raw *http.Request.
@@ -50,7 +63,12 @@ func GetHostFromRequest(r *http.Request) string {
 		if sanitized := sanitizeAuthorizerURL(authorizerURL); sanitized != "" {
 			return sanitized
 		}
-		// Invalid header value — fall through to standard host detection
+		// Invalid header value — fall through to standard host detection.
+		// Worth logging: a malformed/rejected X-Authorizer-URL is either a
+		// misconfigured proxy or a host-header-injection probe.
+		if pkgLog != nil {
+			pkgLog.Warn().Str("header", authorizerURL).Msg("rejected X-Authorizer-URL header — falling back to standard host detection")
+		}
 	}
 
 	scheme := r.Header.Get("X-Forwarded-Proto")

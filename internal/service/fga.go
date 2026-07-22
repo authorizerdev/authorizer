@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -12,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 // ErrFgaNotEnabled is returned by every fine-grained-authorization (FGA)
@@ -257,12 +259,16 @@ func (p *provider) enforceRequiredRelations(ctx context.Context, log zerolog.Log
 		if r == nil || strings.TrimSpace(r.Relation) == "" || strings.TrimSpace(r.Object) == "" {
 			return InvalidArgument("each required relation needs relation and object")
 		}
+		start := time.Now()
 		allowed, err := p.AuthzEngine.Check(ctx, subject, r.Relation, r.Object)
+		metrics.ObserveFgaCheckDuration(metrics.FgaOpRequiredRelations, time.Since(start).Seconds())
 		if err != nil {
 			// Fail closed.
+			metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
 			log.Debug().Err(err).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation check errored")
 			return PermissionDenied("unauthorized")
 		}
+		metrics.RecordFgaCheckResult(metrics.FgaOpRequiredRelations, allowed)
 		if !allowed {
 			log.Debug().Str("relation", r.Relation).Str("object", r.Object).Msg("required relation denied")
 			return PermissionDenied("unauthorized")

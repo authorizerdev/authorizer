@@ -5,24 +5,31 @@
 package asyncutil
 
 import (
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
+
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 var counter atomic.Int64
 
 // Go runs fn in a new goroutine, tracking it so Wait can block until it
 // finishes and recovering any panic fn raises. log may be nil, in which
-// case a recovered panic is dropped (all current call sites pass a logger).
+// case a recovered panic is only counted, not logged (all current call
+// sites pass a logger).
 func Go(log *zerolog.Logger, fn func()) {
 	counter.Add(1)
 	go func() {
 		defer counter.Add(-1)
 		defer func() {
-			if r := recover(); r != nil && log != nil {
-				log.Error().Interface("panic", r).Msg("recovered panic in background goroutine")
+			if r := recover(); r != nil {
+				metrics.RecordPanicRecovered()
+				if log != nil {
+					log.Error().Interface("panic", r).Str("stack", string(debug.Stack())).Msg("recovered panic in background goroutine")
+				}
 			}
 		}()
 		fn()

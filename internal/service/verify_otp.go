@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -104,6 +105,12 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		log.Debug().Err(err).Msg("User not found")
 		return nil, nil, NotFound("invalid verification request")
 	}
+	// Rebuild the logger from scratch (not derived from the email/phone_number
+	// context above) now that user.ID is known: every remaining log line in
+	// this function — including the lockout Warn below, which is enabled by
+	// default in production unlike the Debug lines above — must not carry raw
+	// PII. user_id is an opaque internal identifier, not personal data.
+	log = p.Log.With().Str("func", "VerifyOTP").Str("user_id", user.ID).Logger()
 
 	if user.RevokedTimestamp != nil {
 		log.Debug().Msg("User access has been revoked")
@@ -147,7 +154,8 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			// ValidateRecoveryCode's storage-fault case.
 			log.Debug().Err(incErr).Msg("Failed to increment totp failed-attempt counter")
 		} else if attempts > totpMaxFailedAttempts {
-			log.Debug().Int64("attempts", attempts).Msg("TOTP verification locked: too many failed attempts")
+			metrics.RecordSecurityEvent("totp_verification_locked", "verify_otp")
+			log.Warn().Int64("attempts", attempts).Str("ip", meta.IPAddress).Msg("TOTP verification locked: too many failed attempts")
 			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
 		}
 
@@ -192,7 +200,8 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			// lock out a legitimate user (fail-open, matching the TOTP branch).
 			log.Debug().Err(incErr).Msg("Failed to increment otp failed-attempt counter")
 		} else if attempts > totpMaxFailedAttempts {
-			log.Debug().Int64("attempts", attempts).Msg("OTP verification locked: too many failed attempts")
+			metrics.RecordSecurityEvent("otp_verification_locked", "verify_otp")
+			log.Warn().Int64("attempts", attempts).Str("ip", meta.IPAddress).Msg("OTP verification locked: too many failed attempts")
 			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
 		}
 

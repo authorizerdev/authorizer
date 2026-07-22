@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 // Store kinds for the embedded datastore.
@@ -235,6 +236,7 @@ func (e *engineImpl) Reset(ctx context.Context) error {
 	defer e.mu.Unlock()
 	if e.storeID != "" {
 		if _, err := e.srv.DeleteStore(ctx, &openfgav1.DeleteStoreRequest{StoreId: e.storeID}); err != nil {
+			metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultError)
 			return fmt.Errorf("openfga.Reset: DeleteStore: %w", err)
 		}
 	}
@@ -242,10 +244,12 @@ func (e *engineImpl) Reset(ctx context.Context) error {
 		Name: storeNameOrDefault(e.storeName),
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultError)
 		return fmt.Errorf("openfga.Reset: CreateStore: %w", err)
 	}
 	e.storeID = store.GetId()
 	e.modelID = ""
+	metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultSuccess)
 	e.log.Info().Str("store_id", e.storeID).Msg("FGA store reset; new empty store created")
 	return nil
 }

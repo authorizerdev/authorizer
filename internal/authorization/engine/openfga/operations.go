@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 // Check reports whether user is related to object via relation. It is
@@ -132,8 +133,11 @@ func (e *engineImpl) ListUsers(ctx context.Context, object, relation, userType s
 		UserFilters:          []*openfgav1.UserTypeFilter{{Type: userType}},
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultError)
+		e.log.Debug().Err(err).Msg("openfga: list users failed")
 		return nil, fmt.Errorf("openfga.ListUsers: %w", err)
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultSuccess)
 	users := make([]string, 0, len(res.GetUsers()))
 	for _, u := range res.GetUsers() {
 		users = append(users, string(tuple.UserProtoToString(u)))
@@ -159,12 +163,16 @@ func (e *engineImpl) Expand(ctx context.Context, relation, object string) (strin
 		},
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
+		e.log.Debug().Err(err).Msg("openfga: expand failed")
 		return "", fmt.Errorf("openfga.Expand: %w", err)
 	}
 	jsonBytes, err := protojson.Marshal(res.GetTree())
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
 		return "", fmt.Errorf("openfga.Expand: marshal tree: %w", err)
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultSuccess)
 	return string(jsonBytes), nil
 }
 
@@ -188,8 +196,11 @@ func (e *engineImpl) WriteTuples(ctx context.Context, tuples []engine.TupleKey) 
 		Writes:               &openfgav1.WriteRequestWrites{TupleKeys: keys},
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultError)
+		e.log.Debug().Err(err).Int("count", len(tuples)).Msg("openfga: write tuples failed")
 		return fmt.Errorf("openfga.WriteTuples: %w", err)
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	return nil
 }
 
@@ -213,8 +224,11 @@ func (e *engineImpl) DeleteTuples(ctx context.Context, tuples []engine.TupleKey)
 		Deletes:              &openfgav1.WriteRequestDeletes{TupleKeys: keys},
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultError)
+		e.log.Debug().Err(err).Int("count", len(tuples)).Msg("openfga: delete tuples failed")
 		return fmt.Errorf("openfga.DeleteTuples: %w", err)
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	return nil
 }
 
@@ -244,8 +258,11 @@ func (e *engineImpl) ReadTuples(ctx context.Context, filter engine.ReadTuplesFil
 
 	res, err := e.srv.Read(ctx, req)
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultError)
+		e.log.Debug().Err(err).Msg("openfga: read tuples failed")
 		return nil, fmt.Errorf("openfga.ReadTuples: %w", err)
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultSuccess)
 
 	out := &engine.ReadTuplesResult{
 		ContinuationToken: res.GetContinuationToken(),
@@ -279,6 +296,8 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 		Conditions:      parsed.GetConditions(),
 	})
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultError)
+		e.log.Debug().Err(err).Msg("openfga: write model failed")
 		return "", fmt.Errorf("openfga.WriteModel: %w", err)
 	}
 	modelID := wm.GetAuthorizationModelId()
@@ -287,6 +306,7 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 	e.modelID = modelID
 	e.mu.Unlock()
 
+	metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultSuccess)
 	e.log.Info().Str("model_id", modelID).Msg("wrote OpenFGA authorization model; persist this ID")
 	return modelID, nil
 }

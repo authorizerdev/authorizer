@@ -77,12 +77,16 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	// Delete the user and their sessions atomically so a failure cannot leave
 	// orphaned session rows behind.
-	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", user.ID).Delete(&schemas.Session{}).Error; err != nil {
 			return err
 		}
 		return tx.Delete(&user).Error
 	})
+	if err != nil {
+		p.dependencies.Log.Warn().Err(err).Str("user_id", user.ID).Msg("DeleteUser: cascade transaction failed, rolled back")
+	}
+	return err
 }
 
 // ListUsers to get list of users from database. When query is non-empty it is

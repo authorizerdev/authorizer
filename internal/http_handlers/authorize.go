@@ -50,6 +50,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/validators"
@@ -74,8 +75,13 @@ const (
 // code_challenge = to prevent CSRF attack
 // code_challenge_method = to prevent CSRF attack [only sh256 is supported]
 func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
-	log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 	return func(gc *gin.Context) {
+		// log is request-scoped (declared inside the closure, not captured from
+		// the enclosing func) so concurrent requests each mutate their own
+		// value when reassigning below (e.g. attaching client_id) — a logger
+		// declared outside the closure and reassigned here would be shared,
+		// mutable state race-read/written by every concurrent request.
+		log := h.Log.With().Str("func", "AuthorizeHandler").Logger()
 		// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint
 		// MUST support GET and MAY support POST (form-urlencoded body).
 		// FormValue reads the POST body first, falling back to the query
@@ -185,7 +191,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// RFC 8707: reject a repeated resource parameter (single audience only).
 		// redirect_uri is validated above, so redirectErrorToRP is safe here.
+		// Debug only, no security-event metric: a routine malformed request,
+		// not evidence of an attack (keeps SecurityEventsTotal signal clean).
 		if vals := gc.Request.Form["resource"]; len(vals) > 1 {
+			log.Debug().Str("client_id", clientID).Msg("rejected: repeated resource parameter")
 			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "only one resource parameter is supported")
 			return
 		}
@@ -194,6 +203,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// NOT include a fragment component. The RFC-conventional error code for
 		// a rejected resource is invalid_target.
 		if resource != "" && !isValidResourceIndicator(resource) {
+			log.Debug().Str("client_id", clientID).Str("resource", resource).Msg("rejected: invalid resource indicator")
 			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_target", "resource must be an absolute URI without a fragment")
 			return
 		}
@@ -211,6 +221,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				errCode = "request_uri_not_supported"
 				errDesc = "the request_uri parameter is not supported"
 			}
+			log.Debug().Str("client_id", clientID).Str("error", errCode).Msg("rejected: request/request_uri (JAR) not supported")
 			redirectErrorToRP(gc, responseMode, redirectURI, state, errCode, errDesc)
 			return
 		}
@@ -220,6 +231,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// here — reject rather than silently defaulting to an implicit-flow
 		// token grant the client never asked for.
 		if responseType == "" {
+			log.Debug().Str("client_id", clientID).Msg("rejected: response_type is required")
 			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "response_type is required")
 			return
 		}
@@ -244,8 +256,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		// OAuth 2.1 strict mode: PKCE "plain" is removed — S256 only.
+		// OAuth 2.1 strict mode: PKCE "plain" is removed — S256 only. Recorded
+		// as a security event (not just logged): a client presenting "plain"
+		// while strict mode is on is attempting the exact downgrade this
+		// setting exists to block.
 		if h.Config.OAuth21Strict && codeChallengeMethod == "plain" && codeChallenge != "" {
+			metrics.RecordSecurityEvent("pkce_plain_rejected_strict", "authorize_endpoint")
+			log.Warn().Str("client_id", clientID).Msg("rejected: PKCE plain method not allowed under OAuth 2.1 strict mode")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_request",
 				"error_description": "code_challenge_method=plain is not allowed; use S256",
@@ -302,6 +319,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// The check is component-exact (not a substring) so "id_token" — which
 		// contains "token" only as a substring — is NOT matched.
 		if h.Config.OAuth21Strict && responseTypeHasBareToken(responseType) {
+			metrics.RecordSecurityEvent("bare_token_response_type_rejected_strict", "authorize_endpoint")
+			log.Warn().Str("client_id", clientID).Str("response_type", responseType).Msg("rejected: implicit/bare-token response_type not allowed under OAuth 2.1 strict mode")
 			redirectErrorToRP(gc, responseMode, redirectURI, state, "unsupported_response_type", "response_type="+responseType+" is not supported")
 			return
 		}

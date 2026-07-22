@@ -68,13 +68,12 @@ func (p *provider) FgaWriteModel(ctx context.Context, meta RequestMetadata, para
 	if params == nil || strings.TrimSpace(params.Dsl) == "" {
 		return nil, nil, InvalidArgument("dsl is required")
 	}
+	// Outcome metric is recorded by the engine (WriteModel) itself.
 	modelID, err := p.AuthzEngine.WriteModel(ctx, params.Dsl)
 	if err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to write authorization model")
 		return nil, nil, err
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminFgaModelWrittenEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
@@ -103,12 +102,11 @@ func (p *provider) FgaWriteTuples(ctx context.Context, meta RequestMetadata, par
 	if err != nil {
 		return nil, nil, err
 	}
+	// Outcome metric is recorded by the engine (WriteTuples) itself.
 	if err := p.AuthzEngine.WriteTuples(ctx, tuples); err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to write tuples")
 		return nil, nil, friendlyTupleError(err)
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminFgaTuplesWrittenEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
@@ -137,12 +135,11 @@ func (p *provider) FgaDeleteTuples(ctx context.Context, meta RequestMetadata, pa
 	if err != nil {
 		return nil, nil, err
 	}
+	// Outcome metric is recorded by the engine (DeleteTuples) itself.
 	if err := p.AuthzEngine.DeleteTuples(ctx, tuples); err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to delete tuples")
 		return nil, nil, friendlyTupleError(err)
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminFgaTuplesDeletedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
@@ -185,13 +182,12 @@ func (p *provider) FgaReadTuples(ctx context.Context, meta RequestMetadata, para
 	if filter.PageSize == 0 {
 		filter.PageSize = maxFgaReadPageSize
 	}
+	// Outcome metric is recorded by the engine (ReadTuples) itself.
 	res, err := p.AuthzEngine.ReadTuples(ctx, filter)
 	if err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to read tuples")
 		return nil, nil, err
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultSuccess)
 	out := &model.FgaTuples{Tuples: make([]*model.FgaTuple, 0, len(res.Tuples))}
 	for _, t := range res.Tuples {
 		out.Tuples = append(out.Tuples, &model.FgaTuple{User: t.User, Relation: t.Relation, Object: t.Object})
@@ -219,13 +215,12 @@ func (p *provider) FgaListUsers(ctx context.Context, meta RequestMetadata, param
 	if params == nil || strings.TrimSpace(params.Object) == "" || strings.TrimSpace(params.Relation) == "" || strings.TrimSpace(params.UserType) == "" {
 		return nil, nil, InvalidArgument("object, relation and user_type are required")
 	}
+	// Outcome metric is recorded by the engine (ListUsers) itself.
 	users, err := p.AuthzEngine.ListUsers(ctx, params.Object, params.Relation, params.UserType)
 	if err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to list users")
 		return nil, nil, err
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultSuccess)
 	// Cap the result set; ListUsers is an expensive enumeration surface.
 	if len(users) > maxFgaListResults {
 		users = users[:maxFgaListResults]
@@ -250,13 +245,12 @@ func (p *provider) FgaExpand(ctx context.Context, meta RequestMetadata, params *
 	if params == nil || strings.TrimSpace(params.Relation) == "" || strings.TrimSpace(params.Object) == "" {
 		return nil, nil, InvalidArgument("relation and object are required")
 	}
+	// Outcome metric is recorded by the engine (Expand) itself.
 	tree, err := p.AuthzEngine.Expand(ctx, params.Relation, params.Object)
 	if err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to expand")
 		return nil, nil, err
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultSuccess)
 	return &model.FgaExpandResponse{Tree: tree}, nil, nil
 }
 
@@ -288,12 +282,11 @@ func (p *provider) FgaReset(ctx context.Context, meta RequestMetadata) (*model.R
 	if existing != nil && len(existing.Tuples) > 0 {
 		return nil, nil, FailedPrecondition("remove all relationship tuples before resetting the authorization model")
 	}
+	// Outcome metric is recorded by the engine (Reset) itself.
 	if err := p.AuthzEngine.Reset(ctx); err != nil {
-		metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to reset authorization store")
 		return nil, nil, err
 	}
-	metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminFgaResetEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
