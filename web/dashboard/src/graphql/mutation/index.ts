@@ -410,3 +410,46 @@ export const ImportSAMLSPMetadata = `
     }
   }
 `;
+
+export const RequestOrgDomain = `
+  mutation requestOrgDomain($params: RequestOrgDomainRequest!) {
+    _request_org_domain(params: $params) {
+      domain
+      record_type
+      record_name
+      record_value
+    }
+  }
+`;
+
+export const VerifyOrgDomain = `
+  mutation verifyOrgDomain($params: VerifyOrgDomainRequest!) {
+    _verify_org_domain(params: $params) {
+      domain
+      org_id
+      verified_at
+      created_at
+      updated_at
+    }
+  }
+`;
+
+export const AddVerifiedOrgDomain = `
+  mutation addVerifiedOrgDomain($params: AddVerifiedOrgDomainRequest!) {
+    _add_verified_org_domain(params: $params) {
+      domain
+      org_id
+      verified_at
+      created_at
+      updated_at
+    }
+  }
+`;
+
+export const DeleteOrgDomain = `
+  mutation deleteOrgDomain($params: DeleteOrgDomainRequest!) {
+    _delete_org_domain(params: $params) {
+      message
+    }
+  }
+`;
