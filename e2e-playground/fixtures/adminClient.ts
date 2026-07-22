@@ -2,7 +2,6 @@
 import { GraphQLClient, gql } from 'graphql-request';
 
 const BASE_URL = process.env.AUTHORIZER_BASE_URL || 'http://localhost:8080';
-const ENDPOINT = `${BASE_URL}/graphql`;
 const ADMIN_SECRET = process.env.AUTHORIZER_ADMIN_SECRET || 'e2e-admin-secret';
 
 // Admin auth is the x-authorizer-admin-secret header (see
@@ -10,17 +9,32 @@ const ADMIN_SECRET = process.env.AUTHORIZER_ADMIN_SECRET || 'e2e-admin-secret';
 // not a Bearer token. Origin is required too: the CSRF middleware rejects
 // state-changing requests with no Origin/Referer (internal/graph/schema.graphqls
 // comment on AllowedOrigins; must match the server's --allowed-origins).
-const client = new GraphQLClient(ENDPOINT, {
+const client = new GraphQLClient(`${BASE_URL}/graphql`, {
   headers: { 'x-authorizer-admin-secret': ADMIN_SECRET, Origin: BASE_URL },
 });
 
-export async function createOrg(name: string): Promise<{ id: string; name: string }> {
+// getClient returns the default (AUTHORIZER_BASE_URL / :8080) admin client,
+// or a one-off client scoped to baseUrl when given. Needed because this
+// module's BASE_URL is a single process-wide constant, independent of
+// Playwright's per-project `use.baseURL` — the `sso-discovery` project points
+// page navigation at :8081 (authorizer-sso) via its own baseURL, but without
+// this, admin calls below would still silently hit :8080's `authorizer`
+// service instead, so the org/connection the JIT test creates would exist on
+// the wrong server.
+function getClient(baseUrl?: string): GraphQLClient {
+  if (!baseUrl || baseUrl === BASE_URL) return client;
+  return new GraphQLClient(`${baseUrl}/graphql`, {
+    headers: { 'x-authorizer-admin-secret': ADMIN_SECRET, Origin: baseUrl },
+  });
+}
+
+export async function createOrg(name: string, baseUrl?: string): Promise<{ id: string; name: string }> {
   const query = gql`
     mutation ($params: CreateOrganizationRequest!) {
       _create_organization(params: $params) { id name }
     }
   `;
-  const res = await client.request<{ _create_organization: { id: string; name: string } }>(query, {
+  const res = await getClient(baseUrl).request<{ _create_organization: { id: string; name: string } }>(query, {
     params: { name, display_name: name },
   });
   return res._create_organization;
@@ -28,14 +42,15 @@ export async function createOrg(name: string): Promise<{ id: string; name: strin
 
 export async function createOIDCConnection(
   orgId: string,
-  opts: { name: string; issuerUrl: string; clientId: string; clientSecret: string }
+  opts: { name: string; issuerUrl: string; clientId: string; clientSecret: string },
+  baseUrl?: string
 ): Promise<{ id: string }> {
   const query = gql`
     mutation ($params: CreateOrgOIDCConnectionRequest!) {
       _create_org_oidc_connection(params: $params) { id }
     }
   `;
-  const res = await client.request<{ _create_org_oidc_connection: { id: string } }>(query, {
+  const res = await getClient(baseUrl).request<{ _create_org_oidc_connection: { id: string } }>(query, {
     params: {
       org_id: orgId,
       name: opts.name,
@@ -69,13 +84,13 @@ export async function createSAMLConnection(
   return res._create_org_saml_connection;
 }
 
-export async function addVerifiedDomain(orgId: string, domain: string): Promise<void> {
+export async function addVerifiedDomain(orgId: string, domain: string, baseUrl?: string): Promise<void> {
   const query = gql`
     mutation ($params: AddVerifiedOrgDomainRequest!) {
       _add_verified_org_domain(params: $params) { domain }
     }
   `;
-  await client.request(query, { params: { org_id: orgId, domain } });
+  await getClient(baseUrl).request(query, { params: { org_id: orgId, domain } });
 }
 
 export async function createSCIMEndpoint(orgId: string): Promise<{ token: string; endpoint: string }> {

@@ -15,13 +15,32 @@ export default defineConfig({
   projects: [
     {
       name: 'mfa-off',
-      testIgnore: [/mfa-routing-matrix\.spec\.ts/, '**/mocks/**', '**/node_modules/**'],
+      testIgnore: [
+        /mfa-routing-matrix\.spec\.ts/,
+        /oidc-sso-rp\.spec\.ts/,
+        /sso-discovery\.spec\.ts/,
+        '**/mocks/**',
+        '**/node_modules/**',
+      ],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'mfa-on',
       testMatch: /mfa-routing-matrix\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // Runs against authorizer-sso (docker-compose.yml), the only service
+      // with --enable-org-discovery=true. That flag is a global login-UX
+      // toggle, so it can't be turned on for the `mfa-off` project's service
+      // without breaking tests/oidc-provider.spec.ts's plain PKCE flow — see
+      // that service's comment in docker-compose.yml.
+      name: 'sso-discovery',
+      testMatch: [/oidc-sso-rp\.spec\.ts/, /sso-discovery\.spec\.ts/],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_SSO_BASE_URL || 'http://localhost:8081',
+      },
     },
   ],
 });

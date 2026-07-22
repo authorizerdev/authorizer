@@ -42,12 +42,22 @@ func asAPIOrgOIDCConnection(t *schemas.TrustedIssuer) *model.OrgOIDCConnection {
 // validateSSOIssuerURL rejects an obviously invalid upstream issuer URL. The
 // actual network fetches (discovery/JWKS/token) are SSRF-hardened at fetch time
 // via validators.SafeHTTPClient; this only rejects non-https/opaque input early.
-func validateSSOIssuerURL(raw string) error {
+//
+// allowInsecure permits plain http (Config.TestAllowPrivateSSOHosts): it exists
+// ONLY for e2e-playground, whose mock IdP has no TLS termination. Production
+// callers always pass false.
+func validateSSOIssuerURL(raw string, allowInsecure bool) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || u.Scheme != "https" || u.Host == "" {
+	if err != nil || u.Host == "" {
 		return InvalidArgument("issuer_url must be a valid https URL")
 	}
-	return nil
+	if u.Scheme == "https" {
+		return nil
+	}
+	if allowInsecure && u.Scheme == "http" {
+		return nil
+	}
+	return InvalidArgument("issuer_url must be a valid https URL")
 }
 
 // CreateOrgOIDCConnection registers a per-org upstream OIDC IdP (kind=sso_oidc).
@@ -67,7 +77,7 @@ func (p *provider) CreateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	if orgID == "" || name == "" || issuerURL == "" || clientID == "" || strings.TrimSpace(clientSecret) == "" {
 		return nil, nil, InvalidArgument("org_id, name, issuer_url, client_id and client_secret are required")
 	}
-	if err := validateSSOIssuerURL(issuerURL); err != nil {
+	if err := validateSSOIssuerURL(issuerURL, p.Config.TestAllowPrivateSSOHosts); err != nil {
 		return nil, nil, err
 	}
 
@@ -160,7 +170,7 @@ func (p *provider) UpdateOrgOIDCConnection(ctx context.Context, meta RequestMeta
 	}
 	if params.IssuerURL != nil {
 		u := strings.TrimSpace(*params.IssuerURL)
-		if err := validateSSOIssuerURL(u); err != nil {
+		if err := validateSSOIssuerURL(u, p.Config.TestAllowPrivateSSOHosts); err != nil {
 			return nil, nil, err
 		}
 		// Preserve global issuer_url uniqueness on change.

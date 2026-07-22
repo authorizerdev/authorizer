@@ -10,6 +10,15 @@ type Config struct {
 	// mutation (e.g. to hit localhost in tests). Must remain false in production; integration
 	// tests enable it together with Env=test.
 	SkipTestEndpointSSRFValidation bool
+	// TestAllowPrivateSSOHosts relaxes the private/loopback-IP SSRF check (and the
+	// issuer_url https-only requirement) for the per-org SSO OIDC broker only
+	// (internal/http_handlers/oauth_sso.go discovery/token/JWKS fetches,
+	// internal/service/admin_org_oidc.go issuer_url validation). Only ever set by
+	// e2e-playground/docker-compose.yml, where the mock IdP is reachable solely
+	// at a docker-compose-private address with no TLS. Deliberately independent
+	// of Env==TestEnv, which also no-ops real email delivery and events — this
+	// flag changes nothing else. Must remain false in production.
+	TestAllowPrivateSSOHosts bool
 	// OrganizationLogo is the logo of the organization
 	OrganizationLogo string
 	// OrganizationName is the name of the organization
