@@ -75,8 +75,12 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	// later GetMfaSession re-check is skipped for this path.
 	sessionResolved := false
 	if email == "" && phoneNumber == "" {
-		ownerID, _, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
-		if oErr != nil {
+		// No identifier supplied (OAuth-return MFA continuation): only a
+		// Verified session may resolve an account this way — every legitimate
+		// no-identifier caller (oauth_mfa_gate.go, resend_otp.go's session-only
+		// fallback) already upgrades to Verified before reaching here.
+		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
+		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
 			log.Debug().Err(oErr).Msg("Failed to resolve mfa session owner")
 			return nil, nil, Unauthenticated(`invalid session`)
 		}
@@ -125,7 +129,13 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	// rejected before they can touch (and so exhaust) the victim's lockout
 	// counter, closing an unauthenticated account-lockout DoS.
 	if !sessionResolved {
-		if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+		// Verified (real login/signup/OAuth MFA challenge) and Challenge
+		// (ResendOTP's identifier-supplied hand-off) are both legitimate here.
+		// PasswordReset is deliberately excluded: a forgot-password OTP session
+		// must only ever be redeemable through ResetPassword, never through
+		// VerifyOTP for a token — see constants.MFASessionPurposePasswordReset.
+		purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+		if err != nil || (purpose != constants.MFASessionPurposeVerified && purpose != constants.MFASessionPurposeChallenge) {
 			log.Debug().Err(err).Msg("Failed to get mfa session")
 			return nil, nil, Unauthenticated(`invalid session`)
 		}
