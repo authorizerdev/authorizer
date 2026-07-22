@@ -52,19 +52,40 @@ const VisuallyHiddenLabel = styled.label`
 
 const HRDInput = styled.input`
 	width: 100%;
-	padding: 10px;
-	margin-bottom: 10px;
+	padding: 10px 12px;
+	margin-bottom: 12px;
 	box-sizing: border-box;
-	border: 1px solid #d1d5db;
-	border-radius: 5px;
+	border: 1px solid var(--authorizer-gray-color);
+	border-radius: var(--authorizer-radius-input);
+	background-color: var(--au-card-bg);
+	color: var(--authorizer-text-color);
+	transition: border-color 150ms ease;
+
+	&:hover,
+	&:focus {
+		border-color: var(--authorizer-primary-color);
+	}
 `;
 
 const HRDButton = styled.button`
 	width: 100%;
 	padding: 10px;
 	border: none;
-	border-radius: 5px;
+	border-radius: var(--authorizer-radius-button);
+	background-color: var(--authorizer-primary-color);
+	color: #fff;
+	font-weight: 500;
 	cursor: pointer;
+	transition: opacity 150ms ease;
+
+	&:hover {
+		opacity: 0.9;
+	}
+
+	&:disabled {
+		background-color: var(--authorizer-primary-disabled-color);
+		cursor: not-allowed;
+	}
 `;
 
 // homeRealmDiscovery asks the server which enterprise SSO connection (if any) a
@@ -163,7 +184,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 	) {
 		return (
 			<Fragment>
-				<h1 style={{ textAlign: 'center' }}>Login</h1>
+				<h1 className="au-page-title">Login</h1>
 				<HRDForm onSubmit={handleHRDSubmit}>
 					<VisuallyHiddenLabel htmlFor="hrd-email">Email</VisuallyHiddenLabel>
 					<HRDInput
@@ -195,7 +216,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 		<Fragment>
 			{view === VIEW_TYPES.LOGIN && (
 				<Fragment>
-					<h1 style={{ textAlign: 'center' }}>Login</h1>
+					<h1 className="au-page-title">Login</h1>
 					{showChrome && <AuthorizerSocialLogin urlProps={urlProps} />}
 					{basicAuthIdle && (
 						<AuthorizerPasskeyLogin onStepChange={setPasskeyStep} />
@@ -234,7 +255,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 			)}
 			{view === VIEW_TYPES.FORGOT_PASSWORD && (
 				<Fragment>
-					<h1 style={{ textAlign: 'center' }}>Forgot Password</h1>
+					<h1 className="au-page-title">Forgot Password</h1>
 					<AuthorizerForgotPassword
 						urlProps={{
 							...urlProps,
