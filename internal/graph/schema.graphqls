@@ -799,7 +799,12 @@ input MobileSignUpRequest {
   roles: [String!]
   scope: [String!]
   redirect_uri: String
-  is_multi_factor_auth_enabled: Boolean
+  # is_multi_factor_auth_enabled removed (security fix): letting an
+  # unauthenticated signup caller decide whether MFA applies to their own new
+  # account defeated the server's MFA-on-by-default policy. That decision is
+  # server-config-driven for new accounts; the authenticated admin
+  # `_update_user` path remains the only way to override it for an existing
+  # user.
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
@@ -822,7 +827,12 @@ input SignUpRequest {
   roles: [String!]
   scope: [String!]
   redirect_uri: String
-  is_multi_factor_auth_enabled: Boolean
+  # is_multi_factor_auth_enabled removed (security fix): letting an
+  # unauthenticated signup caller decide whether MFA applies to their own new
+  # account defeated the server's MFA-on-by-default policy. That decision is
+  # server-config-driven for new accounts; the authenticated admin
+  # `_update_user` path remains the only way to override it for an existing
+  # user.
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token

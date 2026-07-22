@@ -517,23 +517,22 @@ type MobileLoginRequest struct {
 }
 
 type MobileSignUpRequest struct {
-	Email                    *string        `json:"email,omitempty"`
-	GivenName                *string        `json:"given_name,omitempty"`
-	FamilyName               *string        `json:"family_name,omitempty"`
-	MiddleName               *string        `json:"middle_name,omitempty"`
-	Nickname                 *string        `json:"nickname,omitempty"`
-	Gender                   *string        `json:"gender,omitempty"`
-	Birthdate                *string        `json:"birthdate,omitempty"`
-	PhoneNumber              string         `json:"phone_number"`
-	Picture                  *string        `json:"picture,omitempty"`
-	Password                 string         `json:"password"`
-	ConfirmPassword          string         `json:"confirm_password"`
-	Roles                    []string       `json:"roles,omitempty"`
-	Scope                    []string       `json:"scope,omitempty"`
-	RedirectURI              *string        `json:"redirect_uri,omitempty"`
-	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
-	State                    *string        `json:"state,omitempty"`
-	AppData                  map[string]any `json:"app_data,omitempty"`
+	Email           *string        `json:"email,omitempty"`
+	GivenName       *string        `json:"given_name,omitempty"`
+	FamilyName      *string        `json:"family_name,omitempty"`
+	MiddleName      *string        `json:"middle_name,omitempty"`
+	Nickname        *string        `json:"nickname,omitempty"`
+	Gender          *string        `json:"gender,omitempty"`
+	Birthdate       *string        `json:"birthdate,omitempty"`
+	PhoneNumber     string         `json:"phone_number"`
+	Picture         *string        `json:"picture,omitempty"`
+	Password        string         `json:"password"`
+	ConfirmPassword string         `json:"confirm_password"`
+	Roles           []string       `json:"roles,omitempty"`
+	Scope           []string       `json:"scope,omitempty"`
+	RedirectURI     *string        `json:"redirect_uri,omitempty"`
+	State           *string        `json:"state,omitempty"`
+	AppData         map[string]any `json:"app_data,omitempty"`
 }
 
 type Mutation struct {
@@ -779,23 +778,22 @@ type SessionQueryRequest struct {
 }
 
 type SignUpRequest struct {
-	Email                    *string        `json:"email,omitempty"`
-	GivenName                *string        `json:"given_name,omitempty"`
-	FamilyName               *string        `json:"family_name,omitempty"`
-	MiddleName               *string        `json:"middle_name,omitempty"`
-	Nickname                 *string        `json:"nickname,omitempty"`
-	Gender                   *string        `json:"gender,omitempty"`
-	Birthdate                *string        `json:"birthdate,omitempty"`
-	PhoneNumber              *string        `json:"phone_number,omitempty"`
-	Picture                  *string        `json:"picture,omitempty"`
-	Password                 string         `json:"password"`
-	ConfirmPassword          string         `json:"confirm_password"`
-	Roles                    []string       `json:"roles,omitempty"`
-	Scope                    []string       `json:"scope,omitempty"`
-	RedirectURI              *string        `json:"redirect_uri,omitempty"`
-	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
-	State                    *string        `json:"state,omitempty"`
-	AppData                  map[string]any `json:"app_data,omitempty"`
+	Email           *string        `json:"email,omitempty"`
+	GivenName       *string        `json:"given_name,omitempty"`
+	FamilyName      *string        `json:"family_name,omitempty"`
+	MiddleName      *string        `json:"middle_name,omitempty"`
+	Nickname        *string        `json:"nickname,omitempty"`
+	Gender          *string        `json:"gender,omitempty"`
+	Birthdate       *string        `json:"birthdate,omitempty"`
+	PhoneNumber     *string        `json:"phone_number,omitempty"`
+	Picture         *string        `json:"picture,omitempty"`
+	Password        string         `json:"password"`
+	ConfirmPassword string         `json:"confirm_password"`
+	Roles           []string       `json:"roles,omitempty"`
+	Scope           []string       `json:"scope,omitempty"`
+	RedirectURI     *string        `json:"redirect_uri,omitempty"`
+	State           *string        `json:"state,omitempty"`
+	AppData         map[string]any `json:"app_data,omitempty"`
 }
 
 type SkipMfaSetupRequest struct {

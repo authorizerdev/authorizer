@@ -12,7 +12,10 @@ import (
 
 // TestSchemaForMessage_FlatScalars covers the most common case: a request
 // message with only scalar fields. SignupRequest is a good representative —
-// string / repeated string / bool / message-typed (AppData).
+// string / repeated string / message-typed (AppData). Boolean is checked
+// separately against VerifyOtpRequest.is_totp: SignupRequest no longer has a
+// bool field (is_multi_factor_auth_enabled was removed — security fix, see
+// internal/service/signup.go).
 func TestSchemaForMessage_FlatScalars(t *testing.T) {
 	md := (&authorizerv1.SignupRequest{}).ProtoReflect().Descriptor()
 	s := schemaForMessage(md)
@@ -22,7 +25,6 @@ func TestSchemaForMessage_FlatScalars(t *testing.T) {
 
 	assert.Equal(t, "string", s.Properties["email"].Type)
 	assert.Equal(t, "string", s.Properties["password"].Type)
-	assert.Equal(t, "boolean", s.Properties["is_multi_factor_auth_enabled"].Type)
 
 	// repeated string → array of strings
 	roles := s.Properties["roles"]
@@ -33,6 +35,10 @@ func TestSchemaForMessage_FlatScalars(t *testing.T) {
 	// Nested message field (AppData) — recurses into its sub-schema.
 	app := s.Properties["app_data"]
 	assert.Equal(t, "object", app.Type)
+
+	otpMd := (&authorizerv1.VerifyOtpRequest{}).ProtoReflect().Descriptor()
+	otpSchema := schemaForMessage(otpMd)
+	assert.Equal(t, "boolean", otpSchema.Properties["is_totp"].Type)
 }
 
 // TestSchemaForMessage_EmptyRequest — MetaRequest has no fields.
