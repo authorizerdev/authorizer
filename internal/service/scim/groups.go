@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -152,6 +153,7 @@ func (p *provider) CreateGroup(ctx context.Context, orgID string, in Group) (*sc
 	if err := p.syncMembers(ctx, orgID, created.ID, in.Members, nil); err != nil {
 		return nil, false, err
 	}
+	p.fireGroupEvent(ctx, constants.GroupCreatedWebhookEvent, created)
 	return created, false, nil
 }
 
@@ -207,6 +209,7 @@ func (p *provider) ReplaceGroup(ctx context.Context, orgID, groupID string, in G
 	if err := p.replaceMembers(ctx, orgID, groupID, in.Members); err != nil {
 		return nil, err
 	}
+	p.fireGroupEvent(ctx, constants.GroupUpdatedWebhookEvent, group)
 	return group, nil
 }
 
@@ -267,6 +270,7 @@ func (p *provider) PatchGroup(ctx context.Context, orgID, groupID string, displa
 			}
 		}
 	}
+	p.fireGroupEvent(ctx, constants.GroupUpdatedWebhookEvent, group)
 	return group, nil
 }
 
@@ -293,7 +297,11 @@ func (p *provider) DeleteGroup(ctx context.Context, orgID, groupID string) error
 			_ = p.AuthzEngine.DeleteTuples(ctx, tuples)
 		}
 	}
-	return p.StorageProvider.DeleteScimGroup(ctx, group)
+	if err := p.StorageProvider.DeleteScimGroup(ctx, group); err != nil {
+		return err
+	}
+	p.fireGroupEvent(ctx, constants.GroupDeletedWebhookEvent, group)
+	return nil
 }
 
 // GroupMembers returns the direct member user ids of an org's group.

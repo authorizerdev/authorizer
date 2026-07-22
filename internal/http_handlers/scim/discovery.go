@@ -7,15 +7,15 @@ import (
 )
 
 // serviceProviderConfig advertises which SCIM features this server supports so
-// an IdP knows to use PATCH (deprovisioning), no bulk, no filtering beyond the
-// single `userName eq` probe, and bearer auth (RFC 7644 §5).
+// an IdP knows to use PATCH (deprovisioning), no bulk, single-term filtering
+// (eq/ne/co/sw/pr over the core User attributes), and bearer auth (RFC 7644 §5).
 func (h *Handler) serviceProviderConfig(c *gin.Context) {
 	cfg := gin.H{
 		"schemas":          []string{schemaSPConfig},
 		"documentationUri": "https://docs.authorizer.dev",
 		"patch":            gin.H{"supported": true},
 		"bulk":             gin.H{"supported": false, "maxOperations": 0, "maxPayloadSize": 0},
-		"filter":           gin.H{"supported": true, "maxResults": 1},
+		"filter":           gin.H{"supported": true, "maxResults": 1000},
 		"changePassword":   gin.H{"supported": false},
 		"sort":             gin.H{"supported": false},
 		"etag":             gin.H{"supported": false},

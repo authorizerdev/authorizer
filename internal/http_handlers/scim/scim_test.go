@@ -32,6 +32,11 @@ type fakeService struct {
 	groupErr     error
 	groupMembers []string
 	lastGroup    string
+
+	listResult []*schemas.User
+	listErr    error
+	lastFilter svcscim.UserFilter
+	lastPatch  svcscim.UserPatch
 }
 
 func (f *fakeService) Authenticate(_ context.Context, bearer string) (string, error) {
@@ -53,6 +58,19 @@ func (f *fakeService) GetUser(_ context.Context, orgID, userID string) (*schemas
 }
 func (f *fakeService) FindByUserName(_ context.Context, orgID, _ string) (*schemas.User, error) {
 	f.lastOrg = orgID
+	return f.created, nil
+}
+func (f *fakeService) ListUsers(_ context.Context, orgID string, filter svcscim.UserFilter) ([]*schemas.User, error) {
+	f.lastOrg = orgID
+	f.lastFilter = filter
+	return f.listResult, f.listErr
+}
+func (f *fakeService) PatchUser(_ context.Context, orgID, userID string, patch svcscim.UserPatch) (*schemas.User, error) {
+	f.lastOrg, f.lastUser = orgID, userID
+	f.lastPatch = patch
+	if f.setErr != nil {
+		return nil, f.setErr
+	}
 	return f.created, nil
 }
 func (f *fakeService) ReplaceUser(_ context.Context, orgID, userID string, _ svcscim.User) (*schemas.User, error) {
@@ -200,13 +218,145 @@ func TestDeleteReturns204(t *testing.T) {
 
 func TestListUserNameFilter(t *testing.T) {
 	svc := &fakeService{authOrg: "org-a",
-		created: &schemas.User{ID: "u1", Email: strptr("bob@acme.com"), IsActive: true}}
+		listResult: []*schemas.User{{ID: "u1", Email: strptr("bob@acme.com"), IsActive: true}}}
 	r := newTestServer(svc)
 	w := do(r, http.MethodGet, `/scim/v2/Users?filter=userName+eq+%22bob@acme.com%22`, "ep.secret", "")
 	require.Equal(t, http.StatusOK, w.Code)
 	var body map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.EqualValues(t, 1, body["totalResults"])
+	// The parsed filter must reach the service canonicalised.
+	assert.Equal(t, svcscim.UserFilter{Attribute: "userName", Operator: "eq", Value: "bob@acme.com"}, svc.lastFilter)
+}
+
+// TestListUsersFilterParsing checks the handler canonicalises every supported
+// operator/attribute and 400s on unsupported filter shapes.
+func TestListUsersFilterParsing(t *testing.T) {
+	ok := []struct {
+		query string
+		want  svcscim.UserFilter
+	}{
+		{`filter=userName+eq+%22a@b.com%22`, svcscim.UserFilter{Attribute: "userName", Operator: "eq", Value: "a@b.com"}},
+		{`filter=emails.value+eq+%22a@b.com%22`, svcscim.UserFilter{Attribute: "emails.value", Operator: "eq", Value: "a@b.com"}},
+		{`filter=name.familyName+co+%22Doe%22`, svcscim.UserFilter{Attribute: "name.familyName", Operator: "co", Value: "Doe"}},
+		{`filter=name.givenName+sw+%22Jo%22`, svcscim.UserFilter{Attribute: "name.givenName", Operator: "sw", Value: "Jo"}},
+		{`filter=active+eq+true`, svcscim.UserFilter{Attribute: "active", Operator: "eq", Value: "true"}},
+		{`filter=externalId+pr`, svcscim.UserFilter{Attribute: "externalId", Operator: "pr"}},
+	}
+	for _, tc := range ok {
+		t.Run(tc.query, func(t *testing.T) {
+			svc := &fakeService{authOrg: "org-a"}
+			r := newTestServer(svc)
+			w := do(r, http.MethodGet, "/scim/v2/Users?"+tc.query, "ep.secret", "")
+			require.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, tc.want, svc.lastFilter)
+		})
+	}
+
+	bad := []string{
+		`filter=userName+eq+%22a%22+and+active+eq+true`,          // compound
+		`filter=emails%5Btype+eq+%22work%22%5D.value+eq+%22a%22`, // value-path
+		`filter=displayName+eq+%22x%22`,                          // unsupported attribute
+		`filter=userName+gt+%22a%22`,                             // unsupported operator
+		`filter=active+co+%22tr%22`,                              // co on boolean
+	}
+	for _, q := range bad {
+		t.Run("bad/"+q, func(t *testing.T) {
+			svc := &fakeService{authOrg: "org-a"}
+			r := newTestServer(svc)
+			w := do(r, http.MethodGet, "/scim/v2/Users?"+q, "ep.secret", "")
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
+}
+
+// TestListUsersPagination checks startIndex/count slicing over the result set.
+func TestListUsersPagination(t *testing.T) {
+	svc := &fakeService{authOrg: "org-a", listResult: []*schemas.User{
+		{ID: "u1", Email: strptr("a@x.com"), IsActive: true},
+		{ID: "u2", Email: strptr("b@x.com"), IsActive: true},
+		{ID: "u3", Email: strptr("c@x.com"), IsActive: true},
+	}}
+	r := newTestServer(svc)
+	w := do(r, http.MethodGet, `/scim/v2/Users?filter=active+eq+true&startIndex=2&count=1`, "ep.secret", "")
+	require.Equal(t, http.StatusOK, w.Code)
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.EqualValues(t, 3, body["totalResults"])
+	assert.EqualValues(t, 2, body["startIndex"])
+	assert.EqualValues(t, 1, body["itemsPerPage"])
+	res, _ := body["Resources"].([]any)
+	require.Len(t, res, 1)
+}
+
+// TestPatchUserShapes proves both the path-qualified and no-path attribute-map
+// shapes reach the service as the same parsed UserPatch, and that the existing
+// active-only PATCH still works.
+func TestPatchUserShapes(t *testing.T) {
+	t.Run("active regression (both shapes)", func(t *testing.T) {
+		for _, body := range []string{
+			`{"Operations":[{"op":"replace","path":"active","value":false}]}`,
+			`{"Operations":[{"op":"Replace","value":{"active":false}}]}`,
+		} {
+			svc := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: false}}
+			r := newTestServer(svc)
+			w := do(r, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret", body)
+			require.Equal(t, http.StatusOK, w.Code)
+			require.NotNil(t, svc.lastPatch.Active)
+			assert.False(t, *svc.lastPatch.Active)
+		}
+	})
+
+	t.Run("path-qualified name.givenName", func(t *testing.T) {
+		svc := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: true}}
+		r := newTestServer(svc)
+		w := do(r, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret",
+			`{"Operations":[{"op":"replace","path":"name.givenName","value":"Jonathan"}]}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.NotNil(t, svc.lastPatch.GivenName)
+		assert.Equal(t, "Jonathan", *svc.lastPatch.GivenName)
+	})
+
+	t.Run("no-path attribute map", func(t *testing.T) {
+		svc := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: true}}
+		r := newTestServer(svc)
+		w := do(r, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret",
+			`{"Operations":[{"op":"replace","value":{"name":{"givenName":"Jonathan","familyName":"Doe"},"externalId":"okta-9"}}]}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.NotNil(t, svc.lastPatch.GivenName)
+		assert.Equal(t, "Jonathan", *svc.lastPatch.GivenName)
+		require.NotNil(t, svc.lastPatch.FamilyName)
+		assert.Equal(t, "Doe", *svc.lastPatch.FamilyName)
+		require.NotNil(t, svc.lastPatch.ExternalID)
+		assert.Equal(t, "okta-9", *svc.lastPatch.ExternalID)
+	})
+
+	t.Run("emails path-qualified and array", func(t *testing.T) {
+		svc := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: true}}
+		r := newTestServer(svc)
+		w := do(r, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret",
+			`{"Operations":[{"op":"replace","path":"emails[type eq \"work\"].value","value":"new@acme.com"}]}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.NotNil(t, svc.lastPatch.Email)
+		assert.Equal(t, "new@acme.com", *svc.lastPatch.Email)
+
+		svc2 := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: true}}
+		r2 := newTestServer(svc2)
+		w2 := do(r2, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret",
+			`{"Operations":[{"op":"replace","path":"emails","value":[{"value":"primary@acme.com","primary":true},{"value":"alt@acme.com"}]}]}`)
+		require.Equal(t, http.StatusOK, w2.Code)
+		require.NotNil(t, svc2.lastPatch.Email)
+		assert.Equal(t, "primary@acme.com", *svc2.lastPatch.Email, "primary email must win")
+	})
+
+	t.Run("unmodelled path is ignored not 400", func(t *testing.T) {
+		svc := &fakeService{authOrg: "org-a", created: &schemas.User{ID: "u1", IsActive: true}}
+		r := newTestServer(svc)
+		w := do(r, http.MethodPatch, "/scim/v2/Users/u1", "ep.secret",
+			`{"Operations":[{"op":"replace","path":"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department","value":"Eng"}]}`)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Nil(t, svc.lastPatch.GivenName)
+	})
 }
 
 func TestDiscoveryEndpointsServed(t *testing.T) {

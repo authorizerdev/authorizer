@@ -22,8 +22,13 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -88,6 +93,40 @@ type Dependencies struct {
 	// relationship tuples (not a DB column), so the Group ops require it. Nil
 	// when FGA is not configured — Group ops then return ErrGroupsUnavailable.
 	AuthzEngine engine.AuthorizationEngine
+	// EventsProvider dispatches provisioning-lifecycle webhooks
+	// (user.provisioned/deprovisioned/scim_updated, group.created/updated/deleted).
+	// Nil when webhooks are not wired — event firing is then a no-op.
+	EventsProvider events.Provider
+}
+
+// maxFilterScan bounds the org-member scan a non-indexed SCIM filter performs
+// (see ListUsers). ponytail: bounded in-Go scan; the upgrade path for very
+// large orgs is a per-backend native attribute query, not a bigger cap.
+const maxFilterScan = 1000
+
+// filterScanPage is the page size used to walk org memberships during a scan.
+const filterScanPage = 100
+
+// UserFilter is a parsed single-term SCIM filter (RFC 7644 §3.4.2.2). Attribute
+// is one of the canonical names ListUsers understands (userName, emails.value,
+// name.givenName, name.familyName, active, externalId); Operator is one of
+// eq/ne/co/sw/pr; Value is empty for pr.
+type UserFilter struct {
+	Attribute string
+	Operator  string
+	Value     string
+}
+
+// UserPatch is a parsed SCIM User PatchOp (RFC 7644 §3.5.2). Every field is a
+// pointer so "attribute absent from the patch" is distinguishable from "set to
+// empty": only non-nil fields are applied.
+type UserPatch struct {
+	GivenName   *string
+	FamilyName  *string
+	Email       *string
+	PhoneNumber *string
+	ExternalID  *string
+	Active      *bool
 }
 
 // Provider is the org-bounded SCIM operation surface. Every method takes the
@@ -107,12 +146,22 @@ type Provider interface {
 	// FindByUserName returns the org member with the given userName, or nil when
 	// none (the IdP's pre-create dedup probe). Never leaks another org's user.
 	FindByUserName(ctx context.Context, orgID, userName string) (*schemas.User, error)
+	// ListUsers evaluates a parsed single-term SCIM filter against the org's
+	// members and returns the matches (org-scoped — never another org's users).
+	// eq on userName/emails.value/externalId is an indexed lookup; other
+	// operators/attributes scan the org's memberships (bounded).
+	ListUsers(ctx context.Context, orgID string, filter UserFilter) ([]*schemas.User, error)
 	// ReplaceUser (PUT) overwrites the mutable profile + active flag of an org
 	// member. A true→false active transition revokes the user's sessions.
 	ReplaceUser(ctx context.Context, orgID, userID string, in User) (*schemas.User, error)
 	// SetActive (PATCH active / DELETE) flips the active flag. Deactivation
 	// synchronously revokes the user's sessions + refresh tokens.
 	SetActive(ctx context.Context, orgID, userID string, active bool) (*schemas.User, error)
+	// PatchUser applies a parsed SCIM User PatchOp: any non-nil field in patch is
+	// updated. Email/phone changes are uniqueness-checked (ErrConflict on a
+	// collision with another user); an active:true→false transition revokes the
+	// user's sessions. Returns the user unchanged (no event) when nothing changed.
+	PatchUser(ctx context.Context, orgID, userID string, patch UserPatch) (*schemas.User, error)
 
 	// --- SCIM Group provisioning (RFC 7643 §4.2 / RFC 7644 §3.5.2). Membership
 	// is stored as FGA tuples, never on the Group row. ---
@@ -312,6 +361,7 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 		log.Debug().Err(err).Msg("failed to add org membership for scim user")
 		return nil, false, err
 	}
+	p.fireUserEvent(ctx, constants.UserProvisionedWebhookEvent, created)
 	return created, false, nil
 }
 
@@ -352,13 +402,21 @@ func (p *provider) ReplaceUser(ctx context.Context, orgID, userID string, in Use
 	}
 	user.IsActive = in.Active
 	if wasActive && !in.Active {
-		return p.deactivate(ctx, user)
+		updated, err := p.deactivate(ctx, user)
+		if err == nil {
+			p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+		}
+		return updated, err
 	}
 	if !wasActive && in.Active {
 		user.RevokedTimestamp = nil
 	}
 	user.UpdatedAt = time.Now().Unix()
-	return p.StorageProvider.UpdateUser(ctx, user)
+	updated, err := p.StorageProvider.UpdateUser(ctx, user)
+	if err == nil {
+		p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	}
+	return updated, err
 }
 
 func (p *provider) SetActive(ctx context.Context, orgID, userID string, active bool) (*schemas.User, error) {
@@ -368,16 +426,29 @@ func (p *provider) SetActive(ctx context.Context, orgID, userID string, active b
 	}
 	if !active {
 		if !user.IsActive {
+			// Already deprovisioned — idempotent no-op, no event.
 			return user, nil
 		}
 		user.IsActive = false
-		return p.deactivate(ctx, user)
+		updated, err := p.deactivate(ctx, user)
+		if err == nil {
+			p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+		}
+		return updated, err
 	}
 	// Reactivation: clear the revocation marker.
+	if user.IsActive {
+		// Already active — idempotent no-op, no event.
+		return user, nil
+	}
 	user.IsActive = true
 	user.RevokedTimestamp = nil
 	user.UpdatedAt = time.Now().Unix()
-	return p.StorageProvider.UpdateUser(ctx, user)
+	updated, err := p.StorageProvider.UpdateUser(ctx, user)
+	if err == nil {
+		p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	}
+	return updated, err
 }
 
 // deactivate is the enterprise-offboarding path: mark the user inactive+revoked
@@ -406,4 +477,251 @@ func (p *provider) deactivate(ctx context.Context, user *schemas.User) (*schemas
 		log.Debug().Err(err).Msg("failed to delete session tokens from storage")
 	}
 	return updated, nil
+}
+
+// ListUsers evaluates a parsed single-term SCIM filter against the org's
+// members. The common dedup-probe shapes (eq on userName/emails.value/
+// externalId) are indexed O(1) lookups; every other operator/attribute falls
+// back to a bounded scan of the org's memberships with the predicate applied in
+// Go (ponytail: bounded scan, upgrade path = per-backend native attribute
+// query). Results are always org-scoped: a user who is not a member of orgID is
+// never returned (H6).
+func (p *provider) ListUsers(ctx context.Context, orgID string, f UserFilter) ([]*schemas.User, error) {
+	// Indexed fast paths for the pre-create dedup probe.
+	if f.Operator == "eq" {
+		switch f.Attribute {
+		case "userName", "emails.value":
+			user, err := p.FindByUserName(ctx, orgID, f.Value)
+			if err != nil || user == nil {
+				return nil, err
+			}
+			return []*schemas.User{user}, nil
+		case "externalId":
+			user, err := p.StorageProvider.GetUserByExternalID(ctx, orgID, f.Value)
+			if err != nil || user == nil {
+				return nil, nil
+			}
+			if _, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID); err != nil {
+				return nil, nil
+			}
+			return []*schemas.User{user}, nil
+		}
+	}
+
+	// General path: scan the org's members and apply the predicate in Go.
+	var matches []*schemas.User
+	scanned := 0
+	page := int64(1)
+	for scanned < maxFilterScan {
+		memberships, _, err := p.StorageProvider.ListOrgMembershipsByOrg(ctx, orgID, &model.Pagination{
+			Limit:  filterScanPage,
+			Page:   page,
+			Offset: (page - 1) * filterScanPage,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(memberships) == 0 {
+			break
+		}
+		for _, m := range memberships {
+			scanned++
+			user, err := p.StorageProvider.GetUserByID(ctx, m.UserID)
+			if err != nil || user == nil {
+				continue
+			}
+			if matchesFilter(orgID, user, f) {
+				matches = append(matches, user)
+			}
+		}
+		if len(memberships) < filterScanPage {
+			break
+		}
+		page++
+	}
+	return matches, nil
+}
+
+// matchesFilter applies a single-term SCIM filter predicate to a user. String
+// comparisons are case-insensitive (RFC 7644 default for these attributes);
+// externalId is compared against the de-namespaced (raw IdP) value.
+func matchesFilter(orgID string, u *schemas.User, f UserFilter) bool {
+	// active is boolean-valued; only eq/ne are meaningful.
+	if f.Attribute == "active" {
+		want := strings.EqualFold(strings.TrimSpace(f.Value), "true")
+		switch f.Operator {
+		case "eq":
+			return u.IsActive == want
+		case "ne":
+			return u.IsActive != want
+		case "pr":
+			return true // a boolean is always present
+		default:
+			return false
+		}
+	}
+
+	attr := userAttrValue(orgID, u, f.Attribute)
+	if f.Operator == "pr" {
+		return attr != ""
+	}
+	val := f.Value
+	la, lv := strings.ToLower(attr), strings.ToLower(val)
+	switch f.Operator {
+	case "eq":
+		return la == lv
+	case "ne":
+		return la != lv
+	case "co":
+		return strings.Contains(la, lv)
+	case "sw":
+		return strings.HasPrefix(la, lv)
+	default:
+		return false
+	}
+}
+
+// userAttrValue maps a canonical SCIM attribute name to the user's stored value.
+func userAttrValue(orgID string, u *schemas.User, attr string) string {
+	switch attr {
+	case "userName", "emails.value":
+		return refs.StringValue(u.Email)
+	case "name.givenName":
+		return refs.StringValue(u.GivenName)
+	case "name.familyName":
+		return refs.StringValue(u.FamilyName)
+	case "externalId":
+		if u.ExternalID == nil {
+			return ""
+		}
+		return strings.TrimPrefix(refs.StringValue(u.ExternalID), orgID+":")
+	default:
+		return ""
+	}
+}
+
+// PatchUser applies a parsed SCIM User PatchOp. Only non-nil fields are touched;
+// email/phone changes are uniqueness-checked (global uniqueness, mirroring
+// AddUser/GetUserByEmail); an active:true→false transition revokes sessions. It
+// returns the user unchanged with no event when the patch is a no-op.
+func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch UserPatch) (*schemas.User, error) {
+	user, err := p.requireMember(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	changed := false
+	if patch.GivenName != nil {
+		gn := strings.TrimSpace(*patch.GivenName)
+		if gn != refs.StringValue(user.GivenName) {
+			user.GivenName = &gn
+			changed = true
+		}
+	}
+	if patch.FamilyName != nil {
+		fn := strings.TrimSpace(*patch.FamilyName)
+		if fn != refs.StringValue(user.FamilyName) {
+			user.FamilyName = &fn
+			changed = true
+		}
+	}
+	if patch.Email != nil {
+		email := strings.ToLower(strings.TrimSpace(*patch.Email))
+		if email == "" {
+			return nil, ErrInvalid
+		}
+		if email != refs.StringValue(user.Email) {
+			// Global email uniqueness: a PATCH must not set an email another user
+			// already holds (same guard AddUser/CreateUser rely on).
+			if existing, err := p.StorageProvider.GetUserByEmail(ctx, email); err == nil && existing != nil && existing.ID != user.ID {
+				return nil, ErrConflict
+			}
+			user.Email = &email
+			changed = true
+		}
+	}
+	if patch.PhoneNumber != nil {
+		phone := strings.TrimSpace(*patch.PhoneNumber)
+		if phone == "" {
+			return nil, ErrInvalid
+		}
+		if phone != refs.StringValue(user.PhoneNumber) {
+			if existing, err := p.StorageProvider.GetUserByPhoneNumber(ctx, phone); err == nil && existing != nil && existing.ID != user.ID {
+				return nil, ErrConflict
+			}
+			user.PhoneNumber = &phone
+			changed = true
+		}
+	}
+	if patch.ExternalID != nil {
+		ext := strings.TrimSpace(*patch.ExternalID)
+		if ext != "" {
+			nsExt := namespacedExternalID(orgID, ext)
+			if user.ExternalID == nil || *user.ExternalID != nsExt {
+				user.ExternalID = &nsExt
+				changed = true
+			}
+		}
+	}
+
+	deactivating := false
+	if patch.Active != nil {
+		if user.IsActive && !*patch.Active {
+			deactivating = true
+			changed = true
+		} else if !user.IsActive && *patch.Active {
+			// Reactivation — clear the revocation marker; reported as an attribute
+			// change (scim_updated), not a distinct event.
+			user.IsActive = true
+			user.RevokedTimestamp = nil
+			changed = true
+		}
+	}
+
+	if !changed {
+		// Idempotent replay that changes nothing — no write, no event.
+		return user, nil
+	}
+
+	if deactivating {
+		user.IsActive = false
+		updated, err := p.deactivate(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+		p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+		return updated, nil
+	}
+
+	user.UpdatedAt = time.Now().Unix()
+	updated, err := p.StorageProvider.UpdateUser(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	return updated, nil
+}
+
+// fireUserEvent dispatches a user provisioning-lifecycle webhook off the request
+// path (asyncutil.Go: tracked for graceful-shutdown drain, panic-recovered). A
+// nil EventsProvider (webhooks not wired) is a no-op.
+func (p *provider) fireUserEvent(ctx context.Context, eventName string, user *schemas.User) {
+	if p.EventsProvider == nil || user == nil {
+		return
+	}
+	asyncutil.Go(p.Log, func() {
+		ctx := context.WithoutCancel(ctx)
+		_ = p.EventsProvider.RegisterEvent(ctx, eventName, "", user)
+	})
+}
+
+// fireGroupEvent dispatches a SCIM group provisioning-lifecycle webhook off the
+// request path. A nil EventsProvider is a no-op.
+func (p *provider) fireGroupEvent(ctx context.Context, eventName string, group *schemas.ScimGroup) {
+	if p.EventsProvider == nil || group == nil {
+		return
+	}
+	asyncutil.Go(p.Log, func() {
+		ctx := context.WithoutCancel(ctx)
+		_ = p.EventsProvider.RegisterScimGroupEvent(ctx, eventName, group)
+	})
 }
