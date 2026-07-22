@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -133,7 +134,8 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		// logout response is never blocked by a slow receiver.
 		if strings.TrimSpace(h.Config.BackchannelLogoutURI) != "" {
 			hostname := parsers.GetHost(gc)
-			go func(uri, host, sub, sid string) {
+			uri, host, sub, sid := h.Config.BackchannelLogoutURI, hostname, userID, sessionData.Nonce
+			asyncutil.Go(h.Log, func() {
 				if err := h.TokenProvider.NotifyBackchannelLogout(context.Background(), uri, &token.BackchannelLogoutConfig{
 					HostName:  host,
 					Subject:   sub,
@@ -141,7 +143,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 				}); err != nil {
 					log.Debug().Err(err).Msg("backchannel logout notification failed")
 				}
-			}(h.Config.BackchannelLogoutURI, hostname, userID, sessionData.Nonce)
+			})
 		}
 
 		if redirectURL != "" {

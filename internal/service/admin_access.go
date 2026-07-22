@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -45,11 +46,11 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 		return nil, nil, err
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminAccessRevokedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
@@ -92,10 +93,10 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminAccessEnabledEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,
@@ -239,13 +240,13 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
 			})
-		}()
+		})
 	}
 
 	invitedUsers := []*model.User{}

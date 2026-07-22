@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -121,13 +122,13 @@ func (p *provider) ForgotPassword(ctx context.Context, meta RequestMetadata, par
 			return nil, nil, err
 		}
 		// execute it as go routine so that we can reduce the api latency
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeForgotPassword, map[string]any{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
 			})
-		}()
+		})
 		p.AuditProvider.LogEvent(audit.Event{
 			Action:   constants.AuditForgotPasswordEvent,
 			Protocol: meta.Protocol, ActorID: user.ID,

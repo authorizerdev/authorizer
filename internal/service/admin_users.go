@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -224,7 +225,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 			return nil, nil, fmt.Errorf("user with this email address already exists")
 		}
 
-		go func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
+		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
 
 		// gin-shim: parsers.GetHost / GetAppURL still take a *gin.Context.
 		gc := &gin.Context{Request: meta.Request}
@@ -264,13 +265,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
-		}()
+		})
 	}
 
 	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
@@ -286,7 +287,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 			log.Debug().Str("phone", phone).Msg("User with phone number already exists")
 			return nil, nil, fmt.Errorf("user with this phone number already exists")
 		}
-		go func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
+		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
 		user.PhoneNumber = &phone
 		user.PhoneNumberVerifiedAt = nil
 	}
@@ -311,7 +312,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		go func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
+		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
 	}
 
 	if rolesToSave != "" {
@@ -381,7 +382,7 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 		Message: `user deleted successfully`,
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		// delete otp for given email
 		otp, err := p.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(user.Email))
@@ -426,7 +427,7 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditAdminUserDeletedEvent,
 		Protocol: meta.Protocol, ActorType: constants.AuditActorTypeAdmin,

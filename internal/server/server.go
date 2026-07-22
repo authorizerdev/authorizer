@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/gateway"
 	"github.com/authorizerdev/authorizer/internal/graphql"
@@ -148,6 +149,9 @@ func (s *server) Run(ctx context.Context) error {
 	if err := metricsSrv.Shutdown(shCtx); err != nil {
 		s.Dependencies.Log.Error().Err(err).Msg("Metrics server graceful shutdown failed")
 	}
+	// Drain fire-and-forget background work (emails, webhooks, audit logs)
+	// spawned by in-flight requests before the process exits.
+	asyncutil.Wait(*s.Dependencies.Log)
 	return nil
 }
 

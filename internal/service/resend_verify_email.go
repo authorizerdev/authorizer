@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -91,13 +92,13 @@ func (p *provider) ResendVerifyEmail(ctx context.Context, meta RequestMetadata, 
 	}
 
 	// exec it as go routine so that we can reduce the api latency
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		_ = p.EmailProvider.SendEmail([]string{params.Email}, params.Identifier, map[string]any{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(p.Config),
 			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
 		})
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditVerifyEmailResentEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,
