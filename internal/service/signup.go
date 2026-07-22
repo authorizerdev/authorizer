@@ -112,6 +112,15 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			log.Debug().Strs("roles", params.Roles).Msg("Invalid roles")
 			return nil, nil, InvalidArgument("invalid roles")
 		}
+		// Explicit protected-role rejection, not just reliance on Roles/
+		// ProtectedRoles staying disjoint (http_handlers/oauth_callback.go
+		// already defends this way; self-registration via signup must too).
+		for _, r := range inputRoles {
+			if utils.StringSliceContains(p.Config.ProtectedRoles, r) {
+				log.Debug().Strs("roles", params.Roles).Msg("Invalid roles: protected role requested")
+				return nil, nil, InvalidArgument("invalid roles")
+			}
+		}
 	} else {
 		inputRoles = p.Config.DefaultRoles
 	}

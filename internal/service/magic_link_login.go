@@ -65,9 +65,21 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 			if !validators.IsValidRoles(params.Roles, roles) {
 				log.Debug().Msg("Invalid roles")
 				return nil, nil, InvalidArgument(`invalid roles`)
-			} else {
-				inputRoles = params.Roles
 			}
+			// Explicit protected-role rejection — same rationale as signup.go;
+			// this new-user branch must not rely on Roles/ProtectedRoles
+			// staying disjoint by operator convention.
+			hasProtectedRole := false
+			for _, r := range params.Roles {
+				if utils.StringSliceContains(p.Config.ProtectedRoles, r) {
+					hasProtectedRole = true
+				}
+			}
+			if hasProtectedRole {
+				log.Debug().Msg("Invalid roles: protected role requested")
+				return nil, nil, InvalidArgument(`invalid roles`)
+			}
+			inputRoles = params.Roles
 		} else {
 			inputRoles = p.Config.DefaultRoles
 		}
