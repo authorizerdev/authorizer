@@ -54,19 +54,26 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 - ✅ Sign-in / Sign-up with email ID and password
 - ✅ Secure session management
 - ✅ Email verification
-- ✅ OAuth2 and OpenID Connect compatible APIs
+- ✅ OAuth2 and OpenID Connect compatible APIs (IdP, Relying Party/broker, and both simultaneously for multi-tenant SSO)
+- ✅ Machine-to-machine (service-to-service) authentication with `client_credentials` grant and secretless workload identity (RFC 7523 client_assertion, SPIFFE JWT-SVID, Kubernetes TokenReview)
+- ✅ Agent-to-agent (A2A) delegation via RFC 8693 token-exchange with nested `act` chains and scope attenuation
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, GitHub, Facebook, LinkedIn, Apple, Discord, Twitter, Twitch, Roblox, Microsoft)
+- ✅ WebAuthn / passkey registration and login (FIDO2 security keys, Windows Hello, Touch ID, Face ID, etc.)
 - ✅ Role-based access management
 - ✅ Fine-grained authorization (ReBAC via embedded OpenFGA)
 - ✅ Password-less login with magic link
 - ✅ TOTP-based multi-factor authentication
 - ✅ SMS OTP via Twilio
+- ✅ Email OTP as an MFA factor
 - ✅ Email templating
 - ✅ Webhooks
-- ✅ GraphQL, REST, and gRPC APIs (all transports share the same service layer)
-- ✅ Admin API — user management, webhooks, email templates, audit logs, and FGA model/tuples over all three transports
+- ✅ Enterprise SSO — SAML 2.0 as Service Provider (upstream IdP) and Identity Provider (downstream SP), OIDC broker, verified email domains, and home realm discovery
+- ✅ SCIM 2.0 user and group provisioning with RFC 7644 compliance
+- ✅ Multi-tenant / org-scoped admin roles and isolation
+- ✅ GraphQL, REST, gRPC, and MCP APIs (all transports share the same service layer for public auth operations)
+- ✅ Admin API — user management, webhooks, email templates, audit logs, and FGA model/tuples over GraphQL, gRPC, and REST transports
 - ✅ Rate limiting and security hardening (CSRF, CORS, HSTS, CSP, trusted proxies)
 - ✅ Prometheus metrics and health/readiness endpoints
 
@@ -87,6 +94,7 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 
 **Planned**
 
+- Migration guides for SSO/SAML/SCIM setup (coming soon)
 - React Native SDK
 - Android Native SDK
 - iOS native SDK
