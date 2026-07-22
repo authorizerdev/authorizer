@@ -19,7 +19,7 @@ func (p *provider) AddFederatedIdentity(ctx context.Context, identity *schemas.F
 	now := time.Now().Unix()
 	identity.CreatedAt = now
 	identity.UpdatedAt = now
-	res := p.db.Create(identity)
+	res := p.db.WithContext(ctx).Create(identity)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -29,7 +29,7 @@ func (p *provider) AddFederatedIdentity(ctx context.Context, identity *schemas.F
 // GetFederatedIdentity fetches the federated identity for a (orgID, issuer, subject) tuple.
 func (p *provider) GetFederatedIdentity(ctx context.Context, orgID, issuer, subject string) (*schemas.FederatedIdentity, error) {
 	var identity schemas.FederatedIdentity
-	res := p.db.Where("org_id = ? AND issuer = ? AND subject = ?", orgID, issuer, subject).First(&identity)
+	res := p.db.WithContext(ctx).Where("org_id = ? AND issuer = ? AND subject = ?", orgID, issuer, subject).First(&identity)
 	if res.Error != nil {
 		return nil, res.Error
 	}

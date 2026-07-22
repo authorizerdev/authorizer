@@ -25,7 +25,7 @@ func (p *provider) AddClient(ctx context.Context, sa *schemas.Client) (*schemas.
 	now := time.Now().Unix()
 	sa.CreatedAt = now
 	sa.UpdatedAt = now
-	res := p.db.Create(sa)
+	res := p.db.WithContext(ctx).Create(sa)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -41,7 +41,7 @@ func (p *provider) UpdateClient(ctx context.Context, sa *schemas.Client) (*schem
 		return nil, fmt.Errorf("UpdateClient: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sa.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(sa)
+	res := p.db.WithContext(ctx).Save(sa)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -67,7 +67,7 @@ func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
 // GetClientByID fetches a service account by primary key.
 func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Client, error) {
 	var sa schemas.Client
-	res := p.db.Where("id = ?", id).First(&sa)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&sa)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -77,7 +77,7 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 // GetClientByClientID fetches a client by its unique public client_id.
 func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error) {
 	var sa schemas.Client
-	res := p.db.Where("client_id = ?", clientID).First(&sa)
+	res := p.db.WithContext(ctx).Where("client_id = ?", clientID).First(&sa)
 	if res.Error != nil {
 		// No matching row is a normal negative result, not a storage failure —
 		// callers (e.g. clientauth.ResolveClient) distinguish "no such client"
@@ -94,12 +94,12 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 // ListClients returns a paginated list of service accounts.
 func (p *provider) ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error) {
 	var sas []*schemas.Client
-	res := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&sas)
+	res := p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&sas)
 	if res.Error != nil {
 		return nil, nil, res.Error
 	}
 	var total int64
-	countRes := p.db.Model(&schemas.Client{}).Count(&total)
+	countRes := p.db.WithContext(ctx).Model(&schemas.Client{}).Count(&total)
 	if countRes.Error != nil {
 		return nil, nil, countRes.Error
 	}

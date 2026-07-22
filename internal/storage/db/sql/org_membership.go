@@ -21,7 +21,7 @@ func (p *provider) AddOrgMembership(ctx context.Context, membership *schemas.Org
 	now := time.Now().Unix()
 	membership.CreatedAt = now
 	membership.UpdatedAt = now
-	res := p.db.Create(membership)
+	res := p.db.WithContext(ctx).Create(membership)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -37,7 +37,7 @@ func (p *provider) UpdateOrgMembership(ctx context.Context, membership *schemas.
 		return nil, fmt.Errorf("UpdateOrgMembership: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	membership.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(membership)
+	res := p.db.WithContext(ctx).Save(membership)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -46,13 +46,13 @@ func (p *provider) UpdateOrgMembership(ctx context.Context, membership *schemas.
 
 // DeleteOrgMembership removes a membership record.
 func (p *provider) DeleteOrgMembership(ctx context.Context, membership *schemas.OrgMembership) error {
-	return p.db.Delete(membership).Error
+	return p.db.WithContext(ctx).Delete(membership).Error
 }
 
 // GetOrgMembership fetches the membership for a (orgID, userID) pair.
 func (p *provider) GetOrgMembership(ctx context.Context, orgID, userID string) (*schemas.OrgMembership, error) {
 	var membership schemas.OrgMembership
-	res := p.db.Where("org_id = ? AND user_id = ?", orgID, userID).First(&membership)
+	res := p.db.WithContext(ctx).Where("org_id = ? AND user_id = ?", orgID, userID).First(&membership)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -71,12 +71,12 @@ func (p *provider) ListOrgMembershipsByUser(ctx context.Context, userID string, 
 
 func (p *provider) listOrgMemberships(ctx context.Context, whereClause, whereValue string, pagination *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error) {
 	var memberships []*schemas.OrgMembership
-	res := p.db.Where(whereClause, whereValue).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&memberships)
+	res := p.db.WithContext(ctx).Where(whereClause, whereValue).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&memberships)
 	if res.Error != nil {
 		return nil, nil, res.Error
 	}
 	var total int64
-	countRes := p.db.Model(&schemas.OrgMembership{}).Where(whereClause, whereValue).Count(&total)
+	countRes := p.db.WithContext(ctx).Model(&schemas.OrgMembership{}).Where(whereClause, whereValue).Count(&total)
 	if countRes.Error != nil {
 		return nil, nil, countRes.Error
 	}

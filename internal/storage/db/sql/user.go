@@ -42,7 +42,7 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 	user.Key = user.ID
-	result := p.db.Create(&user)
+	result := p.db.WithContext(ctx).Create(&user)
 
 	if result.Error != nil {
 		return user, result.Error
@@ -64,7 +64,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	}
 	user.UpdatedAt = time.Now().Unix()
 
-	result := p.db.Save(&user)
+	result := p.db.WithContext(ctx).Save(&user)
 
 	if result.Error != nil {
 		return user, result.Error
@@ -94,8 +94,8 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 // LIKE; id/email/given_name/family_name/nickname are matched with LOWER(...) LIKE).
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
 	var users []*schemas.User
-	listQuery := p.db.Model(&schemas.User{})
-	countQuery := p.db.Model(&schemas.User{})
+	listQuery := p.db.WithContext(ctx).Model(&schemas.User{})
+	countQuery := p.db.WithContext(ctx).Model(&schemas.User{})
 	if q := strings.TrimSpace(query); q != "" {
 		pattern := "%" + strings.ToLower(q) + "%"
 		const where = "LOWER(id) LIKE ? OR LOWER(email) LIKE ? OR LOWER(given_name) LIKE ? OR LOWER(family_name) LIKE ? OR LOWER(nickname) LIKE ?"
@@ -123,7 +123,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
 	var user *schemas.User
-	result := p.db.Where("email = ?", email).First(&user)
+	result := p.db.WithContext(ctx).Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -133,7 +133,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	var user *schemas.User
-	result := p.db.Where("id = ?", id).First(&user)
+	result := p.db.WithContext(ctx).Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -149,9 +149,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	data["updated_at"] = time.Now().Unix()
 	var res *gorm.DB
 	if len(ids) > 0 {
-		res = p.db.Model(&schemas.User{}).Where("id in ?", ids).Updates(data)
+		res = p.db.WithContext(ctx).Model(&schemas.User{}).Where("id in ?", ids).Updates(data)
 	} else {
-		res = p.db.Model(&schemas.User{}).Updates(data)
+		res = p.db.WithContext(ctx).Model(&schemas.User{}).Updates(data)
 	}
 	if res.Error != nil {
 		return res.Error
@@ -163,7 +163,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 // external ID. The lookup key is the composite "<orgID>:<externalID>".
 func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error) {
 	var user *schemas.User
-	result := p.db.Where("external_id = ?", orgID+":"+externalID).First(&user)
+	result := p.db.WithContext(ctx).Where("external_id = ?", orgID+":"+externalID).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -173,7 +173,7 @@ func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID st
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
 	var user *schemas.User
-	result := p.db.Where("phone_number = ?", phoneNumber).First(&user)
+	result := p.db.WithContext(ctx).Where("phone_number = ?", phoneNumber).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
