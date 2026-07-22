@@ -1,7 +1,10 @@
 /* Design tokens consumed by @authorizerdev/authorizer-react (see its
    dist/styles.css) - overriding them here reskins every imported login/
-   signup/MFA component without touching that package. */
-:root {
+   signup/MFA component without touching that package.
+   Selector is `html:root` (not `:root`) so this beats that package's own
+   `:root` block on specificity - cssCodeSplit concatenates both into one
+   file and their relative order isn't guaranteed to put ours last. */
+html:root {
 	--authorizer-primary-color: #4f46e5;
 	--authorizer-primary-disabled-color: #a5b4fc;
 	--authorizer-gray-color: #e2e8f0;
