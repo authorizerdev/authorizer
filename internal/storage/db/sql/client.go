@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -78,6 +79,13 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 	var sa schemas.Client
 	res := p.db.Where("client_id = ?", clientID).First(&sa)
 	if res.Error != nil {
+		// No matching row is a normal negative result, not a storage failure —
+		// callers (e.g. clientauth.ResolveClient) distinguish "no such client"
+		// from "couldn't check" by whether err is nil, so a genuinely absent
+		// row must come back as (nil, nil), never a wrapped ErrRecordNotFound.
+		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, res.Error
 	}
 	return &sa, nil

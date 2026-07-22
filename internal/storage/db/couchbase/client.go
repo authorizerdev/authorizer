@@ -3,6 +3,7 @@ package couchbase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -137,6 +138,13 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 	}
 	var raw json.RawMessage
 	if err := q.One(&raw); err != nil {
+		// No matching row is a normal negative result, not a storage failure —
+		// callers (e.g. clientauth.ResolveClient) distinguish "no such client"
+		// from "couldn't check" by whether err is nil, so a genuinely absent
+		// row must come back as (nil, nil), never a wrapped ErrNoResult.
+		if errors.Is(err, gocb.ErrNoResult) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	sa := &schemas.Client{}

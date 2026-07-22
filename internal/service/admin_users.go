@@ -174,7 +174,14 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		user.AppData = &appDataString
 	}
 
-	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+	// user.IsMultiFactorAuthEnabled == nil is checked explicitly (not just via
+	// refs.BoolValue's zero-collapse) because BoolValue(nil) == false: without
+	// this, an admin explicitly setting false on a user whose flag was never
+	// set (nil) would compare as "false != false" — no change detected — and
+	// the assignment below would be silently skipped, leaving the flag stuck
+	// at nil instead of the requested false.
+	if params.IsMultiFactorAuthEnabled != nil &&
+		(user.IsMultiFactorAuthEnabled == nil || refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled)) {
 		// Only gate the enable action; disabling MFA is always allowed so an admin
 		// can still turn it off after the server has stopped offering any method.
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {

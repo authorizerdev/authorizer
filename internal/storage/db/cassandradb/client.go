@@ -2,6 +2,7 @@ package cassandradb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -138,6 +139,13 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE client_id = ? LIMIT 1 ALLOW FILTERING", clientColumns, KeySpace+"."+schemas.Collections.Client)
 	err := p.db.Query(query, clientID).Consistency(gocql.One).Scan(&sa.ID, &sa.ClientID, &sa.Kind, &sa.Name, &sa.Description, &sa.ClientSecret, &sa.AllowedScopes, &sa.RedirectURIs, &sa.GrantTypes, &sa.TokenEndpointAuthMethod, &sa.IsActive, &sa.OrgID, &sa.CreatedAt, &sa.UpdatedAt)
 	if err != nil {
+		// No matching row is a normal negative result, not a storage failure —
+		// callers (e.g. clientauth.ResolveClient) distinguish "no such client"
+		// from "couldn't check" by whether err is nil, so a genuinely absent
+		// row must come back as (nil, nil), never a wrapped ErrNotFound.
+		if errors.Is(err, gocql.ErrNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &sa, nil

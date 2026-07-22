@@ -55,6 +55,16 @@ var (
 	// and jwt-spiffe (draft-ietf-oauth-spiffe-client-auth) types are supported; any
 	// other value is rejected. Map to invalid_request.
 	ErrUnsupportedAssertionType = errors.New("clientauth: unsupported client_assertion_type")
+
+	// ErrClientLookupFailed is returned when the client registry lookup itself
+	// errors (e.g. a transient SQLITE_BUSY under contention, a network blip to
+	// an external DB) — distinct from a genuine "no such client" (a nil client
+	// with a nil error). This must NEVER be reported as invalid_client: that
+	// response tells the caller their credentials are permanently wrong, which
+	// is false and non-retryable, when the real situation is a momentary
+	// storage hiccup that a retry would very likely clear. Map to
+	// temporarily_unavailable (503), not invalid_client (400).
+	ErrClientLookupFailed = errors.New("clientauth: client lookup failed")
 )
 
 // dummySecretCost mirrors the bcrypt cost real client secrets are hashed with
@@ -228,7 +238,20 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 	doVerify := params.RequireSecret || (params.VerifyPresentedSecret && secretPresented)
 
 	client, err := p.StorageProvider.GetClientByClientID(ctx, clientID)
-	if err != nil || client == nil {
+	if err != nil {
+		// A storage error (e.g. transient SQLITE_BUSY under contention) is NOT
+		// "no such client" — we simply couldn't check. Bail out here, before the
+		// bootstrap-config fallback below: that fallback exists for a CONFIRMED
+		// absent row (an availability escape hatch), not for "unknown, storage
+		// errored" — silently authenticating against static bootstrap config
+		// while the real registry row's state (active? right secret?) is
+		// unknown would be its own correctness risk. Never dummy-compare or
+		// treat as invalid_client — that tells the caller their credentials
+		// are permanently wrong, which is both false and non-retryable.
+		log.Warn().Err(err).Msg("client lookup failed (storage error) — not treating as unknown client")
+		return nil, ErrClientLookupFailed
+	}
+	if client == nil {
 		// Availability fallback (BC): the reserved client's row may be absent on a
 		// read-only replica where the boot seed was skipped. Fall back to the
 		// bootstrap Config credential so login is never locked out. This path
@@ -245,7 +268,7 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 		}
 		// Unknown client: burn an equivalent bcrypt cost so timing does not
 		// distinguish an unknown client from a wrong secret, then reject.
-		log.Debug().Err(err).Msg("client not found")
+		log.Debug().Msg("client not found")
 		performDummyCompare(secret)
 		return nil, ErrInvalidClient
 	}

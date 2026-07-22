@@ -103,7 +103,10 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.New("no document found")
+		// No matching item is a normal negative result, not a storage failure —
+		// callers (e.g. clientauth.ResolveClient) distinguish "no such client"
+		// from "couldn't check" by whether err is nil.
+		return nil, nil
 	}
 	var sa schemas.Client
 	if err := unmarshalItem(items[0], &sa); err != nil {
