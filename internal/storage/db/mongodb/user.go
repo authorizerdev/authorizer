@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -154,24 +153,21 @@ func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID st
 	return user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
+// UpdateUsers updates the users identified by ids. An empty ids slice is
+// rejected with schemas.ErrUpdateUsersEmptyIDs — global updates are disabled so
+// a missing filter can never mutate every user row.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	if len(ids) == 0 {
+		return schemas.ErrUpdateUsersEmptyIDs
+	}
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
 	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
-	var res *mongo.UpdateResult
-	var err error
-	if len(ids) > 0 {
-		res, err = userCollection.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": ids}}, bson.M{"$set": data})
-	} else {
-		res, err = userCollection.UpdateMany(ctx, bson.M{}, bson.M{"$set": data})
-	}
+	res, err := userCollection.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": ids}}, bson.M{"$set": data})
 	if err != nil {
 		return err
-	} else {
-		p.dependencies.Log.Info().Int64("modified_count", res.ModifiedCount).Msg("users updated")
 	}
+	p.dependencies.Log.Info().Int64("modified_count", res.ModifiedCount).Msg("users updated")
 	return nil
 }
 

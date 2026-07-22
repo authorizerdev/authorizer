@@ -235,7 +235,10 @@ func getIndex(scopeName string) map[string][]string {
 	// User Index
 	userIndex1 := fmt.Sprintf("CREATE INDEX userEmailIndex ON %s.%s(email)", scopeName, schemas.Collections.User)
 	userIndex2 := fmt.Sprintf("CREATE INDEX userPhoneIndex ON %s.%s(phone_number)", scopeName, schemas.Collections.User)
-	indices[schemas.Collections.User] = []string{userIndex1, userIndex2}
+	// Backs GetUserByExternalID on every SCIM/SSO lookup so it does not
+	// full-scan the collection.
+	userIndex3 := fmt.Sprintf("CREATE INDEX userExternalIDIndex ON %s.%s(external_id)", scopeName, schemas.Collections.User)
+	indices[schemas.Collections.User] = []string{userIndex1, userIndex2, userIndex3}
 
 	// VerificationRequest
 	verificationIndex1 := fmt.Sprintf("CREATE INDEX verificationRequestTokenIndex ON %s.%s(token)", scopeName, schemas.Collections.VerificationRequest)

@@ -218,21 +218,20 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
+// UpdateUsers updates the users identified by ids. An empty ids slice is
+// rejected with schemas.ErrUpdateUsersEmptyIDs — global updates are disabled so
+// a missing filter can never mutate every user row.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	if len(ids) == 0 {
+		return schemas.ErrUpdateUsersEmptyIDs
+	}
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
 	bindVars := map[string]interface{}{
 		"data": data,
+		"ids":  ids,
 	}
-	query := ""
-	if len(ids) > 0 {
-		bindVars["ids"] = ids
-		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN @ids UPDATE u._key WITH @data IN %s", schemas.Collections.User, schemas.Collections.User)
-	} else {
-		query = fmt.Sprintf("FOR u IN %s UPDATE u._key WITH @data IN %s", schemas.Collections.User, schemas.Collections.User)
-	}
+	query := fmt.Sprintf("FOR u IN %s FILTER u._id IN @ids UPDATE u._key WITH @data IN %s", schemas.Collections.User, schemas.Collections.User)
 	_, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -44,17 +45,21 @@ func (p *provider) UpdateOrganization(ctx context.Context, org *schemas.Organiza
 }
 
 // DeleteOrganization removes an organization and all its memberships.
-// Mirrors the DeleteClient cascade-delete pattern.
+// Mirrors the DeleteClient cascade-delete pattern. The whole cascade runs in a
+// single transaction so a mid-cascade failure cannot orphan memberships or
+// domains.
 func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organization) error {
-	if err := p.db.Where("org_id = ?", org.ID).Delete(&schemas.OrgMembership{}).Error; err != nil {
-		return err
-	}
-	// Cascade verified domains — otherwise the domain becomes permanently
-	// unclaimable (it is the unique PK of org_domains).
-	if err := p.DeleteOrgDomainsByOrg(ctx, org.ID); err != nil {
-		return err
-	}
-	return p.db.Delete(org).Error
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("org_id = ?", org.ID).Delete(&schemas.OrgMembership{}).Error; err != nil {
+			return err
+		}
+		// Cascade verified domains — otherwise the domain becomes permanently
+		// unclaimable (it is the unique PK of org_domains).
+		if err := tx.Where("org_id = ?", org.ID).Delete(&schemas.OrgDomain{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(org).Error
+	})
 }
 
 // GetOrganizationByID fetches an organization by primary key.

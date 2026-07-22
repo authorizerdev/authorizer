@@ -221,28 +221,20 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
+// UpdateUsers updates the users identified by ids. An empty ids slice is
+// rejected with schemas.ErrUpdateUsersEmptyIDs — global updates are disabled so
+// a missing filter can never mutate every user row.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	if len(ids) == 0 {
+		return schemas.ErrUpdateUsersEmptyIDs
+	}
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
 	updateFields, params := GetSetFields(data)
-	if len(ids) > 0 {
-		for _, id := range ids {
-			params["id"] = id
-			userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $id", p.scopeName, schemas.Collections.User, updateFields)
+	for _, id := range ids {
+		params["id"] = id
+		userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $id", p.scopeName, schemas.Collections.User, updateFields)
 
-			_, err := p.db.Query(userQuery, &gocb.QueryOptions{
-				ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
-				Context:         ctx,
-				NamedParameters: params,
-			})
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id IS NOT NULL", p.scopeName, schemas.Collections.User, updateFields)
 		_, err := p.db.Query(userQuery, &gocb.QueryOptions{
 			ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 			Context:         ctx,

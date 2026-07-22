@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -84,16 +85,12 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
-	result := p.db.Delete(&schemas.Webhook{
-		ID: webhook.ID,
+	// Delete the webhook and its logs atomically so a failure cannot leave
+	// orphaned webhook_logs rows behind.
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&schemas.Webhook{ID: webhook.ID}).Error; err != nil {
+			return err
+		}
+		return tx.Where("webhook_id = ?", webhook.ID).Delete(&schemas.WebhookLog{}).Error
 	})
-	if result.Error != nil {
-		return result.Error
-	}
-
-	result = p.db.Where("webhook_id = ?", webhook.ID).Delete(&schemas.WebhookLog{})
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
 }

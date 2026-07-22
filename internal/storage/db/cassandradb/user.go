@@ -243,9 +243,13 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return &user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
+// UpdateUsers updates the users identified by ids. An empty ids slice is
+// rejected with schemas.ErrUpdateUsersEmptyIDs — global updates are disabled so
+// a missing filter can never mutate every user row.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	if len(ids) == 0 {
+		return schemas.ErrUpdateUsersEmptyIDs
+	}
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
 	convertMapValues(data)
@@ -272,39 +276,14 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
-	if len(ids) > 0 {
-		for _, id := range ids {
-			vals := make([]interface{}, len(updateValues))
-			copy(vals, updateValues)
-			vals = append(vals, id)
-			query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.User, updateFields)
-			err := p.db.Query(query, vals...).Exec()
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		// get all ids
-		getUserIDsQuery := fmt.Sprintf(`SELECT id FROM %s`, KeySpace+"."+schemas.Collections.User)
-		scanner := p.db.Query(getUserIDsQuery).Iter().Scanner()
-		var allIDs []string
-		for scanner.Next() {
-			var id string
-			err := scanner.Scan(&id)
-			if err == nil {
-				allIDs = append(allIDs, id)
-			}
-		}
-
-		for _, id := range allIDs {
-			vals := make([]interface{}, len(updateValues))
-			copy(vals, updateValues)
-			vals = append(vals, id)
-			query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.User, updateFields)
-			err := p.db.Query(query, vals...).Exec()
-			if err != nil {
-				return err
-			}
+	for _, id := range ids {
+		vals := make([]interface{}, len(updateValues))
+		copy(vals, updateValues)
+		vals = append(vals, id)
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.User, updateFields)
+		err := p.db.Query(query, vals...).Exec()
+		if err != nil {
+			return err
 		}
 	}
 	return nil

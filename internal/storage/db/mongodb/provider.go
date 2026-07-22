@@ -64,6 +64,16 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 			}),
 		},
 	}, options.CreateIndexes())
+	// external_id index is created in its own call, NOT merged into the batch
+	// above: MongoDB's createIndexes command is all-or-nothing, and that batch can
+	// fail as a whole on some specs, which would silently take this index down
+	// with it. Non-unique because external_id is empty for non-provisioned users
+	// and namespaced "<orgID>:<externalID>". Backs GetUserByExternalID on every
+	// SCIM/SSO lookup so it does not full-scan the collection.
+	_, _ = userCollection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.M{"external_id": 1},
+		Options: options.Index().SetSparse(true),
+	}, options.CreateIndexes())
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(schemas.Collections.VerificationRequest, options.Collection())
 	if _, err := verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{

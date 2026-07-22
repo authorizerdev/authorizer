@@ -53,8 +53,9 @@ type Provider interface {
 	GetUserByExternalID(ctx context.Context, orgID, externalID string) (*schemas.User, error)
 	// UpdateUsers to update multiple users, identified by the ids slice.
 	// If ids is nil / empty NO update is performed: global updates are disabled,
-	// so implementations return an error (SQL: gorm.ErrMissingWhereClause) rather
-	// than silently updating every user.
+	// so implementations return an error rather than silently updating every
+	// user (SQL: gorm.ErrMissingWhereClause; all other backends:
+	// schemas.ErrUpdateUsersEmptyIDs).
 	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
 	// AddVerificationRequest to save verification request in database

@@ -278,32 +278,20 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	return &user, nil
 }
 
-// UpdateUsers to update multiple users, with parameters of user IDs slice
+// UpdateUsers updates the users identified by ids. An empty ids slice is
+// rejected with schemas.ErrUpdateUsersEmptyIDs — global updates are disabled so
+// a missing filter can never mutate every user row.
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	if len(ids) == 0 {
+		return schemas.ErrUpdateUsersEmptyIDs
+	}
 	var res int64
 	var err error
-	if len(ids) > 0 {
-		for _, v := range ids {
-			err = p.updateByHashKey(ctx, schemas.Collections.User, "id", v, data)
+	for _, v := range ids {
+		if err = p.updateByHashKey(ctx, schemas.Collections.User, "id", v, data); err != nil {
+			return err
 		}
-	} else {
-		items, errScan := p.scanAllRaw(ctx, schemas.Collections.User, nil, nil)
-		if errScan != nil {
-			return errScan
-		}
-		for _, it := range items {
-			var user schemas.User
-			if err := unmarshalItem(it, &user); err != nil {
-				return err
-			}
-			err = p.updateByHashKey(ctx, schemas.Collections.User, "id", user.ID, data)
-			if err == nil {
-				res++
-			}
-		}
-	}
-	if err != nil {
-		return err
+		res++
 	}
 	p.dependencies.Log.Info().Int64("modified_count", res).Msg("users updated")
 	return nil
