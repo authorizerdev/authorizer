@@ -167,7 +167,11 @@ services:
       AUTHORIZER_BASE_URL: http://authorizer:8080
       AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
-      MOCK_SAML_BASE_URL: http://mock-saml-idp:4001
+      # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
+      # Authorizer's idp_sso_url validation (https-only, no test bypass)
+      # accepts the stored SSO URL. Callers must ignore the self-signed cert
+      # (tests/saml-sp.spec.ts sets ignoreHTTPSErrors for this reason).
+      MOCK_SAML_BASE_URL: https://mock-saml-idp:4001
       SMS_SINK_BASE_URL: http://sms-sink:4100
       MAILPIT_BASE_URL: http://mailpit:8025
     volumes:

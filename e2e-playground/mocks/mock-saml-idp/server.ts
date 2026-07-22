@@ -2,6 +2,7 @@ import express from 'express';
 import * as samlify from 'samlify';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import https from 'node:https';
 import path from 'node:path';
 
 export const app = express();
@@ -129,5 +130,13 @@ app.get('/sso', async (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(4001, () => console.log('mock-saml-idp listening on :4001'));
+  // Authorizer's org-SAML-connection admin API rejects a non-https
+  // idp_sso_url outright (internal/service/admin_org_saml.go
+  // validateSAMLHTTPSURL) with no dev/test bypass — unlike the OIDC broker,
+  // which has --test-allow-private-sso-hosts. Real IdPs are https-only in
+  // practice too, so serve TLS here (reusing this same signing cert/key as
+  // the server cert) rather than weakening that production check.
+  // Callers must trust/ignore this self-signed cert (see saml-sp.spec.ts's
+  // `ignoreHTTPSErrors`).
+  https.createServer({ cert: idpCert, key: idpKey }, app).listen(4001, () => console.log('mock-saml-idp listening on :4001 (https)'));
 }
