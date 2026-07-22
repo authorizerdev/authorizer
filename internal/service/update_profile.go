@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -199,7 +200,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, InvalidArgument("user with this email address already exists")
 		}
 
-		go func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) }()
+		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
 		for _, c := range cookie.BuildDeleteSessionCookies(meta.HostURL, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 			side.AddCookie(c)
 		}
@@ -243,13 +244,13 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 			}
 
 			// exec it as go routine so that we can reduce the api latency
-			go func() {
+			asyncutil.Go(p.Log, func() {
 				_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]any{
 					"user":             user.ToMap(),
 					"organization":     utils.GetOrganization(p.Config),
 					"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 				})
-			}()
+			})
 
 		}
 	}

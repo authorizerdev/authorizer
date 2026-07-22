@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -196,7 +197,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
-				go func() {
+				asyncutil.Go(p.Log, func() {
 					ctx := context.WithoutCancel(ctx)
 					// exec it as go routine so that we can reduce the api latency
 					if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
@@ -207,7 +208,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 						log.Debug().Msg("Failed to send otp email")
 					}
 					_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-				}()
+				})
 				return &model.AuthResponse{
 					Message:                  "Please check email inbox for the OTP",
 					ShouldShowEmailOtpScreen: refs.NewBoolRef(isEmailLogin),
@@ -237,7 +238,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
-				go func() {
+				asyncutil.Go(p.Log, func() {
 					ctx := context.WithoutCancel(ctx)
 					smsBody := strings.Builder{}
 					smsBody.WriteString("Your verification code is: ")
@@ -246,7 +247,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					if err := p.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 						log.Debug().Msg("Failed to send sms")
 					}
-				}()
+				})
 				return &model.AuthResponse{
 					Message:                   "Please check text message for the OTP",
 					ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
@@ -336,7 +337,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
 			if err := p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeOTP, map[string]any{
@@ -347,7 +348,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 				log.Debug().Msg("Failed to send otp email")
 			}
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		}()
+		})
 		res := &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
 			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
@@ -374,7 +375,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
@@ -383,7 +384,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			if err := p.SMSProvider.SendSMS(refs.StringValue(user.PhoneNumber), smsBody.String()); err != nil {
 				log.Debug().Msg("Failed to send sms")
 			}
-		}()
+		})
 		res := &model.AuthResponse{
 			Message:                   "Please check text message for the OTP",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
@@ -575,7 +576,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		_ = p.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		// Register event
 		if isEmailLogin {
@@ -589,7 +590,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			UserAgent: meta.UserAgent,
 			IP:        meta.IPAddress,
 		})
-	}()
+	})
 	metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusSuccess)
 	metrics.ActiveSessions.Inc()
 	p.AuditProvider.LogEvent(audit.Event{

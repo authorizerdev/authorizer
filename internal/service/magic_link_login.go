@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -73,10 +74,10 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 
 		user.Roles = strings.Join(inputRoles, ",")
 		user, _ = p.StorageProvider.AddUser(ctx, user)
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
-		}()
+		})
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login
@@ -197,13 +198,13 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			_ = p.EmailProvider.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]any{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
-		}()
+		})
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{

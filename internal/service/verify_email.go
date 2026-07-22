@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -99,7 +100,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			if err := p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeOTP, map[string]any{
 				"user":         user.ToMap(),
@@ -109,7 +110,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 				log.Debug().Err(err).Msg("Failed to send otp email")
 			}
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
-		}()
+		})
 		return &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
 			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
@@ -129,7 +130,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
@@ -138,7 +139,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 			if err := p.SMSProvider.SendSMS(refs.StringValue(user.PhoneNumber), smsBody.String()); err != nil {
 				log.Debug().Err(err).Msg("Failed to send sms")
 			}
-		}()
+		})
 		return &model.AuthResponse{
 			Message:                   "Please check text message for the OTP",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
@@ -250,7 +251,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 			} else {
 				nonce = authorizeState
 			}
-			go func() { _ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State)) }()
+			asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State)) })
 		}
 	}
 	if nonce == "" {
@@ -282,7 +283,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 	// 		return nil, err
 	// 	}
 	// }
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		if isSignUp {
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
@@ -299,7 +300,7 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 		}); err != nil {
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditEmailVerifiedEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,

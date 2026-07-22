@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -192,7 +193,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 				} else {
 					nonce = authorizeState
 				}
-				go func() { _ = h.MemoryStoreProvider.RemoveState(state) }()
+				asyncutil.Go(h.Log, func() { _ = h.MemoryStoreProvider.RemoveState(state) })
 			}
 		}
 		if nonce == "" {
@@ -267,7 +268,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		bgCtx := context.WithoutCancel(c)
 		userAgent := utils.GetUserAgent(c.Request)
 		ip := utils.GetIP(c.Request)
-		go func() {
+		asyncutil.Go(h.Log, func() {
 			if isSignUp {
 				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserSignUpWebhookEvent, loginMethod, user)
 				// User is also logged in with signup
@@ -282,7 +283,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			}); err != nil {
 				log.Debug().Err(err).Msg("Error adding session")
 			}
-		}()
+		})
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

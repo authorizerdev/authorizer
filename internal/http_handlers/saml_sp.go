@@ -54,6 +54,7 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -543,7 +544,7 @@ func (h *httpProvider) issueSAMLSession(c *gin.Context, slug, orgID, appRedirect
 	bgCtx := context.WithoutCancel(c.Request.Context())
 	userAgent := utils.GetUserAgent(c.Request)
 	ip := utils.GetIP(c.Request)
-	go func() {
+	asyncutil.Go(h.Log, func() {
 		if isSignUp {
 			_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodSSO, user)
 		}
@@ -551,7 +552,7 @@ func (h *httpProvider) issueSAMLSession(c *gin.Context, slug, orgID, appRedirect
 		if err := h.StorageProvider.AddSession(bgCtx, &schemas.Session{UserID: user.ID, UserAgent: userAgent, IP: ip}); err != nil {
 			h.Log.Debug().Err(err).Msg("failed to add session")
 		}
-	}()
+	})
 
 	params := "state=" + url.QueryEscape(appState)
 	redirectURL := appRedirect

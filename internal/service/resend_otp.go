@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -165,7 +166,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 		return nil, nil, err
 	}
 	if email != "" {
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			// exec it as go routine so that we can reduce the api latency
 			if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
@@ -176,9 +177,9 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 				log.Debug().Err(err).Msg("Failed to send email")
 			}
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		}()
+		})
 	} else {
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
@@ -187,7 +188,7 @@ func (p *provider) ResendOTP(ctx context.Context, meta RequestMetadata, params *
 			if err := p.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 				log.Debug().Err(err).Msg("Failed to send sms")
 			}
-		}()
+		})
 	}
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditOTPResentEvent,

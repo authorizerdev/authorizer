@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -398,7 +399,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		bgCtx := context.WithoutCancel(ctx)
 		userAgent := utils.GetUserAgent(ctx.Request)
 		ip := utils.GetIP(ctx.Request)
-		go func() {
+		asyncutil.Go(h.Log, func() {
 			if isSignUp {
 				_ = h.EventsProvider.RegisterEvent(bgCtx, constants.UserSignUpWebhookEvent, provider, user)
 				// User is also logged in with signup
@@ -413,7 +414,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}); err != nil {
 				log.Debug().Err(err).Msg("Failed to add session")
 			}
-		}()
+		})
 		if strings.Contains(redirectURL, "?") {
 			redirectURL = redirectURL + "&" + params
 		} else {

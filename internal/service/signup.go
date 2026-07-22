@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -233,7 +234,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			return nil, nil, err
 		}
 		// exec it as go routine so that we can reduce the api latency
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
@@ -241,7 +242,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		}()
+		})
 
 		return &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
@@ -279,11 +280,11 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		for _, c := range cookie.BuildMfaSessionCookies(hostname, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 			side.AddCookie(c)
 		}
-		go func() {
+		asyncutil.Go(p.Log, func() {
 			ctx := context.WithoutCancel(ctx)
 			_ = p.SMSProvider.SendSMS(phoneNumber, smsBody.String())
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-		}()
+		})
 		return &model.AuthResponse{
 			Message:                   "Please check the OTP in your inbox",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
@@ -428,7 +429,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 
 	ipAddress := meta.IPAddress
 	userAgent := meta.UserAgent
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		if isEmailSignup {
@@ -446,7 +447,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}); err != nil {
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
-	}()
+	})
 	metrics.RecordAuthEvent(metrics.EventSignup, metrics.StatusSuccess)
 	metrics.ActiveSessions.Inc()
 	p.AuditProvider.LogEvent(audit.Event{

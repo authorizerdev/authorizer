@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -142,7 +143,7 @@ func (p *provider) EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, p
 		return nil, nil, err
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		if err := p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]any{
 			"user":         user.ToMap(),
 			"organization": utils.GetOrganization(p.Config),
@@ -150,7 +151,7 @@ func (p *provider) EmailOTPMFASetup(ctx context.Context, meta RequestMetadata, p
 		}); err != nil {
 			log.Debug().Msg("Failed to send otp email")
 		}
-	}()
+	})
 
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditMFAEnabledEvent,
@@ -198,14 +199,14 @@ func (p *provider) SMSOTPMFASetup(ctx context.Context, meta RequestMetadata, par
 		return nil, nil, err
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(otpData.Otp)
 		if err := p.SMSProvider.SendSMS(phone, smsBody.String()); err != nil {
 			log.Debug().Msg("Failed to send sms")
 		}
-	}()
+	})
 
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditMFAEnabledEvent,

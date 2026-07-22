@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -39,11 +40,11 @@ func (p *provider) DeactivateAccount(ctx context.Context, meta RequestMetadata) 
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
-	}()
+	})
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditUserDeactivatedEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,

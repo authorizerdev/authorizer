@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -87,7 +88,7 @@ func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, 
 		}
 	}
 
-	go func() {
+	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		if isSignUp {
 			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
@@ -104,7 +105,7 @@ func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, 
 		}); err != nil {
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
-	}()
+	})
 
 	authTokenExpiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if authTokenExpiresIn <= 0 {

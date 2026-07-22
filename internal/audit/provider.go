@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -85,7 +86,7 @@ func metadataWithProtocol(meta, protocol string) string {
 
 // LogEvent asynchronously records an audit log entry.
 func (p *provider) LogEvent(event Event) {
-	go func() {
+	asyncutil.Go(p.deps.Log, func() {
 		log := p.deps.Log.With().Str("func", "LogEvent").Logger()
 		auditLog := &schemas.AuditLog{
 			ActorID:      event.ActorID,
@@ -101,5 +102,5 @@ func (p *provider) LogEvent(event Event) {
 		if err := p.deps.StorageProvider.AddAuditLog(context.Background(), auditLog); err != nil {
 			log.Debug().Err(err).Str("action", event.Action).Msg("Failed to add audit log")
 		}
-	}()
+	})
 }
