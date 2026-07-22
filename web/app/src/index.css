@@ -5,8 +5,10 @@
    `:root` block on specificity - cssCodeSplit concatenates both into one
    file and their relative order isn't guaranteed to put ours last. */
 html:root {
-	--authorizer-primary-color: #4f46e5;
-	--authorizer-primary-disabled-color: #a5b4fc;
+	/* One shade past the logo's #3B82F6 - that exact blue only clears
+	   ~3.7:1 against white, short of the 4.5:1 AA text minimum. */
+	--authorizer-primary-color: #2563eb;
+	--authorizer-primary-disabled-color: #93c5fd;
 	--authorizer-gray-color: #e2e8f0;
 	--authorizer-slate-color: #f1f5f9;
 	--authorizer-white-color: #ffffff;
