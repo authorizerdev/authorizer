@@ -104,7 +104,12 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 			log.Debug().Err(err).Msg("Failed to get user by phone number")
 			return nil, nil, NotFound(`user not found`)
 		}
-		if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+		// Only a password_reset-purpose session (minted exclusively by
+		// ForgotPassword's mobile leg) may complete a password change here.
+		// Verified/Challenge sessions from unrelated flows (login, signup,
+		// resend-OTP) must not be redeemable for a password change.
+		purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+		if err != nil || purpose != constants.MFASessionPurposePasswordReset {
 			log.Debug().Err(err).Msg("Failed to get mfa session")
 			return nil, nil, Unauthenticated(`invalid session`)
 		}
