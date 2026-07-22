@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { AuthorizerSignup } from '@authorizerdev/authorizer-react';
 import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
@@ -26,7 +26,7 @@ export default function SignUp({
 	const [isBaseForm, setIsBaseForm] = useState(true);
 	return (
 		<Fragment>
-			<h1 style={{ textAlign: 'center' }}>Sign Up</h1>
+			<h1 className="au-page-title">Sign Up</h1>
 			<br />
 			<AuthorizerSignup
 				urlProps={urlProps}

@@ -38,30 +38,14 @@ export default function App() {
 		...urlProps,
 	};
 	return (
-		<div
-			style={{
-				display: 'flex',
-				justifyContent: 'center',
-				flexDirection: 'column',
-			}}
-		>
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'center',
-					marginTop: 20,
-					flexDirection: 'column',
-					alignItems: 'center',
-				}}
-			>
-				<img
-					src={`${globalState.organizationLogo}`}
-					alt="logo"
-					style={{ height: 60, objectFit: 'cover' }}
-				/>
+		<div className="app-shell">
+			<header className="app-brand">
+				{globalState.organizationLogo && (
+					<img src={globalState.organizationLogo} alt="logo" />
+				)}
 				<h1>{globalState.organizationName}</h1>
-			</div>
-			<div className="container">
+			</header>
+			<main className="container">
 				<BrowserRouter>
 					<AuthorizerProvider
 						config={{
@@ -73,7 +57,7 @@ export default function App() {
 						<Root globalState={globalState} />
 					</AuthorizerProvider>
 				</BrowserRouter>
-			</div>
+			</main>
 		</div>
 	);
 }

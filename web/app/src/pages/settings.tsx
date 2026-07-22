@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 	AuthorizerMFASetup,
 	useAuthorizer,
@@ -22,13 +22,10 @@ export default function Settings() {
 
 	return (
 		<div>
-			<h1 style={{ textAlign: 'center' }}>Multi-factor authentication</h1>
-			<p>
-				Signed in as{' '}
-				<a href={`mailto:${user?.email}`} style={{ color: '#3B82F6' }}>
-					{user?.email}
-				</a>
-				. Set up an additional sign-in method to secure your account.
+			<h1 className="au-page-title">Multi-factor authentication</h1>
+			<p className="au-center au-muted">
+				Signed in as <a href={`mailto:${user?.email}`}>{user?.email}</a>. Set up
+				an additional sign-in method to secure your account.
 			</p>
 			<br />
 			<AuthorizerMFASetup
@@ -42,8 +39,8 @@ export default function Settings() {
 				passkeyRegistered={passkeyRegistered}
 			/>
 			<br />
-			<div style={{ textAlign: 'center' }}>
-				<Link to="/app" style={{ color: '#3B82F6' }}>
+			<div className="au-center">
+				<Link className="au-link" to="/app">
 					Back to dashboard
 				</Link>
 			</div>

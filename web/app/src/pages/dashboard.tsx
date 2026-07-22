@@ -21,45 +21,34 @@ export default function Dashboard() {
 
 	return (
 		<div>
-			<h1>Hey 👋,</h1>
-			<p>Thank you for using authorizer.</p>
-			<p>
-				Your email address is{' '}
-				<a href={`mailto:${user?.email}`} style={{ color: '#3B82F6' }}>
-					{user?.email}
-				</a>
+			<h1 className="au-page-title">Hey 👋</h1>
+			<p className="au-center au-muted">Thank you for using Authorizer.</p>
+			<p className="au-center">
+				Signed in as <a href={`mailto:${user?.email}`}>{user?.email}</a>
 			</p>
-
-			<p>
-				<Link to="/app/settings" style={{ color: '#3B82F6' }}>
+			<p className="au-center">
+				<Link className="au-link" to="/app/settings">
 					Manage MFA
 				</Link>
 			</p>
 
 			<br />
-			{loading ? (
-				<h3>Processing....</h3>
-			) : (
-				<button
-					type="button"
-					onClick={onLogout}
-					style={{
-						color: '#3B82F6',
-						cursor: 'pointer',
-						background: 'none',
-						border: 'none',
-						padding: 0,
-						margin: '1em 0',
-						font: 'inherit',
-						fontSize: '1.17em',
-						fontWeight: 'bold',
-						display: 'block',
-						textAlign: 'left',
-					}}
-				>
-					Logout
-				</button>
-			)}
+			<button
+				type="button"
+				className="styled-button"
+				style={{
+					width: '100%',
+					backgroundColor: loading
+						? 'var(--authorizer-primary-disabled-color)'
+						: 'var(--authorizer-white-color)',
+					color: 'var(--authorizer-text-color)',
+					border: '1px',
+				}}
+				disabled={loading}
+				onClick={onLogout}
+			>
+				{loading ? 'Logging out...' : 'Logout'}
+			</button>
 		</div>
 	);
 }
