@@ -43,6 +43,10 @@ const (
 	// a rate/attempt limit (e.g. MFA verification locked after repeated
 	// failures). Maps to gRPC ResourceExhausted / HTTP 429.
 	KindTooManyRequests
+	// KindAlreadyExists is a request that violates a uniqueness constraint
+	// (e.g. an organization/email/issuer that is already registered).
+	// Maps to gRPC AlreadyExists / HTTP 409.
+	KindAlreadyExists
 )
 
 // Error is a typed service error carrying a transport-neutral Kind alongside a
@@ -98,4 +102,9 @@ func FailedPrecondition(msg string) error {
 // TooManyRequests reports a request rejected for exceeding a rate/attempt limit.
 func TooManyRequests(msg string) error {
 	return &Error{Kind: KindTooManyRequests, msg: msg}
+}
+
+// AlreadyExists reports a request that violates a uniqueness constraint.
+func AlreadyExists(msg string) error {
+	return &Error{Kind: KindAlreadyExists, msg: msg}
 }

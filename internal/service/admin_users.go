@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -96,7 +94,7 @@ func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model
 		return res.AsAPIUser(), nil, nil
 	}
 	// Return error if no params are provided.
-	return nil, nil, fmt.Errorf("invalid params, user id or email is required")
+	return nil, nil, InvalidArgument("invalid params, user id or email is required")
 }
 
 // UpdateUser updates a user's profile, roles, MFA, or verification state and
@@ -110,7 +108,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 
 	if params.ID == "" {
 		log.Debug().Msg("user id is missing")
-		return nil, nil, fmt.Errorf("user_id is missing")
+		return nil, nil, InvalidArgument("user_id is missing")
 	}
 
 	log = log.With().Str("user_id", params.ID).Logger()
@@ -129,13 +127,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		params.ResetMfa == nil &&
 		params.AppData == nil {
 		log.Debug().Msg("please enter atleast one param to update")
-		return nil, nil, fmt.Errorf("please enter atleast one param to update")
+		return nil, nil, InvalidArgument("please enter atleast one param to update")
 	}
 
 	user, err := p.StorageProvider.GetUserByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetUserByID")
-		return nil, nil, fmt.Errorf(`User not found`)
+		return nil, nil, NotFound(`User not found`)
 	}
 
 	if params.GivenName != nil && refs.StringValue(user.GivenName) != refs.StringValue(params.GivenName) {
@@ -170,7 +168,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		appDataBytes, err := json.Marshal(params.AppData)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to marshal app_data")
-			return nil, nil, errors.New("malformed app_data")
+			return nil, nil, InvalidArgument("malformed app_data")
 		}
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
@@ -181,14 +179,14 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		// can still turn it off after the server has stopped offering any method.
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) && !p.isMFAServiceAvailable() {
 			log.Debug().Msg("cannot enable multi factor authentication as no mfa method is available")
-			return nil, nil, errors.New("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
+			return nil, nil, FailedPrecondition("cannot enable MFA: no MFA method is available on this server — ensure TOTP is enabled (do not set --disable-totp-login) or configure an email (SMTP) or SMS (Twilio) provider for OTP")
 		}
 		// EnforceMFA is absolute: an admin must not be able to persist an opt-out
 		// while the org enforces MFA (same guard self-service update_profile.go
 		// already applies).
 		if p.Config.EnforceMFA && !refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			log.Debug().Msg("cannot disable multi factor authentication as it is enforced by organization")
-			return nil, nil, errors.New("cannot disable multi factor authentication as it is enforced by organization")
+			return nil, nil, FailedPrecondition("cannot disable multi factor authentication as it is enforced by organization")
 		}
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
@@ -214,7 +212,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
 			log.Debug().Str("email", *params.Email).Msg("Invalid email address")
-			return nil, nil, fmt.Errorf("invalid email address")
+			return nil, nil, InvalidArgument("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
@@ -222,7 +220,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		// err = nil means user exists
 		if err == nil {
 			log.Debug().Str("email", newEmail).Msg("User with email already exists")
-			return nil, nil, fmt.Errorf("user with this email address already exists")
+			return nil, nil, AlreadyExists("user with this email address already exists")
 		}
 
 		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
@@ -278,14 +276,14 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		phone := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
 		if len(phone) < 10 || len(phone) > 15 {
 			log.Debug().Str("phone", phone).Msg("Invalid phone number")
-			return nil, nil, fmt.Errorf("invalid phone number")
+			return nil, nil, InvalidArgument("invalid phone number")
 		}
 		// check if user with new phone number exists
 		_, err = p.StorageProvider.GetUserByPhoneNumber(ctx, phone)
 		// err = nil means user exists
 		if err == nil {
 			log.Debug().Str("phone", phone).Msg("User with phone number already exists")
-			return nil, nil, fmt.Errorf("user with this phone number already exists")
+			return nil, nil, AlreadyExists("user with this phone number already exists")
 		}
 		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
 		user.PhoneNumber = &phone
@@ -305,7 +303,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 
 		if !validators.IsValidRoles(inputRoles, append([]string{}, append(roles, protectedRoles...)...)) {
 			log.Debug().Msg("Invalid list of roles")
-			return nil, nil, fmt.Errorf("invalid list of roles")
+			return nil, nil, InvalidArgument("invalid list of roles")
 		}
 
 		if !validators.IsStringArrayEqual(inputRoles, currentRoles) {

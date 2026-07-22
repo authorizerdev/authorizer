@@ -24,7 +24,7 @@ import (
 func validateOrgSlug(name string) error {
 	for _, r := range name {
 		if r == '/' || r == ':' || r == '#' || unicode.IsSpace(r) || unicode.IsControl(r) {
-			return fmt.Errorf("organization name must be a URL-safe slug: the character %q is not allowed", string(r))
+			return InvalidArgument(fmt.Sprintf("organization name must be a URL-safe slug: the character %q is not allowed", string(r)))
 		}
 	}
 	return nil
@@ -42,7 +42,7 @@ func (p *provider) CreateOrganization(ctx context.Context, meta RequestMetadata,
 	if name == "" {
 		log.Debug().Msg("name is required")
 		p.logOrgFailure(meta, constants.AuditOrganizationCreateFailedEvent, "")
-		return nil, nil, fmt.Errorf("name is required")
+		return nil, nil, InvalidArgument("name is required")
 	}
 	if err := validateOrgSlug(name); err != nil {
 		log.Debug().Err(err).Msg("invalid organization name")
@@ -55,7 +55,7 @@ func (p *provider) CreateOrganization(ctx context.Context, meta RequestMetadata,
 	if existing, _ := p.StorageProvider.GetOrganizationByName(ctx, name); existing != nil {
 		log.Debug().Msg("organization name already exists")
 		p.logOrgFailure(meta, constants.AuditOrganizationCreateFailedEvent, "")
-		return nil, nil, fmt.Errorf("an organization with this name already exists")
+		return nil, nil, AlreadyExists("an organization with this name already exists")
 	}
 
 	org, err := p.StorageProvider.AddOrganization(ctx, &schemas.Organization{
@@ -104,7 +104,7 @@ func (p *provider) UpdateOrganization(ctx context.Context, meta RequestMetadata,
 		if name == "" {
 			log.Debug().Msg("name cannot be empty")
 			p.logOrgFailure(meta, constants.AuditOrganizationUpdateFailedEvent, params.ID)
-			return nil, nil, fmt.Errorf("name cannot be empty")
+			return nil, nil, InvalidArgument("name cannot be empty")
 		}
 		if err := validateOrgSlug(name); err != nil {
 			log.Debug().Err(err).Msg("invalid organization name")
@@ -115,7 +115,7 @@ func (p *provider) UpdateOrganization(ctx context.Context, meta RequestMetadata,
 			if existing, _ := p.StorageProvider.GetOrganizationByName(ctx, name); existing != nil {
 				log.Debug().Msg("organization name already exists")
 				p.logOrgFailure(meta, constants.AuditOrganizationUpdateFailedEvent, params.ID)
-				return nil, nil, fmt.Errorf("an organization with this name already exists")
+				return nil, nil, AlreadyExists("an organization with this name already exists")
 			}
 			org.Name = name
 		}
@@ -157,7 +157,7 @@ func (p *provider) DeleteOrganization(ctx context.Context, meta RequestMetadata,
 	if params.ID == "" {
 		log.Debug().Msg("organization ID required")
 		p.logOrgFailure(meta, constants.AuditOrganizationDeleteFailedEvent, "")
-		return nil, nil, fmt.Errorf("organization ID required")
+		return nil, nil, InvalidArgument("organization ID required")
 	}
 
 	org, err := p.StorageProvider.GetOrganizationByID(ctx, params.ID)
@@ -253,26 +253,26 @@ func (p *provider) AddOrgMember(ctx context.Context, meta RequestMetadata, param
 	if orgID == "" || userID == "" {
 		log.Debug().Msg("org_id and user_id are required")
 		p.logOrgMemberFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("org_id and user_id are required")
+		return nil, nil, InvalidArgument("org_id and user_id are required")
 	}
 
 	if _, err := p.StorageProvider.GetOrganizationByID(ctx, orgID); err != nil {
 		log.Debug().Err(err).Msg("organization not found")
 		p.logOrgMemberFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("organization not found")
+		return nil, nil, NotFound("organization not found")
 	}
 
 	if _, err := p.StorageProvider.GetUserByID(ctx, userID); err != nil {
 		log.Debug().Err(err).Msg("user not found")
 		p.logOrgMemberFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("user not found")
+		return nil, nil, NotFound("user not found")
 	}
 
 	// Membership uniqueness pre-check. The storage layer also enforces it.
 	if existing, _ := p.StorageProvider.GetOrgMembership(ctx, orgID, userID); existing != nil {
 		log.Debug().Msg("user is already a member of this organization")
 		p.logOrgMemberFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("user is already a member of this organization")
+		return nil, nil, AlreadyExists("user is already a member of this organization")
 	}
 
 	membership, err := p.StorageProvider.AddOrgMembership(ctx, &schemas.OrgMembership{
@@ -315,14 +315,14 @@ func (p *provider) RemoveOrgMember(ctx context.Context, meta RequestMetadata, pa
 	if orgID == "" || userID == "" {
 		log.Debug().Msg("org_id and user_id are required")
 		p.logOrgMemberRemoveFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("org_id and user_id are required")
+		return nil, nil, InvalidArgument("org_id and user_id are required")
 	}
 
 	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, userID)
 	if err != nil {
 		log.Debug().Err(err).Msg("membership not found")
 		p.logOrgMemberRemoveFailure(meta, orgID)
-		return nil, nil, fmt.Errorf("membership not found")
+		return nil, nil, NotFound("membership not found")
 	}
 
 	// Last-admin guard. Skip for super-admins (recovery escape hatch).
@@ -337,7 +337,7 @@ func (p *provider) RemoveOrgMember(ctx context.Context, meta RequestMetadata, pa
 		if !hasOther {
 			log.Debug().Msg("refusing to remove the last org admin")
 			p.logOrgMemberRemoveFailure(meta, orgID)
-			return nil, nil, fmt.Errorf("cannot remove the last %s of the organization", constants.OrgRoleAdmin)
+			return nil, nil, FailedPrecondition(fmt.Sprintf("cannot remove the last %s of the organization", constants.OrgRoleAdmin))
 		}
 	}
 
@@ -371,7 +371,7 @@ func (p *provider) OrgMembers(ctx context.Context, meta RequestMetadata, params 
 
 	if params.OrgID == "" {
 		log.Debug().Msg("org_id is required")
-		return nil, nil, fmt.Errorf("org_id is required")
+		return nil, nil, InvalidArgument("org_id is required")
 	}
 	pagination := utils.GetPagination(params.Pagination)
 
@@ -412,7 +412,7 @@ func (p *provider) UserOrganizations(ctx context.Context, meta RequestMetadata, 
 	}
 	if params == nil || strings.TrimSpace(params.UserID) == "" {
 		log.Debug().Msg("user_id is required")
-		return nil, nil, fmt.Errorf("user_id is required")
+		return nil, nil, InvalidArgument("user_id is required")
 	}
 
 	var pagination *model.Pagination

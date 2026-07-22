@@ -25,17 +25,17 @@ func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, p
 
 	if !validators.IsValidEmailTemplateEventName(params.EventName) {
 		log.Debug().Str("EventName", params.EventName).Msg("Invalid Event Name")
-		return nil, nil, fmt.Errorf("invalid event name %s", params.EventName)
+		return nil, nil, InvalidArgument(fmt.Sprintf("invalid event name %s", params.EventName))
 	}
 
 	if strings.TrimSpace(params.Subject) == "" {
 		log.Debug().Msg("subject is missing")
-		return nil, nil, fmt.Errorf("empty subject not allowed")
+		return nil, nil, InvalidArgument("empty subject not allowed")
 	}
 
 	if strings.TrimSpace(params.Template) == "" {
 		log.Debug().Msg("template is missing")
-		return nil, nil, fmt.Errorf("empty template not allowed")
+		return nil, nil, InvalidArgument("empty template not allowed")
 	}
 
 	var design string
@@ -98,7 +98,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	if params.EventName != nil && emailTemplateDetails.EventName != refs.StringValue(params.EventName) {
 		if isValid := validators.IsValidEmailTemplateEventName(refs.StringValue(params.EventName)); !isValid {
 			log.Debug().Str("event_name", refs.StringValue(params.EventName)).Msg("invalid event name")
-			return nil, nil, fmt.Errorf("invalid event name %s", refs.StringValue(params.EventName))
+			return nil, nil, InvalidArgument(fmt.Sprintf("invalid event name %s", refs.StringValue(params.EventName)))
 		}
 		emailTemplateDetails.EventName = refs.StringValue(params.EventName)
 	}
@@ -106,7 +106,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	if params.Subject != nil && emailTemplateDetails.Subject != refs.StringValue(params.Subject) {
 		if strings.TrimSpace(refs.StringValue(params.Subject)) == "" {
 			log.Debug().Msg("empty subject not allowed")
-			return nil, nil, fmt.Errorf("empty subject not allowed")
+			return nil, nil, InvalidArgument("empty subject not allowed")
 		}
 		emailTemplateDetails.Subject = refs.StringValue(params.Subject)
 	}
@@ -114,7 +114,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	if params.Template != nil && emailTemplateDetails.Template != refs.StringValue(params.Template) {
 		if strings.TrimSpace(refs.StringValue(params.Template)) == "" {
 			log.Debug().Msg("empty template not allowed")
-			return nil, nil, fmt.Errorf("empty template not allowed")
+			return nil, nil, InvalidArgument("empty template not allowed")
 		}
 		emailTemplateDetails.Template = refs.StringValue(params.Template)
 	}
@@ -122,7 +122,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	if params.Design != nil && emailTemplateDetails.Design != refs.StringValue(params.Design) {
 		if strings.TrimSpace(refs.StringValue(params.Design)) == "" {
 			log.Debug().Msg("empty design not allowed")
-			return nil, nil, fmt.Errorf("empty design not allowed")
+			return nil, nil, InvalidArgument("empty design not allowed")
 		}
 		emailTemplateDetails.Design = refs.StringValue(params.Design)
 	}
@@ -157,7 +157,7 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata
 
 	if strings.TrimSpace(params.ID) == "" {
 		log.Debug().Msg("email template ID required")
-		return nil, nil, fmt.Errorf("email template ID required")
+		return nil, nil, InvalidArgument("email template ID required")
 	}
 
 	log = log.With().Str("emailTemplateID", params.ID).Logger()

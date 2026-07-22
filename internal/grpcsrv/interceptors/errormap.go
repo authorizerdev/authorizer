@@ -14,7 +14,7 @@ import (
 // kindToCode maps a transport-neutral service.ErrorKind onto the gRPC status
 // code. grpc-gateway then derives the REST HTTP status from this code
 // (InvalidArgument->400, Unauthenticated->401, PermissionDenied->403,
-// NotFound->404, FailedPrecondition->400, Internal->500).
+// NotFound->404, FailedPrecondition->400, AlreadyExists->409, Internal->500).
 func kindToCode(kind service.ErrorKind) codes.Code {
 	switch kind {
 	case service.KindInvalidArgument:
@@ -29,6 +29,8 @@ func kindToCode(kind service.ErrorKind) codes.Code {
 		return codes.FailedPrecondition
 	case service.KindTooManyRequests:
 		return codes.ResourceExhausted
+	case service.KindAlreadyExists:
+		return codes.AlreadyExists
 	default:
 		return codes.Internal
 	}

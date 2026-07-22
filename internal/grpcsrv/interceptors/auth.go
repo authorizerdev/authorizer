@@ -24,6 +24,11 @@ const (
 	adminServiceName  = "authorizer.v1.AuthorizerAdminService"
 	publicServiceName = "authorizer.v1.AuthorizerService"
 	sessionMethodName = "Session"
+	// adminLoginMethodName is the ONLY AuthorizerAdminService RPC allowed to be
+	// reached without super-admin auth: it establishes that auth. Every other
+	// admin RPC marked `public` is a mistake and must still require super-admin
+	// (see the bypass guard in Auth).
+	adminLoginMethodName = "AdminLogin"
 )
 
 // infrastructureServices are gRPC surfaces registered alongside Authorizer that
@@ -51,7 +56,16 @@ func Auth(tp token.Provider) grpc.UnaryServerInterceptor {
 		if shouldRejectUnlistedService(serviceName) {
 			return nil, status.Error(codes.Unauthenticated, "unauthorized")
 		}
-		if isPublicMethod(methodDesc) {
+		// The `public` proto annotation grants no-auth access. Honor it for the
+		// public service's methods and for the admin auth-bootstrap RPC
+		// (AdminLogin), which must be reachable before super-admin auth exists.
+		// Any OTHER AuthorizerAdminService method mistakenly marked `public`
+		// must NOT skip admin auth — it falls through to the super-admin check
+		// below (mirroring the Session RPC's explicit service guard, closing the
+		// latent footgun where a future admin RPC is accidentally made public).
+		if isPublicMethod(methodDesc) &&
+			(serviceName == publicServiceName ||
+				(serviceName == adminServiceName && string(methodDesc.Name()) == adminLoginMethodName)) {
 			return handler(ctx, req)
 		}
 		if tp == nil {
