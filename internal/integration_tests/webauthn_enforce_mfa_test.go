@@ -400,3 +400,48 @@ func TestWebauthnLoginVerifyAsSecondFactorSMSOTPEnrolled(t *testing.T) {
 	assert.True(t, refs.BoolValue(loginRes.ShouldShowMobileOtpScreen), "SMS-OTP is still challenged")
 	assert.True(t, refs.BoolValue(loginRes.ShouldOfferWebauthnMfaVerify), "the enrolled passkey must be offered as an alternative to SMS-OTP")
 }
+
+// TestWebauthnLoginOptionsRejectsPasswordResetSession is the regression test
+// for the session-purpose gap in WebauthnLoginOptions' scoped (MFA-alternative)
+// flow: a password_reset-purpose session (minted only by ForgotPassword) must
+// not be redeemable here -- the returned PublicKeyCredentialRequestOptions,
+// including the account's own credential IDs, is itself the leak this gate
+// exists to prevent (see the comment on WebauthnLoginOptions). Verified and
+// Challenge sessions -- the same two VerifyOTP accepts for the equivalent
+// TOTP-alternative flow -- must still work.
+func TestWebauthnLoginOptionsRejectsPasswordResetSession(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableWebauthnMFA = true
+	ts := initTestSetup(t, cfg)
+
+	user, _, _, _ := registerPasskeyForNewUser(t, ts)
+	email := refs.StringValue(user.Email)
+	req, ctx := createContext(ts)
+
+	t.Run("a password_reset session is rejected", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposePasswordReset, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &email)
+		assert.Error(t, err, "a password_reset session must not return this account's passkey login options")
+	})
+
+	t.Run("a Verified session is still accepted", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &email)
+		assert.NoError(t, err)
+	})
+
+	t.Run("a Challenge session is still accepted", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+
+		_, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, &email)
+		assert.NoError(t, err)
+	})
+}

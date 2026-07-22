@@ -397,6 +397,62 @@ func TestOTPMFASetupRejectsUnauthenticatedCaller(t *testing.T) {
 	assert.Error(t, err, "email/phone_number without a valid mfa session cookie must be rejected")
 }
 
+// TestOTPMFASetupRejectsPasswordResetSession is the regression test for the
+// MFA-enrollment-via-wrong-session finding: a password_reset-purpose MFA
+// session (minted only by ForgotPassword, meant to authorize a password
+// change via ResetPassword) must not be redeemable to enroll a NEW email/SMS
+// OTP authenticator on the account -- that would let whoever holds a
+// password-reset session (e.g. via SIM-swap) plant a persistent MFA backdoor,
+// not just issue themselves one token. A plain Verified session (real login)
+// must still work, both in cookie-only mode (no identifier) and
+// cookie+email mode.
+func TestOTPMFASetupRejectsPasswordResetSession(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableMFA = true
+	cfg.EnableEmailOTP = true
+	cfg.IsEmailServiceEnabled = true
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	email := "otp_setup_password_reset_" + uuid.NewString() + "@authorizer.dev"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email: &email, Password: "Password@123", ConfirmPassword: "Password@123",
+	})
+	require.NoError(t, err)
+	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+
+	t.Run("cookie-only mode: a password_reset session is rejected", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposePasswordReset, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+		req.Header.Set("Authorization", "")
+
+		_, err := ts.GraphQLProvider.EmailOTPMFASetup(ctx, nil)
+		assert.Error(t, err, "a password_reset session must not be able to enroll a new MFA factor")
+	})
+
+	t.Run("cookie+email mode: a password_reset session is rejected", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposePasswordReset, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+		req.Header.Set("Authorization", "")
+
+		_, err := ts.GraphQLProvider.EmailOTPMFASetup(ctx, &model.OtpMfaSetupRequest{Email: &email})
+		assert.Error(t, err, "a password_reset session must not be able to enroll a new MFA factor")
+	})
+
+	t.Run("a Verified session (real login) is still accepted", func(t *testing.T) {
+		mfaSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, time.Now().Add(5*time.Minute).Unix()))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", mfaSession))
+		req.Header.Set("Authorization", "")
+
+		_, err := ts.GraphQLProvider.EmailOTPMFASetup(ctx, &model.OtpMfaSetupRequest{Email: &email})
+		assert.NoError(t, err, "a Verified session must still be able to enroll a new MFA factor")
+	})
+}
+
 // TestVerifyOTPDoesNotAutoEnroll ensures verify_otp's new VerifiedAt-marking
 // logic only fires when a pending (unverified) Authenticator row already
 // exists -- i.e. only for a code sent by EmailOTPMFASetup/SMSOTPMFASetup. A

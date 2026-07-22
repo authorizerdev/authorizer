@@ -181,7 +181,12 @@ func (p *provider) WebauthnLoginOptions(ctx context.Context, meta RequestMetadat
 		log.Debug().Err(err).Msg("User not found for scoped webauthn login")
 		return nil, NotFound("no passkey found for this account")
 	}
-	if _, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
+	// Same Verified/Challenge purposes VerifyOTP accepts for the equivalent
+	// TOTP-alternative flow (see the comment above) — explicitly excludes
+	// password_reset, whose session must only ever be redeemable via
+	// ResetPassword, never to probe passkey existence/credential IDs here.
+	purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession)
+	if err != nil || (purpose != constants.MFASessionPurposeVerified && purpose != constants.MFASessionPurposeChallenge) {
 		log.Debug().Err(err).Msg("Failed to get mfa session")
 		return nil, Unauthenticated(`invalid session`)
 	}
