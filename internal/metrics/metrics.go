@@ -154,24 +154,35 @@ var (
 	)
 
 	// FgaChecksTotal is the headline fine-grained-authorization access-decision
-	// counter: every check_permissions decision by outcome. Use it for FGA
-	// adoption tracking and denial/error alerting.
-	// operation: check_permissions. result: allowed | denied | error.
+	// counter: every access-decision check by outcome, across every decision
+	// surface (client-facing checks, session/token required-relations gating,
+	// and login/SSO-time claim derivation). Use it for FGA adoption tracking
+	// and denial/error alerting.
+	// operation: check_permissions | list_permissions | required_relations |
+	// derived_roles. result: allowed | denied | error.
+	// NOTE: required_relations runs on the session/JWT-validation hot path and
+	// derived_roles on every login/SSO claim derivation — both are far
+	// higher-QPS than the admin-triggered check_permissions/list_permissions
+	// calls. A PromQL query that aggregates this family WITHOUT filtering by
+	// `operation` will be dominated by these two series.
 	FgaChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_fga_checks_total",
-			Help: "Total fine-grained authorization access decisions. operation=check_permissions, result=allowed|denied|error",
+			Help: "Total fine-grained authorization access decisions. operation=check_permissions|list_permissions|required_relations|derived_roles, result=allowed|denied|error",
 		},
 		[]string{"operation", "result"},
 	)
 
-	// FgaCheckDuration tracks the latency of the client-facing FGA read
-	// operations (the OpenFGA engine call), in seconds.
-	// operation: check_permissions | list_permissions.
+	// FgaCheckDuration tracks the latency of FGA access-decision calls (the
+	// OpenFGA engine Check/ListObjects call), in seconds, across every
+	// decision surface — see FgaChecksTotal's doc comment for the QPS caveat
+	// on required_relations/derived_roles.
+	// operation: check_permissions | list_permissions | required_relations |
+	// derived_roles.
 	FgaCheckDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "authorizer_fga_check_duration_seconds",
-			Help:    "Fine-grained authorization engine call duration in seconds. operation=check_permissions|list_permissions",
+			Help:    "Fine-grained authorization engine call duration in seconds. operation=check_permissions|list_permissions|required_relations|derived_roles",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"operation"},
@@ -360,18 +371,23 @@ const (
 	FgaOpListPermissions  = "list_permissions"
 	FgaOpGetModel         = "get_model"
 	FgaOpWriteModel       = "write_model"
-	FgaOpReadTuples       = "read_tuples"
-	FgaOpWriteTuples      = "write_tuples"
-	FgaOpDeleteTuples     = "delete_tuples"
-	FgaOpListUsers        = "list_users"
-	FgaOpExpand           = "expand"
-	FgaOpReset            = "reset"
+	// FgaOpReadTuples is recorded once per engine-level page read, not once per
+	// logical caller request — a caller that paginates internally (e.g. SCIM's
+	// group-membership listing) increments this once per page.
+	FgaOpReadTuples   = "read_tuples"
+	FgaOpWriteTuples  = "write_tuples"
+	FgaOpDeleteTuples = "delete_tuples"
+	FgaOpListUsers    = "list_users"
+	FgaOpExpand       = "expand"
+	FgaOpReset        = "reset"
 	// FgaOpRequiredRelations is the session/token-validation-time gate
 	// (enforceRequiredRelations) — a Check call, decision-family like
 	// check_permissions/list_permissions.
 	FgaOpRequiredRelations = "required_relations"
 	// FgaOpDerivedRoles is the login/SSO-time claim-derivation lookup shared by
 	// SAML group assertion and JWT role derivation (both ListObjects calls).
+	// The two call sites share this one label — the series does not
+	// distinguish which of the two triggered a given sample.
 	FgaOpDerivedRoles = "derived_roles"
 )
 
