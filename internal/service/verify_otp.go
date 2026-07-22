@@ -32,6 +32,13 @@ const (
 	// in the memory store. This is transient state, deliberately kept out
 	// of the DB schema so no storage provider needs a new column.
 	totpLockoutCachePrefix = "totp_failed_attempts:"
+	// otpLockoutCachePrefix namespaces the per-user email/SMS OTP
+	// failed-attempt counter, mirroring totpLockoutCachePrefix. The email/SMS
+	// OTP branch reuses the TOTP threshold/window policy constants above
+	// (totpMaxFailedAttempts / totpLockoutWindowSeconds) — same brute-force
+	// exposure past the per-IP limiter, same mitigation — but on its own cache
+	// key so the two factors' counters never collide.
+	otpLockoutCachePrefix = "otp_failed_attempts:"
 )
 
 // VerifyOTP verifies a one-time passcode (email/SMS OTP, TOTP, or recovery
@@ -169,6 +176,26 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			log.Debug().Err(cErr).Msg("Failed to reset totp failed-attempt counter")
 		}
 	} else {
+		// Per-user lockout for email/SMS OTP, identical in shape to the TOTP
+		// branch above: atomically reserve this attempt's slot BEFORE
+		// validating, then check whether it exceeded the budget. Increment-
+		// then-check (not check-then-increment) so concurrent requests get
+		// strictly increasing unique counts and at most totpMaxFailedAttempts
+		// can ever reach validation in a window. The MFA session was already
+		// validated above, so an attacker who only knows the victim's email
+		// cannot reach here to exhaust this counter (no unauthenticated
+		// account-lockout DoS).
+		otpLockKey := otpLockoutCachePrefix + user.ID
+		attempts, incErr := p.MemoryStoreProvider.IncrementCache(otpLockKey, totpLockoutWindowSeconds)
+		if incErr != nil {
+			// A memory-store fault must not be counted as a user failure or
+			// lock out a legitimate user (fail-open, matching the TOTP branch).
+			log.Debug().Err(incErr).Msg("Failed to increment otp failed-attempt counter")
+		} else if attempts > totpMaxFailedAttempts {
+			log.Debug().Int64("attempts", attempts).Msg("OTP verification locked: too many failed attempts")
+			return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
+		}
+
 		var otp *schemas.OTP
 		if isEmailVerification {
 			otp, err = p.StorageProvider.GetOTPByEmail(ctx, email)
@@ -197,6 +224,10 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		if expiresIn < 0 {
 			log.Debug().Msg("OTP expired")
 			return nil, nil, InvalidArgument("otp expired")
+		}
+		// Successful verification clears the failed-attempt counter for this user.
+		if cErr := p.MemoryStoreProvider.DeleteCacheByPrefix(otpLockKey); cErr != nil {
+			log.Debug().Err(cErr).Msg("Failed to reset otp failed-attempt counter")
 		}
 		if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 			log.Debug().Err(err).Msg("Failed to delete otp")

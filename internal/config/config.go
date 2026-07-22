@@ -201,6 +201,17 @@ type Config struct {
 	EnforceMFA bool
 
 	// URLs
+	// AuthorizerURL is the operator-configured canonical/trusted base URL of
+	// this Authorizer instance (e.g. https://auth.example.com). When set, it is
+	// the ONLY source used to derive the server's own host — verification /
+	// reset / magic-link email URLs, the JWT `iss` claim, and the OIDC
+	// discovery/JWKS document URLs — and ALL request headers
+	// (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored for that purpose.
+	// Leaving it empty preserves the legacy header-based derivation for
+	// reverse-proxy / multi-tenant setups, but that is exactly what exposes the
+	// host-header-injection account-takeover class (CWE-640); operators SHOULD
+	// set --url in production.
+	AuthorizerURL string
 	// ResetPasswordURL is the URL for reset password
 	ResetPasswordURL string
 

@@ -15,11 +15,36 @@ func GetHost(c *gin.Context) string {
 	return GetHostFromRequest(c.Request)
 }
 
+// trustedURL, when non-empty, is the operator-configured canonical base URL
+// (--url). It is set ONCE at startup via SetTrustedURL, before any listener
+// accepts a connection, so no lock is needed: the write happens-before every
+// concurrent read. When set, ALL request headers are ignored for host
+// derivation, closing the host-header-injection account-takeover class
+// (CWE-640). When empty (default) the legacy header-based derivation below is
+// used, preserving reverse-proxy / multi-tenant deployments — operators SHOULD
+// set --url; omitting it is what leaves this attack surface open.
+// ponytail: set-once-at-startup global; a mutex/atomic would only matter if we
+// ever reconfigured this at runtime, which we don't.
+var trustedURL string
+
+// SetTrustedURL records the operator-configured canonical base URL. Called once
+// from cmd/root at startup. The value is normalized to scheme+host (path,
+// query, fragment, userinfo and trailing slash stripped) so it is a valid,
+// consistent issuer; an unparsable/invalid value is treated as unset, keeping
+// the legacy header-based behavior rather than emitting a broken host.
+func SetTrustedURL(u string) {
+	trustedURL = sanitizeAuthorizerURL(strings.TrimSpace(u))
+}
+
 // GetHostFromRequest returns the authorizer host URL from a raw *http.Request.
-// Priority: X-Authorizer-URL header, then scheme (X-Forwarded-Proto) + host
+// When a trusted URL is configured (--url), it wins over every request header.
+// Otherwise: X-Authorizer-URL header, then scheme (X-Forwarded-Proto) + host
 // (X-Forwarded-Host or Request.Host). Headers are validated to prevent host
 // header injection attacks.
 func GetHostFromRequest(r *http.Request) string {
+	if trustedURL != "" {
+		return trustedURL
+	}
 	authorizerURL := strings.TrimSpace(r.Header.Get("X-Authorizer-URL"))
 	if authorizerURL != "" {
 		if sanitized := sanitizeAuthorizerURL(authorizerURL); sanitized != "" {

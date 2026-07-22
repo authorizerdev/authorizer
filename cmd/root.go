@@ -28,6 +28,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/service"
@@ -260,6 +261,7 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", defaultRobloxScopes, "Scopes for Roblox")
 
 	// URLs
+	f.StringVar(&rootArgs.config.AuthorizerURL, "url", "", "Canonical/trusted base URL of this Authorizer instance (e.g. https://auth.example.com). When set, it is the ONLY source used to build verification/reset/magic-link email URLs, the JWT iss claim, and OIDC discovery URLs; all request headers (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored. Leaving it empty keeps legacy header-based derivation but exposes host-header-injection account takeover (CWE-640) — set this in production")
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
 
 	// Back-channel logout (OIDC BCL 1.0)
@@ -431,6 +433,13 @@ func runRoot(c *cobra.Command, args []string) {
 	// the /app bootstrap all key on the exact same string. Closes the whitespace
 	// edge where a padded --client-id would seed a trimmed row but compare raw.
 	rootArgs.config.ClientID = strings.TrimSpace(rootArgs.config.ClientID)
+
+	// Pin the trusted host used for all self-referential URLs (email links,
+	// JWT iss, OIDC discovery) BEFORE any listener starts. When --url is set,
+	// request headers can no longer control the server's own base URL, closing
+	// the host-header-injection account-takeover class (CWE-640). Empty keeps
+	// the legacy header-based derivation.
+	parsers.SetTrustedURL(rootArgs.config.AuthorizerURL)
 
 	// Storage provider
 	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{
