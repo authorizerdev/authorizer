@@ -84,6 +84,38 @@ export async function createSAMLConnection(
   return res._create_org_saml_connection;
 }
 
+// deleteSAMLConnectionByEntityID removes any existing OrgSAMLConnection whose
+// idp_entity_id matches (a no-op if none exists). idp_entity_id is enforced
+// globally-unique across all orgs (internal/service/admin_org_saml.go
+// GetTrustedIssuerByIssuerURL check), so a test that must use a fixed entity
+// ID (matching a mock IdP's own hardcoded entityID) needs to clean up any
+// stale row left by a prior unclean run before creating a fresh connection.
+// There's no admin query keyed on idp_entity_id directly, so this lists
+// trusted issuers (the shared backing table for SAML/OIDC connections and
+// machine-identity issuers, exposed via issuer_url on TrustedIssuer) and
+// deletes the generic way (_delete_trusted_issuer works on any issuer kind).
+export async function deleteSAMLConnectionByEntityID(idpEntityId: string): Promise<void> {
+  const listQuery = gql`
+    query ($params: ListTrustedIssuersRequest) {
+      _trusted_issuers(params: $params) {
+        trusted_issuers { id issuer_url }
+      }
+    }
+  `;
+  const res = await client.request<{
+    _trusted_issuers: { trusted_issuers: { id: string; issuer_url: string }[] };
+  }>(listQuery, { params: { pagination: { pagination: { limit: 1000 } } } });
+  const stale = res._trusted_issuers.trusted_issuers.find((t) => t.issuer_url === idpEntityId);
+  if (!stale) return;
+
+  const deleteQuery = gql`
+    mutation ($params: TrustedIssuerRequest!) {
+      _delete_trusted_issuer(params: $params) { message }
+    }
+  `;
+  await client.request(deleteQuery, { params: { id: stale.id } });
+}
+
 export async function addVerifiedDomain(orgId: string, domain: string, baseUrl?: string): Promise<void> {
   const query = gql`
     mutation ($params: AddVerifiedOrgDomainRequest!) {

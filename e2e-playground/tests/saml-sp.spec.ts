@@ -1,7 +1,7 @@
 // e2e-playground/tests/saml-sp.spec.ts
 import { test, expect } from '@playwright/test';
 import { URL } from 'node:url';
-import { createOrg, createSAMLConnection } from '../fixtures/adminClient';
+import { createOrg, createSAMLConnection, deleteSAMLConnectionByEntityID } from '../fixtures/adminClient';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -40,6 +40,12 @@ test.describe('SAML — SP side', () => {
     request,
   }) => {
     const org = await createOrg(`saml-sp-${Date.now()}`);
+    // idp_entity_id is globally unique and fixed (see MOCK_IDP_ENTITY_ID above)
+    // — unlike the org name, it can't be randomized per run, so a stale row
+    // from a prior unclean run (CI retry, or a local run without `down -v`)
+    // would otherwise collide here. Clean it up first to make this test safe
+    // to re-run against a non-fresh database.
+    await deleteSAMLConnectionByEntityID(MOCK_IDP_ENTITY_ID);
     await createSAMLConnection(org.id, {
       name: 'primary-idp',
       idpEntityId: MOCK_IDP_ENTITY_ID,
