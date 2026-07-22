@@ -5,7 +5,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/config"
-	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Dependencies struct the TODO(replace with new db name) data store provider
@@ -20,12 +19,16 @@ type provider struct {
 	db           *gorm.DB
 }
 
-// Compile-time check: provider must implement every method of storage.Provider.
-// Deleting or renaming a method here without updating the interface (or vice
-// versa) fails the build immediately instead of silently drifting.
-var _ storage.Provider = (*provider)(nil)
-
 // NewProvider returns a new provider for your database type.
+//
+// The parent internal/storage package cannot be imported here to add a
+// `var _ storage.Provider = (*provider)(nil)` assertion: internal/storage
+// imports every concrete provider package (including this one, once you wire
+// it into storage.New()), so importing it back would create an import cycle.
+// See interface_test.go for the equivalent check done from an external test
+// package instead — run `go test ./internal/storage/db/provider_template/...`
+// (or `go build ./...` after wiring into storage.New()) to verify parity with
+// storage.Provider.
 // TODO: change provider struct and NewProvider to use your database client.
 //
 // This provider must implement every method of storage.Provider — see that

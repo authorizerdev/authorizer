@@ -64,7 +64,7 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 1. Run `make generate-db-template dbname=NEW_DB_NAME`
    - e.g. `make generate-db-template dbname=dynamodb`
 
-   This copies `internal/storage/db/provider_template/` to `internal/storage/db/NEW_DB_NAME/` and renames the package. The template already stubs every method of `storage.Provider` (`internal/storage/provider.go`) across all feature areas — users, sessions, webhooks, email templates, OTP, authenticators, memory-store (session/MFA/OAuth-state), audit logs, clients, trusted issuers, SAML (SP + IDP keys), SCIM (endpoints + groups), WebAuthn credentials, organizations, org memberships, org domains, and federated identities — plus a compile-time `var _ storage.Provider = (*provider)(nil)` assertion in `provider.go`. If that assertion ever fails to compile, the template has drifted from the interface — fix the template, not just your new provider.
+   This copies `internal/storage/db/provider_template/` to `internal/storage/db/NEW_DB_NAME/` and renames the package. The template already stubs every method of `storage.Provider` (`internal/storage/provider.go`) across all feature areas — users, sessions, webhooks, email templates, OTP, authenticators, memory-store (session/MFA/OAuth-state), audit logs, clients, trusted issuers, SAML (SP + IDP keys), SCIM (endpoints + groups), WebAuthn credentials, organizations, org memberships, org domains, and federated identities. Run `go test ./internal/storage/db/NEW_DB_NAME/...` any time to confirm it still satisfies `storage.Provider` in full — `interface_test.go` fails to compile the instant a method goes missing.
 
 2. Change the `provider` struct and `NewProvider` in `NEW_DB_NAME/provider.go` to hold and construct your actual database client (the template ships with a placeholder `*gorm.DB` field — replace it).
 
@@ -78,7 +78,7 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 
 5. Add the new provider to the storage test matrix (`TEST_DBS`) and a `make test-NEW_DB_NAME` / `test-cleanup-NEW_DB_NAME` Docker target in the `Makefile`, following the pattern of the existing `test-postgres` / `test-mongodb` targets.
 
-> Note: `go build ./internal/storage/db/NEW_DB_NAME/...` will fail with a `does not implement storage.Provider (missing method ...)` error until every method is implemented — that's the compile-time assertion in `provider.go` doing its job.
+> Note: `go test ./internal/storage/db/NEW_DB_NAME/...` will fail to compile with a `does not implement storage.Provider (missing method ...)` error until every method is implemented. This check lives in a `_test` file rather than in `provider.go` itself — `internal/storage` imports every concrete provider (including yours, once step 4 is done), so a same-package assertion would create an import cycle.
 
 ### Testing
 
