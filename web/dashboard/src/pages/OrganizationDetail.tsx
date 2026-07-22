@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import UpdateOrgOIDCConnectionModal from '../components/UpdateOrgOIDCConnectionModal';
 import UpdateOrgSAMLConnectionModal from '../components/UpdateOrgSAMLConnectionModal';
 import SAMLServiceProviders from '../components/SAMLServiceProviders';
+import OrgDomains from '../components/OrgDomains';
 import ClientSecretDialog from '../components/ClientSecretDialog';
 import { UpdateModalViews } from '../constants';
 import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
@@ -816,6 +817,9 @@ const OrganizationDetail = () => {
 					)}
 				</CardContent>
 			</Card>
+
+			{/* Verified domains (home-realm discovery) */}
+			<OrgDomains orgId={orgId} orgSlug={org?.name || ''} />
 
 			{/* Confirm dialogs */}
 			<ConfirmDialog

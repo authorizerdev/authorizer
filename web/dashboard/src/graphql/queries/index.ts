@@ -404,3 +404,20 @@ export const ListSAMLIDPKeysQuery = `
     }
   }
 `;
+
+export const OrgDomainsQuery = `
+  query listOrgDomains($params: ListOrgDomainsRequest!) {
+    _org_domains(params: $params) {
+      pagination {
+        total
+      }
+      org_domains {
+        domain
+        org_id
+        verified_at
+        created_at
+        updated_at
+      }
+    }
+  }
+`;

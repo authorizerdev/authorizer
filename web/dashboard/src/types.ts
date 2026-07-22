@@ -364,3 +364,25 @@ export interface CreateScimEndpointResponse {
 	// Returned exactly once at creation/rotation; never retrievable again.
 	token: string;
 }
+
+// OrgDomain is a VERIFIED DNS domain -> organization mapping used for
+// home-realm discovery (routing a login to the correct tenant IdP). A row
+// exists only once the domain is verified.
+export interface OrgDomain {
+	domain: string;
+	org_id: string;
+	verified_at?: number | null;
+	created_at?: number | null;
+	updated_at?: number | null;
+}
+
+// OrgDomainChallenge is the DNS TXT record a tenant publishes to prove control
+// of a domain. Returned by _request_org_domain; no durable row exists until the
+// domain is verified.
+export interface OrgDomainChallenge {
+	domain: string;
+	// record_type is always "TXT".
+	record_type: string;
+	record_name: string;
+	record_value: string;
+}
