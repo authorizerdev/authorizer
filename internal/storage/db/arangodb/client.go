@@ -131,8 +131,11 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 	defer func() { _ = cursor.Close() }()
 	for {
 		if !cursor.HasMore() {
+			// No matching document is a normal negative result, not a storage
+			// failure — callers (e.g. clientauth.ResolveClient) distinguish "no
+			// such client" from "couldn't check" by whether err is nil.
 			if sa == nil {
-				return nil, fmt.Errorf("client not found")
+				return nil, nil
 			}
 			break
 		}

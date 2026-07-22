@@ -844,6 +844,19 @@ func (h *httpProvider) respondClientAuthError(gc *gin.Context, err error, resolv
 			"error_description": "This client is not authorized to use this grant type",
 		})
 		return
+	case errors.Is(err, clientauth.ErrClientLookupFailed):
+		// A storage error (e.g. transient SQLITE_BUSY under contention), not bad
+		// credentials — must NOT be reported as invalid_client (that tells the
+		// caller their credentials are permanently wrong and non-retryable,
+		// which is false) and must NOT count as a security event (it isn't an
+		// attack signal). 503 + temporarily_unavailable tells a well-behaved
+		// OAuth client this is worth retrying, unlike a 400.
+		log.Warn().Err(err).Msg("client lookup failed (storage error)")
+		gc.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":             "temporarily_unavailable",
+			"error_description": "The authorization server is temporarily unable to handle the request",
+		})
+		return
 	}
 
 	// invalid_client (clientauth.ErrInvalidClient, or any unexpected error).

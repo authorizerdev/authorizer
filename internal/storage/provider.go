@@ -207,6 +207,16 @@ type Provider interface {
 	// GetClientByClientID fetches a client by its public, unique client_id
 	// (distinct from the surrogate ID). This is the lookup the token/authorize
 	// endpoints and the boot-time reserved-client seed use.
+	//
+	// Contract: a genuinely absent client_id MUST return (nil, nil), never a
+	// wrapped driver "not found" error (gorm.ErrRecordNotFound,
+	// mongo.ErrNoDocuments, gocql.ErrNotFound, etc.) — callers (notably
+	// clientauth.ResolveClient, the token endpoint's client_credentials/
+	// refresh_token/authorization_code auth) distinguish "no such client" from
+	// "storage temporarily unavailable" solely by whether err is nil. A real
+	// storage error (a dropped connection, a busy/locked database) must come
+	// back as (nil, err) so the caller reports a retryable failure instead of
+	// misreporting the client's credentials as permanently wrong.
 	GetClientByClientID(ctx context.Context, clientID string) (*schemas.Client, error)
 	// ListClients returns a paginated list of all service accounts.
 	ListClients(ctx context.Context, pagination *model.Pagination) ([]*schemas.Client, *model.Pagination, error)

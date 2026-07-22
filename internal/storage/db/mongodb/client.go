@@ -2,11 +2,13 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -83,6 +85,14 @@ func (p *provider) GetClientByClientID(ctx context.Context, clientID string) (*s
 	saCollection := p.db.Collection(schemas.Collections.Client, options.Collection())
 	err := saCollection.FindOne(ctx, bson.M{"client_id": clientID}).Decode(&sa)
 	if err != nil {
+		// No matching document is a normal negative result, not a storage
+		// failure — callers (e.g. clientauth.ResolveClient) distinguish "no
+		// such client" from "couldn't check" by whether err is nil, so a
+		// genuinely absent document must come back as (nil, nil), never a
+		// wrapped ErrNoDocuments.
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return sa, nil

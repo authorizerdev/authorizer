@@ -27,7 +27,10 @@ type fakeStore struct {
 func (f *fakeStore) GetClientByClientID(_ context.Context, clientID string) (*schemas.Client, error) {
 	c, ok := f.clients[clientID]
 	if !ok {
-		return nil, errors.New("client not found")
+		// Matches the real providers' contract: a genuinely absent row is
+		// (nil, nil), never a wrapped error — ResolveClient distinguishes "no
+		// such client" from "storage error" by whether err is nil.
+		return nil, nil
 	}
 	return c, nil
 }
@@ -129,6 +132,35 @@ func TestResolveClient_UnknownClient(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidClient)
 	// Unknown client returns a nil client (nothing to attribute an audit to); the
 	// dummy bcrypt compare inside keeps timing indistinguishable from wrong-secret.
+	assert.Nil(t, got)
+}
+
+// erroringStore simulates a transient storage failure (e.g. SQLITE_BUSY under
+// contention) on GetClientByClientID — distinct from fakeStore's "no such
+// client" (nil, nil). ResolveClient must not conflate the two: a client that
+// genuinely exists but hit a momentary DB hiccup must never be told
+// invalid_client, which is a permanent, non-retryable rejection.
+type erroringStore struct {
+	storage.Provider
+}
+
+func (erroringStore) GetClientByClientID(_ context.Context, _ string) (*schemas.Client, error) {
+	return nil, errors.New("database is locked (5) (SQLITE_BUSY)")
+}
+
+func TestResolveClient_StorageErrorNotTreatedAsUnknownClient(t *testing.T) {
+	logger := zerolog.Nop()
+	r := New(
+		&config.Config{ClientID: testConfigID, ClientSecret: testConfigSecret},
+		&Dependencies{Log: &logger, StorageProvider: erroringStore{}},
+	)
+	got, err := r.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID:  testClientID,
+		BodySecret:    testClientSecret,
+		RequireSecret: true,
+	})
+	assert.ErrorIs(t, err, ErrClientLookupFailed)
+	assert.NotErrorIs(t, err, ErrInvalidClient, "a storage error must never be reported as invalid_client — that tells the caller their credentials are permanently wrong, which is false")
 	assert.Nil(t, got)
 }
 
