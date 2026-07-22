@@ -67,9 +67,11 @@ test.describe('OIDC — SSO relying party (home-realm discovery)', () => {
       await page.getByRole('button', { name: 'Continue' }).click();
 
       // Home-realm discovery should have redirected through mock-oauth back
-      // to Authorizer with a session, landing back on /app.
-      await page.waitForURL((url) => url.pathname === '/app' && !url.pathname.includes('error'), { timeout: 10_000 });
+      // to Authorizer with a session, landing back on /app (server issues a
+      // 301 to the trailing-slash form, so match either).
+      await page.waitForURL((url) => /^\/app\/?$/.test(url.pathname), { timeout: 10_000 });
       await expect(page.locator('body')).not.toContainText(/error/i);
+      await expect(page.getByText(employeeEmail)).toBeVisible();
     }
   );
 
