@@ -8,9 +8,15 @@ export default function Dashboard() {
 
 	const onLogout = async () => {
 		setLoading(true);
-		await authorizerRef.logout();
-		setToken(null);
-		setLoading(false);
+		try {
+			await authorizerRef.logout();
+		} finally {
+			// Always clear the local session and drop the loading state, even if
+			// the server logout call fails — the user is logged out client-side
+			// regardless, so the UI must never get stuck on "Processing....".
+			setToken(null);
+			setLoading(false);
+		}
 	};
 
 	return (
@@ -34,15 +40,25 @@ export default function Dashboard() {
 			{loading ? (
 				<h3>Processing....</h3>
 			) : (
-				<h3
+				<button
+					type="button"
+					onClick={onLogout}
 					style={{
 						color: '#3B82F6',
 						cursor: 'pointer',
+						background: 'none',
+						border: 'none',
+						padding: 0,
+						margin: '1em 0',
+						font: 'inherit',
+						fontSize: '1.17em',
+						fontWeight: 'bold',
+						display: 'block',
+						textAlign: 'left',
 					}}
-					onClick={onLogout}
 				>
 					Logout
-				</h3>
+				</button>
 			)}
 		</div>
 	);

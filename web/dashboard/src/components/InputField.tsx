@@ -130,12 +130,13 @@ const InputField = ({
 					<button
 						type="button"
 						className="text-gray-400 hover:text-gray-600"
-						onClick={() =>
-							setFieldVisibility?.({
-								...fieldVisibility!,
-								[inputType]: !fieldVisibility![inputType],
-							})
-						}
+						onClick={() => {
+							if (!fieldVisibility || !setFieldVisibility) return;
+							setFieldVisibility({
+								...fieldVisibility,
+								[inputType]: !fieldVisibility[inputType],
+							});
+						}}
 					>
 						{fieldVisibility?.[inputType] ? (
 							<EyeOff className="h-3.5 w-3.5" />
@@ -158,12 +159,12 @@ const InputField = ({
 	}
 
 	if (Object.values(ArrayInputType).includes(inputType)) {
-		const items = variables[inputType] as string[];
+		const items = (variables[inputType] as string[]) ?? [];
 		return (
 			<div className="flex w-full items-center gap-1 rounded-md border border-gray-300 px-2 py-1 overflow-x-auto">
-				{items.map((role: string, index: number) => (
+				{items.map((role: string) => (
 					<span
-						key={index}
+						key={role}
 						className="group inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs whitespace-nowrap"
 					>
 						{role}
@@ -233,14 +234,14 @@ const InputField = ({
 	}
 
 	if (Object.values(MultiSelectInputType).includes(inputType)) {
-		const selectedRoles = variables[inputType] as string[];
+		const selectedRoles = (variables[inputType] as string[]) ?? [];
 		return (
 			<div className="relative w-full">
 				<div className="flex w-full items-center justify-between rounded-md border border-gray-300 px-2 py-1 min-h-[32px]">
 					<div className="flex flex-wrap gap-1">
-						{selectedRoles.map((role: string, index: number) => (
+						{selectedRoles.map((role: string) => (
 							<span
-								key={index}
+								key={role}
 								className="group inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs"
 							>
 								{role}
