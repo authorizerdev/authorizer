@@ -112,6 +112,12 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Unique: true,
 		Sparse: true,
 	})
+	// Non-unique: external_id is empty for non-provisioned users and is
+	// namespaced "<orgID>:<externalID>". Backs GetUserByExternalID on every
+	// SCIM/SSO lookup so it does not full-scan the collection.
+	_, _, _ = userCollection.EnsureHashIndex(ctx, []string{"external_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
 
 	verificationRequestCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.VerificationRequest)
 	if err != nil {

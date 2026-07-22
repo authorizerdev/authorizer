@@ -2,11 +2,18 @@ package schemas
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
+
+// ErrUpdateUsersEmptyIDs is returned by Provider.UpdateUsers when the ids filter
+// is empty. Global user updates are disabled on every backend: an empty ids slice
+// must never mutate every row. The SQL provider enforces the same contract via
+// GORM's AllowGlobalUpdate:false (which surfaces gorm.ErrMissingWhereClause).
+var ErrUpdateUsersEmptyIDs = errors.New("UpdateUsers: ids must not be empty (global update disabled)")
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 //

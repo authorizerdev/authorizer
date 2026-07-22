@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -47,12 +48,15 @@ func (p *provider) UpdateClient(ctx context.Context, sa *schemas.Client) (*schem
 }
 
 // DeleteClient removes a service account and all its associated
-// TrustedIssuers. Mirrors the webhook cascade-delete pattern.
+// TrustedIssuers. Mirrors the webhook cascade-delete pattern. Both deletes run
+// in a single transaction so a failure cannot orphan trusted issuers.
 func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
-	if err := p.db.Where("client_id = ?", sa.ID).Delete(&schemas.TrustedIssuer{}).Error; err != nil {
-		return err
-	}
-	return p.db.Delete(sa).Error
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("client_id = ?", sa.ID).Delete(&schemas.TrustedIssuer{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(sa).Error
+	})
 }
 
 // GetClientByID fetches a service account by primary key.

@@ -75,17 +75,14 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
-	result := p.db.Where("user_id = ?", user.ID).Delete(&schemas.Session{})
-	if result.Error != nil {
-		return result.Error
-	}
-
-	result = p.db.Delete(&user)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
+	// Delete the user and their sessions atomically so a failure cannot leave
+	// orphaned session rows behind.
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", user.ID).Delete(&schemas.Session{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&user).Error
+	})
 }
 
 // ListUsers to get list of users from database. When query is non-empty it is
