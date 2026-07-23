@@ -276,6 +276,26 @@ export async function createSCIMEndpoint(orgId: string): Promise<{ token: string
   return { token: res._create_scim_endpoint.token, endpoint: `/scim/v2` };
 }
 
+// getUserPhoneNumberByEmail resolves a user's stored phone_number via the
+// admin `_users` search query. Needed by tests/scim.spec.ts's full-attribute
+// PATCH coverage: the SCIM PATCH response never echoes phoneNumbers back
+// (scimUserResource, internal/http_handlers/scim/users.go, has no phone field),
+// so persistence of a `phoneNumbers` PATCH can only be confirmed out-of-band.
+export async function getUserPhoneNumberByEmail(email: string): Promise<string | null> {
+  const query = gql`
+    query ($params: ListUsersRequest) {
+      _users(params: $params) { users { id email phone_number } }
+    }
+  `;
+  const res = await client.request<{ _users: { users: { id: string; email: string | null; phone_number: string | null }[] } }>(
+    query,
+    { params: { query: email } }
+  );
+  const user = res._users.users.find((u) => u.email === email);
+  if (!user) throw new Error(`user not found for email ${email}`);
+  return user.phone_number;
+}
+
 export async function setEnforceMFA(enabled: boolean): Promise<void> {
   const query = gql`
     mutation ($params: UpdateEnvRequest!) {
