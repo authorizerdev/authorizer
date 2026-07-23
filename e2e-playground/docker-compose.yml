@@ -137,6 +137,52 @@ services:
       timeout: 2s
       retries: 30
 
+  # authorizer-webauthn is a third instance solely for tests/webauthn.spec.ts.
+  # go-webauthn's RPID validation (internal/authenticators/webauthn/webauthn.go
+  # newRP) rejects any hostname without a dot other than exactly "localhost" -
+  # "field 'RPID' is not a valid domain string" - and meta.HostURL (which
+  # supplies that hostname) is ALWAYS derived from the static --url flag once
+  # it's set (internal/parsers/url.go GetHostFromRequest: --url is "the ONLY
+  # source", request headers are ignored), never from whatever hostname the
+  # browser actually navigated with. So the `authorizer`/`authorizer-sso`
+  # services' single-label compose hostnames can never pass WebAuthn
+  # registration, no matter what the browser's Host header says - a
+  # dedicated instance with a dotted --url (via a network alias, since
+  # compose service names themselves can't contain dots) is the only fix.
+  authorizer-webauthn:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8080"
+    networks:
+      default:
+        aliases:
+          - webauthn.e2e-playground.test
+    command:
+      - "--http-port=8080"
+      - "--url=http://webauthn.e2e-playground.test:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-webauthn.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://webauthn.e2e-playground.test:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   mock-oauth:
     build: ./mocks/mock-oauth
     ports: ["4000:4000"]
@@ -166,6 +212,7 @@ services:
     environment:
       AUTHORIZER_BASE_URL: http://authorizer:8080
       AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
       # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
       # Authorizer's idp_sso_url validation (https-only, no test bypass)
@@ -180,6 +227,7 @@ services:
     depends_on:
       authorizer: { condition: service_healthy }
       authorizer-sso: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }

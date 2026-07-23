@@ -19,6 +19,7 @@ export default defineConfig({
         /mfa-routing-matrix\.spec\.ts/,
         /oidc-sso-rp\.spec\.ts/,
         /sso-discovery\.spec\.ts/,
+        /webauthn\.spec\.ts/,
         '**/mocks/**',
         '**/node_modules/**',
       ],
@@ -40,6 +41,19 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_SSO_BASE_URL || 'http://localhost:8081',
+      },
+    },
+    {
+      // Runs against authorizer-webauthn (docker-compose.yml), the only
+      // service configured with a dotted --url hostname - required for
+      // go-webauthn's RPID validation to accept it at all (see that
+      // service's comment in docker-compose.yml). Can't share the `authorizer`
+      // service's single-label hostname the way most other specs do.
+      name: 'webauthn',
+      testMatch: /webauthn\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_WEBAUTHN_BASE_URL || 'http://localhost:8082',
       },
     },
   ],
