@@ -57,10 +57,18 @@ async function dismissMfaSetupOffer(page: Page): Promise<void> {
 // error" tautology. Callers that also want to assert given_name/family_name/
 // signup_methods mapping should follow up with adminClient.ts's
 // getUserByEmail(opts.expectedEmail) after this resolves.
+//
+// expectedEmail is optional solely for Twitter/X (processTwitterUserInfo,
+// internal/http_handlers/oauth_callback.go): unlike every other provider in
+// this plan, real Twitter's API never returns an email address at all (no
+// mock quirk - the mock's default/documented profile shape omits it on
+// purpose, matching the real API), so there is no address to assert a
+// mailto link against. Every other provider spec keeps passing a real
+// expectedEmail and gets the exact same mailto assertion as before.
 export async function runSocialLoginHappyPath(
   page: Page,
   request: APIRequestContext,
-  opts: { provider: string; buttonName: RegExp; profile: Record<string, unknown>; expectedEmail: string }
+  opts: { provider: string; buttonName: RegExp; profile: Record<string, unknown>; expectedEmail?: string }
 ): Promise<void> {
   await configureProviderProfile(request, opts.provider, opts.profile);
   // Not /app/login - that route doesn't exist (web/app/src/Root.tsx only
@@ -78,7 +86,9 @@ export async function runSocialLoginHappyPath(
   await page.waitForURL((url) => url.pathname === '/app' || url.pathname === '/app/', { timeout: 15_000 });
   await dismissMfaSetupOffer(page);
   await expect(page.getByText('Signed in as')).toBeVisible({ timeout: 10_000 });
-  await expect(page.locator(`a[href="mailto:${opts.expectedEmail}"]`)).toBeVisible();
+  if (opts.expectedEmail) {
+    await expect(page.locator(`a[href="mailto:${opts.expectedEmail}"]`)).toBeVisible();
+  }
 }
 
 // runConsentDeniedNegativePath mirrors what every provider actually sends

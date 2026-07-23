@@ -169,6 +169,30 @@ export async function getUserByEmail(
   return user;
 }
 
+// getUserByNickname mirrors getUserByEmail for providers that never return
+// an email address at all - currently only Twitter/X (processTwitterUserInfo,
+// internal/http_handlers/oauth_callback.go, sets Nickname from the profile's
+// `username` but leaves Email nil; real Twitter's API doesn't expose email,
+// this isn't a mock artifact). tests/social/twitter.spec.ts uses this in
+// place of getUserByEmail to look up the account it just created.
+export async function getUserByNickname(
+  nickname: string
+): Promise<{ id: string; given_name: string | null; family_name: string | null; nickname: string | null; signup_methods: string }> {
+  const query = gql`
+    query ($params: ListUsersRequest) {
+      _users(params: $params) { users { id given_name family_name nickname signup_methods } }
+    }
+  `;
+  const res = await client.request<{
+    _users: {
+      users: { id: string; given_name: string | null; family_name: string | null; nickname: string | null; signup_methods: string }[];
+    };
+  }>(query, { params: { query: nickname } });
+  const user = res._users.users.find((u) => u.nickname === nickname);
+  if (!user) throw new Error(`user not found for nickname ${nickname}`);
+  return user;
+}
+
 // verifyUserEmail force-verifies a user's email (and sets given/family name)
 // via the admin `_update_user` mutation, standing in for clicking the real
 // verification link — needed because SAML IdP-side issuance
