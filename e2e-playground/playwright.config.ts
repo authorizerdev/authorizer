@@ -20,6 +20,7 @@ export default defineConfig({
         /oidc-sso-rp\.spec\.ts/,
         /sso-discovery\.spec\.ts/,
         /webauthn\.spec\.ts/,
+        /magic-link\.spec\.ts/,
         '**/mocks/**',
         '**/node_modules/**',
       ],
@@ -54,6 +55,19 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_WEBAUTHN_BASE_URL || 'http://localhost:8082',
+      },
+    },
+    {
+      // Runs against authorizer-magic-link (docker-compose.yml), the only
+      // service with --enable-magic-link-login=true AND
+      // --enable-email-verification=true - see that service's comment in
+      // docker-compose.yml for why those can't live on the shared
+      // `authorizer` service.
+      name: 'magic-link',
+      testMatch: /magic-link\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_MAGIC_LINK_BASE_URL || 'http://localhost:8083',
       },
     },
   ],

@@ -183,6 +183,57 @@ services:
       timeout: 2s
       retries: 30
 
+  # authorizer-magic-link is a fourth instance solely for tests/magic-link.spec.ts.
+  # Magic-link login (--enable-magic-link-login) only ever sends mail when
+  # --enable-email-verification is also on (internal/service/magic_link_login.go
+  # gates the whole verification-request+SendEmail block on
+  # p.Config.EnableEmailVerification), and turning that flag on globally would
+  # break every other spec that signs up and immediately logs in in the same
+  # test on the shared `authorizer` service - login.go refuses password login
+  # for a user whose EmailVerifiedAt is still nil once verification is
+  # required. A dedicated instance keeps both worlds green, same reasoning as
+  # authorizer-sso/authorizer-webauthn above.
+  # --disable-mfa=true keeps this a clean primary-login-method test: without
+  # it, a brand-new user's first click hits the withheld-token MFA-setup
+  # offer screen (internal/service/mfa_gate.go) and the verification request
+  # row is only deleted on the FIRST non-withheld pass through
+  # VerifyEmailHandler (internal/http_handlers/verify_email.go) - so clicking
+  # the same link a second time would actually complete a second real login
+  # instead of failing, defeating the single-use assertion this spec needs.
+  authorizer-magic-link:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-magic-link:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-magic-link.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enable-magic-link-login=true"
+      - "--enable-email-verification=true"
+      - "--disable-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8083,http://authorizer-magic-link:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      - "--smtp-sender-email=e2e@authorizer.test"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   mock-oauth:
     build: ./mocks/mock-oauth
     ports: ["4000:4000"]
@@ -213,6 +264,7 @@ services:
       AUTHORIZER_BASE_URL: http://authorizer:8080
       AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
       AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MAGIC_LINK_BASE_URL: http://authorizer-magic-link:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
       # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
       # Authorizer's idp_sso_url validation (https-only, no test bypass)
@@ -228,6 +280,7 @@ services:
       authorizer: { condition: service_healthy }
       authorizer-sso: { condition: service_healthy }
       authorizer-webauthn: { condition: service_healthy }
+      authorizer-magic-link: { condition: service_healthy }
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }
