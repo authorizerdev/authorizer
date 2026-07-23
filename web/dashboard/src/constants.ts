@@ -241,6 +241,12 @@ export const webhookEventNames = {
 	'User access enabled': 'user.access_enabled',
 	'User access revoked': 'user.access_revoked',
 	'User deactivated': 'user.deactivated',
+	'User provisioned': 'user.provisioned',
+	'User deprovisioned': 'user.deprovisioned',
+	'User SCIM updated': 'user.scim_updated',
+	'Group created': 'group.created',
+	'Group updated': 'group.updated',
+	'Group deleted': 'group.deleted',
 };
 
 export const emailTemplateEventNames = {
