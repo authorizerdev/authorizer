@@ -113,6 +113,13 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 				params: { org_id: orgId, pagination: { limit: 100 } },
 			})
 			.toPromise();
+		if (res.error) {
+			toast.error(
+				capitalizeFirstLetter(
+					getGraphQLErrorMessage(res.error, 'Failed to load verified domains'),
+				),
+			);
+		}
 		setDomains(res.data?._org_domains?.org_domains || []);
 		setDomainsLoading(false);
 	};
