@@ -13,7 +13,7 @@ import (
 // transport adapter.
 //
 // Permission: authorizer:admin
-func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error) {
+func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginationRequest) (*model.Webhooks, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")

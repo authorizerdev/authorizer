@@ -186,9 +186,7 @@ const OrganizationDetail = () => {
 			}>(OrgMembersQuery, {
 				params: {
 					org_id: id,
-					pagination: {
-						pagination: { limit: MEMBERS_PAGE_LIMIT, page },
-					},
+					pagination: { limit: MEMBERS_PAGE_LIMIT, page },
 				},
 			})
 			.toPromise();

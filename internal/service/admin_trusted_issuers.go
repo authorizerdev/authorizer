@@ -290,7 +290,7 @@ func (p *provider) TrustedIssuers(ctx context.Context, meta RequestMetadata, par
 		return nil, nil, err
 	}
 
-	var paginatedReq *model.PaginatedRequest
+	var paginatedReq *model.PaginationRequest
 	var serviceAccountID string
 	if params != nil {
 		paginatedReq = params.Pagination

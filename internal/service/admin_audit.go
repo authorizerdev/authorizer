@@ -31,9 +31,7 @@ func (p *provider) AuditLogs(ctx context.Context, meta RequestMetadata, params *
 	filter := make(map[string]interface{})
 
 	if params != nil {
-		pagination = utils.GetPagination(&model.PaginatedRequest{
-			Pagination: params.Pagination,
-		})
+		pagination = utils.GetPagination(params.Pagination)
 		if refs.StringValue(params.Action) != "" {
 			filter[auditFilterAction] = refs.StringValue(params.Action)
 		}

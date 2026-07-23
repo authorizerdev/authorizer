@@ -13,7 +13,7 @@ import (
 // a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error) {
+func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.PaginationRequest) (*model.EmailTemplates, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")

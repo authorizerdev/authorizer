@@ -13,7 +13,7 @@ import (
 // Resolver is a thin transport adapter.
 //
 // Permissions: authorizer:admin
-func (g *graphqlProvider) VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error) {
+func (g *graphqlProvider) VerificationRequests(ctx context.Context, params *model.PaginationRequest) (*model.VerificationRequests, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		g.Log.Debug().Err(err).Msg("failed to get gin context")

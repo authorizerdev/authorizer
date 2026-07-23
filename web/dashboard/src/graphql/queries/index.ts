@@ -49,7 +49,7 @@ export const UserDetailsQuery = `
 `;
 
 export const WebhooksDataQuery = `
-  query getWebhooksData($params: PaginatedRequest!) {
+  query getWebhooksData($params: PaginationRequest!) {
     _webhooks(params: $params){
       webhooks{
         id
@@ -70,7 +70,7 @@ export const WebhooksDataQuery = `
 `;
 
 export const EmailTemplatesQuery = `
-  query getEmailTemplates($params: PaginatedRequest!) {
+  query getEmailTemplates($params: PaginationRequest!) {
     _email_templates(params: $params) {
       email_templates {
         id

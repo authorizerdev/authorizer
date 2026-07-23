@@ -73,10 +73,8 @@ const EmailTemplates = () => {
 		const res = await client
 			.query<EmailTemplatesResponse>(EmailTemplatesQuery, {
 				params: {
-					pagination: {
-						limit: paginationProps.limit,
-						page: paginationProps.page,
-					},
+					limit: paginationProps.limit,
+					page: paginationProps.page,
 				},
 			})
 			.toPromise();

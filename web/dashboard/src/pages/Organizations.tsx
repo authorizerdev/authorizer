@@ -70,10 +70,8 @@ const Organizations = () => {
 			.query<OrganizationsResponse>(OrganizationsQuery, {
 				params: {
 					pagination: {
-						pagination: {
-							limit: paginationProps.limit,
-							page: paginationProps.page,
-						},
+						limit: paginationProps.limit,
+						page: paginationProps.page,
 					},
 				},
 			})

@@ -216,7 +216,7 @@ func (p *provider) Organizations(ctx context.Context, meta RequestMetadata, para
 		return nil, nil, err
 	}
 
-	var paginatedReq *model.PaginatedRequest
+	var paginatedReq *model.PaginationRequest
 	if params != nil {
 		paginatedReq = params.Pagination
 	}
@@ -415,12 +415,7 @@ func (p *provider) UserOrganizations(ctx context.Context, meta RequestMetadata, 
 		return nil, nil, InvalidArgument("user_id is required")
 	}
 
-	var pagination *model.Pagination
-	if params.Pagination != nil {
-		pagination = utils.GetPagination(&model.PaginatedRequest{Pagination: params.Pagination})
-	} else {
-		pagination = utils.GetPagination(nil)
-	}
+	pagination := utils.GetPagination(params.Pagination)
 
 	memberships, pagination, err := p.StorageProvider.ListOrgMembershipsByUser(ctx, params.UserID, pagination)
 	if err != nil {

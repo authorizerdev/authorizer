@@ -131,7 +131,7 @@ type Provider interface {
 	DeleteWebhook(ctx context.Context, params *model.WebhookRequest) (*model.Response, error)
 	// EmailTemplates is the method to list email templates.
 	// Permissions: authorizer:admin
-	EmailTemplates(ctx context.Context, in *model.PaginatedRequest) (*model.EmailTemplates, error)
+	EmailTemplates(ctx context.Context, in *model.PaginationRequest) (*model.EmailTemplates, error)
 	// EnableAccess is the method to enable access.
 	// Permissions: authorizer:admin
 	EnableAccess(ctx context.Context, params *model.UpdateAccessRequest) (*model.Response, error)
@@ -218,7 +218,7 @@ type Provider interface {
 	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
 	// VerificationRequests is the method to list verification requests.
 	// Permissions: authorizer:admin
-	VerificationRequests(ctx context.Context, in *model.PaginatedRequest) (*model.VerificationRequests, error)
+	VerificationRequests(ctx context.Context, in *model.PaginationRequest) (*model.VerificationRequests, error)
 	// VerifyEmail is the method to verify email.
 	// Permissions: none
 	VerifyEmail(ctx context.Context, params *model.VerifyEmailRequest) (*model.AuthResponse, error)
@@ -254,7 +254,7 @@ type Provider interface {
 	Webhook(ctx context.Context, params *model.WebhookRequest) (*model.Webhook, error)
 	// Webhooks is the method to list webhooks.
 	// Permissions: authorizer:admin
-	Webhooks(ctx context.Context, in *model.PaginatedRequest) (*model.Webhooks, error)
+	Webhooks(ctx context.Context, in *model.PaginationRequest) (*model.Webhooks, error)
 	// CreateClient creates a machine/workload service account.
 	// Permissions: authorizer:admin
 	CreateClient(ctx context.Context, params *model.CreateClientRequest) (*model.CreateClientResponse, error)

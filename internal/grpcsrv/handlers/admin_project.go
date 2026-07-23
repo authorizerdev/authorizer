@@ -26,30 +26,10 @@ func projectAdminMeta(m *model.AdminMeta) *authorizerv1.AdminMeta {
 	}
 }
 
-// modelPaginatedRequest converts the proto PaginationRequest carried by admin
-// list RPCs into the GraphQL model.PaginatedRequest consumed by the service
-// layer. A nil proto pagination yields a nil request so service.GetPagination
-// applies its defaults (page 1, default limit).
-func modelPaginatedRequest(in *authorizerv1.PaginationRequest) *model.PaginatedRequest {
-	if in == nil {
-		return nil
-	}
-	out := &model.PaginatedRequest{Pagination: &model.PaginationRequest{}}
-	if in.Page != 0 {
-		page := in.Page
-		out.Pagination.Page = &page
-	}
-	if in.Limit != 0 {
-		limit := in.Limit
-		out.Pagination.Limit = &limit
-	}
-	return out
-}
-
-// modelPaginationRequest converts the proto PaginationRequest into the GraphQL
-// model.PaginationRequest (the inner pagination shape carried by
-// ListWebhookLogRequest, as opposed to the PaginatedRequest wrapper). A nil
-// proto pagination yields nil so service.GetPagination applies its defaults.
+// modelPaginationRequest converts the proto PaginationRequest carried by admin
+// list RPCs into the GraphQL model.PaginationRequest consumed by the service
+// layer. A nil proto pagination yields nil so service.GetPagination applies
+// its defaults (page 1, default limit).
 func modelPaginationRequest(in *authorizerv1.PaginationRequest) *model.PaginationRequest {
 	if in == nil {
 		return nil

@@ -48,7 +48,7 @@ func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *mode
 	var query string
 	var pagination *model.Pagination
 	if params != nil {
-		pagination = utils.GetPagination(&model.PaginatedRequest{Pagination: params.Pagination})
+		pagination = utils.GetPagination(params.Pagination)
 		query = refs.StringValue(params.Query)
 	} else {
 		pagination = utils.GetPagination(nil)
@@ -448,7 +448,7 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 // VerificationRequests returns a paginated list of pending verification
 // requests. Requires super-admin auth. Logic migrated from
 // internal/graphql/verification_requests.go.
-func (p *provider) VerificationRequests(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.VerificationRequests, *ResponseSideEffects, error) {
+func (p *provider) VerificationRequests(ctx context.Context, meta RequestMetadata, params *model.PaginationRequest) (*model.VerificationRequests, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "VerificationRequests").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err

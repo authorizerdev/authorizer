@@ -443,7 +443,7 @@ func (r *queryResolver) UserOrganizations(ctx context.Context, params model.User
 }
 
 // VerificationRequests is the resolver for the _verification_requests field.
-func (r *queryResolver) VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error) {
+func (r *queryResolver) VerificationRequests(ctx context.Context, params *model.PaginationRequest) (*model.VerificationRequests, error) {
 	return r.GraphQLProvider.VerificationRequests(ctx, params)
 }
 
@@ -468,7 +468,7 @@ func (r *queryResolver) Webhook(ctx context.Context, params model.WebhookRequest
 }
 
 // Webhooks is the resolver for the _webhooks field.
-func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error) {
+func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginationRequest) (*model.Webhooks, error) {
 	return r.GraphQLProvider.Webhooks(ctx, params)
 }
 
@@ -548,7 +548,7 @@ func (r *queryResolver) OrgDomains(ctx context.Context, params model.ListOrgDoma
 }
 
 // EmailTemplates is the resolver for the _email_templates field.
-func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error) {
+func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.PaginationRequest) (*model.EmailTemplates, error) {
 	return r.GraphQLProvider.EmailTemplates(ctx, params)
 }
 

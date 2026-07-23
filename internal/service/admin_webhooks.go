@@ -237,7 +237,7 @@ func (p *provider) Webhook(ctx context.Context, meta RequestMetadata, params *mo
 
 // Webhooks returns a paginated list of webhooks. Requires super-admin auth.
 // Logic migrated from internal/graphql/webhooks.go.
-func (p *provider) Webhooks(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Webhooks, *ResponseSideEffects, error) {
+func (p *provider) Webhooks(ctx context.Context, meta RequestMetadata, params *model.PaginationRequest) (*model.Webhooks, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Webhooks").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err
@@ -271,9 +271,7 @@ func (p *provider) WebhookLogs(ctx context.Context, meta RequestMetadata, params
 	var pagination *model.Pagination
 	var webhookID string
 	if params != nil {
-		pagination = utils.GetPagination(&model.PaginatedRequest{
-			Pagination: params.Pagination,
-		})
+		pagination = utils.GetPagination(params.Pagination)
 		webhookID = refs.StringValue(params.WebhookID)
 	} else {
 		pagination = utils.GetPagination(nil)
