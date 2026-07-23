@@ -476,7 +476,7 @@ type ComplexityRoot struct {
 		CheckPermissions         func(childComplexity int, params model.CheckPermissionsInput) int
 		Client                   func(childComplexity int, params model.ClientRequest) int
 		Clients                  func(childComplexity int, params *model.ListClientsRequest) int
-		EmailTemplates           func(childComplexity int, params *model.PaginatedRequest) int
+		EmailTemplates           func(childComplexity int, params *model.PaginationRequest) int
 		Env                      func(childComplexity int) int
 		FgaExpand                func(childComplexity int, params model.FgaExpandInput) int
 		FgaGetModel              func(childComplexity int) int
@@ -503,11 +503,11 @@ type ComplexityRoot struct {
 		Users                    func(childComplexity int, params *model.ListUsersRequest) int
 		ValidateJwtToken         func(childComplexity int, params model.ValidateJWTTokenRequest) int
 		ValidateSession          func(childComplexity int, params *model.ValidateSessionRequest) int
-		VerificationRequests     func(childComplexity int, params *model.PaginatedRequest) int
+		VerificationRequests     func(childComplexity int, params *model.PaginationRequest) int
 		WebauthnCredentials      func(childComplexity int) int
 		Webhook                  func(childComplexity int, params model.WebhookRequest) int
 		WebhookLogs              func(childComplexity int, params *model.ListWebhookLogRequest) int
-		Webhooks                 func(childComplexity int, params *model.PaginatedRequest) int
+		Webhooks                 func(childComplexity int, params *model.PaginationRequest) int
 	}
 
 	Response struct {
@@ -793,12 +793,12 @@ type QueryResolver interface {
 	Users(ctx context.Context, params *model.ListUsersRequest) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	UserOrganizations(ctx context.Context, params model.UserOrganizationsRequest) (*model.UserOrganizations, error)
-	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
+	VerificationRequests(ctx context.Context, params *model.PaginationRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
 	AdminMeta(ctx context.Context) (*model.AdminMeta, error)
 	Env(ctx context.Context) (*model.Env, error)
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
-	Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error)
+	Webhooks(ctx context.Context, params *model.PaginationRequest) (*model.Webhooks, error)
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
 	Client(ctx context.Context, params model.ClientRequest) (*model.Client, error)
 	Clients(ctx context.Context, params *model.ListClientsRequest) (*model.Clients, error)
@@ -814,7 +814,7 @@ type QueryResolver interface {
 	OrgMembers(ctx context.Context, params model.ListOrgMembersRequest) (*model.OrgMembers, error)
 	ScimEndpoint(ctx context.Context, params model.ScimEndpointRequest) (*model.ScimEndpoint, error)
 	OrgDomains(ctx context.Context, params model.ListOrgDomainsRequest) (*model.OrgDomains, error)
-	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
+	EmailTemplates(ctx context.Context, params *model.PaginationRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
 	FgaReadTuples(ctx context.Context, params model.FgaReadTuplesInput) (*model.FgaTuples, error)
@@ -3481,7 +3481,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.EmailTemplates(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.EmailTemplates(childComplexity, args["params"].(*model.PaginationRequest)), true
 
 	case "Query._env":
 		if e.complexity.Query.Env == nil {
@@ -3785,7 +3785,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginationRequest)), true
 
 	case "Query.webauthn_credentials":
 		if e.complexity.Query.WebauthnCredentials == nil {
@@ -3828,7 +3828,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Webhooks(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.Webhooks(childComplexity, args["params"].(*model.PaginationRequest)), true
 
 	case "Response.message":
 		if e.complexity.Response.Message == nil {
@@ -4736,7 +4736,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputOrgSAMLConnectionRequest,
 		ec.unmarshalInputOrganizationRequest,
 		ec.unmarshalInputOtpMfaSetupRequest,
-		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
 		ec.unmarshalInputPermissionCheckInput,
 		ec.unmarshalInputRemoveOrgMemberRequest,
@@ -5839,10 +5838,6 @@ input PaginationRequest {
   page: Int64
 }
 
-input PaginatedRequest {
-  pagination: PaginationRequest
-}
-
 # ListUsersRequest is the admin _users query input. query is an optional
 # case-insensitive substring filter matched against email, given_name,
 # family_name and nickname. Empty/absent means no filter (full list).
@@ -5948,7 +5943,7 @@ input ClientRequest {
 }
 
 input ListClientsRequest {
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input AddTrustedIssuerRequest {
@@ -6001,7 +5996,7 @@ input TrustedIssuerRequest {
 
 input ListTrustedIssuersRequest {
   service_account_id: String
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input CreateOrgOIDCConnectionRequest {
@@ -6115,7 +6110,7 @@ input SAMLServiceProviderRequest {
 
 input ListSAMLServiceProvidersRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 # --- SAML IdP: signing key rotation & SP-metadata import ---
@@ -6155,7 +6150,7 @@ input OrganizationRequest {
 }
 
 input ListOrganizationsRequest {
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 # All SCIM endpoint admin ops are keyed by org_id — one endpoint per org.
@@ -6187,7 +6182,7 @@ input AddVerifiedOrgDomainRequest {
 
 input ListOrgDomainsRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input DeleteOrgDomainRequest {
@@ -6208,7 +6203,7 @@ input RemoveOrgMemberRequest {
 
 input ListOrgMembersRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input TestEndpointRequest {
@@ -6540,7 +6535,7 @@ type Query {
   # the roles held in each. Super-admin only. Called lazily by the dashboard
   # user detail view — not exposed on the User type to keep user lists cheap.
   _user_organizations(params: UserOrganizationsRequest!): UserOrganizations!
-  _verification_requests(params: PaginatedRequest): VerificationRequests!
+  _verification_requests(params: PaginationRequest): VerificationRequests!
   _admin_session: Response!
   # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
   # replacement for the bits of _env the dashboard needs.
@@ -6548,7 +6543,7 @@ type Query {
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
-  _webhooks(params: PaginatedRequest): Webhooks!
+  _webhooks(params: PaginationRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   # Service accounts (machine/workload identity)
   _client(params: ClientRequest!): Client!
@@ -6570,7 +6565,7 @@ type Query {
   _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
   # An org's verified domains (org-admin gated; never leaks another org's rows).
   _org_domains(params: ListOrgDomainsRequest!): OrgDomains!
-  _email_templates(params: PaginatedRequest): EmailTemplates!
+  _email_templates(params: PaginationRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
   _fga_get_model: FgaModel!
@@ -8781,18 +8776,18 @@ func (ec *executionContext) field_Query__email_templates_args(ctx context.Contex
 func (ec *executionContext) field_Query__email_templates_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
+) (*model.PaginationRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
+		var zeroVal *model.PaginationRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+		return ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedRequest
+	var zeroVal *model.PaginationRequest
 	return zeroVal, nil
 }
 
@@ -9313,18 +9308,18 @@ func (ec *executionContext) field_Query__verification_requests_args(ctx context.
 func (ec *executionContext) field_Query__verification_requests_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
+) (*model.PaginationRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
+		var zeroVal *model.PaginationRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+		return ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedRequest
+	var zeroVal *model.PaginationRequest
 	return zeroVal, nil
 }
 
@@ -9397,18 +9392,18 @@ func (ec *executionContext) field_Query__webhooks_args(ctx context.Context, rawA
 func (ec *executionContext) field_Query__webhooks_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
+) (*model.PaginationRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
+		var zeroVal *model.PaginationRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+		return ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedRequest
+	var zeroVal *model.PaginationRequest
 	return zeroVal, nil
 }
 
@@ -25934,7 +25929,7 @@ func (ec *executionContext) _Query__verification_requests(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().VerificationRequests(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().VerificationRequests(rctx, fc.Args["params"].(*model.PaginationRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -26358,7 +26353,7 @@ func (ec *executionContext) _Query__webhooks(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Webhooks(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().Webhooks(rctx, fc.Args["params"].(*model.PaginationRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -27454,7 +27449,7 @@ func (ec *executionContext) _Query__email_templates(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().EmailTemplates(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().EmailTemplates(rctx, fc.Args["params"].(*model.PaginationRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -36758,7 +36753,7 @@ func (ec *executionContext) unmarshalInputListClientsRequest(ctx context.Context
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -36792,7 +36787,7 @@ func (ec *executionContext) unmarshalInputListOrgDomainsRequest(ctx context.Cont
 			it.OrgID = data
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -36826,7 +36821,7 @@ func (ec *executionContext) unmarshalInputListOrgMembersRequest(ctx context.Cont
 			it.OrgID = data
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -36853,7 +36848,7 @@ func (ec *executionContext) unmarshalInputListOrganizationsRequest(ctx context.C
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -36955,7 +36950,7 @@ func (ec *executionContext) unmarshalInputListSAMLServiceProvidersRequest(ctx co
 			it.OrgID = data
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -36989,7 +36984,7 @@ func (ec *executionContext) unmarshalInputListTrustedIssuersRequest(ctx context.
 			it.ServiceAccountID = data
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -37556,33 +37551,6 @@ func (ec *executionContext) unmarshalInputOtpMfaSetupRequest(ctx context.Context
 				return it, err
 			}
 			it.PhoneNumber = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputPaginatedRequest(ctx context.Context, obj any) (model.PaginatedRequest, error) {
-	var it model.PaginatedRequest
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"pagination"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "pagination":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Pagination = data
 		}
 	}
 
@@ -47546,14 +47514,6 @@ func (ec *executionContext) unmarshalOOtpMfaSetupRequest2ᚖgithubᚗcomᚋautho
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputOtpMfaSetupRequest(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx context.Context, v any) (*model.PaginatedRequest, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputPaginatedRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

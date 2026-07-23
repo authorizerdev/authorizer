@@ -966,10 +966,6 @@ input PaginationRequest {
   page: Int64
 }
 
-input PaginatedRequest {
-  pagination: PaginationRequest
-}
-
 # ListUsersRequest is the admin _users query input. query is an optional
 # case-insensitive substring filter matched against email, given_name,
 # family_name and nickname. Empty/absent means no filter (full list).
@@ -1075,7 +1071,7 @@ input ClientRequest {
 }
 
 input ListClientsRequest {
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input AddTrustedIssuerRequest {
@@ -1128,7 +1124,7 @@ input TrustedIssuerRequest {
 
 input ListTrustedIssuersRequest {
   service_account_id: String
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input CreateOrgOIDCConnectionRequest {
@@ -1242,7 +1238,7 @@ input SAMLServiceProviderRequest {
 
 input ListSAMLServiceProvidersRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 # --- SAML IdP: signing key rotation & SP-metadata import ---
@@ -1282,7 +1278,7 @@ input OrganizationRequest {
 }
 
 input ListOrganizationsRequest {
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 # All SCIM endpoint admin ops are keyed by org_id — one endpoint per org.
@@ -1314,7 +1310,7 @@ input AddVerifiedOrgDomainRequest {
 
 input ListOrgDomainsRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input DeleteOrgDomainRequest {
@@ -1335,7 +1331,7 @@ input RemoveOrgMemberRequest {
 
 input ListOrgMembersRequest {
   org_id: String!
-  pagination: PaginatedRequest
+  pagination: PaginationRequest
 }
 
 input TestEndpointRequest {
@@ -1667,7 +1663,7 @@ type Query {
   # the roles held in each. Super-admin only. Called lazily by the dashboard
   # user detail view — not exposed on the User type to keep user lists cheap.
   _user_organizations(params: UserOrganizationsRequest!): UserOrganizations!
-  _verification_requests(params: PaginatedRequest): VerificationRequests!
+  _verification_requests(params: PaginationRequest): VerificationRequests!
   _admin_session: Response!
   # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
   # replacement for the bits of _env the dashboard needs.
@@ -1675,7 +1671,7 @@ type Query {
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
-  _webhooks(params: PaginatedRequest): Webhooks!
+  _webhooks(params: PaginationRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   # Service accounts (machine/workload identity)
   _client(params: ClientRequest!): Client!
@@ -1697,7 +1693,7 @@ type Query {
   _scim_endpoint(params: ScimEndpointRequest!): ScimEndpoint!
   # An org's verified domains (org-admin gated; never leaks another org's rows).
   _org_domains(params: ListOrgDomainsRequest!): OrgDomains!
-  _email_templates(params: PaginatedRequest): EmailTemplates!
+  _email_templates(params: PaginationRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # FGA admin queries (super-admin only)
   _fga_get_model: FgaModel!

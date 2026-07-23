@@ -290,7 +290,7 @@ func (p *provider) Clients(ctx context.Context, meta RequestMetadata, params *mo
 		return nil, nil, err
 	}
 
-	var paginatedReq *model.PaginatedRequest
+	var paginatedReq *model.PaginationRequest
 	if params != nil {
 		paginatedReq = params.Pagination
 	}
