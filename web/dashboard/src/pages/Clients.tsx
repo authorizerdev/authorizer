@@ -73,10 +73,8 @@ const Clients = () => {
 			.query<ClientsResponse>(ClientsQuery, {
 				params: {
 					pagination: {
-						pagination: {
-							limit: paginationProps.limit,
-							page: paginationProps.page,
-						},
+						limit: paginationProps.limit,
+						page: paginationProps.page,
 					},
 				},
 			})

@@ -77,10 +77,8 @@ const Webhooks = () => {
 		const res = await client
 			.query<WebhooksResponse>(WebhooksDataQuery, {
 				params: {
-					pagination: {
-						limit: paginationProps.limit,
-						page: paginationProps.page,
-					},
+					limit: paginationProps.limit,
+					page: paginationProps.page,
 				},
 			})
 			.toPromise();

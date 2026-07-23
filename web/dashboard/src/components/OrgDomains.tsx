@@ -110,10 +110,7 @@ const OrgDomains = ({ orgId, orgSlug }: OrgDomainsProps) => {
 				// Verified domains per org are expected to be a handful at most; a
 				// generous single-page limit avoids silently truncating at the
 				// backend's default of 10 without needing full pagination UI.
-				// ListOrgDomainsRequest.pagination is PaginatedRequest, which itself
-				// wraps a `pagination: PaginationRequest` field - double-nested, not
-				// { limit }  directly (internal/graph/schema.graphqls).
-				params: { org_id: orgId, pagination: { pagination: { limit: 100 } } },
+				params: { org_id: orgId, pagination: { limit: 100 } },
 			})
 			.toPromise();
 		if (res.error) {
