@@ -116,6 +116,93 @@ export async function deleteSAMLConnectionByEntityID(idpEntityId: string): Promi
   await client.request(deleteQuery, { params: { id: stale.id } });
 }
 
+// signupUser drives the public `signup` mutation (not an admin op — the
+// x-authorizer-admin-secret header on `client` is simply ignored by it).
+export async function signupUser(email: string, password: string): Promise<void> {
+  const query = gql`
+    mutation ($params: SignUpRequest!) {
+      signup(params: $params) { message }
+    }
+  `;
+  await client.request(query, { params: { email, password, confirm_password: password } });
+}
+
+// getUserIdByEmail resolves a user's id via the admin `_users` search query
+// (query is a substring filter over email/given_name/family_name/nickname —
+// see ListUsersRequest doc comment — so the exact-match find() below guards
+// against a substring false-positive).
+export async function getUserIdByEmail(email: string): Promise<string> {
+  const query = gql`
+    query ($params: ListUsersRequest) {
+      _users(params: $params) { users { id email } }
+    }
+  `;
+  const res = await client.request<{ _users: { users: { id: string; email: string | null }[] } }>(query, {
+    params: { query: email },
+  });
+  const user = res._users.users.find((u) => u.email === email);
+  if (!user) throw new Error(`user not found for email ${email}`);
+  return user.id;
+}
+
+// verifyUserEmail force-verifies a user's email (and sets given/family name)
+// via the admin `_update_user` mutation, standing in for clicking the real
+// verification link — needed because SAML IdP-side issuance
+// (internal/http_handlers/saml_idp.go authorizeSAMLIssuance) refuses to
+// assert an unverified email as the Subject NameID.
+//
+// given_name/family_name are required here, not optional convenience: this
+// mutation's "at least one param" gate (internal/service/admin_users.go
+// UpdateUser) checks GivenName/FamilyName/etc. but NOT EmailVerified, so a
+// call with only email_verified set is rejected with "please enter atleast
+// one param to update" even though EmailVerified is applied further down
+// when present — a real, pre-existing gap in that gate, unrelated to SAML.
+// Supplying a name works around it (and doubles as the SAML firstName/
+// lastName attribute source for tests/saml-idp.spec.ts).
+export async function verifyUserEmail(
+  userId: string,
+  opts: { givenName: string; familyName: string }
+): Promise<void> {
+  const query = gql`
+    mutation ($params: UpdateUserRequest!) {
+      _update_user(params: $params) { id }
+    }
+  `;
+  await client.request(query, {
+    params: { id: userId, email_verified: true, given_name: opts.givenName, family_name: opts.familyName },
+  });
+}
+
+// addOrgMember adds an existing user to an org. SAML IdP-side issuance
+// requires org membership (authorizeSAMLIssuance) — any authenticated
+// Authorizer user could otherwise obtain an assertion for any org's SP.
+export async function addOrgMember(orgId: string, userId: string): Promise<void> {
+  const query = gql`
+    mutation ($params: AddOrgMemberRequest!) {
+      _add_org_member(params: $params) { user_id }
+    }
+  `;
+  await client.request(query, { params: { org_id: orgId, user_id: userId } });
+}
+
+// createSAMLServiceProvider registers a downstream SP on the IdP side (the
+// inverse of createSAMLConnection, which registers an upstream IdP on the SP
+// side) via `_create_saml_service_provider`.
+export async function createSAMLServiceProvider(
+  orgId: string,
+  opts: { name: string; entityId: string; acsUrl: string }
+): Promise<{ id: string; entity_id: string }> {
+  const query = gql`
+    mutation ($params: CreateSAMLServiceProviderRequest!) {
+      _create_saml_service_provider(params: $params) { id entity_id }
+    }
+  `;
+  const res = await client.request<{ _create_saml_service_provider: { id: string; entity_id: string } }>(query, {
+    params: { org_id: orgId, name: opts.name, entity_id: opts.entityId, acs_url: opts.acsUrl },
+  });
+  return res._create_saml_service_provider;
+}
+
 export async function addVerifiedDomain(orgId: string, domain: string, baseUrl?: string): Promise<void> {
   const query = gql`
     mutation ($params: AddVerifiedOrgDomainRequest!) {

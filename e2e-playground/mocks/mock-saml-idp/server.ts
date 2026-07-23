@@ -129,6 +129,121 @@ app.get('/sso', async (req, res) => {
   }
 });
 
+// --- Fake SP role (Task 10: SAML IdP-side conformance) ---
+// samlify supports both IdP and SP roles from the same package — reuse it
+// here as a stand-in external SP so these tests drive a REAL SP-initiated
+// flow against Authorizer's actual IdP-side routes
+// (internal/http_handlers/saml_idp.go: SAMLIDPSSOHandler expects a genuine
+// AuthnRequest built via crewjam's saml.NewIdpAuthnRequest, not a hand-rolled
+// query param), mirroring how this file already stands in for a real IdP on
+// the SP-side spec (Task 9).
+//
+// Per-flow state is keyed by the caller-supplied `relay_state` (never a
+// single shared slot) so concurrent test runs against this same long-lived
+// container don't clobber each other.
+const pendingFakeSPFlows = new Map<
+  string,
+  { authorizerBase: string; org: string; entityId: string; acsUrl: string }
+>();
+const completedFakeSPFlows = new Map<
+  string,
+  { nameID: string; issuer: string; audience: string; attributes: Record<string, unknown> }
+>();
+
+// buildAuthorizerIdp fetches Authorizer's REAL, per-org IdP metadata
+// (entity id + signing cert are unique per org) and hydrates a samlify IdP
+// entity from it, rather than hardcoding anything — the assertion's Issuer
+// and signature must match this exactly (samlify's postFlow rejects on
+// ERR_UNMATCH_ISSUER / FAILED_TO_VERIFY_SIGNATURE otherwise).
+async function buildAuthorizerIdp(authorizerBase: string, org: string) {
+  const res = await fetch(`${authorizerBase}/saml/idp/${encodeURIComponent(org)}/metadata`);
+  if (!res.ok) throw new Error(`failed to fetch Authorizer IdP metadata: ${res.status}`);
+  const metadata = await res.text();
+  return samlify.IdentityProvider({ metadata });
+}
+
+function fakeServiceProvider(entityId: string, acsUrl: string) {
+  return samlify.ServiceProvider({
+    entityID: entityId,
+    assertionConsumerService: [{ Binding: samlify.Constants.namespace.binding.post, Location: acsUrl }],
+  });
+}
+
+// GET /fake-sp/start: builds a real AuthnRequest (HTTP-Redirect binding,
+// unsigned) and redirects the browser to Authorizer's SP-initiated SSO
+// endpoint. Unsigned is deliberate, not a shortcut: crewjam/saml has no
+// support for signed AuthnRequests at all ("TODO(ross): support signed authn
+// requests" in identity_provider.go Validate()), and Authorizer's IdP
+// metadata never sets WantAuthnRequestsSigned, so samlify's SP/IdP
+// signed-flag agreement check (both default false) passes cleanly.
+app.get('/fake-sp/start', async (req, res) => {
+  try {
+    const authorizerBase = String(req.query.authorizer_base || '');
+    const org = String(req.query.org || '');
+    const entityId = String(req.query.entity_id || '');
+    const acsUrl = String(req.query.acs_url || '');
+    const relayState = String(req.query.relay_state || '');
+    if (!authorizerBase || !org || !entityId || !acsUrl || !relayState) {
+      res.status(400).send('missing required query param(s): authorizer_base, org, entity_id, acs_url, relay_state');
+      return;
+    }
+    pendingFakeSPFlows.set(relayState, { authorizerBase, org, entityId, acsUrl });
+
+    const idp = await buildAuthorizerIdp(authorizerBase, org);
+    const sp = fakeServiceProvider(entityId, acsUrl);
+    // samlify's own binding-context types aren't discriminated on the
+    // `binding` string argument, so `.context` (the redirect URL) needs a
+    // narrowing cast here — same untyped-boundary situation as /sso above.
+    const { context } = sp.createLoginRequest(idp, 'redirect', { relayState }) as { context: string };
+    res.redirect(context);
+  } catch (err) {
+    console.error('fake-sp /start failed:', err);
+    res.sendStatus(400);
+  }
+});
+
+// POST /fake-sp/acs: the fake SP's Assertion Consumer Service. Validates the
+// signed assertion Authorizer posts here — samlify verifies the XML-DSIG
+// signature against the cert published in Authorizer's own IdP metadata —
+// and stores the parsed result for the test to read back via GET
+// /fake-sp/last. A response that fails validation (bad signature, wrong
+// audience/issuer, expired) throws and 400s here rather than being recorded.
+app.post('/fake-sp/acs', async (req, res) => {
+  try {
+    const relayState = String(req.body.RelayState || '');
+    const pending = pendingFakeSPFlows.get(relayState);
+    if (!pending) {
+      res.status(400).send('unknown or expired relay state');
+      return;
+    }
+    const idp = await buildAuthorizerIdp(pending.authorizerBase, pending.org);
+    const sp = fakeServiceProvider(pending.entityId, pending.acsUrl);
+    const result = await sp.parseLoginResponse(idp, 'post', { body: req.body });
+    pendingFakeSPFlows.delete(relayState);
+    completedFakeSPFlows.set(relayState, {
+      nameID: String(result.extract.nameID || ''),
+      issuer: String(result.extract.issuer || ''),
+      audience: String(result.extract.audience || ''),
+      attributes: (result.extract.attributes as Record<string, unknown>) || {},
+    });
+    res.status(200).send('ok');
+  } catch (err) {
+    console.error('fake-sp /acs failed:', err);
+    res.sendStatus(400);
+  }
+});
+
+// GET /fake-sp/last?relay_state=...: test-facing readback of a completed flow.
+app.get('/fake-sp/last', (req, res) => {
+  const relayState = String(req.query.relay_state || '');
+  const result = completedFakeSPFlows.get(relayState);
+  if (!result) {
+    res.sendStatus(404);
+    return;
+  }
+  res.json(result);
+});
+
 if (require.main === module) {
   // Authorizer's org-SAML-connection admin API rejects a non-https
   // idp_sso_url outright (internal/service/admin_org_saml.go
