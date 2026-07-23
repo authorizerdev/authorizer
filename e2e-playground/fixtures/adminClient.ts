@@ -64,14 +64,15 @@ export async function createOIDCConnection(
 
 export async function createSAMLConnection(
   orgId: string,
-  opts: { name: string; idpEntityId: string; idpSsoUrl: string; idpCertificate: string; allowIdpInitiated?: boolean }
+  opts: { name: string; idpEntityId: string; idpSsoUrl: string; idpCertificate: string; allowIdpInitiated?: boolean },
+  baseUrl?: string
 ): Promise<{ id: string }> {
   const query = gql`
     mutation ($params: CreateOrgSAMLConnectionRequest!) {
       _create_org_saml_connection(params: $params) { id }
     }
   `;
-  const res = await client.request<{ _create_org_saml_connection: { id: string } }>(query, {
+  const res = await getClient(baseUrl).request<{ _create_org_saml_connection: { id: string } }>(query, {
     params: {
       org_id: orgId,
       name: opts.name,
