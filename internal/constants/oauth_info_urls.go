@@ -39,7 +39,14 @@ const (
 	// RobloxUserInfoURL is the URL to get user info from Roblox
 	RobloxUserInfoURL = "https://apis.roblox.com/oauth/v1/userinfo"
 
-	DiscordUserInfoURL = "https://discord.com/api/oauth2/@me"
+	// DiscordUserInfoURL intentionally points at GET /users/@me, not
+	// /oauth2/@me (Discord's "current authorization" endpoint). Per Discord's
+	// OAuth2 docs, /oauth2/@me's `user` sub-object never includes `email`
+	// regardless of granted scopes - the `email` scope's documented effect is
+	// "enables /users/@me to return an email". /users/@me also returns a
+	// flat object (id/username/avatar/email at the top level), unlike
+	// /oauth2/@me's nested `{"user": {...}}` shape.
+	DiscordUserInfoURL = "https://discord.com/api/users/@me"
 	// Get microsoft user info.
 	// Ref: https://learn.microsoft.com/en-us/azure/active-directory/develop/userinfo
 	MicrosoftUserInfoURL = "https://graph.microsoft.com/oidc/userinfo"
