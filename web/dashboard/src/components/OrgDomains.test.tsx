@@ -86,6 +86,28 @@ describe('OrgDomains', () => {
 		expect(await screen.findByText('acme.com')).toBeTruthy();
 	});
 
+	// REGRESSION: ListOrgDomainsRequest.pagination is PaginatedRequest, which
+	// itself wraps a `pagination: PaginationRequest` field
+	// (internal/graph/schema.graphqls) - fetchDomains used to send
+	// `pagination: { limit: 100 }` (single-nested), which the server rejected
+	// with GRAPHQL_VALIDATION_FAILED on every call. The mock client here
+	// doesn't validate variable shape against a real schema, so this bug was
+	// invisible to every other test in this file - assert the exact shape
+	// directly instead.
+	it('requests domains with the double-nested pagination shape the schema requires', async () => {
+		render(<OrgDomains orgId="org1" orgSlug="Acme" />);
+		await screen.findByText('No verified domains yet.');
+		expect(mockClient.query).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				params: {
+					org_id: 'org1',
+					pagination: { pagination: { limit: 100 } },
+				},
+			}),
+		);
+	});
+
 	it('runs the DNS challenge flow: request → shows TXT → verify → verified', async () => {
 		mockClient.mutation.mockImplementation((doc: unknown) => {
 			if (doc === RequestOrgDomain) {
