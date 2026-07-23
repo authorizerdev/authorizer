@@ -56,6 +56,26 @@ class AuthorizerServiceStub(object):
                 request_serializer=authorizer_dot_v1_dot_authorizer__pb2.ResendOtpRequest.SerializeToString,
                 response_deserializer=authorizer_dot_v1_dot_authorizer__pb2.ResendOtpResponse.FromString,
                 _registered_method=True)
+        self.SkipMfaSetup = channel.unary_unary(
+                '/authorizer.v1.AuthorizerService/SkipMfaSetup',
+                request_serializer=authorizer_dot_v1_dot_authorizer__pb2.SkipMfaSetupRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_types__pb2.AuthResponse.FromString,
+                _registered_method=True)
+        self.LockMfa = channel.unary_unary(
+                '/authorizer.v1.AuthorizerService/LockMfa',
+                request_serializer=authorizer_dot_v1_dot_authorizer__pb2.LockMfaRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_authorizer__pb2.LockMfaResponse.FromString,
+                _registered_method=True)
+        self.EmailOtpMfaSetup = channel.unary_unary(
+                '/authorizer.v1.AuthorizerService/EmailOtpMfaSetup',
+                request_serializer=authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupResponse.FromString,
+                _registered_method=True)
+        self.SmsOtpMfaSetup = channel.unary_unary(
+                '/authorizer.v1.AuthorizerService/SmsOtpMfaSetup',
+                request_serializer=authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupResponse.FromString,
+                _registered_method=True)
         self.ForgotPassword = channel.unary_unary(
                 '/authorizer.v1.AuthorizerService/ForgotPassword',
                 request_serializer=authorizer_dot_v1_dot_authorizer__pb2.ForgotPasswordRequest.SerializeToString,
@@ -180,6 +200,53 @@ class AuthorizerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SkipMfaSetup(self, request, context):
+        """SkipMfaSetup completes an in-progress, token-withheld MFA offer by
+        recording that the caller explicitly declined it, then issues the
+        access token that was withheld. Identified by the MFA session cookie
+        (set when the offer screen was returned) plus email/phone_number to
+        resolve the pending user — same identification pattern as VerifyOtp.
+        Fails with FAILED_PRECONDITION if MFA is organization-enforced
+        (enforce-mfa) — enforcement is never skippable.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def LockMfa(self, request, context):
+        """LockMfa records that the caller lost access to their only MFA
+        factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+        fallback enrolled — if one exists, use it instead of locking. Does not
+        issue a token; the account requires admin recovery afterward.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def EmailOtpMfaSetup(self, request, context):
+        """EmailOtpMfaSetup sends a one-time code to the caller's own email and
+        creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+        (a) an authenticated caller (bearer token) — the settings-screen action
+        for an ALREADY-logged-in user adding a second factor; the request body is
+        unused in this mode. (b) a caller in the withheld first-time-offer
+        state, with no bearer token yet — identified by the MFA session cookie
+        plus email/phone_number, same pattern as SkipMfaSetup. Either mode
+        reuses the same underlying Authenticator row once VerifyOtp marks it
+        verified.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SmsOtpMfaSetup(self, request, context):
+        """SmsOtpMfaSetup sends a one-time code to the caller's own phone number
+        and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+        permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ForgotPassword(self, request, context):
         """=== Password lifecycle ===
 
@@ -228,7 +295,7 @@ class AuthorizerServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Session(self, request, context):
-        """Session returns the AuthResponse bound to the caller's cookie/bearer.
+        """Session returns the AuthResponse bound to the caller's session cookie only.
         NOT exposed as an MCP tool — SessionResponse carries access_token,
         refresh_token, id_token, authenticator_secret, and recovery codes,
         none of which should land in an LLM transcript. (Security audit C1.)
@@ -323,6 +390,26 @@ def add_AuthorizerServiceServicer_to_server(servicer, server):
                     servicer.ResendOtp,
                     request_deserializer=authorizer_dot_v1_dot_authorizer__pb2.ResendOtpRequest.FromString,
                     response_serializer=authorizer_dot_v1_dot_authorizer__pb2.ResendOtpResponse.SerializeToString,
+            ),
+            'SkipMfaSetup': grpc.unary_unary_rpc_method_handler(
+                    servicer.SkipMfaSetup,
+                    request_deserializer=authorizer_dot_v1_dot_authorizer__pb2.SkipMfaSetupRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_types__pb2.AuthResponse.SerializeToString,
+            ),
+            'LockMfa': grpc.unary_unary_rpc_method_handler(
+                    servicer.LockMfa,
+                    request_deserializer=authorizer_dot_v1_dot_authorizer__pb2.LockMfaRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_authorizer__pb2.LockMfaResponse.SerializeToString,
+            ),
+            'EmailOtpMfaSetup': grpc.unary_unary_rpc_method_handler(
+                    servicer.EmailOtpMfaSetup,
+                    request_deserializer=authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupResponse.SerializeToString,
+            ),
+            'SmsOtpMfaSetup': grpc.unary_unary_rpc_method_handler(
+                    servicer.SmsOtpMfaSetup,
+                    request_deserializer=authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupResponse.SerializeToString,
             ),
             'ForgotPassword': grpc.unary_unary_rpc_method_handler(
                     servicer.ForgotPassword,
@@ -602,6 +689,114 @@ class AuthorizerService(object):
             '/authorizer.v1.AuthorizerService/ResendOtp',
             authorizer_dot_v1_dot_authorizer__pb2.ResendOtpRequest.SerializeToString,
             authorizer_dot_v1_dot_authorizer__pb2.ResendOtpResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SkipMfaSetup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerService/SkipMfaSetup',
+            authorizer_dot_v1_dot_authorizer__pb2.SkipMfaSetupRequest.SerializeToString,
+            authorizer_dot_v1_dot_types__pb2.AuthResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def LockMfa(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerService/LockMfa',
+            authorizer_dot_v1_dot_authorizer__pb2.LockMfaRequest.SerializeToString,
+            authorizer_dot_v1_dot_authorizer__pb2.LockMfaResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def EmailOtpMfaSetup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerService/EmailOtpMfaSetup',
+            authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupRequest.SerializeToString,
+            authorizer_dot_v1_dot_authorizer__pb2.EmailOtpMfaSetupResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SmsOtpMfaSetup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerService/SmsOtpMfaSetup',
+            authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupRequest.SerializeToString,
+            authorizer_dot_v1_dot_authorizer__pb2.SmsOtpMfaSetupResponse.FromString,
             options,
             channel_credentials,
             insecure,

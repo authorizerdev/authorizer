@@ -2,7 +2,8 @@
 // public API. Method names match the GraphQL operation names 1:1
 // (snake_case in GraphQL → PascalCase in proto): Signup, Login,
 // MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
-// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// ResetPassword, VerifyOtp, ResendOtp, SkipMfaSetup, LockMfa,
+// EmailOtpMfaSetup, SmsOtpMfaSetup, UpdateProfile, DeactivateAccount,
 // Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
 // CheckPermissions, ListPermissions, Logout.
 //
@@ -36,7 +37,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file authorizer/v1/authorizer.proto.
  */
 export const file_authorizer_v1_authorizer: GenFile = /*@__PURE__*/
-  fileDesc("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X3Bhc3N3b3JkGAMgASgJQgi6SAVyAxiAARIXCgVlbWFpbBgEIAEoCUIIukgFcgMYwAISEgoKZ2l2ZW5fbmFtZRgFIAEoCRITCgtmYW1pbHlfbmFtZRgGIAEoCRITCgttaWRkbGVfbmFtZRgHIAEoCRIQCghuaWNrbmFtZRgIIAEoCRIOCgZnZW5kZXIYCSABKAkSEQoJYmlydGhkYXRlGAogASgJEh0KDHBob25lX251bWJlchgLIAEoCUIHukgEcgIYIBIPCgdwaWN0dXJlGAwgASgJEikKHGlzX211bHRpX2ZhY3Rvcl9hdXRoX2VuYWJsZWQYDSABKAhIAIgBARIoCghhcHBfZGF0YRgOIAEoCzIWLmF1dGhvcml6ZXIudjEuQXBwRGF0YUIfCh1faXNfbXVsdGlfZmFjdG9yX2F1dGhfZW5hYmxlZCIoChVVcGRhdGVQcm9maWxlUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIaChhEZWFjdGl2YXRlQWNjb3VudFJlcXVlc3QiLAoZRGVhY3RpdmF0ZUFjY291bnRSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIi8KDVJldm9rZVJlcXVlc3QSHgoNcmVmcmVzaF90b2tlbhgBIAEoCUIHukgEcgIQASIhCg5SZXZva2VSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJInoKDlNlc3Npb25SZXF1ZXN0Eg0KBXJvbGVzGAEgAygJEg0KBXNjb3BlGAIgAygJEg0KBXN0YXRlGAMgASgJEjsKEnJlcXVpcmVkX3JlbGF0aW9ucxgEIAMoCzIfLmF1dGhvcml6ZXIudjEuRmdhUmVsYXRpb25JbnB1dCKaAQoXVmFsaWRhdGVKd3RUb2tlblJlcXVlc3QSGwoKdG9rZW5fdHlwZRgBIAEoCUIHukgEcgIQARIWCgV0b2tlbhgCIAEoCUIHukgEcgIQARINCgVyb2xlcxgDIAMoCRI7ChJyZXF1aXJlZF9yZWxhdGlvbnMYBCADKAsyHy5hdXRob3JpemVyLnYxLkZnYVJlbGF0aW9uSW5wdXQiVAoYVmFsaWRhdGVKd3RUb2tlblJlc3BvbnNlEhAKCGlzX3ZhbGlkGAEgASgIEiYKBmNsYWltcxgCIAEoCzIWLmF1dGhvcml6ZXIudjEuQXBwRGF0YSJ9ChZWYWxpZGF0ZVNlc3Npb25SZXF1ZXN0EhcKBmNvb2tpZRgBIAEoCUIHukgEcgIQARINCgVyb2xlcxgCIAMoCRI7ChJyZXF1aXJlZF9yZWxhdGlvbnMYAyADKAsyHy5hdXRob3JpemVyLnYxLkZnYVJlbGF0aW9uSW5wdXQiTgoXVmFsaWRhdGVTZXNzaW9uUmVzcG9uc2USEAoIaXNfdmFsaWQYASABKAgSIQoEdXNlchgCIAEoCzITLmF1dGhvcml6ZXIudjEuVXNlciINCgtNZXRhUmVxdWVzdCJoChdDaGVja1Blcm1pc3Npb25zUmVxdWVzdBI/CgZjaGVja3MYASADKAsyIy5hdXRob3JpemVyLnYxLlBlcm1pc3Npb25DaGVja0lucHV0Qgq6SAeSAQQIARBkEgwKBHVzZXIYAiABKAkiUQoYQ2hlY2tQZXJtaXNzaW9uc1Jlc3BvbnNlEjUKB3Jlc3VsdHMYASADKAsyJC5hdXRob3JpemVyLnYxLlBlcm1pc3Npb25DaGVja1Jlc3VsdCJNChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0EhAKCHJlbGF0aW9uGAEgASgJEhMKC29iamVjdF90eXBlGAIgASgJEgwKBHVzZXIYAyABKAkibQoXTGlzdFBlcm1pc3Npb25zUmVzcG9uc2USDwoHb2JqZWN0cxgBIAMoCRIuCgtwZXJtaXNzaW9ucxgCIAMoCzIZLmF1dGhvcml6ZXIudjEuUGVybWlzc2lvbhIRCgl0cnVuY2F0ZWQYAyABKAgy5BIKEUF1dGhvcml6ZXJTZXJ2aWNlEmYKBlNpZ251cBIcLmF1dGhvcml6ZXIudjEuU2lnbnVwUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiGStRgAmLUYAaC1GAGC0+STAg86ASoiCi92MS9zaWdudXASYwoFTG9naW4SGy5hdXRob3JpemVyLnYxLkxvZ2luUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiCStRgAmLUYAaC1GAGC0+STAg46ASoiCS92MS9sb2dpbhJdCgZMb2dvdXQSHC5hdXRob3JpemVyLnYxLkxvZ291dFJlcXVlc3QaHS5hdXRob3JpemVyLnYxLkxvZ291dFJlc3BvbnNlIhaYtRgBgtPkkwIMIgovdjEvbG9nb3V0EoYBCg5NYWdpY0xpbmtMb2dpbhIkLmF1dGhvcml6ZXIudjEuTWFnaWNMaW5rTG9naW5SZXF1ZXN0GiUuYXV0aG9yaXplci52MS5NYWdpY0xpbmtMb2dpblJlc3BvbnNlIieYtRgBoLUYAYLT5JMCGToBKiIUL3YxL21hZ2ljX2xpbmtfbG9naW4ScgoLVmVyaWZ5RW1haWwSIS5hdXRob3JpemVyLnYxLlZlcmlmeUVtYWlsUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiOYtRgBoLUYAYLT5JMCFToBKiIQL3YxL3ZlcmlmeV9lbWFpbBKOAQoRUmVzZW5kVmVyaWZ5RW1haWwSJy5hdXRob3JpemVyLnYxLlJlc2VuZFZlcmlmeUVtYWlsUmVxdWVzdBooLmF1dGhvcml6ZXIudjEuUmVzZW5kVmVyaWZ5RW1haWxSZXNwb25zZSImoLUYAYLT5JMCHDoBKiIXL3YxL3Jlc2VuZF92ZXJpZnlfZW1haWwSbAoJVmVyaWZ5T3RwEh8uYXV0aG9yaXplci52MS5WZXJpZnlPdHBSZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiIZi1GAGgtRgBgtPkkwITOgEqIg4vdjEvdmVyaWZ5X290cBJtCglSZXNlbmRPdHASHy5hdXRob3JpemVyLnYxLlJlc2VuZE90cFJlcXVlc3QaIC5hdXRob3JpemVyLnYxLlJlc2VuZE90cFJlc3BvbnNlIh2gtRgBgtPkkwITOgEqIg4vdjEvcmVzZW5kX290cBKBAQoORm9yZ290UGFzc3dvcmQSJC5hdXRob3JpemVyLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBolLmF1dGhvcml6ZXIudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZSIioLUYAYLT5JMCGDoBKiITL3YxL2ZvcmdvdF9wYXNzd29yZBKBAQoNUmVzZXRQYXNzd29yZBIjLmF1dGhvcml6ZXIudjEuUmVzZXRQYXNzd29yZFJlcXVlc3QaJC5hdXRob3JpemVyLnYxLlJlc2V0UGFzc3dvcmRSZXNwb25zZSIlmLUYAaC1GAGC0+STAhc6ASoiEi92MS9yZXNldF9wYXNzd29yZBJYCgdQcm9maWxlEh0uYXV0aG9yaXplci52MS5Qcm9maWxlUmVxdWVzdBoTLmF1dGhvcml6ZXIudjEuVXNlciIZkrUYAggBgtPkkwINEgsvdjEvcHJvZmlsZRJ9Cg1VcGRhdGVQcm9maWxlEiMuYXV0aG9yaXplci52MS5VcGRhdGVQcm9maWxlUmVxdWVzdBokLmF1dGhvcml6ZXIudjEuVXBkYXRlUHJvZmlsZVJlc3BvbnNlIiGYtRgBgtPkkwIXOgEqIhIvdjEvdXBkYXRlX3Byb2ZpbGUSkwEKEURlYWN0aXZhdGVBY2NvdW50EicuYXV0aG9yaXplci52MS5EZWFjdGl2YXRlQWNjb3VudFJlcXVlc3QaKC5hdXRob3JpemVyLnYxLkRlYWN0aXZhdGVBY2NvdW50UmVzcG9uc2UiK5K1GAIYAZi1GAGC0+STAhs6ASoiFi92MS9kZWFjdGl2YXRlX2FjY291bnQSYAoGUmV2b2tlEhwuYXV0aG9yaXplci52MS5SZXZva2VSZXF1ZXN0Gh0uYXV0aG9yaXplci52MS5SZXZva2VSZXNwb25zZSIZmLUYAYLT5JMCDzoBKiIKL3YxL3Jldm9rZRJdCgdTZXNzaW9uEh0uYXV0aG9yaXplci52MS5TZXNzaW9uUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIhaC0+STAhA6ASoiCy92MS9zZXNzaW9uEooBChBWYWxpZGF0ZUp3dFRva2VuEiYuYXV0aG9yaXplci52MS5WYWxpZGF0ZUp3dFRva2VuUmVxdWVzdBonLmF1dGhvcml6ZXIudjEuVmFsaWRhdGVKd3RUb2tlblJlc3BvbnNlIiWgtRgBgtPkkwIbOgEqIhYvdjEvdmFsaWRhdGVfand0X3Rva2VuEoUBCg9WYWxpZGF0ZVNlc3Npb24SJS5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlcXVlc3QaJi5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlIiOgtRgBgtPkkwIZOgEqIhQvdjEvdmFsaWRhdGVfc2Vzc2lvbhJTCgRNZXRhEhouYXV0aG9yaXplci52MS5NZXRhUmVxdWVzdBoTLmF1dGhvcml6ZXIudjEuTWV0YSIakrUYAggBoLUYAYLT5JMCChIIL3YxL21ldGESiwEKEENoZWNrUGVybWlzc2lvbnMSJi5hdXRob3JpemVyLnYxLkNoZWNrUGVybWlzc2lvbnNSZXF1ZXN0GicuYXV0aG9yaXplci52MS5DaGVja1Blcm1pc3Npb25zUmVzcG9uc2UiJpK1GAIIAYLT5JMCGjoBKiIVL3YxL2NoZWNrX3Blcm1pc3Npb25zEocBCg9MaXN0UGVybWlzc2lvbnMSJS5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaJi5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIiWStRgCCAGC0+STAhk6ASoiFC92MS9saXN0X3Blcm1pc3Npb25zQssBChFjb20uYXV0aG9yaXplci52MUIPQXV0aG9yaXplclByb3RvUAFaUGdpdGh1Yi5jb20vYXV0aG9yaXplcmRldi9hdXRob3JpemVyLWdvL2ludGVybmFsL2dlbnBiL2F1dGhvcml6ZXIvdjE7YXV0aG9yaXplcnYxogIDQVhYqgINQXV0aG9yaXplci5WMcoCDUF1dGhvcml6ZXJcVjHiAhlBdXRob3JpemVyXFYxXEdQQk1ldGFkYXRh6gIOQXV0aG9yaXplcjo6VjFiBnByb3RvMw", [file_authorizer_v1_annotations, file_authorizer_v1_common, file_authorizer_v1_types, file_buf_validate_validate, file_google_api_annotations]);
+  fileDesc("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CgxwaG9uZV9udW1iZXIYAiABKAlCB7pIBHICGCASDQoFc3RhdGUYAyABKAkSFAoMcmVkaXJlY3RfdXJpGAQgASgJIlAKFkZvcmdvdFBhc3N3b3JkUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCRIlCh1zaG91bGRfc2hvd19tb2JpbGVfb3RwX3NjcmVlbhgCIAEoCCKVAQoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSCwoDb3RwGAIgASgJEh0KDHBob25lX251bWJlchgDIAEoCUIHukgEcgIYIBIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQARiAARIkChBjb25maXJtX3Bhc3N3b3JkGAUgASgJQgq6SAdyBRABGIABIigKFVJlc2V0UGFzc3dvcmRSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIhAKDlByb2ZpbGVSZXF1ZXN0IqYDChRVcGRhdGVQcm9maWxlUmVxdWVzdBIUCgxvbGRfcGFzc3dvcmQYASABKAkSHgoMbmV3X3Bhc3N3b3JkGAIgASgJQgi6SAVyAxiAARImChRjb25maXJtX25ld19wYXNzd29yZBgDIAEoCUIIukgFcgMYgAESFwoFZW1haWwYBCABKAlCCLpIBXIDGMACEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSDgoGZ2VuZGVyGAkgASgJEhEKCWJpcnRoZGF0ZRgKIAEoCRIdCgxwaG9uZV9udW1iZXIYCyABKAlCB7pIBHICGCASDwoHcGljdHVyZRgMIAEoCRIpChxpc19tdWx0aV9mYWN0b3JfYXV0aF9lbmFibGVkGA0gASgISACIAQESKAoIYXBwX2RhdGEYDiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGFCHwodX2lzX211bHRpX2ZhY3Rvcl9hdXRoX2VuYWJsZWQiKAoVVXBkYXRlUHJvZmlsZVJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiGgoYRGVhY3RpdmF0ZUFjY291bnRSZXF1ZXN0IiwKGURlYWN0aXZhdGVBY2NvdW50UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIvCg1SZXZva2VSZXF1ZXN0Eh4KDXJlZnJlc2hfdG9rZW4YASABKAlCB7pIBHICEAEiIQoOUmV2b2tlUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSJ6Cg5TZXNzaW9uUmVxdWVzdBINCgVyb2xlcxgBIAMoCRINCgVzY29wZRgCIAMoCRINCgVzdGF0ZRgDIAEoCRI7ChJyZXF1aXJlZF9yZWxhdGlvbnMYBCADKAsyHy5hdXRob3JpemVyLnYxLkZnYVJlbGF0aW9uSW5wdXQimgEKF1ZhbGlkYXRlSnd0VG9rZW5SZXF1ZXN0EhsKCnRva2VuX3R5cGUYASABKAlCB7pIBHICEAESFgoFdG9rZW4YAiABKAlCB7pIBHICEAESDQoFcm9sZXMYAyADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAQgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0IlQKGFZhbGlkYXRlSnd0VG9rZW5SZXNwb25zZRIQCghpc192YWxpZBgBIAEoCBImCgZjbGFpbXMYAiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGEifQoWVmFsaWRhdGVTZXNzaW9uUmVxdWVzdBIXCgZjb29raWUYASABKAlCB7pIBHICEAESDQoFcm9sZXMYAiADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAMgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0Ik4KF1ZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlEhAKCGlzX3ZhbGlkGAEgASgIEiEKBHVzZXIYAiABKAsyEy5hdXRob3JpemVyLnYxLlVzZXIiDQoLTWV0YVJlcXVlc3QiaAoXQ2hlY2tQZXJtaXNzaW9uc1JlcXVlc3QSPwoGY2hlY2tzGAEgAygLMiMuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tJbnB1dEIKukgHkgEECAEQZBIMCgR1c2VyGAIgASgJIlEKGENoZWNrUGVybWlzc2lvbnNSZXNwb25zZRI1CgdyZXN1bHRzGAEgAygLMiQuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tSZXN1bHQiTQoWTGlzdFBlcm1pc3Npb25zUmVxdWVzdBIQCghyZWxhdGlvbhgBIAEoCRITCgtvYmplY3RfdHlwZRgCIAEoCRIMCgR1c2VyGAMgASgJIm0KF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEg8KB29iamVjdHMYASADKAkSLgoLcGVybWlzc2lvbnMYAiADKAsyGS5hdXRob3JpemVyLnYxLlBlcm1pc3Npb24SEQoJdHJ1bmNhdGVkGAMgASgIMucWChFBdXRob3JpemVyU2VydmljZRJmCgZTaWdudXASHC5hdXRob3JpemVyLnYxLlNpZ251cFJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIhkrUYAJi1GAGgtRgBgtPkkwIPOgEqIgovdjEvc2lnbnVwEmMKBUxvZ2luEhsuYXV0aG9yaXplci52MS5Mb2dpblJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIgkrUYAJi1GAGgtRgBgtPkkwIOOgEqIgkvdjEvbG9naW4SXQoGTG9nb3V0EhwuYXV0aG9yaXplci52MS5Mb2dvdXRSZXF1ZXN0Gh0uYXV0aG9yaXplci52MS5Mb2dvdXRSZXNwb25zZSIWmLUYAYLT5JMCDCIKL3YxL2xvZ291dBKGAQoOTWFnaWNMaW5rTG9naW4SJC5hdXRob3JpemVyLnYxLk1hZ2ljTGlua0xvZ2luUmVxdWVzdBolLmF1dGhvcml6ZXIudjEuTWFnaWNMaW5rTG9naW5SZXNwb25zZSInmLUYAaC1GAGC0+STAhk6ASoiFC92MS9tYWdpY19saW5rX2xvZ2luEnIKC1ZlcmlmeUVtYWlsEiEuYXV0aG9yaXplci52MS5WZXJpZnlFbWFpbFJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIjmLUYAaC1GAGC0+STAhU6ASoiEC92MS92ZXJpZnlfZW1haWwSjgEKEVJlc2VuZFZlcmlmeUVtYWlsEicuYXV0aG9yaXplci52MS5SZXNlbmRWZXJpZnlFbWFpbFJlcXVlc3QaKC5hdXRob3JpemVyLnYxLlJlc2VuZFZlcmlmeUVtYWlsUmVzcG9uc2UiJqC1GAGC0+STAhw6ASoiFy92MS9yZXNlbmRfdmVyaWZ5X2VtYWlsEmwKCVZlcmlmeU90cBIfLmF1dGhvcml6ZXIudjEuVmVyaWZ5T3RwUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiGYtRgBoLUYAYLT5JMCEzoBKiIOL3YxL3ZlcmlmeV9vdHASbQoJUmVzZW5kT3RwEh8uYXV0aG9yaXplci52MS5SZXNlbmRPdHBSZXF1ZXN0GiAuYXV0aG9yaXplci52MS5SZXNlbmRPdHBSZXNwb25zZSIdoLUYAYLT5JMCEzoBKiIOL3YxL3Jlc2VuZF9vdHASdgoMU2tpcE1mYVNldHVwEiIuYXV0aG9yaXplci52MS5Ta2lwTWZhU2V0dXBSZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiJZi1GAGgtRgBgtPkkwIXOgEqIhIvdjEvc2tpcF9tZmFfc2V0dXASaQoHTG9ja01mYRIdLmF1dGhvcml6ZXIudjEuTG9ja01mYVJlcXVlc3QaHi5hdXRob3JpemVyLnYxLkxvY2tNZmFSZXNwb25zZSIfmLUYAaC1GAGC0+STAhE6ASoiDC92MS9sb2NrX21mYRKPAQoQRW1haWxPdHBNZmFTZXR1cBImLmF1dGhvcml6ZXIudjEuRW1haWxPdHBNZmFTZXR1cFJlcXVlc3QaJy5hdXRob3JpemVyLnYxLkVtYWlsT3RwTWZhU2V0dXBSZXNwb25zZSIqmLUYAaC1GAGC0+STAhw6ASoiFy92MS9lbWFpbF9vdHBfbWZhX3NldHVwEocBCg5TbXNPdHBNZmFTZXR1cBIkLmF1dGhvcml6ZXIudjEuU21zT3RwTWZhU2V0dXBSZXF1ZXN0GiUuYXV0aG9yaXplci52MS5TbXNPdHBNZmFTZXR1cFJlc3BvbnNlIiiYtRgBoLUYAYLT5JMCGjoBKiIVL3YxL3Ntc19vdHBfbWZhX3NldHVwEoEBCg5Gb3Jnb3RQYXNzd29yZBIkLmF1dGhvcml6ZXIudjEuRm9yZ290UGFzc3dvcmRSZXF1ZXN0GiUuYXV0aG9yaXplci52MS5Gb3Jnb3RQYXNzd29yZFJlc3BvbnNlIiKgtRgBgtPkkwIYOgEqIhMvdjEvZm9yZ290X3Bhc3N3b3JkEoEBCg1SZXNldFBhc3N3b3JkEiMuYXV0aG9yaXplci52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBokLmF1dGhvcml6ZXIudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlIiWYtRgBoLUYAYLT5JMCFzoBKiISL3YxL3Jlc2V0X3Bhc3N3b3JkElgKB1Byb2ZpbGUSHS5hdXRob3JpemVyLnYxLlByb2ZpbGVSZXF1ZXN0GhMuYXV0aG9yaXplci52MS5Vc2VyIhmStRgCCAGC0+STAg0SCy92MS9wcm9maWxlEn0KDVVwZGF0ZVByb2ZpbGUSIy5hdXRob3JpemVyLnYxLlVwZGF0ZVByb2ZpbGVSZXF1ZXN0GiQuYXV0aG9yaXplci52MS5VcGRhdGVQcm9maWxlUmVzcG9uc2UiIZi1GAGC0+STAhc6ASoiEi92MS91cGRhdGVfcHJvZmlsZRKTAQoRRGVhY3RpdmF0ZUFjY291bnQSJy5hdXRob3JpemVyLnYxLkRlYWN0aXZhdGVBY2NvdW50UmVxdWVzdBooLmF1dGhvcml6ZXIudjEuRGVhY3RpdmF0ZUFjY291bnRSZXNwb25zZSIrkrUYAhgBmLUYAYLT5JMCGzoBKiIWL3YxL2RlYWN0aXZhdGVfYWNjb3VudBJkCgZSZXZva2USHC5hdXRob3JpemVyLnYxLlJldm9rZVJlcXVlc3QaHS5hdXRob3JpemVyLnYxLlJldm9rZVJlc3BvbnNlIh2YtRgBoLUYAYLT5JMCDzoBKiIKL3YxL3Jldm9rZRJdCgdTZXNzaW9uEh0uYXV0aG9yaXplci52MS5TZXNzaW9uUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIhaC0+STAhA6ASoiCy92MS9zZXNzaW9uEooBChBWYWxpZGF0ZUp3dFRva2VuEiYuYXV0aG9yaXplci52MS5WYWxpZGF0ZUp3dFRva2VuUmVxdWVzdBonLmF1dGhvcml6ZXIudjEuVmFsaWRhdGVKd3RUb2tlblJlc3BvbnNlIiWgtRgBgtPkkwIbOgEqIhYvdjEvdmFsaWRhdGVfand0X3Rva2VuEoUBCg9WYWxpZGF0ZVNlc3Npb24SJS5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlcXVlc3QaJi5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlIiOgtRgBgtPkkwIZOgEqIhQvdjEvdmFsaWRhdGVfc2Vzc2lvbhJTCgRNZXRhEhouYXV0aG9yaXplci52MS5NZXRhUmVxdWVzdBoTLmF1dGhvcml6ZXIudjEuTWV0YSIakrUYAggBoLUYAYLT5JMCChIIL3YxL21ldGESiwEKEENoZWNrUGVybWlzc2lvbnMSJi5hdXRob3JpemVyLnYxLkNoZWNrUGVybWlzc2lvbnNSZXF1ZXN0GicuYXV0aG9yaXplci52MS5DaGVja1Blcm1pc3Npb25zUmVzcG9uc2UiJpK1GAIIAYLT5JMCGjoBKiIVL3YxL2NoZWNrX3Blcm1pc3Npb25zEocBCg9MaXN0UGVybWlzc2lvbnMSJS5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaJi5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIiWStRgCCAGC0+STAhk6ASoiFC92MS9saXN0X3Blcm1pc3Npb25zQssBChFjb20uYXV0aG9yaXplci52MUIPQXV0aG9yaXplclByb3RvUAFaUGdpdGh1Yi5jb20vYXV0aG9yaXplcmRldi9hdXRob3JpemVyLWdvL2ludGVybmFsL2dlbnBiL2F1dGhvcml6ZXIvdjE7YXV0aG9yaXplcnYxogIDQVhYqgINQXV0aG9yaXplci5WMcoCDUF1dGhvcml6ZXJcVjHiAhlBdXRob3JpemVyXFYxXEdQQk1ldGFkYXRh6gIOQXV0aG9yaXplcjo6VjFiBnByb3RvMw", [file_authorizer_v1_annotations, file_authorizer_v1_common, file_authorizer_v1_types, file_buf_validate_validate, file_google_api_annotations]);
 
 /**
  * @generated from message authorizer.v1.SignupRequest
@@ -111,11 +112,6 @@ export type SignupRequest = Message<"authorizer.v1.SignupRequest"> & {
    * @generated from field: string redirect_uri = 14;
    */
   redirectUri: string;
-
-  /**
-   * @generated from field: bool is_multi_factor_auth_enabled = 15;
-   */
-  isMultiFactorAuthEnabled: boolean;
 
   /**
    * @generated from field: string state = 16;
@@ -411,6 +407,164 @@ export const ResendOtpResponseSchema: GenMessage<ResendOtpResponse> = /*@__PURE_
   messageDesc(file_authorizer_v1_authorizer, 11);
 
 /**
+ * @generated from message authorizer.v1.SkipMfaSetupRequest
+ */
+export type SkipMfaSetupRequest = Message<"authorizer.v1.SkipMfaSetupRequest"> & {
+  /**
+   * Either email or phone_number is required, to resolve which user's MFA
+   * session cookie this is.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+
+  /**
+   * @generated from field: string state = 3;
+   */
+  state: string;
+};
+
+/**
+ * Describes the message authorizer.v1.SkipMfaSetupRequest.
+ * Use `create(SkipMfaSetupRequestSchema)` to create a new message.
+ */
+export const SkipMfaSetupRequestSchema: GenMessage<SkipMfaSetupRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 12);
+
+/**
+ * @generated from message authorizer.v1.LockMfaRequest
+ */
+export type LockMfaRequest = Message<"authorizer.v1.LockMfaRequest"> & {
+  /**
+   * Either email or phone_number is required, to resolve which user's MFA
+   * session cookie this is — same pattern as SkipMfaSetupRequest.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+};
+
+/**
+ * Describes the message authorizer.v1.LockMfaRequest.
+ * Use `create(LockMfaRequestSchema)` to create a new message.
+ */
+export const LockMfaRequestSchema: GenMessage<LockMfaRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 13);
+
+/**
+ * @generated from message authorizer.v1.LockMfaResponse
+ */
+export type LockMfaResponse = Message<"authorizer.v1.LockMfaResponse"> & {
+  /**
+   * @generated from field: string message = 1;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message authorizer.v1.LockMfaResponse.
+ * Use `create(LockMfaResponseSchema)` to create a new message.
+ */
+export const LockMfaResponseSchema: GenMessage<LockMfaResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 14);
+
+/**
+ * @generated from message authorizer.v1.EmailOtpMfaSetupRequest
+ */
+export type EmailOtpMfaSetupRequest = Message<"authorizer.v1.EmailOtpMfaSetupRequest"> & {
+  /**
+   * Only used in the MFA-session-cookie mode (a caller in the withheld
+   * first-time-offer state, with no bearer token yet) to resolve which
+   * user's MFA session cookie this is — same pattern as SkipMfaSetupRequest
+   * / LockMfaRequest. Ignored when the caller has a valid bearer
+   * token/session, which already identifies the user.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+};
+
+/**
+ * Describes the message authorizer.v1.EmailOtpMfaSetupRequest.
+ * Use `create(EmailOtpMfaSetupRequestSchema)` to create a new message.
+ */
+export const EmailOtpMfaSetupRequestSchema: GenMessage<EmailOtpMfaSetupRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 15);
+
+/**
+ * @generated from message authorizer.v1.EmailOtpMfaSetupResponse
+ */
+export type EmailOtpMfaSetupResponse = Message<"authorizer.v1.EmailOtpMfaSetupResponse"> & {
+  /**
+   * @generated from field: string message = 1;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message authorizer.v1.EmailOtpMfaSetupResponse.
+ * Use `create(EmailOtpMfaSetupResponseSchema)` to create a new message.
+ */
+export const EmailOtpMfaSetupResponseSchema: GenMessage<EmailOtpMfaSetupResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 16);
+
+/**
+ * @generated from message authorizer.v1.SmsOtpMfaSetupRequest
+ */
+export type SmsOtpMfaSetupRequest = Message<"authorizer.v1.SmsOtpMfaSetupRequest"> & {
+  /**
+   * Same dual-mode identification semantics as EmailOtpMfaSetupRequest.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+};
+
+/**
+ * Describes the message authorizer.v1.SmsOtpMfaSetupRequest.
+ * Use `create(SmsOtpMfaSetupRequestSchema)` to create a new message.
+ */
+export const SmsOtpMfaSetupRequestSchema: GenMessage<SmsOtpMfaSetupRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 17);
+
+/**
+ * @generated from message authorizer.v1.SmsOtpMfaSetupResponse
+ */
+export type SmsOtpMfaSetupResponse = Message<"authorizer.v1.SmsOtpMfaSetupResponse"> & {
+  /**
+   * @generated from field: string message = 1;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message authorizer.v1.SmsOtpMfaSetupResponse.
+ * Use `create(SmsOtpMfaSetupResponseSchema)` to create a new message.
+ */
+export const SmsOtpMfaSetupResponseSchema: GenMessage<SmsOtpMfaSetupResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 18);
+
+/**
  * @generated from message authorizer.v1.ForgotPasswordRequest
  */
 export type ForgotPasswordRequest = Message<"authorizer.v1.ForgotPasswordRequest"> & {
@@ -440,7 +594,7 @@ export type ForgotPasswordRequest = Message<"authorizer.v1.ForgotPasswordRequest
  * Use `create(ForgotPasswordRequestSchema)` to create a new message.
  */
 export const ForgotPasswordRequestSchema: GenMessage<ForgotPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 12);
+  messageDesc(file_authorizer_v1_authorizer, 19);
 
 /**
  * @generated from message authorizer.v1.ForgotPasswordResponse
@@ -464,7 +618,7 @@ export type ForgotPasswordResponse = Message<"authorizer.v1.ForgotPasswordRespon
  * Use `create(ForgotPasswordResponseSchema)` to create a new message.
  */
 export const ForgotPasswordResponseSchema: GenMessage<ForgotPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 13);
+  messageDesc(file_authorizer_v1_authorizer, 20);
 
 /**
  * @generated from message authorizer.v1.ResetPasswordRequest
@@ -503,7 +657,7 @@ export type ResetPasswordRequest = Message<"authorizer.v1.ResetPasswordRequest">
  * Use `create(ResetPasswordRequestSchema)` to create a new message.
  */
 export const ResetPasswordRequestSchema: GenMessage<ResetPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 14);
+  messageDesc(file_authorizer_v1_authorizer, 21);
 
 /**
  * @generated from message authorizer.v1.ResetPasswordResponse
@@ -520,7 +674,7 @@ export type ResetPasswordResponse = Message<"authorizer.v1.ResetPasswordResponse
  * Use `create(ResetPasswordResponseSchema)` to create a new message.
  */
 export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 15);
+  messageDesc(file_authorizer_v1_authorizer, 22);
 
 /**
  * @generated from message authorizer.v1.ProfileRequest
@@ -533,7 +687,7 @@ export type ProfileRequest = Message<"authorizer.v1.ProfileRequest"> & {
  * Use `create(ProfileRequestSchema)` to create a new message.
  */
 export const ProfileRequestSchema: GenMessage<ProfileRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 16);
+  messageDesc(file_authorizer_v1_authorizer, 23);
 
 /**
  * @generated from message authorizer.v1.UpdateProfileRequest
@@ -619,7 +773,7 @@ export type UpdateProfileRequest = Message<"authorizer.v1.UpdateProfileRequest">
  * Use `create(UpdateProfileRequestSchema)` to create a new message.
  */
 export const UpdateProfileRequestSchema: GenMessage<UpdateProfileRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 17);
+  messageDesc(file_authorizer_v1_authorizer, 24);
 
 /**
  * @generated from message authorizer.v1.UpdateProfileResponse
@@ -636,7 +790,7 @@ export type UpdateProfileResponse = Message<"authorizer.v1.UpdateProfileResponse
  * Use `create(UpdateProfileResponseSchema)` to create a new message.
  */
 export const UpdateProfileResponseSchema: GenMessage<UpdateProfileResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 18);
+  messageDesc(file_authorizer_v1_authorizer, 25);
 
 /**
  * @generated from message authorizer.v1.DeactivateAccountRequest
@@ -649,7 +803,7 @@ export type DeactivateAccountRequest = Message<"authorizer.v1.DeactivateAccountR
  * Use `create(DeactivateAccountRequestSchema)` to create a new message.
  */
 export const DeactivateAccountRequestSchema: GenMessage<DeactivateAccountRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 19);
+  messageDesc(file_authorizer_v1_authorizer, 26);
 
 /**
  * @generated from message authorizer.v1.DeactivateAccountResponse
@@ -666,7 +820,7 @@ export type DeactivateAccountResponse = Message<"authorizer.v1.DeactivateAccount
  * Use `create(DeactivateAccountResponseSchema)` to create a new message.
  */
 export const DeactivateAccountResponseSchema: GenMessage<DeactivateAccountResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 20);
+  messageDesc(file_authorizer_v1_authorizer, 27);
 
 /**
  * @generated from message authorizer.v1.RevokeRequest
@@ -683,7 +837,7 @@ export type RevokeRequest = Message<"authorizer.v1.RevokeRequest"> & {
  * Use `create(RevokeRequestSchema)` to create a new message.
  */
 export const RevokeRequestSchema: GenMessage<RevokeRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 21);
+  messageDesc(file_authorizer_v1_authorizer, 28);
 
 /**
  * @generated from message authorizer.v1.RevokeResponse
@@ -700,7 +854,7 @@ export type RevokeResponse = Message<"authorizer.v1.RevokeResponse"> & {
  * Use `create(RevokeResponseSchema)` to create a new message.
  */
 export const RevokeResponseSchema: GenMessage<RevokeResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 22);
+  messageDesc(file_authorizer_v1_authorizer, 29);
 
 /**
  * @generated from message authorizer.v1.SessionRequest
@@ -736,7 +890,7 @@ export type SessionRequest = Message<"authorizer.v1.SessionRequest"> & {
  * Use `create(SessionRequestSchema)` to create a new message.
  */
 export const SessionRequestSchema: GenMessage<SessionRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 23);
+  messageDesc(file_authorizer_v1_authorizer, 30);
 
 /**
  * @generated from message authorizer.v1.ValidateJwtTokenRequest
@@ -770,7 +924,7 @@ export type ValidateJwtTokenRequest = Message<"authorizer.v1.ValidateJwtTokenReq
  * Use `create(ValidateJwtTokenRequestSchema)` to create a new message.
  */
 export const ValidateJwtTokenRequestSchema: GenMessage<ValidateJwtTokenRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 24);
+  messageDesc(file_authorizer_v1_authorizer, 31);
 
 /**
  * @generated from message authorizer.v1.ValidateJwtTokenResponse
@@ -794,7 +948,7 @@ export type ValidateJwtTokenResponse = Message<"authorizer.v1.ValidateJwtTokenRe
  * Use `create(ValidateJwtTokenResponseSchema)` to create a new message.
  */
 export const ValidateJwtTokenResponseSchema: GenMessage<ValidateJwtTokenResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 25);
+  messageDesc(file_authorizer_v1_authorizer, 32);
 
 /**
  * @generated from message authorizer.v1.ValidateSessionRequest
@@ -823,7 +977,7 @@ export type ValidateSessionRequest = Message<"authorizer.v1.ValidateSessionReque
  * Use `create(ValidateSessionRequestSchema)` to create a new message.
  */
 export const ValidateSessionRequestSchema: GenMessage<ValidateSessionRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 26);
+  messageDesc(file_authorizer_v1_authorizer, 33);
 
 /**
  * @generated from message authorizer.v1.ValidateSessionResponse
@@ -845,7 +999,7 @@ export type ValidateSessionResponse = Message<"authorizer.v1.ValidateSessionResp
  * Use `create(ValidateSessionResponseSchema)` to create a new message.
  */
 export const ValidateSessionResponseSchema: GenMessage<ValidateSessionResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 27);
+  messageDesc(file_authorizer_v1_authorizer, 34);
 
 /**
  * @generated from message authorizer.v1.MetaRequest
@@ -858,7 +1012,7 @@ export type MetaRequest = Message<"authorizer.v1.MetaRequest"> & {
  * Use `create(MetaRequestSchema)` to create a new message.
  */
 export const MetaRequestSchema: GenMessage<MetaRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 28);
+  messageDesc(file_authorizer_v1_authorizer, 35);
 
 /**
  * @generated from message authorizer.v1.CheckPermissionsRequest
@@ -886,7 +1040,7 @@ export type CheckPermissionsRequest = Message<"authorizer.v1.CheckPermissionsReq
  * Use `create(CheckPermissionsRequestSchema)` to create a new message.
  */
 export const CheckPermissionsRequestSchema: GenMessage<CheckPermissionsRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 29);
+  messageDesc(file_authorizer_v1_authorizer, 36);
 
 /**
  * @generated from message authorizer.v1.CheckPermissionsResponse
@@ -905,7 +1059,7 @@ export type CheckPermissionsResponse = Message<"authorizer.v1.CheckPermissionsRe
  * Use `create(CheckPermissionsResponseSchema)` to create a new message.
  */
 export const CheckPermissionsResponseSchema: GenMessage<CheckPermissionsResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 30);
+  messageDesc(file_authorizer_v1_authorizer, 37);
 
 /**
  * @generated from message authorizer.v1.ListPermissionsRequest
@@ -938,7 +1092,7 @@ export type ListPermissionsRequest = Message<"authorizer.v1.ListPermissionsReque
  * Use `create(ListPermissionsRequestSchema)` to create a new message.
  */
 export const ListPermissionsRequestSchema: GenMessage<ListPermissionsRequest> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 31);
+  messageDesc(file_authorizer_v1_authorizer, 38);
 
 /**
  * @generated from message authorizer.v1.ListPermissionsResponse
@@ -973,7 +1127,7 @@ export type ListPermissionsResponse = Message<"authorizer.v1.ListPermissionsResp
  * Use `create(ListPermissionsResponseSchema)` to create a new message.
  */
 export const ListPermissionsResponseSchema: GenMessage<ListPermissionsResponse> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_authorizer, 32);
+  messageDesc(file_authorizer_v1_authorizer, 39);
 
 /**
  * === Identity creation & authentication ===
@@ -1058,6 +1212,65 @@ export const AuthorizerService: GenService<{
     output: typeof ResendOtpResponseSchema;
   },
   /**
+   * SkipMfaSetup completes an in-progress, token-withheld MFA offer by
+   * recording that the caller explicitly declined it, then issues the
+   * access token that was withheld. Identified by the MFA session cookie
+   * (set when the offer screen was returned) plus email/phone_number to
+   * resolve the pending user — same identification pattern as VerifyOtp.
+   * Fails with FAILED_PRECONDITION if MFA is organization-enforced
+   * (enforce-mfa) — enforcement is never skippable.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.SkipMfaSetup
+   */
+  skipMfaSetup: {
+    methodKind: "unary";
+    input: typeof SkipMfaSetupRequestSchema;
+    output: typeof AuthResponseSchema;
+  },
+  /**
+   * LockMfa records that the caller lost access to their only MFA
+   * factor(s). Only allowed when the caller has NO verified Email/SMS OTP
+   * fallback enrolled — if one exists, use it instead of locking. Does not
+   * issue a token; the account requires admin recovery afterward.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.LockMfa
+   */
+  lockMfa: {
+    methodKind: "unary";
+    input: typeof LockMfaRequestSchema;
+    output: typeof LockMfaResponseSchema;
+  },
+  /**
+   * EmailOtpMfaSetup sends a one-time code to the caller's own email and
+   * creates an unverified email-OTP MFA enrollment. Dual-mode permissions:
+   * (a) an authenticated caller (bearer token) — the settings-screen action
+   * for an ALREADY-logged-in user adding a second factor; the request body is
+   * unused in this mode. (b) a caller in the withheld first-time-offer
+   * state, with no bearer token yet — identified by the MFA session cookie
+   * plus email/phone_number, same pattern as SkipMfaSetup. Either mode
+   * reuses the same underlying Authenticator row once VerifyOtp marks it
+   * verified.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.EmailOtpMfaSetup
+   */
+  emailOtpMfaSetup: {
+    methodKind: "unary";
+    input: typeof EmailOtpMfaSetupRequestSchema;
+    output: typeof EmailOtpMfaSetupResponseSchema;
+  },
+  /**
+   * SmsOtpMfaSetup sends a one-time code to the caller's own phone number
+   * and creates an unverified SMS-OTP MFA enrollment. Same dual-mode
+   * permissions and relationship to VerifyOtp as EmailOtpMfaSetup.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.SmsOtpMfaSetup
+   */
+  smsOtpMfaSetup: {
+    methodKind: "unary";
+    input: typeof SmsOtpMfaSetupRequestSchema;
+    output: typeof SmsOtpMfaSetupResponseSchema;
+  },
+  /**
    * @generated from rpc authorizer.v1.AuthorizerService.ForgotPassword
    */
   forgotPassword: {
@@ -1114,7 +1327,7 @@ export const AuthorizerService: GenService<{
     output: typeof RevokeResponseSchema;
   },
   /**
-   * Session returns the AuthResponse bound to the caller's cookie/bearer.
+   * Session returns the AuthResponse bound to the caller's session cookie only.
    * NOT exposed as an MCP tool — SessionResponse carries access_token,
    * refresh_token, id_token, authenticator_secret, and recovery codes,
    * none of which should land in an LLM transcript. (Security audit C1.)
