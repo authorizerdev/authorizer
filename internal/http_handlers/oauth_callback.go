@@ -41,6 +41,24 @@ type AppleUserInfo struct {
 	} `json:"name"`
 }
 
+// parseAppleUserField parses the optional Apple `user` callback form field.
+// Apple sends this field only on the very first authorization for a given
+// app; every subsequent login omits it entirely (documented Apple behavior —
+// a one-time grant, not re-sent). An absent/empty field is therefore expected
+// steady-state behavior, not an error, and yields a zero-value AppleUserInfo.
+// A non-empty but malformed value is a real error (buggy provider or
+// tampered request) and is still rejected.
+func parseAppleUserField(userRaw string) (*AppleUserInfo, error) {
+	user_ := &AppleUserInfo{}
+	if userRaw == "" {
+		return user_, nil
+	}
+	if err := json.Unmarshal([]byte(userRaw), user_); err != nil {
+		return nil, err
+	}
+	return user_, nil
+}
+
 // OAuthCallbackHandler handles the OAuth callback for various oauth providers
 func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "OAuthCallbackHandler").Logger()
@@ -101,15 +119,14 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.AuthRecipeMethodLinkedIn:
 			user, err = h.processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
-			user_ := AppleUserInfo{}
-			userRaw := ctx.Request.FormValue("user")
-			err = json.Unmarshal([]byte(userRaw), &user_)
+			var user_ *AppleUserInfo
+			user_, err = parseAppleUserField(ctx.Request.FormValue("user"))
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to unmarshal apple user info")
 				ctx.JSON(400, gin.H{"error": "invalid apple user info"})
 				return
 			}
-			user, err = h.processAppleUserInfo(ctx, oauthCode, &user_)
+			user, err = h.processAppleUserInfo(ctx, oauthCode, user_)
 		case constants.AuthRecipeMethodDiscord:
 			user, err = h.processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
