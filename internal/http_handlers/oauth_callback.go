@@ -1238,12 +1238,8 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	}
 	nickname, _ := userRawData["nickname"].(string)
 	profilePicture, _ := userRawData["picture"].(string)
-	email := ""
-	if val, ok := userRawData["email"].(string); ok && val != "" {
-		email = val
-	} else if sub, ok := userRawData["sub"].(string); ok {
-		email = sub
-	}
+	sub, _ := userRawData["sub"].(string)
+	email := resolveRobloxEmail(sub, userRawData)
 	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
@@ -1253,6 +1249,32 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	}
 
 	return user, nil
+}
+
+// resolveRobloxEmail prefers the real email Roblox returns; falls back to a
+// synthetic one keyed on the permanent sub if it's absent. defaultRobloxScopes
+// (cmd/root.go) is ["openid", "profile"] - no `email` scope - so real Roblox
+// userinfo (an OIDC-standard endpoint, see constants.RobloxUserInfoURL)
+// returns the mandatory `sub` claim but omits `email` under the default
+// config. Falling back to the bare `sub` would store a non-email-shaped
+// numeric id in user.Email, so this synthesizes a stable, non-routable
+// address instead - mirrors resolveTwitterEmail/resolveDiscordEmail above.
+func resolveRobloxEmail(sub string, userRawData map[string]interface{}) string {
+	if val, ok := userRawData["email"].(string); ok && val != "" {
+		return val
+	}
+	if sub != "" {
+		return robloxSyntheticEmail(sub)
+	}
+	return ""
+}
+
+// robloxSyntheticEmail derives a stable, non-routable synthetic email from
+// Roblox's numeric user id, used when a user's granted scopes don't include
+// `email` (see processRobloxUserInfo doc comment). Mirrors
+// twitterSyntheticEmail/discordSyntheticEmail above.
+func robloxSyntheticEmail(sub string) string {
+	return fmt.Sprintf("roblox-%s@roblox.oauth.internal", sub)
 }
 
 // parseScopes parses a scope string into a slice of individual scope values.
