@@ -21,7 +21,23 @@ export async function graphql<T = any>(
   query: string,
   variables: Record<string, unknown>
 ): Promise<T> {
-  const res = await request.post('/graphql', {
+  const res = await request.post(`${baseURL}/graphql`, {
+    // Absolute URL, not a relative '/graphql' path: request.post resolves a
+    // relative path against the `request` fixture's own configured baseURL
+    // (the Playwright project's use.baseURL), silently ignoring this
+    // function's `baseURL` argument for anything but the Origin header
+    // below - a real bug found in Task 28 (mfa-routing-matrix.spec.ts),
+    // which needs to target a second instance
+    // (authorizer-mfa-magic-link) from within the `mfa-on` project
+    // (baseURL authorizer-mfa-enforced). Every caller up to that point
+    // happened to pass the same baseURL as their project's, so a relative
+    // path resolved to the right host by coincidence and this never
+    // surfaced. Worse, the wrong-host request was rejected by CSRF
+    // (Origin not in that host's --allowed-origins) with a non-GraphQL-shaped
+    // body ({error, error_description}, no `errors` array) that the check
+    // below didn't catch either - silently returning undefined instead of
+    // failing loudly. See the `body.error` check below for that half of the
+    // fix.
     data: { query, variables },
     // CSRF middleware requires Origin/Referer on state-changing requests
     // (internal/http_handlers/csrf.go) - same rationale as the GraphQLClient
@@ -33,6 +49,12 @@ export async function graphql<T = any>(
     headers: { Origin: baseURL },
   });
   const body = await res.json();
+  if (body.error) {
+    // Non-GraphQL-shaped error (e.g. CSRF middleware's {error,
+    // error_description}, returned before the request ever reaches the
+    // GraphQL handler) - not caught by the body.errors check below.
+    throw new Error(`Request error: ${JSON.stringify(body)}`);
+  }
   if (body.errors) {
     throw new Error(`GraphQL error: ${JSON.stringify(body.errors)}`);
   }

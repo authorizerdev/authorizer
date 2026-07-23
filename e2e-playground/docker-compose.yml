@@ -234,6 +234,97 @@ services:
       timeout: 2s
       retries: 30
 
+  # authorizer-mfa-enforced is a fifth instance solely for
+  # tests/mfa-routing-matrix.spec.ts (the `mfa-on` project). EnforceMFA
+  # turned out NOT to be a runtime-toggleable admin setting - Task 28
+  # verified live that the `_update_env` mutation fixtures/adminClient.ts's
+  # setEnforceMFA calls is a stub that always errors
+  # ("deprecated. please configure env via cli args",
+  # internal/graph/schema.resolvers.go UpdateEnv), matching this repo's v2
+  # CLI-flags-only config model (no runtime env mutation exists at all, for
+  # any setting). --enforce-mfa is a static CLI flag like the
+  # magic-link/webauthn/sso instances' flags, so it needs its own instance
+  # rather than toggling the shared `authorizer` service - turning it on
+  # there would break every other MFA spec (totp/sms-otp/webauthn) that
+  # relies on the default mfaGateOfferAll (optional, skippable) behavior.
+  authorizer-mfa-enforced:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-mfa-enforced:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-mfa-enforced.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enforce-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8084,http://authorizer-mfa-enforced:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-mfa-magic-link is a sixth instance, also solely for
+  # tests/mfa-routing-matrix.spec.ts: the one test in that spec needing
+  # BOTH --enforce-mfa=true AND magic-link login. Can't reuse
+  # authorizer-magic-link above - that instance is pinned to
+  # --disable-mfa=true (which Finalize forces EnforceMFA off regardless,
+  # config.go's DisableMFA kill switch), needed for its own single-use-link
+  # replay test. Can't reuse authorizer-mfa-enforced above either - it has
+  # no email service verification path wired for magic-link
+  # (--enable-magic-link-login/--enable-email-verification), and turning
+  # those on there would break that instance's plain password-login tests
+  # (an unverified user's password login diverts into an email-OTP
+  # verification-pending flow before ever reaching the MFA gate - see
+  # internal/service/login.go's EmailVerifiedAt==nil branch).
+  authorizer-mfa-magic-link:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-mfa-magic-link:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-mfa-magic-link.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enable-magic-link-login=true"
+      - "--enable-email-verification=true"
+      - "--enforce-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8085,http://authorizer-mfa-magic-link:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      - "--smtp-sender-email=e2e@authorizer.test"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   mock-oauth:
     build: ./mocks/mock-oauth
     ports: ["4000:4000"]
@@ -265,6 +356,8 @@ services:
       AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
       AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
       AUTHORIZER_MAGIC_LINK_BASE_URL: http://authorizer-magic-link:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
       # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
       # Authorizer's idp_sso_url validation (https-only, no test bypass)
@@ -281,6 +374,8 @@ services:
       authorizer-sso: { condition: service_healthy }
       authorizer-webauthn: { condition: service_healthy }
       authorizer-magic-link: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }

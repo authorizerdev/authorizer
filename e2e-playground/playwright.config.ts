@@ -27,9 +27,21 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      // Runs against authorizer-mfa-enforced (docker-compose.yml), the only
+      // service with --enforce-mfa=true - see that service's comment in
+      // docker-compose.yml for why EnforceMFA can't be toggled at runtime
+      // on the shared `authorizer` service (the _update_env mutation
+      // fixtures/adminClient.ts's setEnforceMFA calls is a stub that always
+      // errors - "deprecated. please configure env via cli args"). The one
+      // test in this spec needing magic-link login too talks to a second
+      // dedicated instance, authorizer-mfa-magic-link, via an explicit
+      // absolute URL rather than this project's baseURL.
       name: 'mfa-on',
       testMatch: /mfa-routing-matrix\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_MFA_ENFORCED_BASE_URL || 'http://localhost:8084',
+      },
     },
     {
       // Runs against authorizer-sso (docker-compose.yml), the only service
