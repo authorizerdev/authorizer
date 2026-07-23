@@ -138,7 +138,7 @@ func (h *AdminHandler) DeleteUser(ctx context.Context, req *authorizerv1.DeleteU
 // VerificationRequests delegates to service.VerificationRequests and projects
 // the paginated result. Requires super-admin auth.
 func (h *AdminHandler) VerificationRequests(ctx context.Context, req *authorizerv1.VerificationRequestsRequest) (*authorizerv1.VerificationRequestsResponse, error) {
-	res, _, err := h.Service.VerificationRequests(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	res, _, err := h.Service.VerificationRequests(ctx, transport.MetaFromGRPC(ctx), modelPaginationRequest(req.GetPagination()))
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (h *AdminHandler) GetWebhook(ctx context.Context, req *authorizerv1.GetWebh
 // Webhooks delegates to service.Webhooks and projects the paginated result.
 // Requires super-admin auth.
 func (h *AdminHandler) Webhooks(ctx context.Context, req *authorizerv1.WebhooksRequest) (*authorizerv1.WebhooksResponse, error) {
-	res, _, err := h.Service.Webhooks(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	res, _, err := h.Service.Webhooks(ctx, transport.MetaFromGRPC(ctx), modelPaginationRequest(req.GetPagination()))
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (h *AdminHandler) DeleteEmailTemplate(ctx context.Context, req *authorizerv
 // EmailTemplates delegates to service.EmailTemplates and projects the paginated
 // result. Requires super-admin auth.
 func (h *AdminHandler) EmailTemplates(ctx context.Context, req *authorizerv1.EmailTemplatesRequest) (*authorizerv1.EmailTemplatesResponse, error) {
-	res, _, err := h.Service.EmailTemplates(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	res, _, err := h.Service.EmailTemplates(ctx, transport.MetaFromGRPC(ctx), modelPaginationRequest(req.GetPagination()))
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +524,7 @@ func (h *AdminHandler) GetClient(ctx context.Context, req *authorizerv1.GetClien
 // paginated result. Client secrets are never surfaced. Requires super-admin auth.
 func (h *AdminHandler) Clients(ctx context.Context, req *authorizerv1.ClientsRequest) (*authorizerv1.ClientsResponse, error) {
 	res, _, err := h.Service.Clients(ctx, transport.MetaFromGRPC(ctx), &model.ListClientsRequest{
-		Pagination: modelPaginatedRequest(req.GetPagination()),
+		Pagination: modelPaginationRequest(req.GetPagination()),
 	})
 	if err != nil {
 		return nil, err
@@ -604,7 +604,7 @@ func (h *AdminHandler) GetTrustedIssuer(ctx context.Context, req *authorizerv1.G
 func (h *AdminHandler) TrustedIssuers(ctx context.Context, req *authorizerv1.TrustedIssuersRequest) (*authorizerv1.TrustedIssuersResponse, error) {
 	res, _, err := h.Service.TrustedIssuers(ctx, transport.MetaFromGRPC(ctx), &model.ListTrustedIssuersRequest{
 		ServiceAccountID: req.ServiceAccountId,
-		Pagination:       modelPaginatedRequest(req.GetPagination()),
+		Pagination:       modelPaginationRequest(req.GetPagination()),
 	})
 	if err != nil {
 		return nil, err
@@ -682,7 +682,7 @@ func (h *AdminHandler) GetSamlServiceProvider(ctx context.Context, req *authoriz
 func (h *AdminHandler) ListSamlServiceProviders(ctx context.Context, req *authorizerv1.ListSamlServiceProvidersRequest) (*authorizerv1.ListSamlServiceProvidersResponse, error) {
 	res, _, err := h.Service.ListSAMLServiceProviders(ctx, transport.MetaFromGRPC(ctx), &model.ListSAMLServiceProvidersRequest{
 		OrgID:      req.GetOrgId(),
-		Pagination: modelPaginatedRequest(req.GetPagination()),
+		Pagination: modelPaginationRequest(req.GetPagination()),
 	})
 	if err != nil {
 		return nil, err

@@ -189,7 +189,7 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata
 
 // EmailTemplates returns a paginated list of email templates. Requires
 // super-admin auth. Logic migrated from internal/graphql/email_templates.go.
-func (p *provider) EmailTemplates(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.EmailTemplates, *ResponseSideEffects, error) {
+func (p *provider) EmailTemplates(ctx context.Context, meta RequestMetadata, params *model.PaginationRequest) (*model.EmailTemplates, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "EmailTemplates").Logger()
 	if err := p.requireSuperAdmin(ctx, meta); err != nil {
 		return nil, nil, err

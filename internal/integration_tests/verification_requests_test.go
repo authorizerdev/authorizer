@@ -27,7 +27,7 @@ func TestVerificationRequests(t *testing.T) {
 
 	t.Run("should fail without admin auth", func(t *testing.T) {
 		req.Header.Set("Cookie", "")
-		res, err := ts.GraphQLProvider.VerificationRequests(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.VerificationRequests(ctx, &model.PaginationRequest{})
 		assert.Error(t, err)
 		assert.Nil(t, res)
 	})
@@ -37,7 +37,7 @@ func TestVerificationRequests(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
-		res, err := ts.GraphQLProvider.VerificationRequests(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.VerificationRequests(ctx, &model.PaginationRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.NotNil(t, res.Pagination)

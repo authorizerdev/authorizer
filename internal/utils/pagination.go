@@ -5,18 +5,18 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
-// GetPagination helps getting pagination data from paginated input
+// GetPagination helps getting pagination data from a pagination input
 // also returns default limit and offset if pagination data is not present
-func GetPagination(paginatedInput *model.PaginatedRequest) *model.Pagination {
+func GetPagination(pagination *model.PaginationRequest) *model.Pagination {
 	limit := int64(constants.DefaultLimit)
 	page := int64(1)
-	if paginatedInput != nil && paginatedInput.Pagination != nil {
-		if paginatedInput.Pagination.Limit != nil {
-			limit = *paginatedInput.Pagination.Limit
+	if pagination != nil {
+		if pagination.Limit != nil {
+			limit = *pagination.Limit
 		}
 
-		if paginatedInput.Pagination.Page != nil {
-			page = *paginatedInput.Pagination.Page
+		if pagination.Page != nil {
+			page = *pagination.Page
 		}
 	}
 

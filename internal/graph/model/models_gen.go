@@ -404,21 +404,21 @@ type ListAuditLogRequest struct {
 }
 
 type ListClientsRequest struct {
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListOrgDomainsRequest struct {
-	OrgID      string            `json:"org_id"`
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+	OrgID      string             `json:"org_id"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListOrgMembersRequest struct {
-	OrgID      string            `json:"org_id"`
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+	OrgID      string             `json:"org_id"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListOrganizationsRequest struct {
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListPermissionsInput struct {
@@ -438,13 +438,13 @@ type ListSAMLIDPKeysRequest struct {
 }
 
 type ListSAMLServiceProvidersRequest struct {
-	OrgID      string            `json:"org_id"`
-	Pagination *PaginatedRequest `json:"pagination,omitempty"`
+	OrgID      string             `json:"org_id"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListTrustedIssuersRequest struct {
-	ServiceAccountID *string           `json:"service_account_id,omitempty"`
-	Pagination       *PaginatedRequest `json:"pagination,omitempty"`
+	ServiceAccountID *string            `json:"service_account_id,omitempty"`
+	Pagination       *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type ListUsersRequest struct {
@@ -638,10 +638,6 @@ type Organizations struct {
 type OtpMfaSetupRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
-}
-
-type PaginatedRequest struct {
-	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type Pagination struct {

@@ -21,7 +21,7 @@ func TestWebhooks(t *testing.T) {
 
 	t.Run("should fail list webhooks without admin auth", func(t *testing.T) {
 		req.Header.Set("Cookie", "")
-		res, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginationRequest{})
 		assert.Error(t, err)
 		assert.Nil(t, res)
 	})
@@ -31,7 +31,7 @@ func TestWebhooks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
-		res, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginationRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.NotNil(t, res.Pagination)
@@ -53,7 +53,7 @@ func TestWebhooks(t *testing.T) {
 		assert.NotNil(t, addRes)
 
 		// List webhooks to get the ID
-		webhooks, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginatedRequest{})
+		webhooks, err := ts.GraphQLProvider.Webhooks(ctx, &model.PaginationRequest{})
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(webhooks.Webhooks), 1)
 
