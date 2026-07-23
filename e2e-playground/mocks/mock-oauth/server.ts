@@ -83,11 +83,22 @@ app.all('/:provider/authorize', (req, res) => {
     // POST body or - as here - the URL query string, so mirroring it as a
     // query param on this redirect (rather than an auto-submitted form POST)
     // reaches the same code path.
-    const profile = (profiles['apple'] || defaultProfile('apple')) as { given_name?: string; family_name?: string };
-    url.searchParams.set(
-      'user',
-      JSON.stringify({ name: { firstName: profile.given_name || '', lastName: profile.family_name || '' } })
-    );
+    //
+    // Real Apple omits this field entirely on every login after the first
+    // (one-time grant, not re-sent). Tests exercising that returning-user
+    // path set `omit_user_field: true` on the configured profile so this
+    // mock matches - see __configure below.
+    const profile = (profiles['apple'] || defaultProfile('apple')) as {
+      given_name?: string;
+      family_name?: string;
+      omit_user_field?: boolean;
+    };
+    if (!profile.omit_user_field) {
+      url.searchParams.set(
+        'user',
+        JSON.stringify({ name: { firstName: profile.given_name || '', lastName: profile.family_name || '' } })
+      );
+    }
   }
   res.redirect(302, url.toString());
 });

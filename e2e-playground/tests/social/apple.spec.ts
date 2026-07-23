@@ -1,7 +1,7 @@
 // e2e-playground/tests/social/apple.spec.ts
 import { test, expect } from '@playwright/test';
 import crypto from 'node:crypto';
-import { runSocialLoginHappyPath, runConsentDeniedNegativePath } from './helpers';
+import { runSocialLoginHappyPath, runConsentDeniedNegativePath, configureProviderProfile } from './helpers';
 import { getUserByEmail } from '../../fixtures/adminClient';
 
 test.describe('Social login — Apple', () => {
@@ -47,5 +47,40 @@ test.describe('Social login — Apple', () => {
     baseURL,
   }) => {
     await runConsentDeniedNegativePath(request, baseURL!, 'apple');
+  });
+
+  // REGRESSION (production bug): real Apple sends the `user` field
+  // (given/family name) only on an account's very first authorization -
+  // every later login omits it entirely (a one-time grant, not re-sent).
+  // Before the fix, Authorizer's OAuthCallbackHandler (processAppleUserInfo,
+  // internal/http_handlers/oauth_callback.go) unconditionally
+  // json.Unmarshal'd the `user` field, so its absence 400'd the whole
+  // callback - rejecting every returning Apple user outright. This drives a
+  // real first signup, then a real second login for the same account with
+  // mock-oauth configured to omit the `user` field (via `omit_user_field`,
+  // server.ts's /apple/authorize handler), and proves the second login still
+  // establishes a session.
+  test('returning Apple user (no `user` field on second login) signs in successfully', async ({ page, request }) => {
+    const email = `relay-${crypto.randomUUID()}@privaterelay.appleid.com`;
+
+    await runSocialLoginHappyPath(page, request, {
+      provider: 'apple',
+      buttonName: /apple/i,
+      profile: { sub: `apple-${crypto.randomUUID()}`, email, given_name: 'Grace', family_name: 'Hopper' },
+      expectedEmail: email,
+    });
+
+    // Log out and reconfigure mock-oauth to omit the `user` field, then log
+    // back in as the same Apple account - the returning-user path.
+    await page.getByRole('button', { name: 'Logout' }).click();
+    await configureProviderProfile(request, 'apple', {
+      sub: `apple-${crypto.randomUUID()}`,
+      email,
+      omit_user_field: true,
+    });
+    await page.getByRole('button', { name: /apple/i }).click();
+    await page.waitForURL((url) => url.pathname === '/app' || url.pathname === '/app/', { timeout: 15_000 });
+    await expect(page.getByText('Signed in as')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(`a[href="mailto:${email}"]`)).toBeVisible();
   });
 });
