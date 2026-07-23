@@ -146,6 +146,29 @@ export async function getUserIdByEmail(email: string): Promise<string> {
   return user.id;
 }
 
+// getUserByEmail resolves a user's profile fields (given_name/family_name/
+// signup_methods) via the same admin `_users` search query getUserIdByEmail
+// uses. Needed by social-login specs (tests/social/*.spec.ts) to verify a
+// provider's profile claims were actually mapped onto the stored user, not
+// just that a session was established.
+export async function getUserByEmail(
+  email: string
+): Promise<{ id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string }> {
+  const query = gql`
+    query ($params: ListUsersRequest) {
+      _users(params: $params) { users { id email given_name family_name signup_methods } }
+    }
+  `;
+  const res = await client.request<{
+    _users: {
+      users: { id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string }[];
+    };
+  }>(query, { params: { query: email } });
+  const user = res._users.users.find((u) => u.email === email);
+  if (!user) throw new Error(`user not found for email ${email}`);
+  return user;
+}
+
 // verifyUserEmail force-verifies a user's email (and sets given/family name)
 // via the admin `_update_user` mutation, standing in for clicking the real
 // verification link — needed because SAML IdP-side issuance
