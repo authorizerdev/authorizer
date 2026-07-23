@@ -17,11 +17,10 @@ const (
 
 	// TwitterUserInfoURL requests confirmed_email as a sparse-fieldset field
 	// alongside the always-present id/name/profile_image_url/username. Per
-	// X's documented sparse fieldset behavior (same pattern already relied on
-	// for the other fields here), an unrequested-or-unauthorized field is
-	// simply omitted from the response rather than erroring the request, so
-	// asking for it is safe for every operator - whether or not they've
-	// opted in below.
+	// X's documented sparse fieldset behavior, an unauthorized-or-unrequested
+	// field is simply omitted from the response rather than erroring the
+	// request, so asking for it is safe for every operator - whether or not
+	// they've opted in below.
 	//
 	// X only populates confirmed_email when BOTH of these are true for the
 	// operator's own X Developer App:
