@@ -73,6 +73,22 @@ app.all('/:provider/authorize', (req, res) => {
   const url = new URL(redirectUri);
   url.searchParams.set('code', code);
   if (state) url.searchParams.set('state', state);
+  if (req.params.provider === 'apple') {
+    // Real Apple sends a `user` field (JSON: {"name":{"firstName","lastName"}})
+    // alongside the code on first authorization only - it's constructed by
+    // Apple's own hosted consent page, not by Authorizer or its frontend, and
+    // isn't part of the id_token. Authorizer's OAuthCallbackHandler
+    // (processAppleUserInfo, internal/http_handlers/oauth_callback.go) reads
+    // it via ctx.Request.FormValue("user"), which Go resolves from either a
+    // POST body or - as here - the URL query string, so mirroring it as a
+    // query param on this redirect (rather than an auto-submitted form POST)
+    // reaches the same code path.
+    const profile = (profiles['apple'] || defaultProfile('apple')) as { given_name?: string; family_name?: string };
+    url.searchParams.set(
+      'user',
+      JSON.stringify({ name: { firstName: profile.given_name || '', lastName: profile.family_name || '' } })
+    );
+  }
   res.redirect(302, url.toString());
 });
 
