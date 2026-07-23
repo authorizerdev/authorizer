@@ -20,6 +20,16 @@ test.describe('Social login — Twitter/X', () => {
     // here; a broken verifier lookup would surface as the login simply
     // failing to establish a session.
     const nickname = `ada-${crypto.randomUUID()}`;
+    // A fresh random Twitter id per test run (not a hardcoded literal): now
+    // that processTwitterUserInfo sets a real, stable Email, a fixed id
+    // would make GetUserByEmail match a leftover account from a *previous*
+    // run of this same spec against a not-yet-torn-down authorizer instance
+    // (exactly the "repeat login" scenario below) instead of creating a
+    // fresh one here - which would then update that stale account rather
+    // than mapping this run's nickname/name onto it, breaking the
+    // getUserByNickname lookup below. Random per run keeps this test
+    // idempotent regardless of what earlier runs left behind.
+    const twitterId = `twitter-1-${crypto.randomUUID()}`;
     // Twitter's REST profile is nested under `data` (real API v2 shape) and
     // only has a single `name` field - no given/family name split like
     // Twitch/Google. mock-oauth's /twitter/userinfo route (server.ts)
@@ -28,13 +38,16 @@ test.describe('Social login — Twitter/X', () => {
       provider: 'twitter',
       buttonName: /twitter|x\.com/i,
       profile: {
-        data: { id: 'twitter-1', name: 'Ada Lovelace', username: nickname, profile_image_url: 'https://example.com/a.png' },
+        data: { id: twitterId, name: 'Ada Lovelace', username: nickname, profile_image_url: 'https://example.com/a.png' },
       },
-      // No expectedEmail: real Twitter never returns an email address (not a
-      // mock gap - processTwitterUserInfo has no email extraction at all),
-      // so there is nothing to assert a mailto link against. The dashboard's
-      // "Signed in as" text is still the same real proof of an established
-      // session every other provider spec relies on.
+      // Real Twitter never returns an email address, but
+      // processTwitterUserInfo (internal/http_handlers/oauth_callback.go)
+      // now synthesizes a stable one from the profile's `id`
+      // ("twitter-<id>@twitter.oauth.internal") so repeat logins resolve to
+      // the same account instead of creating a duplicate every time (see the
+      // "repeat login" test below). Asserting the literal synthetic address
+      // here proves that construction, not just "some session got created".
+      expectedEmail: `twitter-${twitterId}@twitter.oauth.internal`,
     });
 
     // processTwitterUserInfo splits `name` with strings.SplitAfterN(name, " ", 2),
@@ -49,6 +62,74 @@ test.describe('Social login — Twitter/X', () => {
     expect(user.family_name).toBe('Lovelace');
     expect(user.nickname).toBe(nickname);
     expect(user.signup_methods).toContain('twitter');
+  });
+
+  test('repeat login with the same Twitter identity resolves to the same account, not a duplicate', async ({
+    browser,
+    page,
+    request,
+    baseURL,
+  }) => {
+    // This is the regression test for the real production bug: Twitter never
+    // returns an email, so processTwitterUserInfo used to leave user.Email
+    // nil. OAuthCallbackHandler's signup-vs-login check
+    // (GetUserByEmail(ctx, refs.StringValue(user.Email))) then always ran as
+    // GetUserByEmail(ctx, "") - which never matches a NULL email column in
+    // SQL - so EVERY Twitter login, even for the exact same person, created
+    // a brand-new account. The fix derives a stable synthetic email from
+    // Twitter's numeric `id` (permanent, unlike `username`), so the same
+    // identity now resolves to the same account on a second login.
+    const nickname = `repeat-${crypto.randomUUID()}`;
+    // Random per run (see the sibling "first-time signup" test's twitterId
+    // comment) - this test's whole point is reusing the SAME id across both
+    // logins below, so it must be unique to THIS run, not a shared literal
+    // that would collide with a leftover account from a previous run.
+    const twitterId = `twitter-stable-${crypto.randomUUID()}`;
+    const expectedEmail = `twitter-${twitterId}@twitter.oauth.internal`;
+    const profile = {
+      data: {
+        id: twitterId,
+        name: 'Grace Hopper',
+        username: nickname,
+        profile_image_url: 'https://example.com/a.png',
+      },
+    };
+
+    // First login (fresh browser context = `page`/`request` from the test
+    // fixture): creates the account.
+    await runSocialLoginHappyPath(page, request, {
+      provider: 'twitter',
+      buttonName: /twitter|x\.com/i,
+      profile,
+      expectedEmail,
+    });
+    const firstLoginUser = await getUserByNickname(nickname);
+
+    // Second login, from a brand-new browser context (no cookies/session
+    // carried over from the first login - this is two independent people
+    // sitting down and logging into Twitter, not one continuous session),
+    // against the SAME mock-oauth Twitter profile/id. Before the fix this
+    // would create a second, orphaned account; after the fix it must
+    // recognize the same account.
+    // Explicit baseURL: unlike the `page`/`request` fixtures (which the test
+    // runner creates from the project's `use.baseURL`), a manually created
+    // browser.newContext() starts with no baseURL, so a relative page.goto
+    // would otherwise fail to resolve.
+    const context2 = await browser.newContext({ baseURL });
+    const page2 = await context2.newPage();
+    try {
+      await runSocialLoginHappyPath(page2, context2.request, {
+        provider: 'twitter',
+        buttonName: /twitter|x\.com/i,
+        profile,
+        expectedEmail,
+      });
+    } finally {
+      await context2.close();
+    }
+
+    const secondLoginUser = await getUserByNickname(nickname);
+    expect(secondLoginUser.id).toBe(firstLoginUser.id);
   });
 
   test('consent denied at provider is rejected without a session, and the state cannot be replayed', async ({
