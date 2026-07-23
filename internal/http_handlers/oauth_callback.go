@@ -924,6 +924,14 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	return user, nil
 }
 
+// processTwitterUserInfo exchanges the Twitter/X OAuth code for the user's
+// profile. By default Twitter/X does not return a real email address (see
+// comment below), so the returned user's Email is a synthetic address
+// derived from Twitter's numeric id, not a real, contactable address - this
+// lets the caller's signup-vs-login lookup (GetUserByEmail) recognize a
+// returning Twitter user instead of creating a duplicate account on every
+// login. Operators who opt into X's `users.email` scope + app permission get
+// a real confirmed_email instead (see TwitterUserInfoURL's doc comment).
 func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processTwitterUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitter)
@@ -979,6 +987,22 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 
 	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
 	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
+	//
+	// Without an email, the signup-vs-login check in OAuthCallbackHandler
+	// (h.StorageProvider.GetUserByEmail(ctx, refs.StringValue(user.Email)))
+	// would always be called with "" and never match, so every Twitter login
+	// would be treated as a brand-new signup - duplicate accounts on every
+	// login for the same person. To keep that lookup working, synthesize a
+	// stable, non-routable email from Twitter's numeric `id` (permanent,
+	// unlike `username`, which can change). Unlike GitHub's noreply address
+	// (a real, GitHub-issued, deliverable email fetched from GitHub's own
+	// API further down in this file), this one is constructed client-side
+	// and never delivers anywhere - it exists purely as a stable lookup key.
+	twitterID, ok := userRawData["id"].(string)
+	if !ok || twitterID == "" {
+		log.Debug().Msg("Twitter user info missing id")
+		return nil, fmt.Errorf("twitter response missing id field")
+	}
 
 	// Currently Twitter API only provides the full name of a user. To fill givenName and familyName
 	// the full name will be split at the first whitespace. This approach will not be valid for all name combinations
@@ -994,7 +1018,10 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	nickname, _ := userRawData["username"].(string)
 	profilePicture, _ := userRawData["profile_image_url"].(string)
 
+	email := resolveTwitterEmail(twitterID, userRawData)
+
 	user := &schemas.User{
+		Email:      &email,
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -1002,6 +1029,27 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	}
 
 	return user, nil
+}
+
+// twitterSyntheticEmail derives a stable, non-routable synthetic email from
+// Twitter's numeric user id, so the same Twitter account always maps to the
+// same Authorizer email (see processTwitterUserInfo doc comment).
+func twitterSyntheticEmail(twitterID string) string {
+	return fmt.Sprintf("twitter-%s@twitter.oauth.internal", twitterID)
+}
+
+// resolveTwitterEmail picks the email to store for a Twitter-authenticated
+// user. X's `users.email` scope + "Request email from users" app permission
+// (see the TwitterUserInfoURL doc comment in internal/constants/oauth_info_urls.go
+// for how an operator opts in) makes the API return a real, deliverable
+// confirmed_email; this is preferred when present. Otherwise falls back to
+// the synthetic per-id email, which still correctly prevents duplicate
+// accounts (see processTwitterUserInfo doc comment) without a real address.
+func resolveTwitterEmail(twitterID string, userRawData map[string]interface{}) string {
+	if confirmedEmail, ok := userRawData["confirmed_email"].(string); ok && confirmedEmail != "" {
+		return confirmedEmail
+	}
+	return twitterSyntheticEmail(twitterID)
 }
 
 // process microsoft user information
