@@ -952,6 +952,12 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	return user, nil
 }
 
+// processTwitterUserInfo exchanges the Twitter/X OAuth code for the user's
+// profile. Twitter never returns a real email address (see comment below),
+// so the returned user's Email is a synthetic address derived from Twitter's
+// numeric id, not a real, contactable address - this lets the caller's
+// signup-vs-login lookup (GetUserByEmail) recognize a returning Twitter user
+// instead of creating a duplicate account on every login.
 func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processTwitterUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitter)
@@ -1011,6 +1017,20 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 
 	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
 	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
+	//
+	// Without an email, the signup-vs-login check in OAuthCallbackHandler
+	// (h.StorageProvider.GetUserByEmail(ctx, refs.StringValue(user.Email)))
+	// would always be called with "" and never match, so every Twitter login
+	// would be treated as a brand-new signup - duplicate accounts on every
+	// login for the same person. To keep that lookup working, synthesize a
+	// stable email from Twitter's numeric `id` (permanent, unlike `username`
+	// which can change), the same trick GitHub uses for its own
+	// users.noreply.github.com addresses.
+	twitterID, ok := userRawData["id"].(string)
+	if !ok || twitterID == "" {
+		log.Debug().Msg("Twitter user info missing id")
+		return nil, fmt.Errorf("twitter response missing id field")
+	}
 
 	// Currently Twitter API only provides the full name of a user. To fill givenName and familyName
 	// the full name will be split at the first whitespace. This approach will not be valid for all name combinations
@@ -1025,8 +1045,10 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	}
 	nickname, _ := userRawData["username"].(string)
 	profilePicture, _ := userRawData["profile_image_url"].(string)
+	syntheticEmail := twitterSyntheticEmail(twitterID)
 
 	user := &schemas.User{
+		Email:      &syntheticEmail,
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -1034,6 +1056,13 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	}
 
 	return user, nil
+}
+
+// twitterSyntheticEmail derives a stable, non-routable synthetic email from
+// Twitter's numeric user id, so the same Twitter account always maps to the
+// same Authorizer email (see processTwitterUserInfo doc comment).
+func twitterSyntheticEmail(twitterID string) string {
+	return fmt.Sprintf("twitter-%s@twitter.oauth.internal", twitterID)
 }
 
 // process microsoft user information
