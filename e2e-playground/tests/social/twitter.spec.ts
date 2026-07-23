@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 import crypto from 'node:crypto';
 import { runSocialLoginHappyPath, runConsentDeniedNegativePath } from './helpers';
-import { getUserByNickname } from '../../fixtures/adminClient';
+import { getUserByNickname, getUserByEmail } from '../../fixtures/adminClient';
 
 test.describe('Social login — Twitter/X', () => {
   test('first-time signup via Twitter (PKCE flow) creates an account with mapped profile fields', async ({
@@ -137,5 +137,44 @@ test.describe('Social login — Twitter/X', () => {
     baseURL,
   }) => {
     await runConsentDeniedNegativePath(request, baseURL!, 'twitter');
+  });
+
+  test('signup via Twitter with confirmed_email (users.email scope opted in) uses the real email, not the synthetic one', async ({
+    page,
+    request,
+  }) => {
+    // X's API v2 (2025-04-03+) returns confirmed_email when the OAuth
+    // request includes the users.email scope AND the operator's X
+    // Developer App has "Request email from users" enabled (internal/
+    // constants/oauth_info_urls.go's TwitterUserInfoURL doc comment).
+    // mock-oauth's /twitter/userinfo route returns whatever profile was
+    // configured verbatim, so setting confirmed_email on the profile here
+    // simulates an operator who has opted into both.
+    const nickname = `real-email-${crypto.randomUUID()}`;
+    const twitterId = `twitter-real-email-${crypto.randomUUID()}`;
+    const realEmail = `ada-${crypto.randomUUID()}@example.com`;
+
+    await runSocialLoginHappyPath(page, request, {
+      provider: 'twitter',
+      buttonName: /twitter|x\.com/i,
+      profile: {
+        data: {
+          id: twitterId,
+          name: 'Ada Lovelace',
+          username: nickname,
+          profile_image_url: 'https://example.com/a.png',
+          confirmed_email: realEmail,
+        },
+      },
+      // processTwitterUserInfo must prefer confirmed_email over the
+      // synthetic twitter-<id>@twitter.oauth.internal fallback.
+      expectedEmail: realEmail,
+    });
+
+    // Looked up by email (not nickname, per getUserByNickname's doc
+    // comment) - a real, non-synthetic email now exists for this account.
+    const user = await getUserByEmail(realEmail);
+    expect(user.email).toBe(realEmail);
+    expect(user.signup_methods).toContain('twitter');
   });
 });
