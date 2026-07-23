@@ -133,14 +133,35 @@ func TestProcessRobloxUserInfo_SameIDYieldsSameEmailAcrossLogins(t *testing.T) {
 // defensive edge case where the response has neither `email` nor `sub` -
 // there is no anchor to synthesize a stable address from, so email stays
 // empty rather than colliding every such response onto one synthetic
-// account (mirrors the id-required guards on Twitter/Discord, which return
-// an error instead since those providers require the id for other fields
-// too; Roblox has no such other use for `sub`, so this simply leaves Email
-// empty rather than erroring the whole login).
+// account. Unlike Twitter/Discord (which error on a missing id because
+// their id is also load-bearing for other fields, e.g. Discord's avatar
+// URL), Roblox has no other use for `sub`, so this simply leaves Email
+// empty rather than erroring the whole login.
 func TestProcessRobloxUserInfo_MissingSubAndEmail_LeavesEmailEmpty(t *testing.T) {
 	profile := map[string]interface{}{
 		"name":     "No Sub User",
 		"nickname": "nosub",
+	}
+	server := newRobloxTestServer(t, profile)
+	h := newRobloxTestHTTPProvider(t, server.URL)
+
+	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	require.NoError(t, err)
+
+	require.NotNil(t, user.Email)
+	assert.Empty(t, *user.Email)
+}
+
+// TestProcessRobloxUserInfo_EmptySubAndAbsentEmail_LeavesEmailEmpty covers
+// the case the sub != "" guard exists for: an empty-string `sub` (present
+// key, zero value) must be treated the same as a missing `sub`, not passed
+// to robloxSyntheticEmail - which would otherwise mint the same collision-
+// prone "roblox-@roblox.oauth.internal" address for every such response.
+func TestProcessRobloxUserInfo_EmptySubAndAbsentEmail_LeavesEmailEmpty(t *testing.T) {
+	profile := map[string]interface{}{
+		"sub":      "",
+		"name":     "Empty Sub User",
+		"nickname": "emptysub",
 	}
 	server := newRobloxTestServer(t, profile)
 	h := newRobloxTestHTTPProvider(t, server.URL)
