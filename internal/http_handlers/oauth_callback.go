@@ -1023,9 +1023,11 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	// would always be called with "" and never match, so every Twitter login
 	// would be treated as a brand-new signup - duplicate accounts on every
 	// login for the same person. To keep that lookup working, synthesize a
-	// stable email from Twitter's numeric `id` (permanent, unlike `username`
-	// which can change), the same trick GitHub uses for its own
-	// users.noreply.github.com addresses.
+	// stable, non-routable email from Twitter's numeric `id` (permanent,
+	// unlike `username`, which can change). Unlike GitHub's noreply address
+	// (a real, GitHub-issued, deliverable email fetched from GitHub's own
+	// API further down in this file), this one is constructed client-side
+	// and never delivers anywhere - it exists purely as a stable lookup key.
 	twitterID, ok := userRawData["id"].(string)
 	if !ok || twitterID == "" {
 		log.Debug().Msg("Twitter user info missing id")
