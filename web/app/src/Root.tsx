@@ -16,6 +16,27 @@ const Settings = lazy(() => import('./pages/settings'));
 const SignUp = lazy(() => import('./pages/signup'));
 
 /**
+ * True only for the exact shape `bounceSAMLIDPToLogin` (saml_idp.go) produces:
+ * same-origin, path `/saml/idp/{slug}/sso`, carrying `saml_continue`. This is
+ * deliberately narrow — `redirect_uri` is a client-controllable query param on
+ * /app, so anything looser here becomes a post-login open redirect.
+ */
+function isSamlIdpContinueURL(url: string): boolean {
+	if (!hasWindow() || !url) return false;
+	let parsed: URL;
+	try {
+		parsed = new URL(url, window.location.origin);
+	} catch {
+		return false;
+	}
+	return (
+		parsed.origin === window.location.origin &&
+		/^\/saml\/idp\/[^/]+\/sso$/.test(parsed.pathname) &&
+		parsed.searchParams.has('saml_continue')
+	);
+}
+
+/**
  * Build a normalized parameter map from query + fragment.
  * We treat both as inputs because `/authorize` may choose fragment
  * depending on response_mode and our login UI should preserve the
@@ -120,6 +141,19 @@ export default function Root({
 		sessionStorage.removeItem('authorizer_state');
 		window.location.replace(`/authorize?${params.toString()}`);
 	}, [token, isAuthorizeContext, state]);
+
+	// Separate resumption mechanism: SP-initiated SAML IdP login. The server
+	// (bounceSAMLIDPToLogin) sends unauthenticated users here with
+	// redirect_uri pointing back at its own /saml/idp/{slug}/sso?saml_continue
+	// endpoint, which resumes and auto-submits the pending assertion once a
+	// session exists. Unlike the /authorize resumption above, we navigate to
+	// the literal redirect_uri - but only when it matches that exact shape,
+	// never for an arbitrary client-supplied redirect_uri.
+	useEffect(() => {
+		if (!token) return;
+		if (!isSamlIdpContinueURL(rawRedirectURL)) return;
+		window.location.replace(rawRedirectURL);
+	}, [token, rawRedirectURL]);
 
 	// Both MFA gates below are reached via a server redirect carrying the
 	// gate state in the URL, not client-side navigation - there's no prior

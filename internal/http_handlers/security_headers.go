@@ -31,6 +31,25 @@ const playgroundCSP = "default-src 'self'; " +
 	"base-uri 'self'; " +
 	"form-action 'self'"
 
+// samlIDPSSOCSP omits form-action for the SAML IdP SSO endpoints. Their
+// response (crewjam WriteResponse) is a self-submitting HTML form that must
+// POST to the requesting SP's ACS URL — an arbitrary external origin by
+// design, so form-action 'self' would silently break every SAML IdP login.
+// This is safe to relax: form-action does not inherit from default-src, so
+// omitting it lifts the restriction only for this response, and the ACS
+// destination is never request-supplied — it's the SP's own URL, validated
+// server-side against the org's registered SP record before the response is
+// built (see saml.IdpAuthnRequest.Validate and
+// GetSAMLServiceProviderByOrgAndEntityID in saml_idp.go).
+const samlIDPSSOCSP = "default-src 'self'; " +
+	"script-src 'self' 'unsafe-inline'; " +
+	"style-src 'self' 'unsafe-inline'; " +
+	"img-src 'self' data: https:; " +
+	"font-src 'self' data:; " +
+	"connect-src 'self'; " +
+	"frame-ancestors 'none'; " +
+	"base-uri 'self'"
+
 // SecurityHeadersMiddleware sets standard security headers on every response.
 func (h *httpProvider) SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -51,8 +70,11 @@ func (h *httpProvider) SecurityHeadersMiddleware() gin.HandlerFunc {
 		// dashboard in the wild while we tighten the policy.
 		if !h.Config.DisableCSP {
 			csp := defaultCSP
-			if c.Request.URL.Path == "/playground" {
+			switch {
+			case c.Request.URL.Path == "/playground":
 				csp = playgroundCSP
+			case c.FullPath() == "/saml/idp/:org_slug/sso" || c.FullPath() == "/saml/idp/:org_slug/sso/:sp_id":
+				csp = samlIDPSSOCSP
 			}
 			hdr.Set("Content-Security-Policy", csp)
 		}
