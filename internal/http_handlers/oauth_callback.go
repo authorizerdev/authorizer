@@ -41,6 +41,24 @@ type AppleUserInfo struct {
 	} `json:"name"`
 }
 
+// parseAppleUserField parses the optional Apple `user` callback form field.
+// Apple sends this field only on the very first authorization for a given
+// app; every subsequent login omits it entirely (documented Apple behavior —
+// a one-time grant, not re-sent). An absent/empty field is therefore expected
+// steady-state behavior, not an error, and yields a zero-value AppleUserInfo.
+// A non-empty but malformed value is a real error (buggy provider or
+// tampered request) and is still rejected.
+func parseAppleUserField(userRaw string) (*AppleUserInfo, error) {
+	appleUser := &AppleUserInfo{}
+	if userRaw == "" {
+		return appleUser, nil
+	}
+	if err := json.Unmarshal([]byte(userRaw), appleUser); err != nil {
+		return nil, err
+	}
+	return appleUser, nil
+}
+
 // OAuthCallbackHandler handles the OAuth callback for various oauth providers
 func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "OAuthCallbackHandler").Logger()
@@ -101,15 +119,14 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.AuthRecipeMethodLinkedIn:
 			user, err = h.processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
-			user_ := AppleUserInfo{}
-			userRaw := ctx.Request.FormValue("user")
-			err = json.Unmarshal([]byte(userRaw), &user_)
+			var appleUser *AppleUserInfo
+			appleUser, err = parseAppleUserField(ctx.Request.FormValue("user"))
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to unmarshal apple user info")
 				ctx.JSON(400, gin.H{"error": "invalid apple user info"})
 				return
 			}
-			user, err = h.processAppleUserInfo(ctx, oauthCode, &user_)
+			user, err = h.processAppleUserInfo(ctx, oauthCode, appleUser)
 		case constants.AuthRecipeMethodDiscord:
 			user, err = h.processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
@@ -779,7 +796,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	return user, nil
 }
 
-func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_ *AppleUserInfo) (*schemas.User, error) {
+func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, appleUser *AppleUserInfo) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processAppleUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodApple)
 	if err != nil {
@@ -828,8 +845,8 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_
 		user.Email = &email
 	}
 
-	user.GivenName = &user_.Name.FirstName
-	user.FamilyName = &user_.Name.LastName
+	user.GivenName = &appleUser.Name.FirstName
+	user.FamilyName = &appleUser.Name.LastName
 
 	return user, nil
 }
