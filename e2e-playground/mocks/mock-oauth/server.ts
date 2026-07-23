@@ -30,7 +30,11 @@ function defaultProfile(provider: string): Record<string, unknown> {
     case 'linkedin':
       return { localizedFirstName: 'Mock', localizedLastName: 'User' };
     case 'discord':
-      return { user: { id: '123', username: 'mockuser', avatar: 'abc' } };
+      // Flat shape matching Discord's real GET /users/@me response
+      // (processDiscordUserInfo, internal/http_handlers/oauth_callback.go,
+      // reads id/username/avatar/email directly - no "user" wrapper, that
+      // was /oauth2/@me's shape, which never includes email).
+      return { id: '123', username: 'mockuser', avatar: 'abc', email };
     case 'twitter':
       return { data: { id: '123', name: 'Mock User', username: 'mockuser', profile_image_url: 'https://example.com/a.png' } };
     case 'roblox':

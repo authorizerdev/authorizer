@@ -875,6 +875,20 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_
 	return user, nil
 }
 
+// processDiscordUserInfo exchanges the Discord OAuth code for the user's
+// profile via GET /users/@me (constants.DiscordUserInfoURL), which returns a
+// flat id/username/avatar/email object. defaultDiscordScopes (cmd/root.go)
+// already requests `identify email` by default, and Discord returns a real,
+// deliverable email whenever the user grants it - no special app-dashboard
+// permission needed, unlike X's confirmed_email. Discord's consent screen
+// does allow granular per-scope denial though, so a user can authorize
+// `identify` while declining `email`; for that case, fall back to a stable
+// synthetic address keyed on Discord's permanent id (never username, which
+// can change) so the signup-vs-login lookup (GetUserByEmail in
+// OAuthCallbackHandler) still recognizes a returning user instead of
+// creating a duplicate account - the same fallback discipline
+// processTwitterUserInfo uses above for X, which never returns a real email
+// at all.
 func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processDiscordUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodDiscord)
@@ -920,18 +934,13 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		return nil, fmt.Errorf("failed to request Discord user info: %s", string(body))
 	}
 
-	// Unmarshal the response body into a map
-	responseRawData := make(map[string]interface{})
-	if err := json.Unmarshal(body, &responseRawData); err != nil {
+	// Unmarshal the response body into a map. GET /users/@me returns a flat
+	// object - no "user" sub-key to unwrap (unlike /oauth2/@me, which this
+	// used to call).
+	userRawData := make(map[string]interface{})
+	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal Discord response")
 		return nil, fmt.Errorf("failed to unmarshal Discord response: %s", err.Error())
-	}
-
-	// Safely extract the user data
-	userRawData, ok := responseRawData["user"].(map[string]interface{})
-	if !ok {
-		log.Debug().Err(err).Msg("User data is not in expected format or missing in response")
-		return nil, fmt.Errorf("user data is not in expected format or missing in response")
 	}
 
 	// Extract the username
@@ -940,16 +949,37 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		log.Debug().Err(err).Msg("Username is not in expected format or missing in user data")
 		return nil, fmt.Errorf("username is not in expected format or missing in user data")
 	}
-	discordID, _ := userRawData["id"].(string)
+	discordID, ok := userRawData["id"].(string)
+	if !ok || discordID == "" {
+		log.Debug().Msg("Discord user info missing id")
+		return nil, fmt.Errorf("discord response missing id field")
+	}
 	avatar, _ := userRawData["avatar"].(string)
 	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", discordID, avatar)
+
+	// Prefer the real email Discord returns; fall back to a synthetic one
+	// keyed on the permanent id if the user denied the `email` scope at
+	// Discord's consent screen (see doc comment above).
+	email := discordSyntheticEmail(discordID)
+	if realEmail, ok := userRawData["email"].(string); ok && realEmail != "" {
+		email = realEmail
+	}
 
 	user := &schemas.User{
 		GivenName: &firstName,
 		Picture:   &profilePicture,
+		Email:     &email,
 	}
 
 	return user, nil
+}
+
+// discordSyntheticEmail derives a stable, non-routable synthetic email from
+// Discord's permanent user id, used when a user grants `identify` but denies
+// the `email` scope (see processDiscordUserInfo doc comment). Mirrors
+// twitterSyntheticEmail below.
+func discordSyntheticEmail(discordID string) string {
+	return fmt.Sprintf("discord-%s@discord.oauth.internal", discordID)
 }
 
 // processTwitterUserInfo exchanges the Twitter/X OAuth code for the user's
