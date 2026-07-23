@@ -953,11 +953,13 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 }
 
 // processTwitterUserInfo exchanges the Twitter/X OAuth code for the user's
-// profile. Twitter never returns a real email address (see comment below),
-// so the returned user's Email is a synthetic address derived from Twitter's
-// numeric id, not a real, contactable address - this lets the caller's
-// signup-vs-login lookup (GetUserByEmail) recognize a returning Twitter user
-// instead of creating a duplicate account on every login.
+// profile. By default Twitter/X does not return a real email address (see
+// comment below), so the returned user's Email is a synthetic address
+// derived from Twitter's numeric id, not a real, contactable address - this
+// lets the caller's signup-vs-login lookup (GetUserByEmail) recognize a
+// returning Twitter user instead of creating a duplicate account on every
+// login. Operators who opt into X's `users.email` scope + app permission get
+// a real confirmed_email instead (see TwitterUserInfoURL's doc comment).
 func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processTwitterUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitter)
@@ -1047,10 +1049,20 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	}
 	nickname, _ := userRawData["username"].(string)
 	profilePicture, _ := userRawData["profile_image_url"].(string)
-	syntheticEmail := twitterSyntheticEmail(twitterID)
+
+	// X's `users.email` scope + "Request email from users" app permission
+	// (see the TwitterUserInfoURL doc comment in
+	// internal/constants/oauth_info_urls.go for how an operator opts in)
+	// makes the API return a real, deliverable confirmed_email. Prefer it
+	// when present; otherwise fall back to the synthetic per-id email that
+	// already correctly prevents duplicate accounts (see doc comment above).
+	email := twitterSyntheticEmail(twitterID)
+	if confirmedEmail, ok := userRawData["confirmed_email"].(string); ok && confirmedEmail != "" {
+		email = confirmedEmail
+	}
 
 	user := &schemas.User{
-		Email:      &syntheticEmail,
+		Email:      &email,
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,

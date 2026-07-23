@@ -168,3 +168,54 @@ func TestTwitterSyntheticEmail(t *testing.T) {
 	assert.NotEqual(t, twitterSyntheticEmail("1"), twitterSyntheticEmail("2"), "distinct ids must not collide")
 	assert.Contains(t, twitterSyntheticEmail("42"), "42")
 }
+
+// TestProcessTwitterUserInfo_ConfirmedEmailPreferredOverSynthetic proves the
+// X API refinement: when an operator has opted into the `users.email` scope
+// + "Request email from users" app permission and X returns
+// confirmed_email, that real address is used as user.Email instead of the
+// synthetic per-id one.
+func TestProcessTwitterUserInfo_ConfirmedEmailPreferredOverSynthetic(t *testing.T) {
+	profile := twitterProfile("42", "Ada Lovelace", "ada")
+	profile["data"].(map[string]interface{})["confirmed_email"] = "ada@example.com"
+	server := newTwitterTestServer(t, profile)
+	h := newTwitterTestHTTPProvider(t, server.URL)
+
+	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	require.NoError(t, err)
+
+	require.NotNil(t, user.Email)
+	assert.Equal(t, "ada@example.com", *user.Email)
+	assert.NotEqual(t, twitterSyntheticEmail("42"), *user.Email)
+}
+
+// TestProcessTwitterUserInfo_AbsentConfirmedEmailFallsBackToSynthetic is the
+// regression guard for the common case (operator hasn't opted in, or their
+// app predates this X API feature): confirmed_email absent from the
+// response must fall back to the synthetic email exactly as before this
+// refinement.
+func TestProcessTwitterUserInfo_AbsentConfirmedEmailFallsBackToSynthetic(t *testing.T) {
+	server := newTwitterTestServer(t, twitterProfile("42", "Ada Lovelace", "ada"))
+	h := newTwitterTestHTTPProvider(t, server.URL)
+
+	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	require.NoError(t, err)
+
+	require.NotNil(t, user.Email)
+	assert.Equal(t, twitterSyntheticEmail("42"), *user.Email)
+}
+
+// TestProcessTwitterUserInfo_EmptyConfirmedEmailFallsBackToSynthetic covers
+// the edge case where X sends the field but empty (rather than omitting it
+// entirely) - must not be treated as a real email.
+func TestProcessTwitterUserInfo_EmptyConfirmedEmailFallsBackToSynthetic(t *testing.T) {
+	profile := twitterProfile("42", "Ada Lovelace", "ada")
+	profile["data"].(map[string]interface{})["confirmed_email"] = ""
+	server := newTwitterTestServer(t, profile)
+	h := newTwitterTestHTTPProvider(t, server.URL)
+
+	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	require.NoError(t, err)
+
+	require.NotNil(t, user.Email)
+	assert.Equal(t, twitterSyntheticEmail("42"), *user.Email)
+}

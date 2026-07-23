@@ -15,7 +15,27 @@ const (
 	LinkedInUserInfoURL = "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,emailAddress,profilePicture(displayImage~:playableStreams))"
 	LinkedInEmailURL    = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
 
-	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=id,name,profile_image_url,username"
+	// TwitterUserInfoURL requests confirmed_email as a sparse-fieldset field
+	// alongside the always-present id/name/profile_image_url/username. Per
+	// X's documented sparse fieldset behavior (same pattern already relied on
+	// for the other fields here), an unrequested-or-unauthorized field is
+	// simply omitted from the response rather than erroring the request, so
+	// asking for it is safe for every operator - whether or not they've
+	// opted in below.
+	//
+	// X only populates confirmed_email when BOTH of these are true for the
+	// operator's own X Developer App:
+	//   1. The OAuth request includes the `users.email` scope - add it via
+	//      the --twitter-scopes flag (defaultTwitterScopes in cmd/root.go is
+	//      deliberately left unchanged; requesting a scope the operator's
+	//      app dashboard hasn't enabled risks X rejecting the whole
+	//      authorization request for THEIR app, so this is opt-in only).
+	//   2. "Request email from users" is enabled in that app's X Developer
+	//      dashboard.
+	// Without both, processTwitterUserInfo falls back to the synthetic
+	// per-id email, which still correctly prevents duplicate accounts, just
+	// without a real deliverable address.
+	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=confirmed_email,id,name,profile_image_url,username"
 
 	// RobloxUserInfoURL is the URL to get user info from Roblox
 	RobloxUserInfoURL = "https://apis.roblox.com/oauth/v1/userinfo"
