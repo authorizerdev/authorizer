@@ -74,6 +74,35 @@ func TestMagicLinkLogin(t *testing.T) {
 	})
 }
 
+// TestMagicLinkLoginEmailServiceDisabled is a regression guard: when
+// EnableEmailVerification is on but IsEmailServiceEnabled is off (e.g. no
+// SMTP sender email configured), MagicLinkLogin used to still create a
+// VerificationRequest row and fire an async SendEmail that was guaranteed
+// to fail - the caller got a success message, but no email was ever
+// deliverable and the token could never be verified. It must now behave
+// the same as EnableEmailVerification being off entirely: no verification
+// request created, matching signup.go's isEmailVerificationEnabled guard.
+func TestMagicLinkLoginEmailServiceDisabled(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableMagicLinkLogin = true
+	cfg.EnableEmailVerification = true
+	cfg.IsEmailServiceEnabled = false
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "magic_link_no_email_service_" + uuid.New().String() + "@authorizer.dev"
+
+	res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
+		Email: email,
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.NotEmpty(t, res.Message)
+
+	_, err = ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+	assert.Error(t, err, "no verification request should be created when the email service isn't configured")
+}
+
 // TestMagicLinkLoginMFAGate is a regression guard for VerifyEmail's MFA
 // check: it used to be an ad-hoc TOTP-only condition
 // (refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled &&

@@ -154,7 +154,13 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 	}
 
 	hostname := meta.HostURL
-	isEmailVerificationEnabled := p.Config.EnableEmailVerification
+	// Matches signup.go's isEmailVerificationEnabled guard: without also
+	// requiring IsEmailServiceEnabled (SMTP fully configured, including a
+	// sender email), this branch would still create a VerificationRequest
+	// row and fire an async SendEmail that's guaranteed to fail - the
+	// caller gets a success message, but no email is ever deliverable and
+	// the failure is only visible at debug log level.
+	isEmailVerificationEnabled := p.Config.EnableEmailVerification && p.Config.IsEmailServiceEnabled
 	if isEmailVerificationEnabled {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
