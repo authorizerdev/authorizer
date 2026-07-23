@@ -80,3 +80,59 @@ export async function runSocialLoginHappyPath(
   await expect(page.getByText('Signed in as')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator(`a[href="mailto:${opts.expectedEmail}"]`)).toBeVisible();
 }
+
+// runConsentDeniedNegativePath mirrors what every provider actually sends
+// when a user denies consent: the browser is redirected back with
+// `error=access_denied` and no `code`, carrying the exact `state` this
+// Authorizer instance issued for the attempt. internal/http_handlers/
+// oauth_login.go and oauth_callback.go route `provider` as a generic path
+// param and reject `error=access_denied` before any provider-specific logic
+// runs, so this ~50-line flow is identical across all 10 social providers -
+// shared here rather than hand-copied per provider spec (same reasoning as
+// runSocialLoginHappyPath above).
+export async function runConsentDeniedNegativePath(
+  request: APIRequestContext,
+  baseURL: string,
+  provider: string
+): Promise<void> {
+  // Get a real state by driving the real login-initiation endpoint directly
+  // (same route the rendered "Continue with <provider>" button hits) rather
+  // than guessing its format - the compound state string is generated
+  // server-side.
+  const redirectUri = `${baseURL}/app`;
+  const loginRes = await request.get(`/oauth_login/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`, {
+    maxRedirects: 0,
+  });
+  // internal/http_handlers/oauth_login.go issues http.StatusTemporaryRedirect.
+  expect(loginRes.status()).toBe(307);
+  const authorizeLocation = loginRes.headers()['location'];
+  expect(authorizeLocation).toBeTruthy();
+  const state = new URL(authorizeLocation!).searchParams.get('state');
+  expect(state).toBeTruthy();
+
+  // Real behavior (internal/http_handlers/oauth_callback.go
+  // OAuthCallbackHandler): a recognized state with no `code` in the request
+  // is rejected before any provider call is made, so no user is ever looked
+  // up or created - there is no "partial account" state to leave behind
+  // here by construction, not just by assertion.
+  const deniedRes = await request.get(
+    `/oauth_callback/${provider}?error=access_denied&state=${encodeURIComponent(state!)}`,
+    { maxRedirects: 0 }
+  );
+  expect(deniedRes.status()).toBe(400);
+  const deniedBody = await deniedRes.json();
+  expect(deniedBody.error).toBe('invalid oauth code');
+
+  // The callback handler removes the state from the store as soon as it's
+  // read, regardless of outcome (single-use, same RFC 6749 §4.1.2 discipline
+  // as authorization codes - see the replay test in
+  // tests/oidc-provider.spec.ts) - a retried request with the exact same
+  // state must fail differently: unrecognized state, not "no code" again.
+  const replayRes = await request.get(
+    `/oauth_callback/${provider}?error=access_denied&state=${encodeURIComponent(state!)}`,
+    { maxRedirects: 0 }
+  );
+  expect(replayRes.status()).toBe(400);
+  const replayBody = await replayRes.json();
+  expect(replayBody.error).toBe('invalid oauth state');
+}
