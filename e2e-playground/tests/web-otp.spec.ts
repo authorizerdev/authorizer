@@ -142,10 +142,17 @@ test.describe('WebOTP (SMS-OTP code-entry screen)', () => {
   // AuthorizerVerifyOtp.tsx (node_modules/@authorizerdev/authorizer-react/
   // src/components/AuthorizerVerifyOtp.tsx) never calls
   // navigator.credentials.get() anywhere. Confirmed by grepping the full
-  // authorizer-react AND authorizer-js source trees, plus web/app/src, for
-  // "credentials.get", "OTPCredential", and "WebOTP": zero matches in all
-  // three. The only WebOTP-related surface that exists anywhere in this
-  // stack is the declarative autoComplete="one-time-code" attribute on the
+  // authorizer-react source tree plus web/app/src for "credentials.get",
+  // "OTPCredential", and "WebOTP": zero matches. authorizer-js ships no
+  // source in node_modules (compiled lib/ only); its compiled output DOES
+  // contain one navigator.credentials.get({ publicKey: ... }) call, inside
+  // loginWithPasskey - WebAuthn/passkey login, a different UI element and a
+  // different Credential Management API mode (publicKey, not otp) from the
+  // #authorizer-verify-otp SMS-OTP input this file exercises. Unrelated to
+  // WebOTP, doesn't change the conclusion below.
+  //
+  // The only WebOTP-related surface that exists anywhere in this stack is
+  // the declarative autoComplete="one-time-code" attribute on the
   // #authorizer-verify-otp <input> (asserted below) - a purely browser/OS-
   // native mechanism (the native SMS Retriever / keyboard-suggestion chip)
   // with no JS-observable hook. A page only gets programmatic WebOTP
@@ -167,9 +174,10 @@ test.describe('WebOTP (SMS-OTP code-entry screen)', () => {
   test('auto-fill via mocked navigator.credentials.get()', async () => {
     test.skip(
       true,
-      'authorizer-react/-js never call navigator.credentials.get() anywhere (grep-verified against source) - ' +
-        'only the declarative autoComplete="one-time-code" hint exists on #authorizer-verify-otp, and it has no ' +
-        'JS-observable hook for a mock to attach to. See the describe-block comment above for the full investigation.'
+      'authorizer-react never calls navigator.credentials.get({otp:...}) anywhere for the SMS-OTP verify input ' +
+        '(grep-verified against source; authorizer-js\'s only call to that API is an unrelated WebAuthn/passkey ' +
+        'login) - only the declarative autoComplete="one-time-code" hint exists on #authorizer-verify-otp, and it ' +
+        'has no JS-observable hook for a mock to attach to. See the describe-block comment above for the full investigation.'
     );
   });
 
