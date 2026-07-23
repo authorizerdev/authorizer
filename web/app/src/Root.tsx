@@ -16,6 +16,27 @@ const Settings = lazy(() => import('./pages/settings'));
 const SignUp = lazy(() => import('./pages/signup'));
 
 /**
+ * True only for the exact shape `bounceSAMLIDPToLogin` (saml_idp.go) produces:
+ * same-origin, path `/saml/idp/{slug}/sso`, carrying `saml_continue`. This is
+ * deliberately narrow — `redirect_uri` is a client-controllable query param on
+ * /app, so anything looser here becomes a post-login open redirect.
+ */
+function isSamlIdpContinueURL(url: string): boolean {
+	if (!hasWindow() || !url) return false;
+	let parsed: URL;
+	try {
+		parsed = new URL(url, window.location.origin);
+	} catch {
+		return false;
+	}
+	return (
+		parsed.origin === window.location.origin &&
+		/^\/saml\/idp\/[^/]+\/sso$/.test(parsed.pathname) &&
+		parsed.searchParams.has('saml_continue')
+	);
+}
+
+/**
  * Build a normalized parameter map from query + fragment.
  * We treat both as inputs because `/authorize` may choose fragment
  * depending on response_mode and our login UI should preserve the
@@ -91,6 +112,10 @@ export default function Root({
 			getParam('client_id') !== '' ||
 			getParam('scope') !== '');
 
+	// Two mutually exclusive post-login resumption mechanisms, merged into one
+	// effect so they can never both fire off the same render (two separate
+	// effects both calling window.location.replace would race on declaration
+	// order instead of on which one is actually correct for this URL).
 	useEffect(() => {
 		if (!token) return;
 
@@ -98,28 +123,40 @@ export default function Root({
 		// source of truth for redirect_uri validation and response_mode
 		// (query / fragment / form_post / web_message). The login UI should
 		// only establish a session and then resume the authorization request.
-		if (!isAuthorizeContext) return;
+		if (isAuthorizeContext) {
+			// Preserve exactly what we received on /app and send it back to
+			// /authorize; the backend will complete the authorization response.
+			const params = new URLSearchParams();
+			for (const [k, v] of combinedParams.entries()) {
+				// Ignore any accidental app-only params.
+				if (k === '') continue;
+				params.set(k, v);
+			}
 
-		// Preserve exactly what we received on /app and send it back to
-		// /authorize; the backend will complete the authorization response.
-		const params = new URLSearchParams();
-		for (const [k, v] of combinedParams.entries()) {
-			// Ignore any accidental app-only params.
-			if (k === '') continue;
-			params.set(k, v);
+			// Ensure state exists; do NOT overwrite if provided.
+			if (!params.get('state')) {
+				params.set('state', state);
+			}
+			if (scope?.length && !params.get('scope')) {
+				params.set('scope', scope.join(' '));
+			}
+
+			sessionStorage.removeItem('authorizer_state');
+			window.location.replace(`/authorize?${params.toString()}`);
+			return;
 		}
 
-		// Ensure state exists; do NOT overwrite if provided.
-		if (!params.get('state')) {
-			params.set('state', state);
+		// SP-initiated SAML IdP login. The server (bounceSAMLIDPToLogin) sends
+		// unauthenticated users here with redirect_uri pointing back at its own
+		// /saml/idp/{slug}/sso?saml_continue endpoint, which resumes and
+		// auto-submits the pending assertion once a session exists. Unlike the
+		// /authorize resumption above, we navigate to the literal redirect_uri
+		// - but only when it matches that exact shape, never for an arbitrary
+		// client-supplied redirect_uri.
+		if (isSamlIdpContinueURL(rawRedirectURL)) {
+			window.location.replace(rawRedirectURL);
 		}
-		if (scope?.length && !params.get('scope')) {
-			params.set('scope', scope.join(' '));
-		}
-
-		sessionStorage.removeItem('authorizer_state');
-		window.location.replace(`/authorize?${params.toString()}`);
-	}, [token, isAuthorizeContext, state]);
+	}, [token, isAuthorizeContext, rawRedirectURL, state]);
 
 	// Both MFA gates below are reached via a server redirect carrying the
 	// gate state in the URL, not client-side navigation - there's no prior
