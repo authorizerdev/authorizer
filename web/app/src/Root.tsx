@@ -36,6 +36,23 @@ function isSamlIdpContinueURL(url: string): boolean {
 	);
 }
 
+// clearMfaRedirectParams strips mfa_required/mfa_gate/mfa_methods from the
+// current URL once the MFA gate resolves (skip or verify succeeds). Root's
+// `mfaRedirect` (below) is recomputed from window.location.href on every
+// render and is checked before `token` - without this, a successful
+// skip/verify sets a real token but the URL still carries the server's
+// original mfa_required=1 redirect params, so the very next render matches
+// mfaRedirect again and re-renders the same MFA screen forever instead of
+// falling through to the token check and the dashboard/resumption effect.
+function clearMfaRedirectParams(): void {
+	if (!hasWindow()) return;
+	const url = new URL(window.location.href);
+	url.searchParams.delete('mfa_required');
+	url.searchParams.delete('mfa_gate');
+	url.searchParams.delete('mfa_methods');
+	window.history.replaceState(null, '', url.toString());
+}
+
 /**
  * Build a normalized parameter map from query + fragment.
  * We treat both as inputs because `/authorize` may choose fragment
@@ -183,6 +200,7 @@ export default function Root({
 				}
 				onBack={backToLogin}
 				onLogin={(data: any) => {
+					clearMfaRedirectParams();
 					setAuthData({
 						user: data?.user || null,
 						token: data,
@@ -206,6 +224,7 @@ export default function Root({
 				onBack={backToLogin}
 				loginContext={{
 					onComplete: (data: any) => {
+						clearMfaRedirectParams();
 						setAuthData({
 							user: data?.user || null,
 							token: data,
