@@ -105,7 +105,7 @@ export async function deleteSAMLConnectionByEntityID(idpEntityId: string): Promi
   `;
   const res = await client.request<{
     _trusted_issuers: { trusted_issuers: { id: string; issuer_url: string }[] };
-  }>(listQuery, { params: { pagination: { pagination: { limit: 1000 } } } });
+  }>(listQuery, { params: { pagination: { limit: 1000 } } });
   const stale = res._trusted_issuers.trusted_issuers.find((t) => t.issuer_url === idpEntityId);
   if (!stale) return;
 

@@ -61,6 +61,12 @@ services:
       - "--test-allow-private-webhook-hosts=true"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
     depends_on:
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
@@ -136,6 +142,12 @@ services:
       - "--test-sms-webhook-url=http://sms-sink:4100/sms"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
     depends_on:
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
@@ -186,6 +198,12 @@ services:
       - "--allowed-origins=http://webauthn.e2e-playground.test:8080"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
     depends_on:
       mailpit: { condition: service_started }
     healthcheck:
@@ -237,6 +255,12 @@ services:
       - "--allowed-origins=http://localhost:8083,http://authorizer-magic-link:8080"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
       - "--smtp-sender-email=e2e@authorizer.test"
     depends_on:
       mailpit: { condition: service_started }
@@ -283,6 +307,12 @@ services:
       - "--allowed-origins=http://localhost:8084,http://authorizer-mfa-enforced:8080"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
     depends_on:
       mailpit: { condition: service_started }
     healthcheck:
@@ -330,6 +360,12 @@ services:
       - "--allowed-origins=http://localhost:8085,http://authorizer-mfa-magic-link:8080"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
       - "--smtp-sender-email=e2e@authorizer.test"
     depends_on:
       mailpit: { condition: service_started }
