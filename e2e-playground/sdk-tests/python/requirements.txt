@@ -1,0 +1,24 @@
+# Live SDK e2e test suite dependencies.
+#
+# authorizer-py is pinned to the published PyPI release under test — NOT a
+# local/editable install. The whole point of this suite is to exercise the
+# real wire shapes the shipped SDK sends and parses.
+authorizer-py==0.3.0rc3
+
+# Test runner.
+pytest==8.3.4
+
+# TOTP code generation (RFC 6238) — the "authenticator app" side of the TOTP
+# ceremony. Mirrors otpauth in the Playwright suite.
+pyotp==2.9.0
+
+# Software WebAuthn authenticator — completes a real registration/assertion
+# ceremony from Python (the calling side has no browser CDP virtual
+# authenticator). Pulls in fido2 + cryptography.
+soft-webauthn==0.1.4
+
+# Used directly for the raw-HTTP work the SDK deliberately does NOT wrap:
+# polling the sms-sink / mailpit / webhook-sink mocks, and following the
+# social-OAuth and magic-link redirect chains a browser would normally drive.
+# (Also a transitive dependency of authorizer-py; pinned here for clarity.)
+httpx==0.28.1

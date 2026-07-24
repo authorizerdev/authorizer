@@ -436,3 +436,37 @@ services:
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
       webhook-sink: { condition: service_started }
+
+  # Runs the Python SDK e2e suite (sdk-tests/python) inside the compose network,
+  # for the SAME reason the `playwright` service above does: the social-OAuth
+  # redirect chain (mock-oauth) and the WebAuthn RP origin
+  # (webauthn.e2e-playground.test:8080) only resolve/validate from within the
+  # docker-internal network. It depends only on the published authorizer-py SDK
+  # (installed from PyPI in its Dockerfile) — no source of this repo is copied
+  # into it. Never started by `up`; invoked via
+  # `docker compose run --rm python-sdk`.
+  python-sdk:
+    build:
+      context: ./sdk-tests/python
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      AUTHORIZER_ADMIN_SECRET: e2e-admin-secret
+      AUTHORIZER_CLIENT_ID: e2e-client-id
+      AUTHORIZER_CLIENT_SECRET: e2e-client-secret
+      MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
+      MAILPIT_BASE_URL: http://mailpit:8025
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
