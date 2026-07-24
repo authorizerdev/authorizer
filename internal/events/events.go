@@ -149,7 +149,7 @@ func (p *provider) deliver(ctx context.Context, log *zerolog.Logger, webhook *sc
 	// SSRF protection: resolve the host once and pin the dialer to the
 	// validated IP so http.Client cannot be tricked into re-resolving
 	// (DNS rebinding TOCTOU).
-	client, err := validators.SafeHTTPClient(ctx, webhook.EndPoint, time.Second*30)
+	client, err := webhookHTTPClient(ctx, webhook.EndPoint, time.Second*30, p.config.TestAllowPrivateWebhookHosts)
 	if err != nil {
 		log.Debug().Err(err).Str("endpoint", webhook.EndPoint).Msg("webhook endpoint rejected by SSRF filter")
 		_, _ = p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
@@ -205,6 +205,21 @@ func (p *provider) deliver(ctx context.Context, log *zerolog.Logger, webhook *sc
 	}); err != nil {
 		log.Debug().Err(err).Msg("error saving webhook log")
 	}
+}
+
+// webhookHTTPClient builds the SSRF-hardened *http.Client for a webhook delivery.
+// allowPrivate (Config.TestAllowPrivateWebhookHosts) is the ONLY thing that
+// switches this to validators.SafeHTTPClientAllowPrivate — see that function's
+// doc comment for why it exists (e2e-playground's webhook-sink mock only, reachable
+// solely at a docker-compose-private address). Every other invariant (scheme
+// allow-list, DNS-rebinding host pinning, TLS SNI) is unchanged either way. Mirrors
+// internal/http_handlers/oauth_sso.go's ssoHTTPClient, kept independent so the two
+// escape hatches can never relax each other.
+func webhookHTTPClient(ctx context.Context, rawURL string, timeout time.Duration, allowPrivate bool) (*http.Client, error) {
+	if allowPrivate {
+		return validators.SafeHTTPClientAllowPrivate(ctx, rawURL, timeout)
+	}
+	return validators.SafeHTTPClient(ctx, rawURL, timeout)
 }
 
 // headerValueString coerces a free-form JSON header value to a string without

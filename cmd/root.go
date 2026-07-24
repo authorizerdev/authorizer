@@ -273,6 +273,7 @@ func init() {
 	f.StringVar(&rootArgs.config.TestOAuthTwitchBaseURL, "test-oauth-twitch-base-url", "", "(test-only) override Twitch OAuth base URL for e2e mock IdP")
 	f.StringVar(&rootArgs.config.TestOAuthRobloxBaseURL, "test-oauth-roblox-base-url", "", "(test-only) override Roblox OAuth base URL for e2e mock IdP")
 	f.BoolVar(&rootArgs.config.TestAllowPrivateSSOHosts, "test-allow-private-sso-hosts", false, "(test-only) allow the per-org SSO OIDC broker to dial private/loopback hosts and non-https issuer_urls, for e2e-playground's mock IdP")
+	f.BoolVar(&rootArgs.config.TestAllowPrivateWebhookHosts, "test-allow-private-webhook-hosts", false, "(test-only) allow webhook delivery to dial private/loopback hosts, for e2e-playground's webhook-sink mock")
 
 	// URLs
 	f.StringVar(&rootArgs.config.AuthorizerURL, "url", "", "Canonical/trusted base URL of this Authorizer instance (e.g. https://auth.example.com). When set, it is the ONLY source used to build verification/reset/magic-link email URLs, the JWT iss claim, and OIDC discovery URLs; all request headers (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored. Leaving it empty keeps legacy header-based derivation but exposes host-header-injection account takeover (CWE-640) — set this in production")

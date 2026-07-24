@@ -19,6 +19,16 @@ type Config struct {
 	// of Env==TestEnv, which also no-ops real email delivery and events — this
 	// flag changes nothing else. Must remain false in production.
 	TestAllowPrivateSSOHosts bool
+	// TestAllowPrivateWebhookHosts relaxes the private/loopback-IP SSRF check for
+	// webhook delivery only (internal/events/events.go deliver()). Kept independent
+	// of TestAllowPrivateSSOHosts on purpose: each escape hatch is scoped to exactly
+	// one outbound call site (least privilege), so enabling webhook delivery to a
+	// private address never relaxes the SSO broker's SSRF filter, and vice versa.
+	// Only ever set by e2e-playground/docker-compose.yml, where the webhook-sink
+	// mock is reachable solely at a docker-compose-private address. Deliberately
+	// independent of Env==TestEnv (which no-ops real delivery entirely). Must remain
+	// false in production.
+	TestAllowPrivateWebhookHosts bool
 	// OrganizationLogo is the logo of the organization
 	OrganizationLogo string
 	// OrganizationName is the name of the organization

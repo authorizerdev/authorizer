@@ -6,9 +6,15 @@ import (
 	"net/url"
 )
 
-// ValidateEndpointURL checks the webhook endpoint URL for SSRF.
-// Rejects private/loopback/link-local IPs and non-http(s) schemes.
-func ValidateEndpointURL(endpoint string) error {
+// ValidateEndpointURL checks the webhook endpoint URL for SSRF at registration
+// time. Rejects non-http(s) schemes and missing hosts always; rejects
+// private/loopback/link-local IPs unless allowPrivate is set. allowPrivate
+// (Config.TestAllowPrivateWebhookHosts) is the registration-time counterpart to
+// the delivery-time SafeHTTPClientAllowPrivate escape hatch: it exists solely so
+// e2e-playground can register a webhook pointing at its docker-private
+// webhook-sink mock. The scheme allow-list stays enforced either way. Must remain
+// off (allowPrivate=false) in production.
+func ValidateEndpointURL(endpoint string, allowPrivate bool) error {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return fmt.Errorf("malformed URL")
@@ -32,7 +38,7 @@ func ValidateEndpointURL(endpoint string) error {
 		if ip == nil {
 			return fmt.Errorf("invalid IP address resolved")
 		}
-		if isPrivateIP(ip) {
+		if !allowPrivate && isPrivateIP(ip) {
 			return fmt.Errorf("requests to private/internal networks are not allowed")
 		}
 	}
