@@ -178,6 +178,106 @@ class AuthorizerAdminServiceStub(object):
                 request_serializer=authorizer_dot_v1_dot_admin__pb2.FgaResetRequest.SerializeToString,
                 response_deserializer=authorizer_dot_v1_dot_admin__pb2.FgaResetResponse.FromString,
                 _registered_method=True)
+        self.CreateClient = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/CreateClient',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.CreateClientRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.FromString,
+                _registered_method=True)
+        self.UpdateClient = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/UpdateClient',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateClientRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateClientResponse.FromString,
+                _registered_method=True)
+        self.DeleteClient = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/DeleteClient',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteClientRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteClientResponse.FromString,
+                _registered_method=True)
+        self.RotateClientSecret = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/RotateClientSecret',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.RotateClientSecretRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.FromString,
+                _registered_method=True)
+        self.GetClient = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/GetClient',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.GetClientRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.GetClientResponse.FromString,
+                _registered_method=True)
+        self.Clients = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/Clients',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.ClientsRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.ClientsResponse.FromString,
+                _registered_method=True)
+        self.AddTrustedIssuer = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerResponse.FromString,
+                _registered_method=True)
+        self.UpdateTrustedIssuer = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerResponse.FromString,
+                _registered_method=True)
+        self.DeleteTrustedIssuer = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerResponse.FromString,
+                _registered_method=True)
+        self.GetTrustedIssuer = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerResponse.FromString,
+                _registered_method=True)
+        self.TrustedIssuers = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/TrustedIssuers',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.TrustedIssuersRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.TrustedIssuersResponse.FromString,
+                _registered_method=True)
+        self.CreateSamlServiceProvider = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/CreateSamlServiceProvider',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderResponse.FromString,
+                _registered_method=True)
+        self.UpdateSamlServiceProvider = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/UpdateSamlServiceProvider',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderResponse.FromString,
+                _registered_method=True)
+        self.DeleteSamlServiceProvider = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/DeleteSamlServiceProvider',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderResponse.FromString,
+                _registered_method=True)
+        self.GetSamlServiceProvider = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/GetSamlServiceProvider',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderResponse.FromString,
+                _registered_method=True)
+        self.ListSamlServiceProviders = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/ListSamlServiceProviders',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersResponse.FromString,
+                _registered_method=True)
+        self.RotateSamlIdpCert = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/RotateSamlIdpCert',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertResponse.FromString,
+                _registered_method=True)
+        self.RetireSamlIdpKey = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/RetireSamlIdpKey',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyResponse.FromString,
+                _registered_method=True)
+        self.ListSamlIdpKeys = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/ListSamlIdpKeys',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysResponse.FromString,
+                _registered_method=True)
+        self.ImportSamlSpMetadata = channel.unary_unary(
+                '/authorizer.v1.AuthorizerAdminService/ImportSamlSpMetadata',
+                request_serializer=authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataRequest.SerializeToString,
+                response_deserializer=authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataResponse.FromString,
+                _registered_method=True)
 
 
 class AuthorizerAdminServiceServicer(object):
@@ -458,6 +558,179 @@ class AuthorizerAdminServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreateClient(self, request, context):
+        """=== Service Accounts ===
+
+        CreateClient provisions a new machine/workload identity and returns
+        the generated client secret exactly once (only the bcrypt hash is stored).
+        Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateClient(self, request, context):
+        """UpdateClient updates a service account's name, description, allowed
+        scopes, or active state. It never touches the client secret. Requires
+        super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteClient(self, request, context):
+        """DeleteClient deletes a service account by id, cascading to its
+        trusted issuers. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RotateClientSecret(self, request, context):
+        """RotateClientSecret replaces the stored client secret with a fresh
+        one and returns the new plaintext exactly once (the old secret stops
+        validating immediately). Reuses CreateClientResponse — the only
+        admin message that carries a secret. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetClient(self, request, context):
+        """GetClient returns a single service account by id. The client secret
+        is never surfaced. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Clients(self, request, context):
+        """Clients returns a paginated list of service accounts. Client secrets
+        are never surfaced. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AddTrustedIssuer(self, request, context):
+        """=== Trusted Issuers ===
+
+        AddTrustedIssuer registers an external JWT issuer for a service account.
+        subject_claim defaults to "sub" when omitted. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateTrustedIssuer(self, request, context):
+        """UpdateTrustedIssuer updates a trusted issuer's name, JWKS URL, expected
+        audience, active state, or SPIFFE refresh hint. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteTrustedIssuer(self, request, context):
+        """DeleteTrustedIssuer deletes a trusted issuer by id. Requires super-admin
+        auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetTrustedIssuer(self, request, context):
+        """GetTrustedIssuer returns a single trusted issuer by id. Requires super-admin
+        auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def TrustedIssuers(self, request, context):
+        """TrustedIssuers returns a paginated list of trusted issuers, optionally
+        filtered by service_account_id. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateSamlServiceProvider(self, request, context):
+        """=== SAML IdP: downstream service providers ===
+
+        CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer
+        (acting as the IdP) issues signed assertions to. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateSamlServiceProvider(self, request, context):
+        """UpdateSamlServiceProvider updates a downstream SP's name, endpoints,
+        certificate, attribute mapping, or active state. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteSamlServiceProvider(self, request, context):
+        """DeleteSamlServiceProvider deletes a downstream SP by id. Requires
+        super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetSamlServiceProvider(self, request, context):
+        """GetSamlServiceProvider returns a single downstream SP by id. Requires
+        super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListSamlServiceProviders(self, request, context):
+        """ListSamlServiceProviders returns a paginated list of downstream SPs for an
+        org. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RotateSamlIdpCert(self, request, context):
+        """=== SAML IdP: signing key rotation & SP-metadata import ===
+
+        RotateSamlIdpCert generates a new current signing keypair for an org's SAML
+        IdP, demoting the previous current key. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RetireSamlIdpKey(self, request, context):
+        """RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.
+        Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListSamlIdpKeys(self, request, context):
+        """ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires
+        super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ImportSamlSpMetadata(self, request, context):
+        """ImportSamlSpMetadata parses pasted SP metadata XML and returns the fields to
+        prefill a create call. It does NOT create a record and performs no remote
+        fetch. Requires super-admin auth.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AuthorizerAdminServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -620,6 +893,106 @@ def add_AuthorizerAdminServiceServicer_to_server(servicer, server):
                     servicer.FgaReset,
                     request_deserializer=authorizer_dot_v1_dot_admin__pb2.FgaResetRequest.FromString,
                     response_serializer=authorizer_dot_v1_dot_admin__pb2.FgaResetResponse.SerializeToString,
+            ),
+            'CreateClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateClient,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.CreateClientRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.SerializeToString,
+            ),
+            'UpdateClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateClient,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateClientRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateClientResponse.SerializeToString,
+            ),
+            'DeleteClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteClient,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteClientRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteClientResponse.SerializeToString,
+            ),
+            'RotateClientSecret': grpc.unary_unary_rpc_method_handler(
+                    servicer.RotateClientSecret,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.RotateClientSecretRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.SerializeToString,
+            ),
+            'GetClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetClient,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.GetClientRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.GetClientResponse.SerializeToString,
+            ),
+            'Clients': grpc.unary_unary_rpc_method_handler(
+                    servicer.Clients,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.ClientsRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.ClientsResponse.SerializeToString,
+            ),
+            'AddTrustedIssuer': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddTrustedIssuer,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerResponse.SerializeToString,
+            ),
+            'UpdateTrustedIssuer': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateTrustedIssuer,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerResponse.SerializeToString,
+            ),
+            'DeleteTrustedIssuer': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteTrustedIssuer,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerResponse.SerializeToString,
+            ),
+            'GetTrustedIssuer': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetTrustedIssuer,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerResponse.SerializeToString,
+            ),
+            'TrustedIssuers': grpc.unary_unary_rpc_method_handler(
+                    servicer.TrustedIssuers,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.TrustedIssuersRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.TrustedIssuersResponse.SerializeToString,
+            ),
+            'CreateSamlServiceProvider': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSamlServiceProvider,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderResponse.SerializeToString,
+            ),
+            'UpdateSamlServiceProvider': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateSamlServiceProvider,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderResponse.SerializeToString,
+            ),
+            'DeleteSamlServiceProvider': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteSamlServiceProvider,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderResponse.SerializeToString,
+            ),
+            'GetSamlServiceProvider': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSamlServiceProvider,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderResponse.SerializeToString,
+            ),
+            'ListSamlServiceProviders': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSamlServiceProviders,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersResponse.SerializeToString,
+            ),
+            'RotateSamlIdpCert': grpc.unary_unary_rpc_method_handler(
+                    servicer.RotateSamlIdpCert,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertResponse.SerializeToString,
+            ),
+            'RetireSamlIdpKey': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetireSamlIdpKey,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyResponse.SerializeToString,
+            ),
+            'ListSamlIdpKeys': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSamlIdpKeys,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysResponse.SerializeToString,
+            ),
+            'ImportSamlSpMetadata': grpc.unary_unary_rpc_method_handler(
+                    servicer.ImportSamlSpMetadata,
+                    request_deserializer=authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataRequest.FromString,
+                    response_serializer=authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1490,6 +1863,546 @@ class AuthorizerAdminService(object):
             '/authorizer.v1.AuthorizerAdminService/FgaReset',
             authorizer_dot_v1_dot_admin__pb2.FgaResetRequest.SerializeToString,
             authorizer_dot_v1_dot_admin__pb2.FgaResetResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/CreateClient',
+            authorizer_dot_v1_dot_admin__pb2.CreateClientRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/UpdateClient',
+            authorizer_dot_v1_dot_admin__pb2.UpdateClientRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.UpdateClientResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/DeleteClient',
+            authorizer_dot_v1_dot_admin__pb2.DeleteClientRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.DeleteClientResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RotateClientSecret(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/RotateClientSecret',
+            authorizer_dot_v1_dot_admin__pb2.RotateClientSecretRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.CreateClientResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/GetClient',
+            authorizer_dot_v1_dot_admin__pb2.GetClientRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.GetClientResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Clients(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/Clients',
+            authorizer_dot_v1_dot_admin__pb2.ClientsRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.ClientsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AddTrustedIssuer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/AddTrustedIssuer',
+            authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.AddTrustedIssuerResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateTrustedIssuer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/UpdateTrustedIssuer',
+            authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.UpdateTrustedIssuerResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteTrustedIssuer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/DeleteTrustedIssuer',
+            authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.DeleteTrustedIssuerResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetTrustedIssuer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/GetTrustedIssuer',
+            authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.GetTrustedIssuerResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def TrustedIssuers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/TrustedIssuers',
+            authorizer_dot_v1_dot_admin__pb2.TrustedIssuersRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.TrustedIssuersResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateSamlServiceProvider(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/CreateSamlServiceProvider',
+            authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.CreateSamlServiceProviderResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateSamlServiceProvider(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/UpdateSamlServiceProvider',
+            authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.UpdateSamlServiceProviderResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteSamlServiceProvider(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/DeleteSamlServiceProvider',
+            authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.DeleteSamlServiceProviderResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetSamlServiceProvider(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/GetSamlServiceProvider',
+            authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.GetSamlServiceProviderResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListSamlServiceProviders(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/ListSamlServiceProviders',
+            authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.ListSamlServiceProvidersResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RotateSamlIdpCert(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/RotateSamlIdpCert',
+            authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.RotateSamlIdpCertResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RetireSamlIdpKey(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/RetireSamlIdpKey',
+            authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.RetireSamlIdpKeyResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListSamlIdpKeys(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/ListSamlIdpKeys',
+            authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.ListSamlIdpKeysResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ImportSamlSpMetadata(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/authorizer.v1.AuthorizerAdminService/ImportSamlSpMetadata',
+            authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataRequest.SerializeToString,
+            authorizer_dot_v1_dot_admin__pb2.ImportSamlSpMetadataResponse.FromString,
             options,
             channel_credentials,
             insecure,

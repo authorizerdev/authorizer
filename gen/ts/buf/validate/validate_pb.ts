@@ -1636,7 +1636,7 @@ export type UInt64Rules = Message<"buf.validate.UInt64Rules"> & {
    * message MyUInt64 {
    *   uint64 value = 1 [
    *     (buf.validate.field).uint64.example = 1,
-   *     (buf.validate.field).uint64.example = -10
+   *     (buf.validate.field).uint64.example = 10
    *   ];
    * }
    * ```
@@ -2721,8 +2721,8 @@ export type BoolRules = Message<"buf.validate.BoolRules"> & {
    * ```proto
    * message MyBool {
    *   bool value = 1 [
-   *     (buf.validate.field).bool.example = 1,
-   *     (buf.validate.field).bool.example = 2
+   *     (buf.validate.field).bool.example = true,
+   *     (buf.validate.field).bool.example = false
    *   ];
    * }
    * ```
@@ -2951,7 +2951,7 @@ export type StringRules = Message<"buf.validate.StringRules"> & {
    * ```proto
    * message MyString {
    *   // must be in list ["apple", "banana"]
-   *   string value = 1 [(buf.validate.field).string.in = "apple", (buf.validate.field).string.in = "banana"];
+   *   string value = 1 [(buf.validate.field).string = { in: ["apple", "banana"] }];
    * }
    * ```
    *
@@ -2966,7 +2966,7 @@ export type StringRules = Message<"buf.validate.StringRules"> & {
    * ```proto
    * message MyString {
    *   // value must not be in list ["orange", "grape"]
-   *   string value = 1 [(buf.validate.field).string.not_in = "orange", (buf.validate.field).string.not_in = "grape"];
+   *   string value = 1 [(buf.validate.field).string = { not_in: ["orange", "grape"] }];
    * }
    * ```
    *
@@ -3621,7 +3621,7 @@ export type BytesRules = Message<"buf.validate.BytesRules"> & {
    * ```proto
    * message MyBytes {
    *   // value must in ["\x01\x02", "\x02\x03", "\x03\x04"]
-   *   optional bytes value = 1 [(buf.validate.field).bytes.in = {"\x01\x02", "\x02\x03", "\x03\x04"}];
+   *   optional bytes value = 1 [(buf.validate.field).bytes = { in: ["\x01\x02", "\x02\x03", "\x03\x04"] }];
    * }
    * ```
    *
@@ -3638,7 +3638,7 @@ export type BytesRules = Message<"buf.validate.BytesRules"> & {
    * ```proto
    * message MyBytes {
    *   // value must not in ["\x01\x02", "\x02\x03", "\x03\x04"]
-   *   optional bytes value = 1 [(buf.validate.field).bytes.not_in = {"\x01\x02", "\x02\x03", "\x03\x04"}];
+   *   optional bytes value = 1 [(buf.validate.field).bytes = { not_in: ["\x01\x02", "\x02\x03", "\x03\x04"] }];
    * }
    * ```
    *
@@ -3850,8 +3850,10 @@ export type EnumRules = Message<"buf.validate.EnumRules"> & {
    * }
    *
    * message MyMessage {
+   *   MyEnum value = 1 [
    *     (buf.validate.field).enum.example = 1,
    *     (buf.validate.field).enum.example = 2
+   *   ];
    * }
    * ```
    *
@@ -4104,7 +4106,7 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
    * ```proto
    * message MyDuration {
    *   // value must equal 5s
-   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.const = "5s"];
+   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.const = { seconds: 5 }];
    * }
    * ```
    *
@@ -4124,7 +4126,7 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
      * ```proto
      * message MyDuration {
      *   // must be less than 5s
-     *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.lt = "5s"];
+     *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.lt = { seconds: 5 }];
      * }
      * ```
      *
@@ -4141,7 +4143,7 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
      * ```proto
      * message MyDuration {
      *   // must be less than or equal to 10s
-     *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.lte = "10s"];
+     *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.lte = { seconds: 10 }];
      * }
      * ```
      *
@@ -4214,7 +4216,9 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
    * ```proto
    * message MyDuration {
    *   // must be in list [1s, 2s, 3s]
-   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.in = ["1s", "2s", "3s"]];
+   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration = {
+   *     in: [{ seconds: 1 }, { seconds: 2 }, { seconds: 3 }]
+   *   }];
    * }
    * ```
    *
@@ -4231,7 +4235,9 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
    * ```proto
    * message MyDuration {
    *   // value must not be in list [1s, 2s, 3s]
-   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration.not_in = ["1s", "2s", "3s"]];
+   *   google.protobuf.Duration value = 1 [(buf.validate.field).duration = {
+   *     not_in: [{ seconds: 1 }, { seconds: 2 }, { seconds: 3 }]
+   *   }];
    * }
    * ```
    *
@@ -4248,7 +4254,7 @@ export type DurationRules = Message<"buf.validate.DurationRules"> & {
    * message MyDuration {
    *   google.protobuf.Duration value = 1 [
    *     (buf.validate.field).duration.example = { seconds: 1 },
-   *     (buf.validate.field).duration.example = { seconds: 2 },
+   *     (buf.validate.field).duration.example = { seconds: 2 }
    *   ];
    * }
    * ```
@@ -4338,7 +4344,7 @@ export type FieldMaskRules = Message<"buf.validate.FieldMaskRules"> & {
    * message MyFieldMask {
    *   google.protobuf.FieldMask value = 1 [
    *     (buf.validate.field).field_mask.example = { paths: ["a", "b"] },
-   *     (buf.validate.field).field_mask.example = { paths: ["c.a", "d"] },
+   *     (buf.validate.field).field_mask.example = { paths: ["c.a", "d"] }
    *   ];
    * }
    * ```
@@ -4518,7 +4524,7 @@ export type TimestampRules = Message<"buf.validate.TimestampRules"> & {
    * message MyTimestamp {
    *   google.protobuf.Timestamp value = 1 [
    *     (buf.validate.field).timestamp.example = { seconds: 1672444800 },
-   *     (buf.validate.field).timestamp.example = { seconds: 1672531200 },
+   *     (buf.validate.field).timestamp.example = { seconds: 1672531200 }
    *   ];
    * }
    * ```
@@ -4644,7 +4650,7 @@ export type Violation = Message<"buf.validate.Violation"> & {
    *   bool b = 2 [(buf.validate.field).cel = {
    *     id: "custom_rule",
    *     expression: "!this ? 'b must be true': ''"
-   *   }]
+   *   }];
    * }
    * ```
    *
@@ -5009,7 +5015,7 @@ export const field: GenExtension<FieldOptions, FieldRules> = /*@__PURE__*/
  *
  * ```proto
  * extend buf.validate.Int32Rules {
- *   bool is_zero [(buf.validate.predefined).cel = {
+ *   bool is_zero = 1001 [(buf.validate.predefined).cel = {
  *     id: "int32.is_zero",
  *     message: "must be zero",
  *     expression: "!rule || this == 0",

@@ -191,7 +191,7 @@ generate-db-template:
 BUF ?= $(shell command -v buf 2>/dev/null)
 BUF_VERSION ?= v1.47.2
 
-.PHONY: proto-tools proto-lint proto-breaking proto-gen proto-check
+.PHONY: proto-tools proto-lint proto-breaking proto-gen proto-check proto-gen-clients proto-check-clients
 
 proto-tools:
 	@if [ -z "$(BUF)" ]; then \
@@ -214,6 +214,18 @@ proto-gen: proto-tools
 # Fail when proto sources changed but gen/ was not regenerated and committed.
 proto-check: proto-gen
 	@git diff --exit-code -- gen/ || (echo "gen/ is stale; run make proto-gen and commit the result" && exit 1)
+
+# Client-SDK stub generation (separate template from proto-gen above). Outputs
+# gen/go-client, gen/python and gen/ts, which are vendored into the standalone
+# SDK repos (authorizer-go, authorizer-python, authorizer-js). NOT covered by
+# proto-gen/proto-check, so they need their own regenerate + staleness gate.
+proto-gen-clients: proto-tools
+	cd proto && buf dep update && buf generate --template buf.gen.clients.yaml --include-imports
+
+# Fail when proto sources changed but the vendored client stubs were not
+# regenerated and committed.
+proto-check-clients: proto-gen-clients
+	@git diff --exit-code -- gen/go-client gen/python gen/ts || (echo "client SDK stubs are stale; run make proto-gen-clients and commit the result" && exit 1)
 
 # ----------------------------------------------------------------------------
 # Formatting & linting (Go + TypeScript). `make fmt` before committing,
