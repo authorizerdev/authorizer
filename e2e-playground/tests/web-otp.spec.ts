@@ -134,51 +134,68 @@ async function loginToOtpVerifyScreen(page: Page, email: string): Promise<void> 
 }
 
 test.describe('WebOTP (SMS-OTP code-entry screen)', () => {
-  // ---------------------------------------------------------------------
-  // What this file does NOT (and cannot honestly) test: real WebOTP
-  // auto-fill via a mocked navigator.credentials.get().
-  //
-  // Investigated directly against source, not the plan's assumption:
-  // AuthorizerVerifyOtp.tsx (node_modules/@authorizerdev/authorizer-react/
-  // src/components/AuthorizerVerifyOtp.tsx) never calls
-  // navigator.credentials.get() anywhere. Confirmed by grepping the full
-  // authorizer-react source tree plus web/app/src for "credentials.get",
-  // "OTPCredential", and "WebOTP": zero matches. authorizer-js ships no
-  // source in node_modules (compiled lib/ only); its compiled output DOES
-  // contain one navigator.credentials.get({ publicKey: ... }) call, inside
-  // loginWithPasskey - WebAuthn/passkey login, a different UI element and a
-  // different Credential Management API mode (publicKey, not otp) from the
-  // #authorizer-verify-otp SMS-OTP input this file exercises. Unrelated to
-  // WebOTP, doesn't change the conclusion below.
-  //
-  // The only WebOTP-related surface that exists anywhere in this stack is
-  // the declarative autoComplete="one-time-code" attribute on the
-  // #authorizer-verify-otp <input> (asserted below) - a purely browser/OS-
-  // native mechanism (the native SMS Retriever / keyboard-suggestion chip)
-  // with no JS-observable hook. A page only gets programmatic WebOTP
-  // autofill by calling navigator.credentials.get({ otp: {...} }) itself;
-  // browsers do not wire the declarative attribute to that API internally
-  // on the page's behalf.
-  //
-  // So mocking navigator.credentials.get() via page.addInitScript, as the
-  // brief suggested, would have zero effect on any real code path here -
-  // nothing in the product ever calls it. A "passing" test built around
-  // that mock would necessarily contain test-authored glue that calls the
-  // mock itself and manually fills/dispatches the input's value, which
-  // only proves the test's own polyfill works, not that the product does
-  // anything with WebOTP. That is not a test-authoring mistake to correct;
-  // it is a genuine absence of the programmatic WebOTP integration in the
-  // product (spans authorizer, authorizer-js, and authorizer-react - not
-  // fixable from this repo alone). Documented here, as the brief's own
-  // escape hatch calls for, instead of shipping a fake assertion.
-  test('auto-fill via mocked navigator.credentials.get()', async () => {
-    test.skip(
-      true,
-      'authorizer-react never calls navigator.credentials.get({otp:...}) anywhere for the SMS-OTP verify input ' +
-        '(grep-verified against source; authorizer-js\'s only call to that API is an unrelated WebAuthn/passkey ' +
-        'login) - only the declarative autoComplete="one-time-code" hint exists on #authorizer-verify-otp, and it ' +
-        'has no JS-observable hook for a mock to attach to. See the describe-block comment above for the full investigation.'
-    );
+  // REGRESSION/FEATURE COVERAGE: this was originally skipped because
+  // authorizer-react never called navigator.credentials.get() for the
+  // SMS-OTP screen at all (verified against source at the time) - only the
+  // declarative autoComplete="one-time-code" hint existed, with no
+  // JS-observable hook for a mock to attach to. authorizer-react's
+  // WebOTP PR (shipped in the 2.2.0-rc.3 dependency bump) added a real
+  // navigator.credentials.get({otp:{transport:['sms']}}) call, gated on a
+  // `hasSmsOtp` prop and feature-detected via `'OTPCredential' in window`
+  // (AuthorizerVerifyOtp.tsx). AuthorizerBasicAuthLogin.tsx (the internal
+  // component that renders AuthorizerVerifyOtp for this exact
+  // should_show_mobile_otp_screen flow, via loginToOtpVerifyScreen below)
+  // already passes hasSmsOtp: otpData.has_sms_otp - so this path is
+  // wired end-to-end without any web/app change. (web/app's Root.tsx
+  // needed its own separate hasSmsOtp fix for the mfa-redirect/query-param
+  // flow specifically, a different code path from the one this test
+  // exercises - see Root.tsx's <AuthorizerVerifyOtp>.)
+  test('auto-fill via mocked navigator.credentials.get()', async ({ page, request, baseURL }) => {
+    const email = randomEmail();
+    const phone = randomPhone();
+    const enrollMessage = await enrollSmsOtp(request, baseURL!, email, phone);
+
+    // Bridges into Node so the stubbed navigator.credentials.get() below can
+    // wait for the real login-time SMS the same way a real WebOTP-capable
+    // browser would (it never resolves with a canned value - only with an
+    // actually-received matching message), reusing the exact same
+    // sms-sink poll + excluding-the-enrollment-code logic as the manual-entry
+    // test below.
+    await page.exposeFunction('__e2eWebOtpCode', async () => {
+      const message = await waitForSMS(request, phone, { excluding: enrollMessage });
+      return extractOTP(message);
+    });
+
+    // Feature-detect + stub navigator.credentials.get before any page script
+    // runs, so AuthorizerVerifyOtp's `'OTPCredential' in window` check
+    // passes and its real navigator.credentials.get({otp:...}) call
+    // resolves via the real SMS code fetched above - exercising the
+    // product's actual WebOTP code path, not test-authored glue standing in
+    // for it.
+    await page.addInitScript(() => {
+      // Minimal marker - the product only checks `'OTPCredential' in
+      // window`; it never constructs or inspects the class itself.
+      (window as any).OTPCredential = function OTPCredential() {};
+      const nav = window.navigator as any;
+      nav.credentials = nav.credentials || {};
+      nav.credentials.get = (opts: any) => {
+        if (!opts || !opts.otp) {
+          return Promise.reject(new Error('e2e stub only implements otp credential requests'));
+        }
+        return (window as any).__e2eWebOtpCode().then((code: string) => ({ code }));
+      };
+    });
+
+    await loginToOtpVerifyScreen(page, email);
+
+    // The product's WebOTP effect races the stubbed navigator.credentials.get()
+    // against manual entry - assert its resolution actually reached the
+    // controlled input, with nobody ever calling .fill() on it.
+    await expect(page.locator('#authorizer-verify-otp')).toHaveValue(/^[A-Z0-9]{6}$/, { timeout: 10_000 });
+
+    // The auto-filled value is real and submittable - completes login.
+    await page.locator('form[name="authorizer-mfa-otp-form"] button[type="submit"]').click();
+    await expect(page.getByText('Signed in as')).toBeVisible({ timeout: 10_000 });
   });
 
   test('code-entry input declares the browser-native WebOTP hint (autocomplete="one-time-code")', async ({

@@ -175,19 +175,6 @@ export default function Root({
 		}
 	}, [token, isAuthorizeContext, rawRedirectURL, state]);
 
-	// Separate resumption mechanism: SP-initiated SAML IdP login. The server
-	// (bounceSAMLIDPToLogin) sends unauthenticated users here with
-	// redirect_uri pointing back at its own /saml/idp/{slug}/sso?saml_continue
-	// endpoint, which resumes and auto-submits the pending assertion once a
-	// session exists. Unlike the /authorize resumption above, we navigate to
-	// the literal redirect_uri - but only when it matches that exact shape,
-	// never for an arbitrary client-supplied redirect_uri.
-	useEffect(() => {
-		if (!token) return;
-		if (!isSamlIdpContinueURL(rawRedirectURL)) return;
-		window.location.replace(rawRedirectURL);
-	}, [token, rawRedirectURL]);
-
 	// Both MFA gates below are reached via a server redirect carrying the
 	// gate state in the URL, not client-side navigation - there's no prior
 	// SPA screen to pop back to. "Back" here means abandoning the pending
@@ -206,6 +193,7 @@ export default function Root({
 			<AuthorizerVerifyOtp
 				is_totp={mfaRedirect.mfaMethods.includes('totp')}
 				offerWebauthnVerify={mfaRedirect.mfaMethods.includes('webauthn')}
+				hasSmsOtp={mfaRedirect.mfaMethods.includes('sms_otp')}
 				hasCodeFactor={
 					mfaRedirect.mfaMethods.includes('totp') ||
 					mfaRedirect.mfaMethods.includes('email_otp') ||
