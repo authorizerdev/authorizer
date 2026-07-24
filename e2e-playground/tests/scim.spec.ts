@@ -1,6 +1,7 @@
 // e2e-playground/tests/scim.spec.ts
 import { test, expect } from '@playwright/test';
-import { createOrg, createSCIMEndpoint, getUserPhoneNumberByEmail } from '../fixtures/adminClient';
+import { createHmac } from 'crypto';
+import { addWebhook, createOrg, createSCIMEndpoint, getUserPhoneNumberByEmail } from '../fixtures/adminClient';
 
 test.describe('SCIM', () => {
   test('provision, update, and deprovision a user via SCIM', async ({ request }) => {
@@ -213,46 +214,105 @@ test.describe('SCIM full-attribute PATCH', () => {
 });
 
 // SCIM provisioning-lifecycle webhooks (user.provisioned/deprovisioned/
-// scim_updated, internal/constants/webhook_event_scim.go) are fired correctly
-// from internal/service/scim/scim.go — confirmed by reading the source. But
-// there is no way to exercise them end-to-end here, or via any real customer
-// flow today, because of a real product bug found while building this test:
+// scim_updated, internal/constants/webhook_event_scim.go) are fired from
+// internal/service/scim/scim.go and now exercised end-to-end below. Getting
+// here took clearing TWO walls that previously made this test un-writable:
 //
-//   internal/validators/webhook.go's IsValidWebhookEventName allow-list was
-//   never updated for the six SCIM webhook events added alongside this
-//   feature. `_add_webhook` (internal/service/admin_webhooks.go) rejects
-//   event_name: "user.provisioned" (and deprovisioned/scim_updated/group.*)
-//   with "invalid event name user.provisioned" — verified live against this
-//   stack's running authorizer container. No admin can register a webhook
-//   for any SCIM lifecycle event via the only supported API, so the whole
-//   feature is currently unreachable.
+//   1. internal/validators/webhook.go's IsValidWebhookEventName allow-list did
+//      not include the SCIM events, so `_add_webhook` rejected them with
+//      "invalid event name user.provisioned". Fixed (allow-list now lists all
+//      six SCIM events) — a webhook for a SCIM lifecycle event can be registered.
 //
-// Even with that fixed, a live delivery test in this docker-compose stack
-// would hit a second, structural wall: webhook delivery
-// (internal/events/events.go's deliver()) always calls
-// validators.SafeHTTPClient, which unconditionally rejects private-network
-// IPs with no override (unlike the SSO broker's
-// SafeHTTPClientAllowPrivate/--test-allow-private-sso-hosts) — and every
-// e2e-playground service, including a hypothetical webhook-sink mock, only
-// has a private docker-network address. Running the authorizer with --env
-// test would skip that check, but internal/events/events.go's deliver() also
-// short-circuits ALL real HTTP delivery when Env == TestEnv (it just logs a
-// fake 200 "test" response) — so there is no configuration of this stack that
-// both allows registering a private endpoint and actually sends the HTTP
-// request to it.
+//   2. Both SSRF chokepoints unconditionally rejected private-network IPs, so no
+//      webhook could target the docker-private webhook-sink mock: the
+//      registration-time check (validators.ValidateEndpointURL in
+//      internal/service/admin_webhooks.go AddWebhook) AND the delivery-time check
+//      (validators.SafeHTTPClient in internal/events/events.go deliver()). Both
+//      now take an allowPrivate flag threaded from Config.TestAllowPrivateWebhookHosts
+//      (CLI: --test-allow-private-webhook-hosts, set true only on the `authorizer`
+//      service in docker-compose.yml — least privilege). The flag relaxes ONLY the
+//      private-IP rejection; the http/https scheme allow-list and DNS-rebinding
+//      host pin stay enforced, and it is a true no-op when unset (production
+//      default) — reachable solely via the operator CLI flag, never a request /
+//      GraphQL / per-webhook field. Mirrors the SSO broker's existing
+//      --test-allow-private-sso-hosts precedent exactly.
 //
-// Filed as a real bug rather than routed around; not building a webhook-sink
-// mock until IsValidWebhookEventName is fixed and (separately) a private-host
-// delivery escape hatch exists for e2e use, analogous to the SSO one.
+// The Env==TestEnv fake-200 short-circuit the old comment worried about is not a
+// factor: the e2e-playground authorizer never runs with --env test, so deliver()
+// makes a real HTTP POST.
 test.describe('SCIM provisioning webhooks', () => {
-  test('provisioning webhook delivery (user.provisioned / user.deprovisioned / user.scim_updated)', async () => {
-    test.skip(
-      true,
-      'blocked by a real bug: IsValidWebhookEventName (internal/validators/webhook.go) rejects ' +
-        'user.provisioned/deprovisioned/scim_updated, so _add_webhook cannot register a listener for ' +
-        'any SCIM lifecycle event today — see the comment above this describe block for details and ' +
-        'the separate SSRF/test-env constraint that would also block a live delivery test even once ' +
-        'that is fixed.'
-    );
+  const CLIENT_SECRET = 'e2e-client-secret'; // matches --client-secret in docker-compose.yml
+  const WEBHOOK_SINK = process.env.WEBHOOK_SINK_BASE_URL || 'http://localhost:4200';
+
+  test('delivers user.provisioned / user.scim_updated / user.deprovisioned with a valid HMAC signature', async ({
+    request,
+  }) => {
+    // Register listeners for all three lifecycle events BEFORE provisioning, so
+    // the provisioned delivery is captured. Webhooks are global; each fires on
+    // its event_name across every org on this instance. The mock keys deliveries
+    // by user email (unique per test), so parallel specs never collide.
+    const endpoint = `${WEBHOOK_SINK}/webhook`;
+    await addWebhook({ eventName: 'user.provisioned', endpoint });
+    await addWebhook({ eventName: 'user.scim_updated', endpoint });
+    await addWebhook({ eventName: 'user.deprovisioned', endpoint });
+
+    const org = await createOrg(`scim-webhook-${crypto.randomUUID()}`);
+    const { token } = await createSCIMEndpoint(org.id);
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/scim+json' };
+    const email = `scim-webhook-user-${org.id}@example.com`;
+
+    // create (active) -> user.provisioned
+    const created = await (
+      await request.post('/scim/v2/Users', {
+        headers,
+        data: {
+          schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+          userName: email,
+          name: { givenName: 'Katherine', familyName: 'Johnson' },
+          emails: [{ value: email, primary: true }],
+          active: true,
+        },
+      })
+    ).json();
+
+    // attribute PATCH while still active -> user.scim_updated (not deprovisioned)
+    const patchRes = await request.patch(`/scim/v2/Users/${created.id}`, {
+      headers,
+      data: {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        Operations: [{ op: 'replace', path: 'name.givenName', value: 'Kate' }],
+      },
+    });
+    expect(patchRes.status()).toBe(200);
+
+    // DELETE -> user.deprovisioned
+    const deleteRes = await request.delete(`/scim/v2/Users/${created.id}`, { headers });
+    expect(deleteRes.status()).toBe(204);
+
+    // Delivery is async (detached goroutine); poll the sink until all three land.
+    let events: Record<string, { signature: string; rawBody: string; body: any }> = {};
+    await expect
+      .poll(
+        async () => {
+          const res = await request.get(`${WEBHOOK_SINK}/webhook/${encodeURIComponent(email)}`);
+          if (res.status() !== 200) return [];
+          events = (await res.json()).events;
+          return Object.keys(events).sort();
+        },
+        { timeout: 15000, intervals: [250, 500, 1000] }
+      )
+      .toEqual(['user.deprovisioned', 'user.provisioned', 'user.scim_updated']);
+
+    // Each delivery: correct event fired, payload carries the right user, and the
+    // X-Authorizer-Signature is a valid HMAC-SHA256 of the EXACT received bytes
+    // under the client secret (matches deliver()'s hmac.New(sha256.New, ClientSecret)).
+    for (const eventName of ['user.provisioned', 'user.scim_updated', 'user.deprovisioned']) {
+      const d = events[eventName];
+      expect(d, `missing delivery for ${eventName}`).toBeTruthy();
+      expect(d.body.event_name).toBe(eventName);
+      expect(d.body.user.email).toBe(email);
+      const expectedSig = createHmac('sha256', CLIENT_SECRET).update(d.rawBody).digest('hex');
+      expect(d.signature, `HMAC mismatch for ${eventName}`).toBe(expectedSig);
+    }
   });
 });

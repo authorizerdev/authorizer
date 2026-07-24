@@ -52,6 +52,13 @@ services:
       - "--test-oauth-twitch-base-url=http://mock-oauth:4000/twitch"
       - "--test-oauth-roblox-base-url=http://mock-oauth:4000/roblox"
       - "--test-sms-webhook-url=http://sms-sink:4100/sms"
+      # Scoped to THIS instance only (tests/scim.spec.ts's webhook-delivery test
+      # targets AUTHORIZER_BASE_URL=:8080). Relaxes ONLY the private-IP SSRF check
+      # for webhook registration + delivery so the docker-private webhook-sink mock
+      # is reachable; scheme allow-list and DNS-rebinding pin stay enforced. Never
+      # set on the other instances (least privilege). See internal/config/config.go
+      # TestAllowPrivateWebhookHosts.
+      - "--test-allow-private-webhook-hosts=true"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
     depends_on:
@@ -59,6 +66,7 @@ services:
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
       interval: 2s
@@ -343,6 +351,10 @@ services:
     build: ./mocks/sms-sink
     ports: ["4100:4100"]
 
+  webhook-sink:
+    build: ./mocks/webhook-sink
+    ports: ["4200:4200"]
+
   mailpit:
     image: axllent/mailpit:latest
     ports:
@@ -371,6 +383,7 @@ services:
       # (tests/saml-sp.spec.ts sets ignoreHTTPSErrors for this reason).
       MOCK_SAML_BASE_URL: https://mock-saml-idp:4001
       SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
       MAILPIT_BASE_URL: http://mailpit:8025
     volumes:
       - ./playwright-report:/e2e/playwright-report
@@ -386,3 +399,4 @@ services:
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
