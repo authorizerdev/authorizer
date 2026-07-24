@@ -421,6 +421,16 @@ func runRoot(c *cobra.Command, args []string) {
 		}
 	}
 
+	// Warn if --env=e2e is set — this relaxes SSRF protection (private/loopback-IP
+	// rejection) for the per-org SSO broker and webhook registration/delivery, and
+	// routes social-login OAuth and SMS sending to fixed e2e-playground mock
+	// addresses. It exists solely for e2e-playground/docker-compose.yml and must
+	// never be set on a real deployment; unlike production/staging, there is no
+	// other visible symptom if it is (see internal/constants/env.go's E2EEnv doc).
+	if rootArgs.config.Env == constants.E2EEnv {
+		log.Warn().Msg("running with --env=e2e: SSRF protection is relaxed for the SSO broker and webhooks, and OAuth/SMS are routed to e2e-playground mock addresses. This must never be set in a real deployment.")
+	}
+
 	// Initialize prometheus metrics
 	metrics.Init()
 
