@@ -13,7 +13,7 @@ import path from 'node:path';
 // http: mock-saml-idp terminates TLS with a self-signed cert specifically so
 // this URL passes Authorizer's idp_sso_url validation (admin_org_saml.go
 // validateSAMLHTTPSURL rejects non-https outright, with no test bypass like
-// OIDC's --test-allow-private-sso-hosts) — see `ignoreHTTPSErrors` below.
+// OIDC's --env=e2e relaxation) — see `ignoreHTTPSErrors` below.
 const MOCK_SAML_BASE = process.env.MOCK_SAML_BASE_URL || 'https://localhost:4001';
 
 // mock-saml-idp/server.ts hardcodes its own entityID to this literal value

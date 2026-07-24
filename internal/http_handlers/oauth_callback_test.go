@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 )
 
@@ -127,7 +128,7 @@ const (
 // newAppleMockServer stands up a single httptest.Server that plays the role
 // of Apple's OAuth token endpoint AND its OIDC discovery/JWKS endpoints
 // (mirroring how processAppleUserInfo resolves both off the same
-// TestOAuthAppleBaseURL override — see internal/http_handlers/oauth_callback.go
+// TestOAuthBaseURL mechanism — see internal/http_handlers/oauth_callback.go
 // and internal/oauth/get_oauth_config.go). `claims` is signed with `key` as
 // the id_token returned by /token, after this stamps in the server's own URL
 // as `iss`. Key generation/JWKS-serving/RS256-signing reuse the helpers
@@ -173,11 +174,13 @@ func newAppleMockServer(t *testing.T, key *rsa.PrivateKey, claims jwt.MapClaims)
 // OAuthCallbackHandler's Apple branch does in production.
 func newAppleCallbackProvider(t *testing.T, mockBase string) *httpProvider {
 	t.Helper()
+	config.TestOAuthMockBaseOverride = mockBase
+	t.Cleanup(func() { config.TestOAuthMockBaseOverride = "" })
 	logger := zerolog.Nop()
 	cfg := &config.Config{
-		AppleClientID:         appleTestClientID,
-		AppleClientSecret:     "apple-client-secret",
-		TestOAuthAppleBaseURL: mockBase,
+		Env:               constants.E2EEnv,
+		AppleClientID:     appleTestClientID,
+		AppleClientSecret: "apple-client-secret",
 	}
 	oauthProv, err := oauth.New(cfg, &oauth.Dependencies{Log: &logger})
 	require.NoError(t, err)

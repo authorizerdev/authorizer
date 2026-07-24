@@ -141,8 +141,8 @@ func TestSCIM_AdminLifecycleAndProvisioning(t *testing.T) {
 // webhooks via the SDK admin client, then verifies real delivery (with valid
 // HMAC) to webhook-sink when a user is provisioned/updated/deprovisioned over
 // raw SCIM. Runs against the default `authorizer` instance because that is the
-// only one configured with --test-allow-private-webhook-hosts=true (so the
-// docker-private webhook-sink is reachable).
+// only one configured with --env=e2e (so the docker-private webhook-sink is
+// reachable).
 func TestSCIM_ProvisioningWebhookDelivery(t *testing.T) {
 	admin := adminClient(t, baseURL)
 	endpoint := webhookSinkURL + "/webhook"

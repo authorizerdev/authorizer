@@ -8,9 +8,15 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-
-	"github.com/authorizerdev/authorizer/internal/config"
 )
+
+// e2eSMSSinkURL is the fixed docker-compose-internal address of the
+// e2e-playground SMS sink mock (e2e-playground/mocks/sms-sink). Only ever
+// reachable from inside that specific docker-compose network - never
+// resolvable in a real deployment, and this provider is only ever
+// constructed at all when Config.Env == constants.E2EEnv (see
+// internal/sms/provider.go).
+const e2eSMSSinkURL = "http://sms-sink:4100/sms"
 
 // Dependencies for the test webhook SMS provider.
 type Dependencies struct {
@@ -18,11 +24,10 @@ type Dependencies struct {
 }
 
 // testWebhookProvider is an sms.Provider that POSTs the plaintext SMS
-// payload to a configured HTTP endpoint instead of calling a real carrier.
-// Only ever wired when cfg.TestSMSWebhookURL is explicitly set — see
-// internal/sms/provider.go. Exists purely for e2e-playground, where
-// mocks/sms-sink stores the payload so Playwright tests can retrieve the
-// OTP code that a real carrier would otherwise deliver by SMS.
+// payload to e2eSMSSinkURL instead of calling a real carrier. Only ever
+// wired when Config.Env == constants.E2EEnv — see internal/sms/provider.go.
+// Exists purely for e2e-playground, where mocks/sms-sink stores the payload
+// so tests can retrieve the OTP code a real carrier would otherwise deliver.
 type testWebhookProvider struct {
 	webhookURL string
 	client     *http.Client
@@ -34,13 +39,11 @@ type payload struct {
 	Message string `json:"message"`
 }
 
-// NewTestWebhookProvider constructs a test-only SMS provider.
-func NewTestWebhookProvider(cfg *config.Config, deps *Dependencies) (*testWebhookProvider, error) {
-	if cfg.TestSMSWebhookURL == "" {
-		return nil, fmt.Errorf("TestSMSWebhookURL is required")
-	}
+// NewTestWebhookProvider constructs a test-only SMS provider. Callers must
+// only construct this when Config.Env == constants.E2EEnv.
+func NewTestWebhookProvider(deps *Dependencies) (*testWebhookProvider, error) {
 	return &testWebhookProvider{
-		webhookURL: cfg.TestSMSWebhookURL,
+		webhookURL: e2eSMSSinkURL,
 		client:     &http.Client{Timeout: 5 * time.Second},
 		log:        deps.Log,
 	}, nil

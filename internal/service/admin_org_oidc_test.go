@@ -3,11 +3,10 @@ package service
 import "testing"
 
 // TestValidateSSOIssuerURL_AllowInsecureFalse_RejectsHTTP proves the
-// production-default no-op: with allowInsecure=false (Config.TestAllowPrivateSSOHosts
-// unset, the production default), a plain http:// issuer_url is rejected exactly
-// as it was before Config.TestAllowPrivateSSOHosts existed - the SSRF-relaxation
-// escape hatch (e2e-playground's mock IdP has no TLS termination) only opens when
-// an operator explicitly passes allowInsecure=true.
+// production-default no-op: with allowInsecure=false (Config.Env != E2EEnv,
+// the production default), a plain http:// issuer_url is rejected - the
+// SSRF-relaxation escape hatch (e2e-playground's mock IdP has no TLS
+// termination) only opens when an operator explicitly passes --env=e2e.
 func TestValidateSSOIssuerURL_AllowInsecureFalse_RejectsHTTP(t *testing.T) {
 	if err := validateSSOIssuerURL("http://idp.example.com", false); err == nil {
 		t.Fatal("expected http issuer_url to be rejected when allowInsecure is false")

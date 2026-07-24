@@ -41,24 +41,17 @@ services:
       - "--twitch-client-secret=mock-client-secret"
       - "--roblox-client-id=mock-client-id"
       - "--roblox-client-secret=mock-client-secret"
-      - "--test-oauth-google-base-url=http://mock-oauth:4000/google"
-      - "--test-oauth-github-base-url=http://mock-oauth:4000/github"
-      - "--test-oauth-facebook-base-url=http://mock-oauth:4000/facebook"
-      - "--test-oauth-linkedin-base-url=http://mock-oauth:4000/linkedin"
-      - "--test-oauth-apple-base-url=http://mock-oauth:4000/apple"
-      - "--test-oauth-twitter-base-url=http://mock-oauth:4000/twitter"
-      - "--test-oauth-discord-base-url=http://mock-oauth:4000/discord"
-      - "--test-oauth-microsoft-base-url=http://mock-oauth:4000/microsoft"
-      - "--test-oauth-twitch-base-url=http://mock-oauth:4000/twitch"
-      - "--test-oauth-roblox-base-url=http://mock-oauth:4000/roblox"
-      - "--test-sms-webhook-url=http://sms-sink:4100/sms"
-      # Scoped to THIS instance only (tests/scim.spec.ts's webhook-delivery test
-      # targets AUTHORIZER_BASE_URL=:8080). Relaxes ONLY the private-IP SSRF check
-      # for webhook registration + delivery so the docker-private webhook-sink mock
-      # is reachable; scheme allow-list and DNS-rebinding pin stay enforced. Never
-      # set on the other instances (least privilege). See internal/config/config.go
-      # TestAllowPrivateWebhookHosts.
-      - "--test-allow-private-webhook-hosts=true"
+      # Enables every e2e-playground-only behavior at once: routes the 10
+      # social OAuth providers + SMS sending through mock-oauth/sms-sink
+      # (hardcoded docker-compose addresses, see internal/config/test_oauth_override.go
+      # and internal/sms/testwebhook), and relaxes the private-IP SSRF check
+      # for SSO discovery/token fetches and webhook registration+delivery so
+      # the docker-private mocks are reachable (scheme allow-list and
+      # DNS-rebinding pin stay enforced either way). A pure function of Env -
+      # no separate flag to configure or forget. Never set in production; see
+      # internal/constants/env.go's E2EEnv doc comment for why this is a
+      # distinct value from --env=test (internal/integration_tests' own Env).
+      - "--env=e2e"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
       # Ephemeral, purpose-built test stack - no real DoS concern, and the
@@ -107,7 +100,6 @@ services:
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"
       - "--enable-org-discovery=true"
-      - "--test-allow-private-sso-hosts=true"
       - "--allowed-origins=http://localhost:8081,http://authorizer-sso:8080"
       - "--google-client-id=mock-client-id"
       - "--google-client-secret=mock-client-secret"
@@ -129,17 +121,9 @@ services:
       - "--twitch-client-secret=mock-client-secret"
       - "--roblox-client-id=mock-client-id"
       - "--roblox-client-secret=mock-client-secret"
-      - "--test-oauth-google-base-url=http://mock-oauth:4000/google"
-      - "--test-oauth-github-base-url=http://mock-oauth:4000/github"
-      - "--test-oauth-facebook-base-url=http://mock-oauth:4000/facebook"
-      - "--test-oauth-linkedin-base-url=http://mock-oauth:4000/linkedin"
-      - "--test-oauth-apple-base-url=http://mock-oauth:4000/apple"
-      - "--test-oauth-twitter-base-url=http://mock-oauth:4000/twitter"
-      - "--test-oauth-discord-base-url=http://mock-oauth:4000/discord"
-      - "--test-oauth-microsoft-base-url=http://mock-oauth:4000/microsoft"
-      - "--test-oauth-twitch-base-url=http://mock-oauth:4000/twitch"
-      - "--test-oauth-roblox-base-url=http://mock-oauth:4000/roblox"
-      - "--test-sms-webhook-url=http://sms-sink:4100/sms"
+      # See the `authorizer` service's --env=e2e comment above for what this
+      # enables (OAuth/SMS mock routing + private-host SSRF relaxation).
+      - "--env=e2e"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
       # Ephemeral, purpose-built test stack - no real DoS concern, and the

@@ -300,7 +300,7 @@ export async function getUserPhoneNumberByEmail(email: string): Promise<string |
 // are global (not org-scoped): GetWebhookByEventName matches by event_name prefix
 // across all orgs, so one webhook per event_name fires for every matching event.
 // Endpoint may be a docker-private host only because the target `authorizer`
-// instance runs with --test-allow-private-webhook-hosts=true (see docker-compose).
+// instance runs with --env=e2e (see docker-compose).
 export async function addWebhook(opts: {
   eventName: string;
   endpoint: string;

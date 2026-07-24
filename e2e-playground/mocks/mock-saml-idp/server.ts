@@ -248,7 +248,7 @@ if (require.main === module) {
   // Authorizer's org-SAML-connection admin API rejects a non-https
   // idp_sso_url outright (internal/service/admin_org_saml.go
   // validateSAMLHTTPSURL) with no dev/test bypass — unlike the OIDC broker,
-  // which has --test-allow-private-sso-hosts. Real IdPs are https-only in
+  // which relaxes this under --env=e2e. Real IdPs are https-only in
   // practice too, so serve TLS here (reusing this same signing cert/key as
   // the server cert) rather than weakening that production check.
   // Callers must trust/ignore this self-signed cert (see saml-sp.spec.ts's

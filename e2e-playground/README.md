@@ -1,6 +1,6 @@
 # Live-Playground E2E Suite
 
-A real, live-server end-to-end test suite for Authorizer. Every spec drives a real `authorizer` binary (built from this repo's source) plus a real browser (Playwright) — no unit-level mocking of Authorizer itself. Third-party services (Google/GitHub/Discord/etc. OAuth, SMS delivery, an external SAML IdP) are stood in for by small local mock servers under `mocks/`, wired in via `authorizer`'s own test-only CLI overrides (`--test-oauth-*-base-url`, `--test-sms-webhook-url`, `--test-allow-private-*-hosts`) — every one of those flags is a documented no-op when unset, so none of this affects production behavior.
+A real, live-server end-to-end test suite for Authorizer. Every spec drives a real `authorizer` binary (built from this repo's source) plus a real browser (Playwright) — no unit-level mocking of Authorizer itself. Third-party services (Google/GitHub/Discord/etc. OAuth, SMS delivery, an external SAML IdP) are stood in for by small local mock servers under `mocks/`, wired in via `authorizer`'s own test-only mechanism (`--env=e2e`) — every behavior it enables is a documented no-op unless that exact env value is set, so none of this affects production behavior.
 
 ## Coverage
 

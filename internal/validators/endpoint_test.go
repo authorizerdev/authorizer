@@ -8,9 +8,9 @@ import (
 )
 
 // TestValidateEndpointURL_AllowPrivateFalse_RejectsPrivate is the production-default
-// no-op guard: with allowPrivate=false (Config.TestAllowPrivateWebhookHosts unset,
-// the production default) a loopback endpoint is still rejected at registration
-// exactly as before the escape hatch existed.
+// no-op guard: with allowPrivate=false (Config.Env != E2EEnv, the production
+// default) a loopback endpoint is still rejected at registration exactly as
+// before the escape hatch existed.
 func TestValidateEndpointURL_AllowPrivateFalse_RejectsPrivate(t *testing.T) {
 	err := ValidateEndpointURL("http://127.0.0.1:4100/webhook", false)
 	require.Error(t, err)

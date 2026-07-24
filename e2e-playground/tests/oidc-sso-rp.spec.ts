@@ -11,10 +11,8 @@ const MOCK_OAUTH_BASE = process.env.MOCK_OAUTH_BASE_URL || 'http://localhost:400
 // container itself (SSOLoginHandler -> fetchOIDCDiscovery), so it must
 // resolve inside the docker-compose network, not on the host. Plain http
 // because mock-oauth has no TLS termination; that (and the private
-// docker-network address below) requires
-// --test-allow-private-sso-hosts=true, which authorizer-sso runs with (see
-// docker-compose.yml) — the default-off `authorizer` service still refuses
-// both, unchanged.
+// docker-network address below) requires --env=e2e, which every
+// e2e-playground authorizer instance runs with (see docker-compose.yml).
 const MOCK_OAUTH_INTERNAL_BASE = process.env.MOCK_OAUTH_INTERNAL_BASE_URL || 'http://mock-oauth:4000';
 
 // This spec exercises the /app email-first home-realm-discovery (HRD) step

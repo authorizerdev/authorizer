@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
 
 // fullSMTP / fullTwilio set the minimum credentials Finalize() checks so the
 // corresponding service is derived as available.
@@ -137,8 +141,8 @@ func TestFinalizeMFADerivation(t *testing.T) {
 }
 
 // TestFinalizeIsSMSServiceEnabled verifies IsSMSServiceEnabled is true when
-// either Twilio is fully configured or TestSMSWebhookURL is set, and false
-// when neither is set.
+// either Twilio is fully configured or Env == E2EEnv, and false when
+// neither is set.
 func TestFinalizeIsSMSServiceEnabled(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -146,19 +150,24 @@ func TestFinalizeIsSMSServiceEnabled(t *testing.T) {
 		want  bool
 	}{
 		{
-			name:  "neither Twilio nor test webhook configured -> false",
+			name:  "neither Twilio nor e2e env configured -> false",
 			setup: func(c *Config) {},
 			want:  false,
 		},
 		{
-			name:  "Twilio configured, no test webhook -> true",
+			name:  "Twilio configured, production env -> true",
 			setup: withTwilio,
 			want:  true,
 		},
 		{
-			name:  "test webhook configured, no Twilio -> true",
-			setup: func(c *Config) { c.TestSMSWebhookURL = "http://localhost:9999/sms" },
+			name:  "e2e env, no Twilio -> true",
+			setup: func(c *Config) { c.Env = constants.E2EEnv },
 			want:  true,
+		},
+		{
+			name:  "test env (integration_tests), no Twilio -> false",
+			setup: func(c *Config) { c.Env = constants.TestEnv },
+			want:  false,
 		},
 	}
 

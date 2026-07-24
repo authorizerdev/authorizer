@@ -12,20 +12,26 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 )
 
 // newTwitterTestHTTPProvider builds a minimal httpProvider wired to a mock
-// Twitter token+userinfo server, mirroring the TestOAuth*BaseURL override
+// Twitter token+userinfo server, mirroring the TestOAuthBaseURL mechanism
 // e2e-playground/docker-compose.yml uses in production (see
-// internal/config/test_oauth_override.go and internal/oauth/get_oauth_config.go).
+// internal/config/test_oauth_override.go and internal/oauth/get_oauth_config.go) -
+// here via config.TestOAuthMockBaseOverride, a test-only package var, since
+// this server's routes live at its own root rather than under a shared
+// /<provider> prefix.
 func newTwitterTestHTTPProvider(t *testing.T, mockBase string) *httpProvider {
 	t.Helper()
+	config.TestOAuthMockBaseOverride = mockBase
+	t.Cleanup(func() { config.TestOAuthMockBaseOverride = "" })
 	logger := zerolog.Nop()
 	cfg := &config.Config{
-		TwitterClientID:         "test-client",
-		TwitterClientSecret:     "test-secret",
-		TestOAuthTwitterBaseURL: mockBase,
+		Env:                 constants.E2EEnv,
+		TwitterClientID:     "test-client",
+		TwitterClientSecret: "test-secret",
 	}
 	oauthProvider, err := oauth.New(cfg, &oauth.Dependencies{Log: &logger})
 	require.NoError(t, err)

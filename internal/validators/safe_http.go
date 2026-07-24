@@ -24,14 +24,16 @@ func SafeHTTPClient(ctx context.Context, rawURL string, timeout time.Duration) (
 }
 
 // SafeHTTPClientAllowPrivate is identical to SafeHTTPClient except it skips
-// the private/loopback/internal-IP rejection. It exists solely for the
-// per-org SSO OIDC broker (internal/http_handlers/oauth_sso.go's discovery,
-// JWKS, and token-endpoint fetches), gated behind
-// Config.TestAllowPrivateSSOHosts (--test-allow-private-sso-hosts, default
-// false): e2e-playground's mock IdP is only reachable at a docker-compose
-// private address, which SafeHTTPClient would otherwise refuse unconditionally.
-// Every other invariant (scheme allow-list, DNS-rebinding-proof host pinning,
-// TLS SNI) is unchanged. Do not call this from anywhere but the SSO broker.
+// the private/loopback/internal-IP rejection. It has exactly two callers,
+// each gated behind Config.Env == constants.E2EEnv (--env=e2e, never true in
+// production): the per-org SSO OIDC broker's discovery/JWKS/token-endpoint
+// fetches (internal/http_handlers/oauth_sso.go's ssoHTTPClient) and webhook
+// delivery (internal/events/events.go's webhookHTTPClient) — both need it
+// because e2e-playground's mock IdP / webhook-sink are only reachable at a
+// docker-compose-private address, which SafeHTTPClient would otherwise
+// refuse unconditionally. Every other invariant (scheme allow-list,
+// DNS-rebinding-proof host pinning, TLS SNI) is unchanged. Do not add a
+// third caller without equally careful review.
 func SafeHTTPClientAllowPrivate(ctx context.Context, rawURL string, timeout time.Duration) (*http.Client, error) {
 	return safeHTTPClient(ctx, rawURL, timeout, true)
 }

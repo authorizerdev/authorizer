@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 )
 
@@ -18,11 +19,13 @@ import (
 // (oauth_twitter_test.go) for Roblox.
 func newRobloxTestHTTPProvider(t *testing.T, mockBase string) *httpProvider {
 	t.Helper()
+	config.TestOAuthMockBaseOverride = mockBase
+	t.Cleanup(func() { config.TestOAuthMockBaseOverride = "" })
 	logger := zerolog.Nop()
 	cfg := &config.Config{
-		RobloxClientID:         "test-client",
-		RobloxClientSecret:     "test-secret",
-		TestOAuthRobloxBaseURL: mockBase,
+		Env:                constants.E2EEnv,
+		RobloxClientID:     "test-client",
+		RobloxClientSecret: "test-secret",
 	}
 	oauthProvider, err := oauth.New(cfg, &oauth.Dependencies{Log: &logger})
 	require.NoError(t, err)

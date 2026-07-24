@@ -149,7 +149,7 @@ func (p *provider) deliver(ctx context.Context, log *zerolog.Logger, webhook *sc
 	// SSRF protection: resolve the host once and pin the dialer to the
 	// validated IP so http.Client cannot be tricked into re-resolving
 	// (DNS rebinding TOCTOU).
-	client, err := webhookHTTPClient(ctx, webhook.EndPoint, time.Second*30, p.config.TestAllowPrivateWebhookHosts)
+	client, err := webhookHTTPClient(ctx, webhook.EndPoint, time.Second*30, p.config.Env == constants.E2EEnv)
 	if err != nil {
 		log.Debug().Err(err).Str("endpoint", webhook.EndPoint).Msg("webhook endpoint rejected by SSRF filter")
 		_, _ = p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
@@ -208,7 +208,7 @@ func (p *provider) deliver(ctx context.Context, log *zerolog.Logger, webhook *sc
 }
 
 // webhookHTTPClient builds the SSRF-hardened *http.Client for a webhook delivery.
-// allowPrivate (Config.TestAllowPrivateWebhookHosts) is the ONLY thing that
+// allowPrivate (Config.Env == constants.E2EEnv) is the ONLY thing that
 // switches this to validators.SafeHTTPClientAllowPrivate — see that function's
 // doc comment for why it exists (e2e-playground's webhook-sink mock only, reachable
 // solely at a docker-compose-private address). Every other invariant (scheme

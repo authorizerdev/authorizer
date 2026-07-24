@@ -1,6 +1,10 @@
 package config
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
 
 // Config defines the configuration for the authorizer instance
 type Config struct {
@@ -10,25 +14,6 @@ type Config struct {
 	// mutation (e.g. to hit localhost in tests). Must remain false in production; integration
 	// tests enable it together with Env=test.
 	SkipTestEndpointSSRFValidation bool
-	// TestAllowPrivateSSOHosts relaxes the private/loopback-IP SSRF check (and the
-	// issuer_url https-only requirement) for the per-org SSO OIDC broker only
-	// (internal/http_handlers/oauth_sso.go discovery/token/JWKS fetches,
-	// internal/service/admin_org_oidc.go issuer_url validation). Only ever set by
-	// e2e-playground/docker-compose.yml, where the mock IdP is reachable solely
-	// at a docker-compose-private address with no TLS. Deliberately independent
-	// of Env==TestEnv, which also no-ops real email delivery and events — this
-	// flag changes nothing else. Must remain false in production.
-	TestAllowPrivateSSOHosts bool
-	// TestAllowPrivateWebhookHosts relaxes the private/loopback-IP SSRF check for
-	// webhook delivery only (internal/events/events.go deliver()). Kept independent
-	// of TestAllowPrivateSSOHosts on purpose: each escape hatch is scoped to exactly
-	// one outbound call site (least privilege), so enabling webhook delivery to a
-	// private address never relaxes the SSO broker's SSRF filter, and vice versa.
-	// Only ever set by e2e-playground/docker-compose.yml, where the webhook-sink
-	// mock is reachable solely at a docker-compose-private address. Deliberately
-	// independent of Env==TestEnv (which no-ops real delivery entirely). Must remain
-	// false in production.
-	TestAllowPrivateWebhookHosts bool
 	// OrganizationLogo is the logo of the organization
 	OrganizationLogo string
 	// OrganizationName is the name of the organization
@@ -295,11 +280,6 @@ type Config struct {
 	TwilioSender string
 	// TwilioAccountSID is the account SID for Twilio
 	TwilioAccountSID string
-	// TestSMSWebhookURL, when set, routes SMS sending to a test webhook
-	// instead of Twilio. Only ever set by e2e-playground/docker-compose.yml;
-	// empty (the default) in every real deployment.
-	TestSMSWebhookURL string
-
 	// OAuth providers that authorizer supports
 	// GoogleClientID is the client ID for Google OAuth
 	GoogleClientID string
@@ -307,30 +287,6 @@ type Config struct {
 	GoogleClientSecret string
 	// Scopes is the list of scopes for Google OAuth
 	GoogleScopes []string
-
-	// TestOAuthGoogleBaseURL overrides Google's OAuth authorize/token/userinfo
-	// base URL. Only ever set by e2e-playground/docker-compose.yml; empty
-	// (the default) in every real deployment, in which case production
-	// endpoints are used unchanged.
-	TestOAuthGoogleBaseURL string
-	// TestOAuthGithubBaseURL is the e2e-playground override for GitHub. See TestOAuthGoogleBaseURL.
-	TestOAuthGithubBaseURL string
-	// TestOAuthFacebookBaseURL is the e2e-playground override for Facebook. See TestOAuthGoogleBaseURL.
-	TestOAuthFacebookBaseURL string
-	// TestOAuthLinkedinBaseURL is the e2e-playground override for LinkedIn. See TestOAuthGoogleBaseURL.
-	TestOAuthLinkedinBaseURL string
-	// TestOAuthAppleBaseURL is the e2e-playground override for Apple. See TestOAuthGoogleBaseURL.
-	TestOAuthAppleBaseURL string
-	// TestOAuthTwitterBaseURL is the e2e-playground override for Twitter/X. See TestOAuthGoogleBaseURL.
-	TestOAuthTwitterBaseURL string
-	// TestOAuthDiscordBaseURL is the e2e-playground override for Discord. See TestOAuthGoogleBaseURL.
-	TestOAuthDiscordBaseURL string
-	// TestOAuthMicrosoftBaseURL is the e2e-playground override for Microsoft. See TestOAuthGoogleBaseURL.
-	TestOAuthMicrosoftBaseURL string
-	// TestOAuthTwitchBaseURL is the e2e-playground override for Twitch. See TestOAuthGoogleBaseURL.
-	TestOAuthTwitchBaseURL string
-	// TestOAuthRobloxBaseURL is the e2e-playground override for Roblox. See TestOAuthGoogleBaseURL.
-	TestOAuthRobloxBaseURL string
 
 	// GithubClientID is the client ID for Github OAuth
 	GithubClientID string
@@ -459,7 +415,7 @@ func (c *Config) Finalize() {
 		strings.TrimSpace(c.TwilioAPISecret) != "" &&
 		strings.TrimSpace(c.TwilioAccountSID) != "" &&
 		strings.TrimSpace(c.TwilioSender) != "") ||
-		strings.TrimSpace(c.TestSMSWebhookURL) != ""
+		c.Env == constants.E2EEnv
 
 	// MFA methods are on by default; operators opt out via --disable-*.
 	c.EnableTOTPLogin = !c.DisableTOTPLogin

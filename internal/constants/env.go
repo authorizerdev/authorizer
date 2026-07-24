@@ -5,6 +5,14 @@ var VERSION = "0.0.1"
 const (
 	// TestEnv is used for testing
 	TestEnv = "test"
+	// E2EEnv is used by e2e-playground/docker-compose.yml only. Distinct from
+	// TestEnv on purpose: TestEnv is also the Env value internal/integration_tests
+	// uses for its entire existing suite, so tying e2e-playground-only behavior
+	// (mock-IdP/mock-SMS routing, private-host SSRF relaxation for the SSO
+	// broker and webhook delivery) to TestEnv would silently change behavior for
+	// every integration test too. E2EEnv keeps that blast radius to exactly
+	// e2e-playground. Must never be set in production.
+	E2EEnv = "e2e"
 	// // EnvKeyEnv key for env variable ENV
 	// EnvKeyEnv = "ENV"
 	// // EnvKeyEnvPath key for cli arg variable ENV_PATH

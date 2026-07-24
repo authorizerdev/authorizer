@@ -31,10 +31,10 @@ func TestHeaderValueString_NonStringDoesNotPanic(t *testing.T) {
 }
 
 // TestWebhookHTTPClient_AllowPrivateFalse_RejectsPrivateIP is the production-default
-// no-op guard: with allowPrivate=false (Config.TestAllowPrivateWebhookHosts unset,
-// the production default) a private/loopback webhook endpoint is still rejected
-// exactly as before the escape hatch existed. deliver() takes this same false path
-// whenever the flag is absent, so production delivery is unchanged.
+// no-op guard: with allowPrivate=false (Config.Env != E2EEnv, the production
+// default) a private/loopback webhook endpoint is still rejected exactly as
+// before the escape hatch existed. deliver() takes this same false path
+// whenever Env isn't E2EEnv, so production delivery is unchanged.
 func TestWebhookHTTPClient_AllowPrivateFalse_RejectsPrivateIP(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

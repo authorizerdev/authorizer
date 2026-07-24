@@ -228,18 +228,18 @@ test.describe('SCIM full-attribute PATCH', () => {
 //      registration-time check (validators.ValidateEndpointURL in
 //      internal/service/admin_webhooks.go AddWebhook) AND the delivery-time check
 //      (validators.SafeHTTPClient in internal/events/events.go deliver()). Both
-//      now take an allowPrivate flag threaded from Config.TestAllowPrivateWebhookHosts
-//      (CLI: --test-allow-private-webhook-hosts, set true only on the `authorizer`
-//      service in docker-compose.yml — least privilege). The flag relaxes ONLY the
-//      private-IP rejection; the http/https scheme allow-list and DNS-rebinding
-//      host pin stay enforced, and it is a true no-op when unset (production
-//      default) — reachable solely via the operator CLI flag, never a request /
-//      GraphQL / per-webhook field. Mirrors the SSO broker's existing
-//      --test-allow-private-sso-hosts precedent exactly.
+//      now take an allowPrivate flag derived from Config.Env == constants.E2EEnv
+//      (CLI: --env=e2e, set on every e2e-playground authorizer instance — a
+//      pure function of the env value, no separate per-capability flag). It
+//      relaxes ONLY the private-IP rejection; the http/https scheme allow-list
+//      and DNS-rebinding host pin stay enforced, and it is a true no-op unless
+//      Env is exactly "e2e" (production default is unset; internal/integration_tests'
+//      own Env=="test" is deliberately a different value for exactly this
+//      reason - see internal/constants/env.go's E2EEnv doc comment).
 //
 // The Env==TestEnv fake-200 short-circuit the old comment worried about is not a
-// factor: the e2e-playground authorizer never runs with --env test, so deliver()
-// makes a real HTTP POST.
+// factor: the e2e-playground authorizer runs with --env=e2e, a distinct value
+// from "test", so deliver() makes a real HTTP POST.
 test.describe('SCIM provisioning webhooks', () => {
   const CLIENT_SECRET = 'e2e-client-secret'; // matches --client-secret in docker-compose.yml
   const WEBHOOK_SINK = process.env.WEBHOOK_SINK_BASE_URL || 'http://localhost:4200';

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 )
 
@@ -18,11 +19,13 @@ import (
 // (oauth_twitter_test.go) for Discord.
 func newDiscordTestHTTPProvider(t *testing.T, mockBase string) *httpProvider {
 	t.Helper()
+	config.TestOAuthMockBaseOverride = mockBase
+	t.Cleanup(func() { config.TestOAuthMockBaseOverride = "" })
 	logger := zerolog.Nop()
 	cfg := &config.Config{
-		DiscordClientID:         "test-client",
-		DiscordClientSecret:     "test-secret",
-		TestOAuthDiscordBaseURL: mockBase,
+		Env:                 constants.E2EEnv,
+		DiscordClientID:     "test-client",
+		DiscordClientSecret: "test-secret",
 	}
 	oauthProvider, err := oauth.New(cfg, &oauth.Dependencies{Log: &logger})
 	require.NoError(t, err)

@@ -13,16 +13,16 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 )
 
-func TestGetOAuthConfig_UsesMockBaseURLWhenSet(t *testing.T) {
+func TestGetOAuthConfig_UsesMockBaseURLUnderE2EEnv(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = httptest.NewRequest("GET", "http://localhost/", nil)
 
 	cfg := &config.Config{
-		GoogleClientID:         "test-client-id",
-		GoogleClientSecret:     "test-client-secret",
-		TestOAuthGoogleBaseURL: "http://mock-oauth:4000/google",
+		Env:                constants.E2EEnv,
+		GoogleClientID:     "test-client-id",
+		GoogleClientSecret: "test-client-secret",
 	}
 	p, err := New(cfg, &Dependencies{Log: testLogger(t)})
 	require.NoError(t, err)
@@ -40,6 +40,29 @@ func TestGetOAuthConfig_UsesRealEndpointWhenUnset(t *testing.T) {
 	ctx.Request = httptest.NewRequest("GET", "http://localhost/", nil)
 
 	cfg := &config.Config{GoogleClientID: "test-client-id", GoogleClientSecret: "test-client-secret"}
+	p, err := New(cfg, &Dependencies{Log: testLogger(t)})
+	require.NoError(t, err)
+
+	oauthCfg, err := p.GetOAuthConfig(ctx, constants.AuthRecipeMethodGoogle)
+	require.NoError(t, err)
+	assert.Equal(t, "https://accounts.google.com/o/oauth2/auth", oauthCfg.Endpoint.AuthURL)
+}
+
+// TestGetOAuthConfig_TestEnv_StillUsesRealEndpoint proves E2EEnv and TestEnv
+// are genuinely distinct: internal/integration_tests runs with Env=TestEnv
+// and must not accidentally start routing social OAuth through the
+// e2e-playground mock.
+func TestGetOAuthConfig_TestEnv_StillUsesRealEndpoint(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = httptest.NewRequest("GET", "http://localhost/", nil)
+
+	cfg := &config.Config{
+		Env:                constants.TestEnv,
+		GoogleClientID:     "test-client-id",
+		GoogleClientSecret: "test-client-secret",
+	}
 	p, err := New(cfg, &Dependencies{Log: testLogger(t)})
 	require.NoError(t, err)
 
