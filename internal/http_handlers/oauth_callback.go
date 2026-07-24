@@ -49,14 +49,14 @@ type AppleUserInfo struct {
 // A non-empty but malformed value is a real error (buggy provider or
 // tampered request) and is still rejected.
 func parseAppleUserField(userRaw string) (*AppleUserInfo, error) {
-	user_ := &AppleUserInfo{}
+	appleUser := &AppleUserInfo{}
 	if userRaw == "" {
-		return user_, nil
+		return appleUser, nil
 	}
-	if err := json.Unmarshal([]byte(userRaw), user_); err != nil {
+	if err := json.Unmarshal([]byte(userRaw), appleUser); err != nil {
 		return nil, err
 	}
-	return user_, nil
+	return appleUser, nil
 }
 
 // OAuthCallbackHandler handles the OAuth callback for various oauth providers
@@ -119,14 +119,14 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.AuthRecipeMethodLinkedIn:
 			user, err = h.processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
-			var user_ *AppleUserInfo
-			user_, err = parseAppleUserField(ctx.Request.FormValue("user"))
+			var appleUser *AppleUserInfo
+			appleUser, err = parseAppleUserField(ctx.Request.FormValue("user"))
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to unmarshal apple user info")
 				ctx.JSON(400, gin.H{"error": "invalid apple user info"})
 				return
 			}
-			user, err = h.processAppleUserInfo(ctx, oauthCode, user_)
+			user, err = h.processAppleUserInfo(ctx, oauthCode, appleUser)
 		case constants.AuthRecipeMethodDiscord:
 			user, err = h.processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
@@ -816,7 +816,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	return user, nil
 }
 
-func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_ *AppleUserInfo) (*schemas.User, error) {
+func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, appleUser *AppleUserInfo) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processAppleUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodApple)
 	if err != nil {
@@ -869,8 +869,8 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_
 		user.Email = &email
 	}
 
-	user.GivenName = &user_.Name.FirstName
-	user.FamilyName = &user_.Name.LastName
+	user.GivenName = &appleUser.Name.FirstName
+	user.FamilyName = &appleUser.Name.LastName
 
 	return user, nil
 }
@@ -957,13 +957,7 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	avatar, _ := userRawData["avatar"].(string)
 	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", discordID, avatar)
 
-	// Prefer the real email Discord returns; fall back to a synthetic one
-	// keyed on the permanent id if the user denied the `email` scope at
-	// Discord's consent screen (see doc comment above).
-	email := discordSyntheticEmail(discordID)
-	if realEmail, ok := userRawData["email"].(string); ok && realEmail != "" {
-		email = realEmail
-	}
+	email := resolveDiscordEmail(discordID, userRawData)
 
 	user := &schemas.User{
 		GivenName: &firstName,
@@ -972,6 +966,17 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	}
 
 	return user, nil
+}
+
+// resolveDiscordEmail prefers the real email Discord returns; falls back to
+// a synthetic one keyed on the permanent id if the user denied the `email`
+// scope at Discord's consent screen (see processDiscordUserInfo doc
+// comment). Mirrors resolveTwitterEmail below.
+func resolveDiscordEmail(discordID string, userRawData map[string]interface{}) string {
+	if realEmail, ok := userRawData["email"].(string); ok && realEmail != "" {
+		return realEmail
+	}
+	return discordSyntheticEmail(discordID)
 }
 
 // discordSyntheticEmail derives a stable, non-routable synthetic email from
@@ -1080,16 +1085,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	nickname, _ := userRawData["username"].(string)
 	profilePicture, _ := userRawData["profile_image_url"].(string)
 
-	// X's `users.email` scope + "Request email from users" app permission
-	// (see the TwitterUserInfoURL doc comment in
-	// internal/constants/oauth_info_urls.go for how an operator opts in)
-	// makes the API return a real, deliverable confirmed_email. Prefer it
-	// when present; otherwise fall back to the synthetic per-id email that
-	// already correctly prevents duplicate accounts (see doc comment above).
-	email := twitterSyntheticEmail(twitterID)
-	if confirmedEmail, ok := userRawData["confirmed_email"].(string); ok && confirmedEmail != "" {
-		email = confirmedEmail
-	}
+	email := resolveTwitterEmail(twitterID, userRawData)
 
 	user := &schemas.User{
 		Email:      &email,
@@ -1107,6 +1103,20 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 // same Authorizer email (see processTwitterUserInfo doc comment).
 func twitterSyntheticEmail(twitterID string) string {
 	return fmt.Sprintf("twitter-%s@twitter.oauth.internal", twitterID)
+}
+
+// resolveTwitterEmail picks the email to store for a Twitter-authenticated
+// user. X's `users.email` scope + "Request email from users" app permission
+// (see the TwitterUserInfoURL doc comment in internal/constants/oauth_info_urls.go
+// for how an operator opts in) makes the API return a real, deliverable
+// confirmed_email; this is preferred when present. Otherwise falls back to
+// the synthetic per-id email, which still correctly prevents duplicate
+// accounts (see processTwitterUserInfo doc comment) without a real address.
+func resolveTwitterEmail(twitterID string, userRawData map[string]interface{}) string {
+	if confirmedEmail, ok := userRawData["confirmed_email"].(string); ok && confirmedEmail != "" {
+		return confirmedEmail
+	}
+	return twitterSyntheticEmail(twitterID)
 }
 
 // process microsoft user information
@@ -1272,19 +1282,8 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	}
 	nickname, _ := userRawData["nickname"].(string)
 	profilePicture, _ := userRawData["picture"].(string)
-	// defaultRobloxScopes (cmd/root.go) is ["openid", "profile"] - no `email`
-	// scope - so real Roblox userinfo (an OIDC-standard endpoint, see
-	// constants.RobloxUserInfoURL) returns the mandatory `sub` claim but
-	// omits `email` under the default config. Falling back to the bare
-	// `sub` would store a non-email-shaped numeric id in user.Email, so
-	// synthesize a stable, non-routable address instead - mirrors
-	// twitterSyntheticEmail/discordSyntheticEmail above.
-	email := ""
-	if val, ok := userRawData["email"].(string); ok && val != "" {
-		email = val
-	} else if sub, ok := userRawData["sub"].(string); ok && sub != "" {
-		email = robloxSyntheticEmail(sub)
-	}
+	sub, _ := userRawData["sub"].(string)
+	email := resolveRobloxEmail(sub, userRawData)
 	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
@@ -1294,6 +1293,24 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	}
 
 	return user, nil
+}
+
+// resolveRobloxEmail prefers the real email Roblox returns; falls back to a
+// synthetic one keyed on the permanent sub if it's absent. defaultRobloxScopes
+// (cmd/root.go) is ["openid", "profile"] - no `email` scope - so real Roblox
+// userinfo (an OIDC-standard endpoint, see constants.RobloxUserInfoURL)
+// returns the mandatory `sub` claim but omits `email` under the default
+// config. Falling back to the bare `sub` would store a non-email-shaped
+// numeric id in user.Email, so this synthesizes a stable, non-routable
+// address instead - mirrors resolveTwitterEmail/resolveDiscordEmail above.
+func resolveRobloxEmail(sub string, userRawData map[string]interface{}) string {
+	if val, ok := userRawData["email"].(string); ok && val != "" {
+		return val
+	}
+	if sub != "" {
+		return robloxSyntheticEmail(sub)
+	}
+	return ""
 }
 
 // robloxSyntheticEmail derives a stable, non-routable synthetic email from
