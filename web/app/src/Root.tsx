@@ -193,6 +193,7 @@ export default function Root({
 			<AuthorizerVerifyOtp
 				is_totp={mfaRedirect.mfaMethods.includes('totp')}
 				offerWebauthnVerify={mfaRedirect.mfaMethods.includes('webauthn')}
+				hasSmsOtp={mfaRedirect.mfaMethods.includes('sms_otp')}
 				hasCodeFactor={
 					mfaRedirect.mfaMethods.includes('totp') ||
 					mfaRedirect.mfaMethods.includes('email_otp') ||
