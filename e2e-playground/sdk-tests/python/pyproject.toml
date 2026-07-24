@@ -1,0 +1,46 @@
+[project]
+name = "authorizer-sdk-e2e"
+version = "0.0.0"
+description = "Live e2e tests driving the e2e-playground stack through the published authorizer-py SDK."
+requires-python = ">=3.9"
+# Runtime deps live in requirements.txt (pinned). Kept in sync there so the
+# Docker runner installs exactly what CI/devs install locally.
+dependencies = [
+    "authorizer-py==0.3.0rc3",
+    "pyotp==2.9.0",
+    "soft-webauthn==0.1.4",
+    "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+
+# Lint/type config mirrors authorizer-py's own pyproject.toml so this suite is
+# held to the same bar as the SDK it exercises.
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+# python_version tracks the Docker runner (3.12); strict matches authorizer-py.
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+
+# soft_webauthn / fido2 / pyotp ship no type stubs.
+[[tool.mypy.overrides]]
+module = ["soft_webauthn", "pyotp", "fido2", "fido2.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: integration tests that hit the live e2e-playground stack",
+]
