@@ -19,7 +19,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file authorizer/v1/common.proto.
  */
 export const file_authorizer_v1_common: GenFile = /*@__PURE__*/
-  fileDesc("ChphdXRob3JpemVyL3YxL2NvbW1vbi5wcm90bxINYXV0aG9yaXplci52MSIxCgdBcHBEYXRhEiYKBXZhbHVlGAEgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdELHAQoRY29tLmF1dGhvcml6ZXIudjFCC0NvbW1vblByb3RvUAFaUGdpdGh1Yi5jb20vYXV0aG9yaXplcmRldi9hdXRob3JpemVyLWdvL2ludGVybmFsL2dlbnBiL2F1dGhvcml6ZXIvdjE7YXV0aG9yaXplcnYxogIDQVhYqgINQXV0aG9yaXplci5WMcoCDUF1dGhvcml6ZXJcVjHiAhlBdXRob3JpemVyXFYxXEdQQk1ldGFkYXRh6gIOQXV0aG9yaXplcjo6VjFiBnByb3RvMw", [file_google_protobuf_struct]);
+  fileDesc("ChphdXRob3JpemVyL3YxL2NvbW1vbi5wcm90bxINYXV0aG9yaXplci52MSIxCgdBcHBEYXRhEiYKBXZhbHVlGAEgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdGIGcHJvdG8z", [file_google_protobuf_struct]);
 
 /**
  * AppData is a free-form key/value bag stored against a user. Mirrors the
