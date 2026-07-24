@@ -42,8 +42,11 @@ func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params 
 		return nil, nil, InvalidArgument("empty endpoint not allowed")
 	}
 	// SSRF protection: validate endpoint URL and resolved IPs (skip in test env).
+	// Under --env=e2e (e2e-playground only) this relaxes just the
+	// private-IP rejection so the docker-private webhook-sink mock can be
+	// registered; the scheme allow-list stays enforced.
 	if p.Env != constants.TestEnv {
-		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
+		if err := validators.ValidateEndpointURL(params.Endpoint, p.Config.Env == constants.E2EEnv); err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
 			return nil, nil, InvalidArgument(fmt.Sprintf("invalid endpoint: %s", err.Error()))
 		}
@@ -138,7 +141,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, para
 		}
 		// SSRF protection: validate endpoint URL and resolved IPs (skip in test env).
 		if p.Env != constants.TestEnv {
-			if err := validators.ValidateEndpointURL(refs.StringValue(params.Endpoint)); err != nil {
+			if err := validators.ValidateEndpointURL(refs.StringValue(params.Endpoint), p.Config.Env == constants.E2EEnv); err != nil {
 				log.Debug().Err(err).Str("endpoint", refs.StringValue(params.Endpoint)).Msg("endpoint URL rejected by SSRF filter")
 				return nil, nil, InvalidArgument(fmt.Sprintf("invalid endpoint: %s", err.Error()))
 			}

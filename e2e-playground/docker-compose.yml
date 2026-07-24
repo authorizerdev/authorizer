@@ -1,0 +1,492 @@
+# e2e-playground/docker-compose.yml
+services:
+  authorizer:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8080,http://authorizer:8080"
+      - "--google-client-id=mock-client-id"
+      - "--google-client-secret=mock-client-secret"
+      - "--github-client-id=mock-client-id"
+      - "--github-client-secret=mock-client-secret"
+      - "--facebook-client-id=mock-client-id"
+      - "--facebook-client-secret=mock-client-secret"
+      - "--linkedin-client-id=mock-client-id"
+      - "--linkedin-client-secret=mock-client-secret"
+      - "--apple-client-id=mock-client-id"
+      - "--apple-client-secret=mock-client-secret"
+      - "--twitter-client-id=mock-client-id"
+      - "--twitter-client-secret=mock-client-secret"
+      - "--discord-client-id=mock-client-id"
+      - "--discord-client-secret=mock-client-secret"
+      - "--microsoft-client-id=mock-client-id"
+      - "--microsoft-client-secret=mock-client-secret"
+      - "--twitch-client-id=mock-client-id"
+      - "--twitch-client-secret=mock-client-secret"
+      - "--roblox-client-id=mock-client-id"
+      - "--roblox-client-secret=mock-client-secret"
+      # Enables every e2e-playground-only behavior at once: routes the 10
+      # social OAuth providers + SMS sending through mock-oauth/sms-sink
+      # (hardcoded docker-compose addresses, see internal/config/test_oauth_override.go
+      # and internal/sms/testwebhook), and relaxes the private-IP SSRF check
+      # for SSO discovery/token fetches and webhook registration+delivery so
+      # the docker-private mocks are reachable (scheme allow-list and
+      # DNS-rebinding pin stay enforced either way). A pure function of Env -
+      # no separate flag to configure or forget. Never set in production; see
+      # internal/constants/env.go's E2EEnv doc comment for why this is a
+      # distinct value from --env=test (internal/integration_tests' own Env).
+      - "--env=e2e"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-sso is identical to `authorizer` except --enable-org-discovery=true.
+  # That flag is a GLOBAL login-UX toggle (every /app login gets the email-first
+  # home-realm-discovery screen, not just org-scoped logins), so it cannot be
+  # turned on in the `authorizer` service above without breaking the plain PKCE
+  # flow in tests/oidc-provider.spec.ts (its password field would never appear
+  # behind the HRD screen). A second service on its own port keeps both test
+  # suites green. See playwright.config.ts's `sso-discovery` project.
+  authorizer-sso:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-sso:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-sso.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--enable-org-discovery=true"
+      - "--allowed-origins=http://localhost:8081,http://authorizer-sso:8080"
+      - "--google-client-id=mock-client-id"
+      - "--google-client-secret=mock-client-secret"
+      - "--github-client-id=mock-client-id"
+      - "--github-client-secret=mock-client-secret"
+      - "--facebook-client-id=mock-client-id"
+      - "--facebook-client-secret=mock-client-secret"
+      - "--linkedin-client-id=mock-client-id"
+      - "--linkedin-client-secret=mock-client-secret"
+      - "--apple-client-id=mock-client-id"
+      - "--apple-client-secret=mock-client-secret"
+      - "--twitter-client-id=mock-client-id"
+      - "--twitter-client-secret=mock-client-secret"
+      - "--discord-client-id=mock-client-id"
+      - "--discord-client-secret=mock-client-secret"
+      - "--microsoft-client-id=mock-client-id"
+      - "--microsoft-client-secret=mock-client-secret"
+      - "--twitch-client-id=mock-client-id"
+      - "--twitch-client-secret=mock-client-secret"
+      - "--roblox-client-id=mock-client-id"
+      - "--roblox-client-secret=mock-client-secret"
+      # See the `authorizer` service's --env=e2e comment above for what this
+      # enables (OAuth/SMS mock routing + private-host SSRF relaxation).
+      - "--env=e2e"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-webauthn is a third instance solely for tests/webauthn.spec.ts.
+  # go-webauthn's RPID validation (internal/authenticators/webauthn/webauthn.go
+  # newRP) rejects any hostname without a dot other than exactly "localhost" -
+  # "field 'RPID' is not a valid domain string" - and meta.HostURL (which
+  # supplies that hostname) is ALWAYS derived from the static --url flag once
+  # it's set (internal/parsers/url.go GetHostFromRequest: --url is "the ONLY
+  # source", request headers are ignored), never from whatever hostname the
+  # browser actually navigated with. So the `authorizer`/`authorizer-sso`
+  # services' single-label compose hostnames can never pass WebAuthn
+  # registration, no matter what the browser's Host header says - a
+  # dedicated instance with a dotted --url (via a network alias, since
+  # compose service names themselves can't contain dots) is the only fix.
+  authorizer-webauthn:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8080"
+    networks:
+      default:
+        aliases:
+          - webauthn.e2e-playground.test
+    command:
+      - "--http-port=8080"
+      - "--url=http://webauthn.e2e-playground.test:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-webauthn.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://webauthn.e2e-playground.test:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-magic-link is a fourth instance solely for tests/magic-link.spec.ts.
+  # Magic-link login (--enable-magic-link-login) only ever sends mail when
+  # --enable-email-verification is also on (internal/service/magic_link_login.go
+  # gates the whole verification-request+SendEmail block on
+  # p.Config.EnableEmailVerification), and turning that flag on globally would
+  # break every other spec that signs up and immediately logs in in the same
+  # test on the shared `authorizer` service - login.go refuses password login
+  # for a user whose EmailVerifiedAt is still nil once verification is
+  # required. A dedicated instance keeps both worlds green, same reasoning as
+  # authorizer-sso/authorizer-webauthn above.
+  # --disable-mfa=true keeps this a clean primary-login-method test: without
+  # it, a brand-new user's first click hits the withheld-token MFA-setup
+  # offer screen (internal/service/mfa_gate.go) and the verification request
+  # row is only deleted on the FIRST non-withheld pass through
+  # VerifyEmailHandler (internal/http_handlers/verify_email.go) - so clicking
+  # the same link a second time would actually complete a second real login
+  # instead of failing, defeating the single-use assertion this spec needs.
+  authorizer-magic-link:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-magic-link:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-magic-link.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enable-magic-link-login=true"
+      - "--enable-email-verification=true"
+      - "--disable-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8083,http://authorizer-magic-link:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+      - "--smtp-sender-email=e2e@authorizer.test"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-mfa-enforced is a fifth instance solely for
+  # tests/mfa-routing-matrix.spec.ts (the `mfa-on` project). EnforceMFA
+  # turned out NOT to be a runtime-toggleable admin setting - Task 28
+  # verified live that the `_update_env` mutation fixtures/adminClient.ts's
+  # setEnforceMFA calls is a stub that always errors
+  # ("deprecated. please configure env via cli args",
+  # internal/graph/schema.resolvers.go UpdateEnv), matching this repo's v2
+  # CLI-flags-only config model (no runtime env mutation exists at all, for
+  # any setting). --enforce-mfa is a static CLI flag like the
+  # magic-link/webauthn/sso instances' flags, so it needs its own instance
+  # rather than toggling the shared `authorizer` service - turning it on
+  # there would break every other MFA spec (totp/sms-otp/webauthn) that
+  # relies on the default mfaGateOfferAll (optional, skippable) behavior.
+  authorizer-mfa-enforced:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-mfa-enforced:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-mfa-enforced.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enforce-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8084,http://authorizer-mfa-enforced:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # authorizer-mfa-magic-link is a sixth instance, also solely for
+  # tests/mfa-routing-matrix.spec.ts: the one test in that spec needing
+  # BOTH --enforce-mfa=true AND magic-link login. Can't reuse
+  # authorizer-magic-link above - that instance is pinned to
+  # --disable-mfa=true (which Finalize forces EnforceMFA off regardless,
+  # config.go's DisableMFA kill switch), needed for its own single-use-link
+  # replay test. Can't reuse authorizer-mfa-enforced above either - it has
+  # no email service verification path wired for magic-link
+  # (--enable-magic-link-login/--enable-email-verification), and turning
+  # those on there would break that instance's plain password-login tests
+  # (an unverified user's password login diverts into an email-OTP
+  # verification-pending flow before ever reaching the MFA gate - see
+  # internal/service/login.go's EmailVerifiedAt==nil branch).
+  authorizer-mfa-magic-link:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-mfa-magic-link:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-mfa-magic-link.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enable-magic-link-login=true"
+      - "--enable-email-verification=true"
+      - "--enforce-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8085,http://authorizer-mfa-magic-link:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      # Ephemeral, purpose-built test stack - no real DoS concern, and the
+      # default (30rps/20burst) can trip under a full sequential test run's
+      # admin-API call volume, producing flaky 429s unrelated to product
+      # correctness.
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+      - "--smtp-sender-email=e2e@authorizer.test"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  mock-oauth:
+    build: ./mocks/mock-oauth
+    ports: ["4000:4000"]
+
+  mock-saml-idp:
+    build: ./mocks/mock-saml-idp
+    ports: ["4001:4001"]
+
+  sms-sink:
+    build: ./mocks/sms-sink
+    ports: ["4100:4100"]
+
+  webhook-sink:
+    build: ./mocks/webhook-sink
+    ports: ["4200:4200"]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # Runs the Playwright test process itself inside the compose network so
+  # browser-driven redirects to mock-oauth/mock-saml-idp resolve the same
+  # docker-internal hostnames as server-side fetches (see Dockerfile).
+  # Never started by `up`; invoked via `docker compose run --rm playwright ...`.
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MAGIC_LINK_BASE_URL: http://authorizer-magic-link:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
+      # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
+      # Authorizer's idp_sso_url validation (https-only, no test bypass)
+      # accepts the stored SSO URL. Callers must ignore the self-signed cert
+      # (tests/saml-sp.spec.ts sets ignoreHTTPSErrors for this reason).
+      MOCK_SAML_BASE_URL: https://mock-saml-idp:4001
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
+      MAILPIT_BASE_URL: http://mailpit:8025
+    volumes:
+      - ./playwright-report:/e2e/playwright-report
+      - ./test-results:/e2e/test-results
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-sso: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
+      authorizer-magic-link: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
+
+
+  # go-sdk-tests runs the SDK-driven Go suite (sdk-tests/go) inside the compose
+  # network, exactly like the `playwright` service above and for the same reason:
+  # the docker-internal hostnames the tests target (and the WebAuthn instance's
+  # pinned origin webauthn.e2e-playground.test) must resolve and match each
+  # server's --url/--allowed-origins. Never started by `up`; invoked via
+  # `docker compose run --rm go-sdk-tests`. Additive — it changes no existing
+  # service. It drives the ACTUALLY-PUBLISHED authorizer-go SDK
+  # (v2.2.0-rc.4) over the enterprise/MFA feature set; see sdk-tests/go/README.md
+  # for exactly what is SDK-driven vs. inherently browser-bound.
+  go-sdk-tests:
+    build:
+      context: ./sdk-tests/go
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      AUTHORIZER_ADMIN_SECRET: e2e-admin-secret
+      AUTHORIZER_CLIENT_ID: e2e-client-id
+      AUTHORIZER_CLIENT_SECRET: e2e-client-secret
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
+      MAILPIT_BASE_URL: http://mailpit:8025
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
+
+  # Runs the Python SDK e2e suite (sdk-tests/python) inside the compose network,
+  # for the SAME reason the `playwright` service above does: the social-OAuth
+  # redirect chain (mock-oauth) and the WebAuthn RP origin
+  # (webauthn.e2e-playground.test:8080) only resolve/validate from within the
+  # docker-internal network. It depends only on the published authorizer-py SDK
+  # (installed from PyPI in its Dockerfile) — no source of this repo is copied
+  # into it. Never started by `up`; invoked via
+  # `docker compose run --rm python-sdk`.
+  python-sdk:
+    build:
+      context: ./sdk-tests/python
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      AUTHORIZER_ADMIN_SECRET: e2e-admin-secret
+      AUTHORIZER_CLIENT_ID: e2e-client-id
+      AUTHORIZER_CLIENT_SECRET: e2e-client-secret
+      MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
+      MAILPIT_BASE_URL: http://mailpit:8025
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }

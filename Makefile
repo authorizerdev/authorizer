@@ -298,3 +298,25 @@ perf-k6-validate:
 .PHONY: perf-k6-check
 perf-k6-check:
 	k6 run perf/k6/fga_check.js
+
+.PHONY: e2e-playground
+e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/MFA) against an ephemeral docker-compose stack
+	docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso mock-oauth mock-saml-idp mailpit sms-sink; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		docker compose -f e2e-playground/docker-compose.yml run --rm playwright npx playwright test; \
+		status=$$?; \
+	fi; \
+	docker compose -f e2e-playground/docker-compose.yml down -v; \
+	exit $$status
+
+.PHONY: e2e-playground-sdk
+e2e-playground-sdk: ## Run the SDK-driven Go suite (drives authorizer-go over the enterprise/MFA surface) against an ephemeral docker-compose stack
+	docker compose -f e2e-playground/docker-compose.yml up -d --wait --build authorizer authorizer-webauthn authorizer-mfa-enforced authorizer-mfa-magic-link mock-oauth mock-saml-idp mailpit sms-sink webhook-sink; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		docker compose -f e2e-playground/docker-compose.yml run --rm --build go-sdk-tests; \
+		status=$$?; \
+	fi; \
+	docker compose -f e2e-playground/docker-compose.yml down -v; \
+	exit $$status
