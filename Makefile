@@ -308,3 +308,14 @@ e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/M
 	fi; \
 	docker compose -f e2e-playground/docker-compose.yml down -v; \
 	exit $$status
+
+.PHONY: e2e-playground-sdk
+e2e-playground-sdk: ## Run the SDK-driven Go suite (drives authorizer-go over the enterprise/MFA surface) against an ephemeral docker-compose stack
+	docker compose -f e2e-playground/docker-compose.yml up -d --wait --build authorizer authorizer-webauthn authorizer-mfa-enforced authorizer-mfa-magic-link mock-oauth mock-saml-idp mailpit sms-sink webhook-sink; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		docker compose -f e2e-playground/docker-compose.yml run --rm --build go-sdk-tests; \
+		status=$$?; \
+	fi; \
+	docker compose -f e2e-playground/docker-compose.yml down -v; \
+	exit $$status

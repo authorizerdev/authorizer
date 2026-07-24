@@ -436,3 +436,38 @@ services:
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
       webhook-sink: { condition: service_started }
+
+  # go-sdk-tests runs the SDK-driven Go suite (sdk-tests/go) inside the compose
+  # network, exactly like the `playwright` service above and for the same reason:
+  # the docker-internal hostnames the tests target (and the WebAuthn instance's
+  # pinned origin webauthn.e2e-playground.test) must resolve and match each
+  # server's --url/--allowed-origins. Never started by `up`; invoked via
+  # `docker compose run --rm go-sdk-tests`. Additive — it changes no existing
+  # service. It drives the ACTUALLY-PUBLISHED authorizer-go SDK
+  # (v2.2.0-rc.4) over the enterprise/MFA feature set; see sdk-tests/go/README.md
+  # for exactly what is SDK-driven vs. inherently browser-bound.
+  go-sdk-tests:
+    build:
+      context: ./sdk-tests/go
+      dockerfile: Dockerfile
+    environment:
+      AUTHORIZER_BASE_URL: http://authorizer:8080
+      AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
+      AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
+      AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      AUTHORIZER_ADMIN_SECRET: e2e-admin-secret
+      AUTHORIZER_CLIENT_ID: e2e-client-id
+      AUTHORIZER_CLIENT_SECRET: e2e-client-secret
+      SMS_SINK_BASE_URL: http://sms-sink:4100
+      WEBHOOK_SINK_BASE_URL: http://webhook-sink:4200
+      MAILPIT_BASE_URL: http://mailpit:8025
+    depends_on:
+      authorizer: { condition: service_healthy }
+      authorizer-webauthn: { condition: service_healthy }
+      authorizer-mfa-enforced: { condition: service_healthy }
+      authorizer-mfa-magic-link: { condition: service_healthy }
+      mock-oauth: { condition: service_started }
+      mock-saml-idp: { condition: service_started }
+      mailpit: { condition: service_started }
+      sms-sink: { condition: service_started }
+      webhook-sink: { condition: service_started }
