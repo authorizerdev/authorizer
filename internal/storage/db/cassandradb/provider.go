@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -133,7 +134,26 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}
 
 	if !hasAuthorizerKeySpace {
+		// This provider backs two DB types (cassandradb, scylladb) that need
+		// different keyspace replication CQL:
+		//
+		//   - Apache Cassandra: keep the original SimpleStrategy/RF=1 query. It
+		//     has no "tablets" concept and would reject a tablets clause, so this
+		//     path is left byte-for-byte as it always was.
+		//   - ScyllaDB: modern Scylla defaults new keyspaces to tablet
+		//     replication, which (a) makes it reject SimpleStrategy outright
+		//     ("SimpleStrategy doesn't support tablet replication") and (b) changes
+		//     LWT (INSERT ... IF NOT EXISTS) read-after-write visibility so this
+		//     provider's Consistency(One) reads intermittently miss a just-written
+		//     row under load. Use NetworkTopologyStrategy (required for tablets and
+		//     the recommended strategy) with the single replication_factor
+		//     shorthand, and opt out of tablets via the Scylla-only
+		//     `tablets = {'enabled': false}` extension to restore the vnode
+		//     semantics the rest of this provider assumes.
 		createKeySpaceQuery := fmt.Sprintf("CREATE KEYSPACE %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1};", KeySpace)
+		if cfg.DatabaseType == constants.DbTypeScyllaDB {
+			createKeySpaceQuery = fmt.Sprintf("CREATE KEYSPACE %s WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1} AND tablets = {'enabled': false};", KeySpace)
+		}
 		err = session.Query(createKeySpaceQuery).Exec()
 		if err != nil {
 			return nil, err
