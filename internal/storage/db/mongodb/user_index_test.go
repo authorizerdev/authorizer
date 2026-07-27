@@ -107,6 +107,19 @@ func TestUserEmailAndPhoneIndexesCreated(t *testing.T) {
 	_, err = coll.InsertOne(ctx, e2)
 	require.Error(t, err, "duplicate email must be rejected by the unique index")
 	assert.True(t, mongo.IsDuplicateKeyError(err), "expected duplicate-key error, got: %v", err)
+
+	// Two users with an explicit empty-string email (as opposed to nil) must
+	// also coexist: `$type:"string"` alone would treat "" as a real, indexed
+	// value and reject the second as a duplicate. The added `$gt:""` filter
+	// excludes "" from the index, same as it excludes null.
+	empty1 := &schemas.User{ID: uuid.New().String(), Email: strPtr("")}
+	empty1.Key = empty1.ID
+	empty2 := &schemas.User{ID: uuid.New().String(), Email: strPtr("")}
+	empty2.Key = empty2.ID
+	_, err = coll.InsertOne(ctx, empty1)
+	require.NoError(t, err, "first empty-string-email user should insert")
+	_, err = coll.InsertOne(ctx, empty2)
+	require.NoError(t, err, "second empty-string-email user must NOT collide on the email index")
 }
 
 // TestUserEmailIndexWithPreexistingDuplicatesDoesNotCrash simulates an upgraded
@@ -161,6 +174,45 @@ func TestUserEmailIndexWithPreexistingDuplicatesDoesNotCrash(t *testing.T) {
 	coll := p.db.Collection(schemas.Collections.User, options.Collection())
 	assert.False(t, hasIndexOn(t, coll, "email", true),
 		"unique email index must not exist while duplicates remain")
+}
+
+// TestAddUserEmailUniquenessWhenPhoneAlsoSupplied proves the fix for the
+// else-if bug in AddUser: email and phone uniqueness were previously chained
+// with else-if, so supplying a phone number skipped the email check entirely
+// and let a duplicate email persist. This test would have failed on the old
+// code (the second insert would have succeeded) and passes now that both
+// checks run independently.
+func TestAddUserEmailUniquenessWhenPhoneAlsoSupplied(t *testing.T) {
+	if !mongoSelected() {
+		t.Skip("skipping: TEST_DBS does not include mongodb")
+	}
+
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	cfg := &config.Config{
+		DatabaseType: constants.DbTypeMongoDB,
+		DatabaseURL:  mongoTestURL,
+		DatabaseName: "authorizer_elseif_test_" + strings.ReplaceAll(uuid.New().String(), "-", ""),
+	}
+	p, err := NewProvider(cfg, &Dependencies{Log: &logger})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = p.db.Drop(ctx)
+		_ = p.Close()
+	})
+
+	ctx := context.Background()
+	sharedEmail := "elseif_" + uuid.New().String() + "@test.com"
+
+	userA := &schemas.User{ID: uuid.New().String(), Email: strPtr(sharedEmail), PhoneNumber: strPtr("phoneA-" + uuid.New().String())}
+	_, err = p.AddUser(ctx, userA)
+	require.NoError(t, err)
+
+	userB := &schemas.User{ID: uuid.New().String(), Email: strPtr(sharedEmail), PhoneNumber: strPtr("phoneB-" + uuid.New().String())}
+	_, err = p.AddUser(ctx, userB)
+	require.Error(t, err, "duplicate email must be rejected even when a (distinct) phone number is also supplied")
+	assert.Contains(t, err.Error(), "email", "error should identify the email conflict")
 }
 
 func strPtr(s string) *string { return &s }

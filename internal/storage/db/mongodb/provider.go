@@ -66,12 +66,15 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	// values, so a second null would collide — e.g. a second phone-only user
 	// (email null) or an email-only user (phone null). The `$type:"string"`
 	// partial filter indexes only real string values, leaving nulls unconstrained
-	// while still enforcing uniqueness across actual emails/phone numbers.
+	// while still enforcing uniqueness across actual emails/phone numbers. The
+	// added `$gt: ""` excludes the empty string too — partialFilterExpression
+	// doesn't support $ne, but "" is the lexicographic minimum for BSON strings,
+	// so $gt:"" matches every non-empty string while still filtering "" out.
 	if _, err := userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys: bson.M{"email": 1},
-			Options: options.Index().SetUnique(true).SetPartialFilterExpression(map[string]interface{}{
-				"email": map[string]string{"$type": "string"},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{
+				"email": bson.M{"$type": "string", "$gt": ""},
 			}),
 		},
 	}, options.CreateIndexes()); err != nil {
@@ -85,8 +88,8 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	if _, err := userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys: bson.M{"phone_number": 1},
-			Options: options.Index().SetUnique(true).SetPartialFilterExpression(map[string]interface{}{
-				"phone_number": map[string]string{"$type": "string"},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{
+				"phone_number": bson.M{"$type": "string", "$gt": ""},
 			}),
 		},
 	}, options.CreateIndexes()); err != nil {
