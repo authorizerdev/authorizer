@@ -20,7 +20,7 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 	if auditLog.CreatedAt == 0 {
 		auditLog.CreatedAt = time.Now().Unix()
 	}
-	res := p.db.Clauses(
+	res := p.db.WithContext(ctx).Clauses(
 		clause.OnConflict{
 			DoNothing: true,
 		}).Create(&auditLog)
@@ -35,7 +35,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	var auditLogs []*schemas.AuditLog
 	var total int64
 
-	query := p.db.Model(&schemas.AuditLog{})
+	query := p.db.WithContext(ctx).Model(&schemas.AuditLog{})
 
 	// Apply filters
 	if actorID, ok := filter["actor_id"]; ok && actorID != "" {
@@ -77,7 +77,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 
 // DeleteAuditLogsBefore removes logs older than a timestamp
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
-	res := p.db.Where("created_at < ?", before).Delete(&schemas.AuditLog{})
+	res := p.db.WithContext(ctx).Where("created_at < ?", before).Delete(&schemas.AuditLog{})
 	if res.Error != nil {
 		return res.Error
 	}

@@ -22,7 +22,7 @@ func (p *provider) AddSAMLServiceProvider(ctx context.Context, sp *schemas.SAMLS
 	now := time.Now().Unix()
 	sp.CreatedAt = now
 	sp.UpdatedAt = now
-	res := p.db.Create(sp)
+	res := p.db.WithContext(ctx).Create(sp)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -36,7 +36,7 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, sp *schemas.SA
 		return nil, fmt.Errorf("UpdateSAMLServiceProvider: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	sp.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(sp)
+	res := p.db.WithContext(ctx).Save(sp)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -45,13 +45,13 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, sp *schemas.SA
 
 // DeleteSAMLServiceProvider removes a registered SP.
 func (p *provider) DeleteSAMLServiceProvider(ctx context.Context, sp *schemas.SAMLServiceProvider) error {
-	return p.db.Delete(sp).Error
+	return p.db.WithContext(ctx).Delete(sp).Error
 }
 
 // GetSAMLServiceProviderByID fetches a registered SP by primary key.
 func (p *provider) GetSAMLServiceProviderByID(ctx context.Context, id string) (*schemas.SAMLServiceProvider, error) {
 	var sp schemas.SAMLServiceProvider
-	res := p.db.Where("id = ?", id).First(&sp)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&sp)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -62,7 +62,7 @@ func (p *provider) GetSAMLServiceProviderByID(ctx context.Context, id string) (*
 // (orgID, entityID) pair — the AuthnRequest-Issuer → trusted-ACS binding.
 func (p *provider) GetSAMLServiceProviderByOrgAndEntityID(ctx context.Context, orgID, entityID string) (*schemas.SAMLServiceProvider, error) {
 	var sp schemas.SAMLServiceProvider
-	res := p.db.Where("org_id = ? AND entity_id = ?", orgID, entityID).First(&sp)
+	res := p.db.WithContext(ctx).Where("org_id = ? AND entity_id = ?", orgID, entityID).First(&sp)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -72,12 +72,12 @@ func (p *provider) GetSAMLServiceProviderByOrgAndEntityID(ctx context.Context, o
 // ListSAMLServiceProviders returns the registered SPs for an org (paginated).
 func (p *provider) ListSAMLServiceProviders(ctx context.Context, orgID string, pagination *model.Pagination) ([]*schemas.SAMLServiceProvider, *model.Pagination, error) {
 	var sps []*schemas.SAMLServiceProvider
-	res := p.db.Where("org_id = ?", orgID).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&sps)
+	res := p.db.WithContext(ctx).Where("org_id = ?", orgID).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&sps)
 	if res.Error != nil {
 		return nil, nil, res.Error
 	}
 	var total int64
-	if err := p.db.Model(&schemas.SAMLServiceProvider{}).Where("org_id = ?", orgID).Count(&total).Error; err != nil {
+	if err := p.db.WithContext(ctx).Model(&schemas.SAMLServiceProvider{}).Where("org_id = ?", orgID).Count(&total).Error; err != nil {
 		return nil, nil, err
 	}
 	return sps, &model.Pagination{
@@ -99,7 +99,7 @@ func (p *provider) AddSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey) (
 	now := time.Now().Unix()
 	key.CreatedAt = now
 	key.UpdatedAt = now
-	res := p.db.Create(key)
+	res := p.db.WithContext(ctx).Create(key)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -112,7 +112,7 @@ func (p *provider) UpdateSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey
 		return nil, fmt.Errorf("UpdateSAMLIDPKey: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	key.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(key)
+	res := p.db.WithContext(ctx).Save(key)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -121,13 +121,13 @@ func (p *provider) UpdateSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey
 
 // DeleteSAMLIDPKey removes a signing key.
 func (p *provider) DeleteSAMLIDPKey(ctx context.Context, key *schemas.SAMLIDPKey) error {
-	return p.db.Delete(key).Error
+	return p.db.WithContext(ctx).Delete(key).Error
 }
 
 // GetSAMLIDPKeyByID fetches a signing key by primary key.
 func (p *provider) GetSAMLIDPKeyByID(ctx context.Context, id string) (*schemas.SAMLIDPKey, error) {
 	var key schemas.SAMLIDPKey
-	res := p.db.Where("id = ?", id).First(&key)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&key)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -137,7 +137,7 @@ func (p *provider) GetSAMLIDPKeyByID(ctx context.Context, id string) (*schemas.S
 // ListSAMLIDPKeys returns every signing key for an org (newest first).
 func (p *provider) ListSAMLIDPKeys(ctx context.Context, orgID string) ([]*schemas.SAMLIDPKey, error) {
 	var keys []*schemas.SAMLIDPKey
-	res := p.db.Where("org_id = ?", orgID).Order("created_at DESC").Find(&keys)
+	res := p.db.WithContext(ctx).Where("org_id = ?", orgID).Order("created_at DESC").Find(&keys)
 	if res.Error != nil {
 		return nil, res.Error
 	}

@@ -20,7 +20,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 	emailTemplate.CreatedAt = time.Now().Unix()
 	emailTemplate.UpdatedAt = time.Now().Unix()
 
-	res := p.db.Create(&emailTemplate)
+	res := p.db.WithContext(ctx).Create(&emailTemplate)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -31,7 +31,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 
-	res := p.db.Save(&emailTemplate)
+	res := p.db.WithContext(ctx).Save(&emailTemplate)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -41,13 +41,13 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 // ListEmailTemplates to list EmailTemplate
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) ([]*schemas.EmailTemplate, *model.Pagination, error) {
 	var emailTemplates []*schemas.EmailTemplate
-	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&emailTemplates)
+	result := p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&emailTemplates)
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
 
 	var total int64
-	totalRes := p.db.Model(&schemas.EmailTemplate{}).Count(&total)
+	totalRes := p.db.WithContext(ctx).Model(&schemas.EmailTemplate{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
@@ -62,7 +62,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*schemas.EmailTemplate, error) {
 	var emailTemplate *schemas.EmailTemplate
 
-	result := p.db.Where("id = ?", emailTemplateID).First(&emailTemplate)
+	result := p.db.WithContext(ctx).Where("id = ?", emailTemplateID).First(&emailTemplate)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -73,7 +73,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*schemas.EmailTemplate, error) {
 	var emailTemplate *schemas.EmailTemplate
 
-	result := p.db.Where("event_name = ?", eventName).First(&emailTemplate)
+	result := p.db.WithContext(ctx).Where("event_name = ?", eventName).First(&emailTemplate)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -82,7 +82,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 
 // DeleteEmailTemplate to delete EmailTemplate
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) error {
-	result := p.db.Delete(&schemas.EmailTemplate{
+	result := p.db.WithContext(ctx).Delete(&schemas.EmailTemplate{
 		ID: emailTemplate.ID,
 	})
 	if result.Error != nil {

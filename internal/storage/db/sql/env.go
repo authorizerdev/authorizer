@@ -19,7 +19,7 @@ func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, 
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
 
-	result := p.db.Create(&env)
+	result := p.db.WithContext(ctx).Create(&env)
 	if result.Error != nil {
 		return env, result.Error
 	}
@@ -29,7 +29,7 @@ func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, 
 // UpdateEnv to update environment information in database
 func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
-	result := p.db.Save(&env)
+	result := p.db.WithContext(ctx).Save(&env)
 	if result.Error != nil {
 		return env, result.Error
 	}
@@ -39,7 +39,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.En
 // GetEnv to get environment information from database
 func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
 	var env *schemas.Env
-	result := p.db.First(&env)
+	result := p.db.WithContext(ctx).First(&env)
 	if result.Error != nil {
 		return env, result.Error
 	}

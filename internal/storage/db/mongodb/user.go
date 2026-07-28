@@ -24,11 +24,16 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	if user.Roles == "" {
 		user.Roles = strings.Join(p.config.DefaultRoles, ",")
 	}
+	// Check email and phone uniqueness independently: a signup supplying both
+	// must be rejected if EITHER already exists. These were previously chained
+	// with else-if, which skipped the email check whenever a phone number was
+	// also supplied and let duplicate emails persist.
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
 		}
-	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+	}
+	if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
 		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given email already exists")
 		}

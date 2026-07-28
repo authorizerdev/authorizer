@@ -23,7 +23,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*s
 	webhook.UpdatedAt = time.Now().Unix()
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
-	res := p.db.Create(&webhook)
+	res := p.db.WithContext(ctx).Create(&webhook)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -37,7 +37,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if !strings.Contains(webhook.EventName, "-") {
 		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	}
-	result := p.db.Save(&webhook)
+	result := p.db.WithContext(ctx).Save(&webhook)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -47,12 +47,12 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 // ListWebhooks to list webhook
 func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error) {
 	var webhooks []*schemas.Webhook
-	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhooks)
+	result := p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhooks)
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
 	var total int64
-	totalRes := p.db.Model(&schemas.Webhook{}).Count(&total)
+	totalRes := p.db.WithContext(ctx).Model(&schemas.Webhook{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
@@ -66,7 +66,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	var webhook *schemas.Webhook
 
-	result := p.db.Where("id = ?", webhookID).First(&webhook)
+	result := p.db.WithContext(ctx).Where("id = ?", webhookID).First(&webhook)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -76,7 +76,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
 	var webhooks []*schemas.Webhook
-	result := p.db.Where("event_name LIKE ?", eventName+"%").Find(&webhooks)
+	result := p.db.WithContext(ctx).Where("event_name LIKE ?", eventName+"%").Find(&webhooks)
 	if result.Error != nil {
 		return nil, result.Error
 	}
