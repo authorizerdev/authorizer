@@ -54,12 +54,12 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 	}
 	otp.UpdatedAt = time.Now().Unix()
 	if shouldCreate {
-		result := p.db.Create(&otp)
+		result := p.db.WithContext(ctx).Create(&otp)
 		if result.Error != nil {
 			return nil, result.Error
 		}
 	} else {
-		result := p.db.Save(&otp)
+		result := p.db.WithContext(ctx).Save(&otp)
 		if result.Error != nil {
 			return nil, result.Error
 		}
@@ -70,7 +70,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*schemas.OTP, error) {
 	var otp schemas.OTP
-	result := p.db.Where("email = ?", emailAddress).First(&otp)
+	result := p.db.WithContext(ctx).Where("email = ?", emailAddress).First(&otp)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -80,7 +80,7 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*sch
 // GetOTPByPhoneNumber to get otp for a given phone number
 func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.OTP, error) {
 	var otp schemas.OTP
-	result := p.db.Where("phone_number = ?", phoneNumber).First(&otp)
+	result := p.db.WithContext(ctx).Where("phone_number = ?", phoneNumber).First(&otp)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -89,7 +89,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *schemas.OTP) error {
-	result := p.db.Delete(&schemas.OTP{
+	result := p.db.WithContext(ctx).Delete(&schemas.OTP{
 		ID: otp.ID,
 	})
 	if result.Error != nil {

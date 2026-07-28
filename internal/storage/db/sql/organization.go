@@ -21,7 +21,7 @@ func (p *provider) AddOrganization(ctx context.Context, org *schemas.Organizatio
 	now := time.Now().Unix()
 	org.CreatedAt = now
 	org.UpdatedAt = now
-	res := p.db.Create(org)
+	res := p.db.WithContext(ctx).Create(org)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -37,7 +37,7 @@ func (p *provider) UpdateOrganization(ctx context.Context, org *schemas.Organiza
 		return nil, fmt.Errorf("UpdateOrganization: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	org.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(org)
+	res := p.db.WithContext(ctx).Save(org)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -69,7 +69,7 @@ func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organiza
 // GetOrganizationByID fetches an organization by primary key.
 func (p *provider) GetOrganizationByID(ctx context.Context, id string) (*schemas.Organization, error) {
 	var org schemas.Organization
-	res := p.db.Where("id = ?", id).First(&org)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&org)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -79,7 +79,7 @@ func (p *provider) GetOrganizationByID(ctx context.Context, id string) (*schemas
 // GetOrganizationByName fetches an organization by its unique name slug.
 func (p *provider) GetOrganizationByName(ctx context.Context, name string) (*schemas.Organization, error) {
 	var org schemas.Organization
-	res := p.db.Where("name = ?", name).First(&org)
+	res := p.db.WithContext(ctx).Where("name = ?", name).First(&org)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -89,12 +89,12 @@ func (p *provider) GetOrganizationByName(ctx context.Context, name string) (*sch
 // ListOrganizations returns a paginated list of organizations.
 func (p *provider) ListOrganizations(ctx context.Context, pagination *model.Pagination) ([]*schemas.Organization, *model.Pagination, error) {
 	var orgs []*schemas.Organization
-	res := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&orgs)
+	res := p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&orgs)
 	if res.Error != nil {
 		return nil, nil, res.Error
 	}
 	var total int64
-	countRes := p.db.Model(&schemas.Organization{}).Count(&total)
+	countRes := p.db.WithContext(ctx).Model(&schemas.Organization{}).Count(&total)
 	if countRes.Error != nil {
 		return nil, nil, countRes.Error
 	}

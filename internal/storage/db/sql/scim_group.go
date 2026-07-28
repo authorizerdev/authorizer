@@ -21,7 +21,7 @@ func (p *provider) AddScimGroup(ctx context.Context, group *schemas.ScimGroup) (
 	now := time.Now().Unix()
 	group.CreatedAt = now
 	group.UpdatedAt = now
-	res := p.db.Create(group)
+	res := p.db.WithContext(ctx).Create(group)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -37,7 +37,7 @@ func (p *provider) UpdateScimGroup(ctx context.Context, group *schemas.ScimGroup
 		return nil, fmt.Errorf("UpdateScimGroup: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	group.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(group)
+	res := p.db.WithContext(ctx).Save(group)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -46,13 +46,13 @@ func (p *provider) UpdateScimGroup(ctx context.Context, group *schemas.ScimGroup
 
 // DeleteScimGroup removes a SCIM group.
 func (p *provider) DeleteScimGroup(ctx context.Context, group *schemas.ScimGroup) error {
-	return p.db.Delete(group).Error
+	return p.db.WithContext(ctx).Delete(group).Error
 }
 
 // GetScimGroupByID fetches a SCIM group by primary key.
 func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.ScimGroup, error) {
 	var group schemas.ScimGroup
-	res := p.db.Where("id = ?", id).First(&group)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&group)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -81,7 +81,7 @@ const groupScanSafetyCap = 100_000
 // DynamoDB fetch-then-filter shape exactly.
 func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, displayName string) (*schemas.ScimGroup, error) {
 	var groups []schemas.ScimGroup
-	res := p.db.Where("org_id = ?", orgID).Limit(groupScanSafetyCap).Find(&groups)
+	res := p.db.WithContext(ctx).Where("org_id = ?", orgID).Limit(groupScanSafetyCap).Find(&groups)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -102,7 +102,7 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 // exactly like User.ExternalID, so this can never resolve another org's group.
 func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, externalID string) (*schemas.ScimGroup, error) {
 	var group schemas.ScimGroup
-	res := p.db.Where("org_id = ? AND external_id = ?", orgID, orgID+":"+externalID).First(&group)
+	res := p.db.WithContext(ctx).Where("org_id = ? AND external_id = ?", orgID, orgID+":"+externalID).First(&group)
 	if res.Error != nil {
 		return nil, res.Error
 	}

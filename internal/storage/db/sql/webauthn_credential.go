@@ -19,7 +19,7 @@ func (p *provider) AddWebauthnCredential(ctx context.Context, cred *schemas.Weba
 	now := time.Now().Unix()
 	cred.CreatedAt = now
 	cred.UpdatedAt = now
-	res := p.db.Create(cred)
+	res := p.db.WithContext(ctx).Create(cred)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -34,7 +34,7 @@ func (p *provider) UpdateWebauthnCredential(ctx context.Context, cred *schemas.W
 		return nil, fmt.Errorf("UpdateWebauthnCredential: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	cred.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(cred)
+	res := p.db.WithContext(ctx).Save(cred)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -43,13 +43,13 @@ func (p *provider) UpdateWebauthnCredential(ctx context.Context, cred *schemas.W
 
 // DeleteWebauthnCredential removes a passkey.
 func (p *provider) DeleteWebauthnCredential(ctx context.Context, cred *schemas.WebauthnCredential) error {
-	return p.db.Delete(cred).Error
+	return p.db.WithContext(ctx).Delete(cred).Error
 }
 
 // GetWebauthnCredentialByID fetches a passkey by primary key.
 func (p *provider) GetWebauthnCredentialByID(ctx context.Context, id string) (*schemas.WebauthnCredential, error) {
 	var cred schemas.WebauthnCredential
-	res := p.db.Where("id = ?", id).First(&cred)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&cred)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -60,7 +60,7 @@ func (p *provider) GetWebauthnCredentialByID(ctx context.Context, id string) (*s
 // credential id — the usernameless-login lookup.
 func (p *provider) GetWebauthnCredentialByCredentialID(ctx context.Context, credentialID string) (*schemas.WebauthnCredential, error) {
 	var cred schemas.WebauthnCredential
-	res := p.db.Where("credential_id = ?", credentialID).First(&cred)
+	res := p.db.WithContext(ctx).Where("credential_id = ?", credentialID).First(&cred)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -70,7 +70,7 @@ func (p *provider) GetWebauthnCredentialByCredentialID(ctx context.Context, cred
 // ListWebauthnCredentialsByUserID returns all of a user's passkeys.
 func (p *provider) ListWebauthnCredentialsByUserID(ctx context.Context, userID string) ([]*schemas.WebauthnCredential, error) {
 	var creds []*schemas.WebauthnCredential
-	res := p.db.Where("user_id = ?", userID).Order("created_at DESC").Find(&creds)
+	res := p.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&creds)
 	if res.Error != nil {
 		return nil, res.Error
 	}

@@ -19,7 +19,7 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 	session.Key = session.ID
 	session.CreatedAt = time.Now().Unix()
 	session.UpdatedAt = time.Now().Unix()
-	res := p.db.Clauses(
+	res := p.db.WithContext(ctx).Clauses(
 		clause.OnConflict{
 			DoNothing: true,
 		}).Create(&session)
@@ -31,7 +31,7 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 
 // DeleteSession to delete session information from database
 func (p *provider) DeleteSession(ctx context.Context, userId string) error {
-	res := p.db.Where("user_id = ?", userId).Delete(&schemas.Session{})
+	res := p.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&schemas.Session{})
 	if res.Error != nil {
 		return res.Error
 	}

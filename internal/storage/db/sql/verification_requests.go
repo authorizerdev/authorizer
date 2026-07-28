@@ -19,7 +19,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	verificationRequest.Key = verificationRequest.ID
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
-	result := p.db.Clauses(clause.OnConflict{
+	result := p.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
 		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at", "nonce", "redirect_uri"}),
 	}).Create(&verificationRequest)
@@ -32,7 +32,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
 	var verificationRequest *schemas.VerificationRequest
-	result := p.db.Where("token = ?", token).First(&verificationRequest)
+	result := p.db.WithContext(ctx).Where("token = ?", token).First(&verificationRequest)
 	if result.Error != nil {
 		return verificationRequest, result.Error
 	}
@@ -42,7 +42,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
 	var verificationRequest *schemas.VerificationRequest
-	result := p.db.Where("email = ? AND identifier = ?", email, identifier).First(&verificationRequest)
+	result := p.db.WithContext(ctx).Where("email = ? AND identifier = ?", email, identifier).First(&verificationRequest)
 	if result.Error != nil {
 		return verificationRequest, result.Error
 	}
@@ -52,12 +52,12 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 // ListVerificationRequests to get list of verification requests from database
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
 	var verificationRequests []*schemas.VerificationRequest
-	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
+	result := p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
 	var total int64
-	totalRes := p.db.Model(&schemas.VerificationRequest{}).Count(&total)
+	totalRes := p.db.WithContext(ctx).Model(&schemas.VerificationRequest{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
@@ -68,7 +68,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 
 // DeleteVerificationRequest to delete verification request from database
 func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
-	result := p.db.Delete(&verificationRequest)
+	result := p.db.WithContext(ctx).Delete(&verificationRequest)
 	if result.Error != nil {
 		return result.Error
 	}

@@ -53,9 +53,9 @@ jobs:
       # Regenerate gen/ from proto/ and fail if the committed output is stale.
       - name: Verify generated protobuf output
         run: make proto-check
-      # Same gate for the client-SDK stubs (gen/go-client, gen/python, gen/ts)
-      # vendored into the standalone SDK repos — these use a separate template
-      # (buf.gen.clients.yaml) that proto-check does not touch.
+      # Same gate for the vendored TS stubs (gen/ts, consumed by authorizer-js)
+      # — these use a separate template (buf.gen.clients.yaml) that proto-check
+      # does not touch. Go/Python stubs moved to dedicated proto packages.
       - name: Verify generated client SDK stubs
         run: make proto-check-clients
       # Compare against the published module so a PR that would break

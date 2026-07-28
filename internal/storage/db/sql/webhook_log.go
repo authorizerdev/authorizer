@@ -21,7 +21,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	webhookLog.Key = webhookLog.ID
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
-	res := p.db.Clauses(
+	res := p.db.WithContext(ctx).Clauses(
 		clause.OnConflict{
 			DoNothing: true,
 		}).Create(&webhookLog)
@@ -40,11 +40,11 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	var total int64
 
 	if webhookID != "" {
-		result = p.db.Where("webhook_id = ?", webhookID).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhookLogs)
-		totalRes = p.db.Where("webhook_id = ?", webhookID).Model(&schemas.WebhookLog{}).Count(&total)
+		result = p.db.WithContext(ctx).Where("webhook_id = ?", webhookID).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhookLogs)
+		totalRes = p.db.WithContext(ctx).Where("webhook_id = ?", webhookID).Model(&schemas.WebhookLog{}).Count(&total)
 	} else {
-		result = p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhookLogs)
-		totalRes = p.db.Model(&schemas.WebhookLog{}).Count(&total)
+		result = p.db.WithContext(ctx).Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhookLogs)
+		totalRes = p.db.WithContext(ctx).Model(&schemas.WebhookLog{}).Count(&total)
 	}
 
 	if result.Error != nil {

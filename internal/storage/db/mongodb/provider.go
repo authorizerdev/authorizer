@@ -52,18 +52,51 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 
 	_ = mongodb.CreateCollection(ctx, schemas.Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(schemas.Collections.User, options.Collection())
-	_, _ = userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	// Email and phone_number unique indexes are created in SEPARATE calls, not a
+	// single CreateMany batch. CreateMany is all-or-nothing: the phone_number
+	// spec previously combined sparse + partialFilterExpression (MongoDB rejects
+	// that with CannotCreateIndex), which silently failed the whole batch — and
+	// with the error discarded (`_, _ =`) it took the email unique index down
+	// with it. Net effect: email uniqueness was never enforced at the DB level,
+	// only by an application-layer check-then-insert (a TOCTOU race).
+	//
+	// Both indexes use partialFilterExpression, NOT sparse. Email/PhoneNumber are
+	// *string with no bson `omitempty`, so an unset value is stored as BSON null
+	// (the field is present). A unique+sparse index still indexes present-null
+	// values, so a second null would collide — e.g. a second phone-only user
+	// (email null) or an email-only user (phone null). The `$type:"string"`
+	// partial filter indexes only real string values, leaving nulls unconstrained
+	// while still enforcing uniqueness across actual emails/phone numbers. The
+	// added `$gt: ""` excludes the empty string too — partialFilterExpression
+	// doesn't support $ne, but "" is the lexicographic minimum for BSON strings,
+	// so $gt:"" matches every non-empty string while still filtering "" out.
+	if _, err := userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.M{"email": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true),
-		},
-		{
-			Keys: bson.M{"phone_number": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true).SetPartialFilterExpression(map[string]interface{}{
-				"phone_number": map[string]string{"$type": "string"},
+			Keys: bson.M{"email": 1},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{
+				"email": bson.M{"$type": "string", "$gt": ""},
 			}),
 		},
-	}, options.CreateIndexes())
+	}, options.CreateIndexes()); err != nil {
+		// Do not fail startup: an upgraded self-hosted deployment may already hold
+		// duplicate emails (possible only because this index was silently never
+		// created before this fix). Warn clearly instead of crash-looping.
+		if deps != nil && deps.Log != nil {
+			deps.Log.Warn().Err(err).Msg("failed to create unique index on authorizer_users(email) - duplicate email values likely exist; email uniqueness is enforced at the application layer only until you dedupe and restart")
+		}
+	}
+	if _, err := userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.M{"phone_number": 1},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{
+				"phone_number": bson.M{"$type": "string", "$gt": ""},
+			}),
+		},
+	}, options.CreateIndexes()); err != nil {
+		if deps != nil && deps.Log != nil {
+			deps.Log.Warn().Err(err).Msg("failed to create unique index on authorizer_users(phone_number) - duplicate phone_number values likely exist; uniqueness is enforced at the application layer only until you dedupe and restart")
+		}
+	}
 	// external_id index is created in its own call, NOT merged into the batch
 	// above: MongoDB's createIndexes command is all-or-nothing, and that batch can
 	// fail as a whole on some specs, which would silently take this index down

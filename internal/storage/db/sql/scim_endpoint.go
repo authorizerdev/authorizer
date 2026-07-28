@@ -19,7 +19,7 @@ func (p *provider) AddScimEndpoint(ctx context.Context, endpoint *schemas.ScimEn
 	now := time.Now().Unix()
 	endpoint.CreatedAt = now
 	endpoint.UpdatedAt = now
-	res := p.db.Create(endpoint)
+	res := p.db.WithContext(ctx).Create(endpoint)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -35,7 +35,7 @@ func (p *provider) UpdateScimEndpoint(ctx context.Context, endpoint *schemas.Sci
 		return nil, fmt.Errorf("UpdateScimEndpoint: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	endpoint.UpdatedAt = time.Now().Unix()
-	res := p.db.Save(endpoint)
+	res := p.db.WithContext(ctx).Save(endpoint)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -44,13 +44,13 @@ func (p *provider) UpdateScimEndpoint(ctx context.Context, endpoint *schemas.Sci
 
 // DeleteScimEndpoint removes a SCIM endpoint.
 func (p *provider) DeleteScimEndpoint(ctx context.Context, endpoint *schemas.ScimEndpoint) error {
-	return p.db.Delete(endpoint).Error
+	return p.db.WithContext(ctx).Delete(endpoint).Error
 }
 
 // GetScimEndpointByID fetches a SCIM endpoint by primary key.
 func (p *provider) GetScimEndpointByID(ctx context.Context, id string) (*schemas.ScimEndpoint, error) {
 	var endpoint schemas.ScimEndpoint
-	res := p.db.Where("id = ?", id).First(&endpoint)
+	res := p.db.WithContext(ctx).Where("id = ?", id).First(&endpoint)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -60,7 +60,7 @@ func (p *provider) GetScimEndpointByID(ctx context.Context, id string) (*schemas
 // GetScimEndpointByOrgID fetches a SCIM endpoint by its unique org ID.
 func (p *provider) GetScimEndpointByOrgID(ctx context.Context, orgID string) (*schemas.ScimEndpoint, error) {
 	var endpoint schemas.ScimEndpoint
-	res := p.db.Where("org_id = ?", orgID).First(&endpoint)
+	res := p.db.WithContext(ctx).Where("org_id = ?", orgID).First(&endpoint)
 	if res.Error != nil {
 		return nil, res.Error
 	}
