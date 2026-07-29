@@ -346,7 +346,7 @@ func (h *httpProvider) resolveActiveOIDCConnection(c *gin.Context, slug string, 
 // fetchOIDCDiscovery SSRF-hardened fetches the upstream OpenID configuration.
 func (h *httpProvider) fetchOIDCDiscovery(ctx context.Context, issuerURL string) (*oidcDiscovery, error) {
 	discoveryURL := strings.TrimRight(issuerURL, "/") + "/.well-known/openid-configuration"
-	body, err := ssoSafeGet(ctx, discoveryURL)
+	body, err := ssoSafeGet(ctx, discoveryURL, h.Config.Env == constants.E2EEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ func (h *httpProvider) exchangeSSOCode(ctx context.Context, flow ssoFlowState, c
 	form.Set("client_secret", clientSecret)
 	form.Set("code_verifier", flow.CodeVerifier)
 
-	client, err := validators.SafeHTTPClient(ctx, flow.TokenEndpoint, ssoHTTPTimeout)
+	client, err := ssoHTTPClient(ctx, flow.TokenEndpoint, ssoHTTPTimeout, h.Config.Env == constants.E2EEnv)
 	if err != nil {
 		return "", err
 	}
@@ -490,7 +490,7 @@ func verifyIDTokenAgainstJWKS(flow *ssoFlowState, conn *schemas.TrustedIssuer, r
 
 // fetchSSOJWKS SSRF-hardened fetches and parses the upstream JWKS.
 func (h *httpProvider) fetchSSOJWKS(ctx context.Context, jwksURI string) (*jose.JSONWebKeySet, error) {
-	body, err := ssoSafeGet(ctx, jwksURI)
+	body, err := ssoSafeGet(ctx, jwksURI, h.Config.Env == constants.E2EEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -703,10 +703,21 @@ func ssoFail(c *gin.Context, log *zerolog.Logger, code, desc string) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": code, "error_description": desc})
 }
 
+// ssoHTTPClient builds the SSRF-hardened *http.Client for an SSO-broker
+// outbound fetch. allowPrivate (Config.Env == constants.E2EEnv) is the ONLY
+// thing that switches this to validators.SafeHTTPClientAllowPrivate — see that
+// function's doc comment for why it exists (e2e-playground's mock IdP only).
+func ssoHTTPClient(ctx context.Context, rawURL string, timeout time.Duration, allowPrivate bool) (*http.Client, error) {
+	if allowPrivate {
+		return validators.SafeHTTPClientAllowPrivate(ctx, rawURL, timeout)
+	}
+	return validators.SafeHTTPClient(ctx, rawURL, timeout)
+}
+
 // ssoSafeGet performs an SSRF-hardened GET (host-pinned, redirects refused,
 // size-capped) against an issuer-controlled URL.
-func ssoSafeGet(ctx context.Context, rawURL string) ([]byte, error) {
-	client, err := validators.SafeHTTPClient(ctx, rawURL, ssoHTTPTimeout)
+func ssoSafeGet(ctx context.Context, rawURL string, allowPrivate bool) ([]byte, error) {
+	client, err := ssoHTTPClient(ctx, rawURL, ssoHTTPTimeout, allowPrivate)
 	if err != nil {
 		return nil, err
 	}

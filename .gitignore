@@ -16,6 +16,9 @@ test.db
 .yalc
 yalc.lock
 certs/
+# Test-only e2e-playground fixtures are intentionally checked in (docs/superpowers/plans/2026-07-20-playground-e2e.md Global Constraints).
+!e2e-playground/fixtures/certs/
+!e2e-playground/mocks/mock-saml-idp/certs/
 *-shm
 *-wal
 .idea

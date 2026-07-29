@@ -18,78 +18,106 @@ func (o *oauthProvider) GetOAuthConfig(ctx *gin.Context, provider string) (*oaut
 	var clientID, clientSecret string
 	var endPoint *oauth2.Endpoint
 	var scopes []string
+
+	if mockBase := o.TestOAuthBaseURL(provider); mockBase != "" {
+		endPoint = &oauth2.Endpoint{
+			AuthURL:  mockBase + "/authorize",
+			TokenURL: mockBase + "/token",
+		}
+	}
+
 	switch provider {
 	case constants.AuthRecipeMethodGoogle:
 		if o.GoogleClientID != "" && o.GoogleClientSecret != "" {
 			clientID = o.GoogleClientID
 			clientSecret = o.GoogleClientSecret
-			endPoint = &endpoints.Google
+			if endPoint == nil {
+				endPoint = &endpoints.Google
+			}
 			scopes = o.GoogleScopes
 		}
 	case constants.AuthRecipeMethodGithub:
 		if o.GithubClientID != "" && o.GithubClientSecret != "" {
 			clientID = o.GithubClientID
 			clientSecret = o.GithubClientSecret
-			endPoint = &endpoints.GitHub
+			if endPoint == nil {
+				endPoint = &endpoints.GitHub
+			}
 			scopes = o.GithubScopes
 		}
 	case constants.AuthRecipeMethodFacebook:
 		if o.FacebookClientID != "" && o.FacebookClientSecret != "" {
 			clientID = o.FacebookClientID
 			clientSecret = o.FacebookClientSecret
-			endPoint = &endpoints.Facebook
+			if endPoint == nil {
+				endPoint = &endpoints.Facebook
+			}
 			scopes = o.FacebookScopes
 		}
 	case constants.AuthRecipeMethodLinkedIn:
 		if o.LinkedinClientID != "" && o.LinkedinClientSecret != "" {
 			clientID = o.LinkedinClientID
 			clientSecret = o.LinkedinClientSecret
-			endPoint = &endpoints.LinkedIn
+			if endPoint == nil {
+				endPoint = &endpoints.LinkedIn
+			}
 			scopes = o.LinkedinScopes
 		}
 	case constants.AuthRecipeMethodApple:
 		if o.AppleClientID != "" && o.AppleClientSecret != "" {
 			clientID = o.AppleClientID
 			clientSecret = o.AppleClientSecret
-			endPoint = &endpoints.Apple
+			if endPoint == nil {
+				endPoint = &endpoints.Apple
+			}
 			scopes = o.AppleScopes
 		}
 	case constants.AuthRecipeMethodTwitter:
 		if o.TwitterClientID != "" && o.TwitterClientSecret != "" {
 			clientID = o.TwitterClientID
 			clientSecret = o.TwitterClientSecret
-			endPoint = &endpoints.X
+			if endPoint == nil {
+				endPoint = &endpoints.X
+			}
 			scopes = o.TwitterScopes
 		}
 	case constants.AuthRecipeMethodDiscord:
 		if o.DiscordClientID != "" && o.DiscordClientSecret != "" {
 			clientID = o.DiscordClientID
 			clientSecret = o.DiscordClientSecret
-			endPoint = &endpoints.Discord
+			if endPoint == nil {
+				endPoint = &endpoints.Discord
+			}
 			scopes = o.DiscordScopes
 		}
 	case constants.AuthRecipeMethodMicrosoft:
 		if o.MicrosoftClientID != "" && o.MicrosoftClientSecret != "" {
-			ep := endpoints.AzureAD(o.MicrosoftTenantID)
 			clientID = o.MicrosoftClientID
 			clientSecret = o.MicrosoftClientSecret
-			endPoint = &ep
+			if endPoint == nil {
+				ep := endpoints.AzureAD(o.MicrosoftTenantID)
+				endPoint = &ep
+			}
 			scopes = o.MicrosoftScopes
 		}
 	case constants.AuthRecipeMethodTwitch:
 		if o.TwitchClientID != "" && o.TwitchClientSecret != "" {
 			clientID = o.TwitchClientID
 			clientSecret = o.TwitchClientSecret
-			endPoint = &endpoints.Twitch
+			if endPoint == nil {
+				endPoint = &endpoints.Twitch
+			}
 			scopes = o.TwitchScopes
 		}
 	case constants.AuthRecipeMethodRoblox:
 		if o.RobloxClientID != "" && o.RobloxClientSecret != "" {
 			clientID = o.RobloxClientID
 			clientSecret = o.RobloxClientSecret
-			endPoint = &oauth2.Endpoint{
-				AuthURL:  "https://apis.roblox.com/oauth/v1/authorize",
-				TokenURL: "https://apis.roblox.com/oauth/v1/token",
+			if endPoint == nil {
+				endPoint = &oauth2.Endpoint{
+					AuthURL:  "https://apis.roblox.com/oauth/v1/authorize",
+					TokenURL: "https://apis.roblox.com/oauth/v1/token",
+				}
 			}
 			scopes = o.RobloxScopes
 		}

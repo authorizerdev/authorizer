@@ -20,6 +20,27 @@ import (
 // timeout applies to both the dial and the overall request. If timeout is 0,
 // a default of 30 seconds is used.
 func SafeHTTPClient(ctx context.Context, rawURL string, timeout time.Duration) (*http.Client, error) {
+	return safeHTTPClient(ctx, rawURL, timeout, false)
+}
+
+// SafeHTTPClientAllowPrivate is identical to SafeHTTPClient except it skips
+// the private/loopback/internal-IP rejection. It has exactly two callers,
+// each gated behind Config.Env == constants.E2EEnv (--env=e2e, never true in
+// production): the per-org SSO OIDC broker's discovery/JWKS/token-endpoint
+// fetches (internal/http_handlers/oauth_sso.go's ssoHTTPClient) and webhook
+// delivery (internal/events/events.go's webhookHTTPClient) — both need it
+// because e2e-playground's mock IdP / webhook-sink are only reachable at a
+// docker-compose-private address, which SafeHTTPClient would otherwise
+// refuse unconditionally. Every other invariant (scheme allow-list,
+// DNS-rebinding-proof host pinning, TLS SNI) is unchanged. Do not add a
+// third caller without equally careful review.
+func SafeHTTPClientAllowPrivate(ctx context.Context, rawURL string, timeout time.Duration) (*http.Client, error) {
+	return safeHTTPClient(ctx, rawURL, timeout, true)
+}
+
+// safeHTTPClient is the shared implementation behind SafeHTTPClient and
+// SafeHTTPClientAllowPrivate. allowPrivate skips the private-IP rejection.
+func safeHTTPClient(ctx context.Context, rawURL string, timeout time.Duration, allowPrivate bool) (*http.Client, error) {
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
@@ -46,7 +67,7 @@ func SafeHTTPClient(ctx context.Context, rawURL string, timeout time.Duration) (
 
 	var safeIP net.IP
 	if literal := net.ParseIP(host); literal != nil {
-		if isPrivateIP(literal) {
+		if !allowPrivate && isPrivateIP(literal) {
 			return nil, fmt.Errorf("requests to private/internal networks are not allowed")
 		}
 		safeIP = literal
@@ -59,7 +80,7 @@ func SafeHTTPClient(ctx context.Context, rawURL string, timeout time.Duration) (
 			return nil, fmt.Errorf("no IP addresses resolved")
 		}
 		for _, ipa := range ips {
-			if isPrivateIP(ipa.IP) {
+			if !allowPrivate && isPrivateIP(ipa.IP) {
 				return nil, fmt.Errorf("requests to private/internal networks are not allowed")
 			}
 			if safeIP == nil {

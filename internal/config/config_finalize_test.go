@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
 
 // fullSMTP / fullTwilio set the minimum credentials Finalize() checks so the
 // corresponding service is derived as available.
@@ -131,6 +135,50 @@ func TestFinalizeMFADerivation(t *testing.T) {
 			}
 			if c.EnableMFA != tt.wantMFA {
 				t.Errorf("EnableMFA = %v, want %v", c.EnableMFA, tt.wantMFA)
+			}
+		})
+	}
+}
+
+// TestFinalizeIsSMSServiceEnabled verifies IsSMSServiceEnabled is true when
+// either Twilio is fully configured or Env == E2EEnv, and false when
+// neither is set.
+func TestFinalizeIsSMSServiceEnabled(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(*Config)
+		want  bool
+	}{
+		{
+			name:  "neither Twilio nor e2e env configured -> false",
+			setup: func(c *Config) {},
+			want:  false,
+		},
+		{
+			name:  "Twilio configured, production env -> true",
+			setup: withTwilio,
+			want:  true,
+		},
+		{
+			name:  "e2e env, no Twilio -> true",
+			setup: func(c *Config) { c.Env = constants.E2EEnv },
+			want:  true,
+		},
+		{
+			name:  "test env (integration_tests), no Twilio -> false",
+			setup: func(c *Config) { c.Env = constants.TestEnv },
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{}
+			tt.setup(c)
+			c.Finalize()
+
+			if c.IsSMSServiceEnabled != tt.want {
+				t.Errorf("IsSMSServiceEnabled = %v, want %v", c.IsSMSServiceEnabled, tt.want)
 			}
 		})
 	}

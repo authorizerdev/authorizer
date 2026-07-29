@@ -1,6 +1,10 @@
 package config
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
 
 // Config defines the configuration for the authorizer instance
 type Config struct {
@@ -276,7 +280,6 @@ type Config struct {
 	TwilioSender string
 	// TwilioAccountSID is the account SID for Twilio
 	TwilioAccountSID string
-
 	// OAuth providers that authorizer supports
 	// GoogleClientID is the client ID for Google OAuth
 	GoogleClientID string
@@ -408,10 +411,11 @@ func (c *Config) Finalize() {
 	c.IsEmailServiceEnabled = strings.TrimSpace(c.SMTPHost) != "" &&
 		c.SMTPPort > 0 &&
 		strings.TrimSpace(c.SMTPSenderEmail) != ""
-	c.IsSMSServiceEnabled = strings.TrimSpace(c.TwilioAPIKey) != "" &&
+	c.IsSMSServiceEnabled = (strings.TrimSpace(c.TwilioAPIKey) != "" &&
 		strings.TrimSpace(c.TwilioAPISecret) != "" &&
 		strings.TrimSpace(c.TwilioAccountSID) != "" &&
-		strings.TrimSpace(c.TwilioSender) != ""
+		strings.TrimSpace(c.TwilioSender) != "") ||
+		c.Env == constants.E2EEnv
 
 	// MFA methods are on by default; operators opt out via --disable-*.
 	c.EnableTOTPLogin = !c.DisableTOTPLogin

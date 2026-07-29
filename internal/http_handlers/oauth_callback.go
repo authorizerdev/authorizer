@@ -469,7 +469,11 @@ func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 
-	oidcProvider, err := getOIDCProvider(ctx, "https://accounts.google.com")
+	issuer := "https://accounts.google.com"
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodGoogle); mockBase != "" {
+		issuer = mockBase
+	}
+	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
@@ -509,8 +513,14 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
+	userInfoURL := constants.GithubUserInfoURL
+	emailsURL := constants.GithubUserEmails
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodGithub); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo"
+		emailsURL = mockBase + "/user/emails"
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.GithubUserInfoURL, nil)
+	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create github user info request")
 		return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
@@ -562,7 +572,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		}
 
 		// fetch using /users/email endpoint
-		req, err := http.NewRequest(http.MethodGet, constants.GithubUserEmails, nil)
+		req, err := http.NewRequest(http.MethodGet, emailsURL, nil)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create github emails request")
 			return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
@@ -625,8 +635,12 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 		log.Debug().Err(err).Msg("Invalid facebook exchange code")
 		return nil, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
+	userInfoURL := constants.FacebookUserInfoURL
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodFacebook); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo?access_token="
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+oauth2Token.AccessToken, nil)
+	req, err := http.NewRequest("GET", userInfoURL+oauth2Token.AccessToken, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error creating facebook user info request")
 		return nil, fmt.Errorf("error creating facebook user info request: %s", err.Error())
@@ -689,8 +703,14 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
 	}
 
+	userInfoURL := constants.LinkedInUserInfoURL
+	emailURL := constants.LinkedInEmailURL
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodLinkedIn); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo"
+		emailURL = mockBase + "/emailAddress"
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.LinkedInUserInfoURL, nil)
+	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create linkedin user info request")
 		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
@@ -723,7 +743,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, fmt.Errorf("failed to parse linkedin user info: %s", err.Error())
 	}
 
-	req, err = http.NewRequest("GET", constants.LinkedInEmailURL, nil)
+	req, err = http.NewRequest("GET", emailURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create linkedin email info request")
 		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
@@ -819,7 +839,11 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, apple
 	}
 
 	// Verify the Apple ID token signature, issuer, and audience using OIDC discovery
-	oidcProvider, err := getOIDCProvider(ctx, "https://appleid.apple.com")
+	issuer := "https://appleid.apple.com"
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodApple); mockBase != "" {
+		issuer = mockBase
+	}
+	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Apple OIDC provider")
 		return user, fmt.Errorf("failed to create oidc provider: %s", err.Error())
@@ -878,8 +902,12 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		return nil, fmt.Errorf("invalid discord exchange code: %s", err.Error())
 	}
 
+	userInfoURL := constants.DiscordUserInfoURL
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodDiscord); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo"
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.DiscordUserInfoURL, nil)
+	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Discord user info request")
 		return nil, fmt.Errorf("error creating Discord user info request: %s", err.Error())
@@ -981,8 +1009,12 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 		return nil, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
 	}
 
+	userInfoURL := constants.TwitterUserInfoURL
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodTwitter); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo"
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.TwitterUserInfoURL, nil)
+	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Twitter user info request")
 		return nil, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
@@ -1100,7 +1132,11 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
-	oidcProvider, err := getOIDCProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID))
+	issuer := fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID)
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodMicrosoft); mockBase != "" {
+		issuer = mockBase
+	}
+	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
@@ -1151,7 +1187,11 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
 		return nil, fmt.Errorf("unable to extract id_token")
 	}
-	oidcProvider, err := getOIDCProvider(ctx, "https://id.twitch.tv/oauth2")
+	issuer := "https://id.twitch.tv/oauth2"
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodTwitch); mockBase != "" {
+		issuer = mockBase
+	}
+	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create OIDC provider")
 		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
@@ -1193,8 +1233,12 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, fmt.Errorf("invalid roblox exchange code: %s", err.Error())
 	}
 
+	userInfoURL := constants.RobloxUserInfoURL
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodRoblox); mockBase != "" {
+		userInfoURL = mockBase + "/userinfo"
+	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.RobloxUserInfoURL, nil)
+	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create roblox user info request")
 		return nil, fmt.Errorf("error creating roblox user info request: %s", err.Error())
