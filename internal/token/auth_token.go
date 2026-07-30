@@ -403,8 +403,17 @@ func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64
 	}
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
-		"iss":          cfg.HostName,
-		"aud":          p.config.ClientID,
+		"iss": cfg.HostName,
+		// RFC 8707 audience restriction. When the client_credentials request
+		// carried a `resource`, that resource becomes the audience so the token
+		// is usable ONLY at the named resource server — the same binding the
+		// authorization_code and token-exchange paths already apply, and what
+		// Auth0's required `audience` parameter and Keycloak's audience mappers
+		// provide. Without it every service-account token in a deployment shares
+		// one audience, so a token minted for service A is valid at service B.
+		// Omitted `resource` keeps the previous global-client_id audience, so
+		// existing single-audience deployments are unaffected.
+		"aud":          p.accessTokenAudience(cfg),
 		"nonce":        cfg.Nonce,
 		"sub":          cfg.ServiceAccountID,
 		"exp":          expiresAt,
@@ -506,7 +515,10 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	// RFC 8707 audience restriction. A token minted with a resource indicator
 	// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
 	// its `aud` so it is usable ONLY at that external resource server — which
-	// validates it via /oauth/introspect or JWKS, NOT here. This path guards
+	// validates it locally against the published JWKS, NOT here. (Not via
+	// /oauth/introspect either: that endpoint only answers for a token whose aud
+	// is the authenticated caller's own client_id, so a resource-bound token
+	// always introspects as inactive — see token.DelegatedAccessTokenTTL.) This path guards
 	// Authorizer's OWN protected resources (/userinfo, GraphQL, gRPC). Accepting
 	// a resource-bound token here would defeat the audience restriction the token
 	// was issued with, so reject any `aud` that is an absolute URI (resource

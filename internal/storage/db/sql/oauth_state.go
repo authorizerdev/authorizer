@@ -40,8 +40,14 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
-	return p.db.WithContext(ctx).Where("state_key = ?", key).Delete(&schemas.OAuthState{}).Error
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
+	// A single DELETE statement decides the race: the row lock serializes
+	// concurrent redemptions and RowsAffected tells the winner from the loser.
+	res := p.db.WithContext(ctx).Where("state_key = ?", key).Delete(&schemas.OAuthState{})
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

@@ -451,6 +451,26 @@ func runRoot(c *cobra.Command, args []string) {
 	// the legacy header-based derivation.
 	parsers.SetTrustedURL(rootArgs.config.AuthorizerURL)
 	parsers.SetLogger(&log)
+	if strings.TrimSpace(rootArgs.config.AuthorizerURL) == "" {
+		// GHSA-m82j-rq33-qjx2 (CWE-640, CVSS 8.1). With --url unset, the base URL
+		// for emailed reset/verification/magic links and the JWT `iss` is derived
+		// from request headers (X-Authorizer-URL, X-Forwarded-Host, Host). An
+		// unauthenticated attacker can therefore poison the reset link sent to a
+		// victim, and — because redemption re-validates `iss` against the SAME
+		// request-derived host — replay the identical spoofed header to redeem the
+		// stolen token. The attacker controls both sides of that comparison, so it
+		// is no boundary at all.
+		//
+		// Warned, not fatal: refusing to boot would break every existing
+		// deployment on upgrade. Making --url mandatory is the real fix and is a
+		// deliberate follow-up, so this must be loud enough that nobody reaches
+		// production without seeing it.
+		log.Warn().
+			Str("advisory", "GHSA-m82j-rq33-qjx2").
+			Str("cwe", "CWE-640").
+			Str("fix", "start Authorizer with --url=https://your-authorizer-host").
+			Msg("SECURITY: --url is not set. Password-reset, email-verification and magic-link URLs will be built from attacker-controllable request headers (Host / X-Forwarded-Host / X-Authorizer-URL), allowing reset-link poisoning and account takeover. Set --url to your canonical base URL in any deployment that sends email.")
+	}
 
 	// Storage provider
 	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{

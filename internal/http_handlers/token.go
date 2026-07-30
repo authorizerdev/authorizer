@@ -288,7 +288,34 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// RFC 6749 §4.4 client_credentials: machine identity. The resolver has
 		// already authenticated the service_account; issue its scoped token here.
 		if isClientCredentialsGrant {
-			h.handleClientCredentialsGrant(gc, resolvedClient, scopeParam)
+			// RFC 8707: an optional single `resource` binds the machine token to
+			// one resource server (it becomes the `aud`). PostFormArray (not
+			// Request.PostForm, which is only populated as a side effect of an
+			// earlier bind) returns every repeated value, so a repeated parameter
+			// is rejected rather than silently taking the first — same accessor
+			// and same shape as the token-exchange path.
+			ccResources := gc.PostFormArray("resource")
+			if len(ccResources) > 1 {
+				log.Debug().Str("client_id", resolvedClient.ClientID).Msg("rejected: repeated resource parameter")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_target",
+					"error_description": "only one resource parameter is supported",
+				})
+				return
+			}
+			ccResource := ""
+			if len(ccResources) == 1 {
+				ccResource = strings.TrimSpace(ccResources[0])
+			}
+			if ccResource != "" && !isValidResourceIndicator(ccResource) {
+				log.Debug().Str("client_id", resolvedClient.ClientID).Str("resource", ccResource).Msg("rejected: invalid resource indicator")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_target",
+					"error_description": "resource must be an absolute URI without a fragment",
+				})
+				return
+			}
+			h.handleClientCredentialsGrant(gc, resolvedClient, scopeParam, ccResource)
 			return
 		}
 
@@ -656,7 +683,62 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// match resolvedClient.ClientID) — a token issued to one client
 			// is rejected before reaching this point if presented by another.
 
-			// remove older refresh token and rotate it for security
+			// Consume the presented refresh token BEFORE issuing its replacement,
+			// and proceed only if this request is the one that consumed it.
+			//
+			// ValidateRefreshToken above only READ the entry. Two concurrent
+			// redemptions of the same token both pass that read, so without an
+			// atomic claim here both would mint an independent, separately-rotating
+			// token family from one refresh token — defeating rotation and its
+			// OAuth 2.1 §6.1 reuse detection outright. ClaimRefreshToken decides
+			// the race in a single storage operation; the loser is rejected with
+			// the same opaque invalid_grant a replay gets, so it is no oracle.
+			//
+			// Distinct from the refreshReuseGraceWindow below: that tolerates a
+			// SEQUENTIAL double-submit (multi-tab retry) by declining to revoke the
+			// family, but still refuses the second request. This is the concurrent
+			// case, where both requests are in flight at once.
+			// FAULT TOLERANCE, two deliberate choices here:
+			//
+			// (a) A claim ERROR aborts with a retryable 503 rather than continuing.
+			// The previous code only logged a failed delete and issued the token
+			// anyway, which was more available but meant an unverifiable single-use
+			// gate silently became no gate at all. Failing closed on a gate whose
+			// outcome is unknown is the correct direction; 503 +
+			// temporarily_unavailable (not invalid_grant) tells a well-behaved
+			// client this is worth retrying and does not falsely brand the token
+			// as permanently bad.
+			//
+			// (b) Claiming BEFORE minting means a failure later in this handler
+			// (user lookup, signing, or persisting the new tokens) leaves the old
+			// refresh token already consumed and no replacement issued — the client
+			// must re-authenticate. That window is pre-existing (the delete sat at
+			// exactly this point before) and is inherent to rotation: minting first
+			// would let two concurrent requests both mint before either claimed,
+			// which is the very defect this closes. A rare forced re-auth is the
+			// right trade against handing one refresh token to two holders.
+			claimed, claimErr := h.MemoryStoreProvider.ClaimRefreshToken(sessionKey, nonce)
+			if claimErr != nil {
+				log.Debug().Err(claimErr).Str("session_key", sessionKey).Msg("Failed to claim refresh token during rotation")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "Could not complete token issuance",
+				})
+				return
+			}
+			if !claimed {
+				// Another request consumed this refresh token first.
+				metrics.RecordSecurityEvent("refresh_token_concurrent_redemption", "token_endpoint")
+				log.Debug().Str("session_key", sessionKey).Msg("refresh token already consumed by a concurrent request")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_grant",
+					"error_description": "The refresh token is invalid or has expired",
+				})
+				return
+			}
+
+			// The refresh entry is now gone; clear the session/access entries that
+			// shared its nonce so the old fingerprint is fully retired.
 			if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce); err != nil {
 				log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to delete old session during token refresh")
 			}
@@ -695,6 +777,33 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// KNOWN GAP — stale roles on refresh (privilege revocation).
+		//
+		// `roles` is carried forward from the presented refresh token's claims and
+		// is NOT re-derived here, so a role an admin strips from a user keeps
+		// being minted into every rotated access token. Because rotation extends
+		// the lineage indefinitely, that revocation never takes effect for a
+		// client that keeps refreshing. The token is also internally inconsistent:
+		// `allowed_roles` is read from the live user record at signing time while
+		// `roles` is the stale carried set.
+		//
+		// Do NOT "fix" this by intersecting `roles` with user.Roles. That looks
+		// right and is wrong: oauth_sso.go and saml_sp.go build a session's roles
+		// as unionRoles(splitRoles(user.Roles), orgGroupDerivedRoles(...)), where
+		// the derived half comes from the FGA engine and is never written to the
+		// user record. Intersecting against user.Roles therefore silently strips
+		// every org-group-derived role on the first refresh, and for a
+		// SCIM-provisioned user — created with no Roles field at all, see
+		// service/scim CreateUser — it strips ALL of them and the grant is
+		// rejected outright. That breaks exactly the enterprise SSO/SCIM
+		// deployments this matters most to. (Verified: intersecting
+		// ["user","org_admin"] against "user" yields ["user"].)
+		//
+		// The correct fix is to re-derive the EFFECTIVE role set at refresh the
+		// same way login does — user record ∪ current group-derived roles — which
+		// needs the org context available at this point (the refresh token carries
+		// no org claim today) plus an FGA lookup. That is a design change, not a
+		// patch, and is deliberately left undone rather than half-done.
 		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String()
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
@@ -910,7 +1019,7 @@ func (h *httpProvider) respondClientAuthError(gc *gin.Context, err error, resolv
 // stateful access token scoped to a subset of the account's allowed scopes. No
 // id_token and no refresh_token are issued — machines re-authenticate on expiry
 // (RFC 6749 §4.4.3).
-func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, sa *schemas.Client, scope string) {
+func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, sa *schemas.Client, scope, resource string) {
 	log := h.Log.With().Str("func", "handleClientCredentialsGrant").Logger()
 
 	// Scope handling (RFC 6749 §3.3 / §5.2). An empty AllowedScopes is DENY-ALL
@@ -962,15 +1071,17 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, sa *schemas
 	// reconstructs this exact key from the token's login_method + sub claims.
 	sessionKey := constants.AuthRecipeMethodServiceAccount + ":" + sa.ID
 
-	// ponytail: aud is the global ClientID, same as human tokens. RFC 8707
-	// resource-bound audience binding (spec S8) is deliberately deferred to
-	// the Phase 2 token-exchange work, not silently forgotten.
+	// RFC 8707 audience binding: when the caller supplied a `resource` it becomes
+	// the token's `aud`, restricting it to that one resource server. Validated by
+	// the caller as an absolute URI. When omitted the audience stays the
+	// deployment's global client ID (previous behavior).
 	authToken, err := h.TokenProvider.CreateMachineAuthToken(&token.AuthTokenConfig{
 		ServiceAccountID: sa.ID,
 		Scope:            grantedScopes,
 		Nonce:            nonce,
 		LoginMethod:      constants.AuthRecipeMethodServiceAccount,
 		HostName:         hostname,
+		Resource:         resource,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to create machine access token")

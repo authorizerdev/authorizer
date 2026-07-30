@@ -48,10 +48,16 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
 	collection := p.db.Collection(schemas.Collections.SessionToken, options.Collection())
-	_, err := collection.DeleteMany(ctx, bson.M{"user_id": userId, "key_name": key})
-	return err
+	// DeleteOne, not DeleteMany: (user_id, key_name) identifies a single entry
+	// and a single-document delete is atomic, so DeletedCount identifies the
+	// caller that won the race.
+	res, err := collection.DeleteOne(ctx, bson.M{"user_id": userId, "key_name": key})
+	if err != nil {
+		return false, err
+	}
+	return res.DeletedCount > 0, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID

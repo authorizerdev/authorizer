@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -54,6 +55,30 @@ func (p *provider) getItemByHash(ctx context.Context, table, hashKey, hashValue 
 		return fmt.Errorf("no record found")
 	}
 	return unmarshalItem(res.Item, out)
+}
+
+// deleteItemByHashIfExists deletes an item only if it is still present, and
+// reports whether THIS call removed it. The ConditionExpression is evaluated
+// atomically by DynamoDB, so under concurrent deletes of the same item exactly
+// one caller sees true and the rest get ConditionalCheckFailed (returned as
+// false, nil — an absent item is not an error). Used for single-use records
+// where "who removed it" is the security decision, e.g. authorization codes.
+func (p *provider) deleteItemByHashIfExists(ctx context.Context, table, hashKey, hashValue string) (bool, error) {
+	_, err := p.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: aws.String(table),
+		Key: map[string]types.AttributeValue{
+			hashKey: &types.AttributeValueMemberS{Value: hashValue},
+		},
+		ConditionExpression: aws.String("attribute_exists(" + hashKey + ")"),
+	})
+	if err != nil {
+		var ccf *types.ConditionalCheckFailedException
+		if errors.As(err, &ccf) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (p *provider) deleteItemByHash(ctx context.Context, table, hashKey, hashValue string) error {

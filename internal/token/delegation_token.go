@@ -11,9 +11,30 @@ import (
 
 // DelegatedAccessTokenTTL is the fixed short lifetime of an exchanged delegation
 // token (AGENTIC_DELEGATION_DESIGN DC5: 5-minute baseline). Delegation tokens
-// are not refreshable — the agent re-exchanges — and sensitive-scope revocation
-// is enforced out of band via /oauth/introspect, so a short TTL bounds the blast
-// radius of a leaked token.
+// are not refreshable — the agent re-exchanges.
+//
+// REVOCATION: there is none. This TTL is the ONLY bound on a leaked delegated
+// token. Earlier revisions of this comment claimed "sensitive-scope revocation
+// is enforced out of band via /oauth/introspect"; that was never true and is
+// corrected here rather than left as a false assurance:
+//
+//   - These tokens are stateless — nothing is written to the session store at
+//     issuance, so there is no entry to delete.
+//   - /oauth/introspect cannot report on one anyway. It answers only for a token
+//     whose `aud` is the AUTHENTICATED CALLER's client_id, while a delegated
+//     token's `aud` is the RFC 8707 resource URI. A resource server presenting
+//     its own credentials therefore always gets {"active": false} — correct
+//     per RFC 7662 §2.2 (no oracle), but useless as a revocation signal.
+//
+// So a delegated token is valid until it expires, full stop. Downstream
+// resource servers verify it locally against /.well-known/jwks.json. Keep this
+// TTL short; lengthening it directly lengthens the window in which a stolen
+// token cannot be stopped.
+//
+// Making revocation real needs a resource registry (which client may introspect
+// which resource's tokens) plus either stateful issuance or a deny-list — a
+// design change, not a patch. Until that exists, do not document or rely on
+// revocation for delegated tokens.
 const DelegatedAccessTokenTTL = 5 * time.Minute
 
 // accessTokenJWTType is the RFC 9068 media type stamped in the JWT header `typ`
@@ -45,8 +66,9 @@ type DelegationTokenConfig struct {
 // CreateDelegatedAccessToken mints the RFC 8693 delegation access token. Unlike
 // the first-party access tokens it is stateless (not registered in the memory
 // store) and its `aud` is the bound resource, not this server's client_id — it
-// is validated by the downstream resource server (local JWT verification and/or
-// /oauth/introspect), never by Authorizer's own ValidateAccessToken path. The
+// is validated by the downstream resource server through local JWT verification
+// against the published JWKS, never by Authorizer's own ValidateAccessToken
+// path and NOT via /oauth/introspect (see DelegatedAccessTokenTTL). The
 // CUSTOM_ACCESS_TOKEN_SCRIPT is intentionally not run: `act`/`client_id` are
 // reserved and there is no resource-owner user object to feed the script.
 func (p *provider) CreateDelegatedAccessToken(cfg *DelegationTokenConfig) (*JWTToken, error) {

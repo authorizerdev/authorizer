@@ -74,6 +74,19 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		return
 	}
 	resource := strings.TrimSpace(resources[0])
+	// RFC 8707 §2: the resource indicator MUST be an absolute URI without a
+	// fragment. /authorize enforced this from the start; without the same check
+	// here an agent could bind a delegated token's `aud` to an arbitrary opaque
+	// string, which makes the audience restriction unenforceable at the resource
+	// server. Same helper, same rejection, so the two paths cannot drift.
+	if !isValidResourceIndicator(resource) {
+		log.Debug().Str("client_id", agent.ClientID).Str("resource", resource).Msg("rejected: invalid resource indicator")
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_target",
+			"error_description": "resource must be an absolute URI without a fragment",
+		})
+		return
+	}
 
 	hostname := parsers.GetHost(gc)
 

@@ -28,6 +28,12 @@ func (c *provider) DeleteAllUserSessions(userId string) error {
 }
 
 // DeleteUserSession deletes the user session from the in-memory store.
+// ClaimRefreshToken atomically consumes the refresh-token entry for this nonce
+// and reports whether this call consumed it (see memory_store.Provider).
+func (c *provider) ClaimRefreshToken(userId, nonce string) (bool, error) {
+	return c.sessionStore.Claim(userId, constants.TokenTypeRefreshToken+"_"+nonce), nil
+}
+
 func (c *provider) DeleteUserSession(userId, key string) error {
 	keys := []string{
 		constants.TokenTypeSessionToken + "_" + key,

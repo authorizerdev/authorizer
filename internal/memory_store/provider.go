@@ -44,6 +44,20 @@ type Provider interface {
 	GetUserSession(userId, key string) (string, error)
 	// DeleteUserSession deletes the user session
 	DeleteUserSession(userId, key string) error
+	// ClaimRefreshToken atomically consumes the refresh-token entry for
+	// (userId, nonce) and reports whether THIS call consumed it. It is the
+	// single-use gate for refresh-token rotation (OAuth 2.1 §6.1): the token
+	// endpoint must win this claim before issuing a replacement, so that under
+	// concurrent redemption of the same refresh token exactly one caller
+	// proceeds.
+	//
+	// It exists separately from DeleteUserSession because that method is a
+	// best-effort cleanup used by logout/revoke — it removes the session,
+	// access and refresh entries for a nonce and nobody cares whether a row was
+	// actually there. Here "did I remove it" IS the security decision, so the
+	// answer must come from one atomic operation and must concern only the
+	// refresh entry. Returns (false, nil) when the entry is already gone.
+	ClaimRefreshToken(userId, nonce string) (bool, error)
 	// DeleteAllSessions deletes all the sessions from the session store
 	DeleteAllUserSessions(userId string) error
 	// DeleteSessionForNamespace deletes the session for a given namespace

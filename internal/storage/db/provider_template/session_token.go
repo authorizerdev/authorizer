@@ -45,9 +45,13 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key (KeyName).
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
-	// TODO: delete where user_id = ? AND key_name = ?
-	return nil
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
+	// TODO: delete where user_id = ? AND key_name = ?, returning whether THIS
+	// call removed the row. The bool MUST come from one atomic operation (a
+	// DELETE's affected-row count, a conditional delete, or an LWT) — never a
+	// separate existence check then a delete. Refresh-token rotation depends on
+	// exactly one concurrent caller observing true. Absent key => (false, nil).
+	return false, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.

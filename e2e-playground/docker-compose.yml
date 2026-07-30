@@ -359,6 +359,142 @@ services:
       timeout: 2s
       retries: 30
 
+  # ---------------------------------------------------------------------------
+  # Replica pair: TWO authorizer instances sharing ONE database.
+  #
+  # Every other service in this file is a differently-CONFIGURED single instance
+  # with its own private SQLite file, so no two of them ever share state. That
+  # topology cannot express "does replica B observe what replica A wrote?" — and
+  # a whole class of defect only exists in that gap: state a deployment believes
+  # is shared but that is actually per-process is invisible to every
+  # single-instance test, while silently breaking replay defence and lockout
+  # counters in any horizontally-scaled deployment. See
+  # tests/replica-shared-state.spec.ts.
+  #
+  # Postgres, not a shared SQLite file: two containers writing one SQLite file
+  # over a volume depends on file-locking behaviour that varies by volume driver
+  # and is a known source of CI flake. Postgres is also what a real multi-replica
+  # deployment would use, so the test exercises a realistic configuration.
+  #
+  # Deliberately NO redis: with REDIS_URL set, shared state goes through the
+  # Redis provider, which was always correct. Omitting it is what puts the
+  # database-backed store — the one New() selects for exactly this kind of
+  # deployment — under test.
+  replica-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: e2e
+      POSTGRES_USER: e2e
+      POSTGRES_DB: e2e
+    healthcheck:
+      # -h 127.0.0.1 forces the check over TCP. Without it pg_isready talks to
+      # the unix socket, which the entrypoint's TEMPORARY initdb server already
+      # answers before the real server is listening on TCP — so the container
+      # reports healthy, the replicas start, and both die with "connection
+      # refused" on 5432. Checking the same transport the clients use is what
+      # makes the gate meaningful.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U e2e -d e2e"]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+      start_period: 5s
+
+  authorizer-replica-a: &replica
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    # No `ports:` on either replica, unlike every other service here. They are
+    # driven only from INSIDE the compose network (the playwright container
+    # resolves authorizer-replica-a/-b by service name), so publishing host
+    # ports would buy nothing and only add a host-port collision surface —
+    # which is exactly what it did: a lingering bind from a previous stack's
+    # teardown failed the whole run with "Bind for 0.0.0.0:8085 failed: port is
+    # already allocated" before a single test executed. To reach them from the
+    # host for debugging, add a temporary ports mapping locally.
+    command:
+      # --url is the shared PUBLIC address both replicas issue tokens for (the
+      # `iss` claim), exactly as they would sit behind one load balancer. It
+      # intentionally does NOT name either container: a token minted by A must
+      # be indistinguishable from one minted by B.
+      - "--http-port=8080"
+      - "--url=http://authorizer-replica-a:8080"
+      - "--database-type=postgres"
+      - "--database-url=postgres://e2e:e2e@replica-db:5432/e2e?sslmode=disable"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8085,http://localhost:8086,http://authorizer-replica-a:8080,http://authorizer-replica-b:8080"
+      - "--env=e2e"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      replica-db: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # Identical to replica-a (YAML anchor) apart from its published port and its
+  # own --url. Same database, same JWT secret, same client — a second replica of
+  # one logical deployment, not a second deployment.
+  authorizer-replica-b:
+    <<: *replica
+    # Overrides the anchor's depends_on to wait for replica-a to be HEALTHY, not
+    # merely for the database.
+    #
+    # This is a workaround for a real product defect, recorded here rather than
+    # silently absorbed: two Authorizer instances starting at the same time
+    # against a FRESH shared database both run GORM AutoMigrate concurrently and
+    # one dies outright —
+    #
+    #   CREATE TABLE "authorizer_users" ...
+    #   ERROR: duplicate key value violates unique constraint
+    #          "pg_type_typname_nsp_index" (SQLSTATE 23505)
+    #   {"level":"fatal","message":"failed to create storage provider"}
+    #
+    # i.e. startup migration is not concurrency-safe, so a fresh deployment
+    # scaled to N replicas crash-loops until one wins the race. Under an
+    # orchestrator it self-heals via restarts, which is likely why it has gone
+    # unnoticed. Serializing startup here keeps THIS suite deterministic and
+    # focused on what it exists to test (cross-replica cache coherence); it does
+    # not fix the underlying defect. Remove this override once migration is made
+    # concurrency-safe (advisory lock or migrate-then-serve), and the race
+    # becomes testable here directly.
+    depends_on:
+      replica-db: { condition: service_healthy }
+      mailpit: { condition: service_started }
+      authorizer-replica-a: { condition: service_healthy }
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-replica-b:8080"
+      - "--database-type=postgres"
+      - "--database-url=postgres://e2e:e2e@replica-db:5432/e2e?sslmode=disable"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8085,http://localhost:8086,http://authorizer-replica-a:8080,http://authorizer-replica-b:8080"
+      - "--env=e2e"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+
   mock-oauth:
     build: ./mocks/mock-oauth
     ports: ["4000:4000"]
@@ -396,6 +532,10 @@ services:
       AUTHORIZER_MAGIC_LINK_BASE_URL: http://authorizer-magic-link:8080
       AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
       AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
+      # Two replicas of ONE deployment over a shared Postgres — see the
+      # authorizer-replica-a service comment.
+      AUTHORIZER_REPLICA_A_BASE_URL: http://authorizer-replica-a:8080
+      AUTHORIZER_REPLICA_B_BASE_URL: http://authorizer-replica-b:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
       # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
       # Authorizer's idp_sso_url validation (https-only, no test bypass)
@@ -415,6 +555,8 @@ services:
       authorizer-magic-link: { condition: service_healthy }
       authorizer-mfa-enforced: { condition: service_healthy }
       authorizer-mfa-magic-link: { condition: service_healthy }
+      authorizer-replica-a: { condition: service_healthy }
+      authorizer-replica-b: { condition: service_healthy }
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }
