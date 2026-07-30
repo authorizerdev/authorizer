@@ -43,10 +43,15 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
 	collection := p.db.Collection(schemas.Collections.OAuthState, options.Collection())
-	_, err := collection.DeleteMany(ctx, bson.M{"state_key": key})
-	return err
+	// DeleteOne (not DeleteMany): state_key is unique, and a single-document
+	// delete is atomic, so DeletedCount identifies the caller that won the race.
+	res, err := collection.DeleteOne(ctx, bson.M{"state_key": key})
+	if err != nil {
+		return false, err
+	}
+	return res.DeletedCount > 0, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

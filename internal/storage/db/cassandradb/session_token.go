@@ -46,26 +46,40 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
 	// Cassandra doesn't support delete with non-primary key filter directly, so scan first
 	var ids []string
 	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id = ? AND key_name = ? ALLOW FILTERING`,
 		KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query, userId, key).Iter()
+	iter := p.db.Query(query, userId, key).WithContext(ctx).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
 	}
 	if err := iter.Close(); err != nil {
-		return err
+		return false, err
 	}
+	// The SELECT is NOT the race arbiter — two callers can read the same id.
+	// `IF EXISTS` makes the DELETE a lightweight transaction (Paxos), so the
+	// cluster applies exactly one of the concurrent deletes and reports
+	// applied=false to the rest. That flag decides who consumed the token.
+	deleted := false
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
-			return err
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? IF EXISTS", KeySpace+"."+schemas.Collections.SessionToken)
+		// MapScanCAS, not ScanCAS: an LWT result set carries the row's columns
+		// alongside [applied], and ScanCAS with no destinations fails on that
+		// ("not enough columns to scan into: have 1 want 8" on ScyllaDB). The
+		// map absorbs whatever columns come back. Matches the existing LWT usage
+		// in org_domain.go.
+		applied, err := p.db.Query(delQuery, id).WithContext(ctx).MapScanCAS(map[string]interface{}{})
+		if err != nil {
+			return false, err
+		}
+		if applied {
+			deleted = true
 		}
 	}
-	return nil
+	return deleted, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
@@ -315,25 +329,40 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
 	var ids []string
 	query := fmt.Sprintf(`SELECT id FROM %s WHERE state_key = ? ALLOW FILTERING`,
 		KeySpace+"."+schemas.Collections.OAuthState)
-	iter := p.db.Query(query, key).Iter()
+	iter := p.db.Query(query, key).WithContext(ctx).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
 	}
 	if err := iter.Close(); err != nil {
-		return err
+		return false, err
 	}
+	// The SELECT above is NOT the race arbiter — two callers can both read the
+	// same id. `IF EXISTS` makes the DELETE a lightweight transaction (Paxos), so
+	// the cluster applies exactly one of the concurrent deletes and reports
+	// applied=false to every other caller. That `applied` flag is what decides
+	// who legitimately consumed the single-use code.
+	deleted := false
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
-			return err
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? IF EXISTS", KeySpace+"."+schemas.Collections.OAuthState)
+		// MapScanCAS, not ScanCAS: an LWT result set carries the row's columns
+		// alongside [applied], and ScanCAS with no destinations fails on that
+		// ("not enough columns to scan into: have 1 want 8" on ScyllaDB). The
+		// map absorbs whatever columns come back. Matches the existing LWT usage
+		// in org_domain.go.
+		applied, err := p.db.Query(delQuery, id).WithContext(ctx).MapScanCAS(map[string]interface{}{})
+		if err != nil {
+			return false, err
+		}
+		if applied {
+			deleted = true
 		}
 	}
-	return nil
+	return deleted, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

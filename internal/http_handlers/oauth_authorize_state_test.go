@@ -216,6 +216,10 @@ func (f *fakeMemoryStore) SetUserSession(userId, key, token string, expiration i
 	return nil
 }
 func (f *fakeMemoryStore) GetUserSession(userId, key string) (string, error) { return "", nil }
+func (f *fakeMemoryStore) ClaimRefreshToken(userId, nonce string) (bool, error) {
+	return true, nil
+}
+
 func (f *fakeMemoryStore) DeleteUserSession(userId, key string) error {
 	f.deletedSessions = append(f.deletedSessions, [2]string{userId, key})
 	return nil

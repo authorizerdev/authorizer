@@ -2,6 +2,7 @@ package memory_store
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 const (
@@ -19,12 +21,21 @@ const (
 	memoryStoreTypeDB       = "db"
 )
 
+// memoryStoreTypesForTest lists the providers every contract test runs against.
+//
+// memoryStoreTypeDB is included deliberately: New() selects it for ANY
+// deployment that configures a database without REDIS_URL, which makes it the
+// default in production — yet it was previously declared here and never
+// exercised, so its semantics went unverified. Two real defects lived in that
+// gap (a non-atomic GetAndRemoveState that allowed authorization-code replay,
+// and a process-local cache that broke SAML/jti replay defence and OTP lockout
+// across replicas). It needs no Docker: it runs on SQLite like the rest.
 func memoryStoreTypesForTest() []string {
 	var types []string
 	if redisMemoryStoreTestsEnabled() {
 		types = append(types, memoryStoreTypeRedis)
 	}
-	types = append(types, memoryStoreTypeInMemory)
+	types = append(types, memoryStoreTypeInMemory, memoryStoreTypeDB)
 	return types
 }
 
@@ -46,16 +57,38 @@ func getTestMemoryStorageConfig(storageType string) *config.Config {
 	return cfg
 }
 
+// newTestMemoryStore builds a provider of the requested type. The db type is the
+// only one needing a StorageProvider — without one New() silently falls through
+// to the in-memory store, which is exactly how the db provider avoided coverage.
+func newTestMemoryStore(t *testing.T, storeType string) (Provider, error) {
+	t.Helper()
+	logger := zerolog.Nop()
+	cfg := getTestMemoryStorageConfig(storeType)
+	deps := &Dependencies{Log: &logger}
+
+	if storeType == memoryStoreTypeDB {
+		// Not t.TempDir(): SQLite's WAL sidecars can appear during teardown and
+		// make its RemoveAll fail an already-passed test (same reasoning as the
+		// integration harness).
+		dbDir, err := os.MkdirTemp("", "authorizer-ms-*")
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = os.RemoveAll(dbDir) })
+		cfg.DatabaseURL = filepath.Join(dbDir, "memory_store_test.db")
+
+		sp, err := storage.New(cfg, &storage.Dependencies{Log: &logger})
+		require.NoError(t, err)
+		deps.StorageProvider = sp
+	}
+
+	return New(cfg, deps)
+}
+
 // TestMemoryStoreProvider tests the in-memory provider always; Redis only when TEST_ENABLE_REDIS=1.
 // TEST_DBS does not apply (these are not storage-backend tests).
 func TestMemoryStoreProvider(t *testing.T) {
 	for _, storeType := range memoryStoreTypesForTest() {
 		t.Run("should test memory store provider for "+storeType, func(t *testing.T) {
-			cfg := getTestMemoryStorageConfig(storeType)
-			logger := zerolog.Nop()
-			p, err := New(cfg, &Dependencies{
-				Log: &logger,
-			})
+			p, err := newTestMemoryStore(t, storeType)
 			if storeType == memoryStoreTypeRedis && err != nil {
 				t.Skipf("skipping redis memory store test (is Redis running on localhost:6380?): %v", err)
 			}

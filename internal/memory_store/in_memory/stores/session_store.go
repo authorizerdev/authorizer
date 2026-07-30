@@ -165,6 +165,22 @@ func (s *SessionStore) RemoveAll(key string) {
 	}
 }
 
+// Claim atomically removes (key, subKey) and reports whether THIS call removed
+// it. The check and the delete happen under one mutex hold, so concurrent
+// callers cannot both observe true — that is what makes it usable as a
+// single-use gate (refresh-token rotation). Remove() cannot serve this purpose:
+// it reports nothing, so every racer would proceed.
+func (s *SessionStore) Claim(key, subKey string) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	k := fmt.Sprintf("%s:%s", key, subKey)
+	if _, ok := s.store[k]; !ok {
+		return false
+	}
+	delete(s.store, k)
+	return true
+}
+
 // Remove value for given key and subkey
 func (s *SessionStore) Remove(key, subKey string) {
 	s.mutex.Lock()

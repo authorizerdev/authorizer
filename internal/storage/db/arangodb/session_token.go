@@ -73,18 +73,22 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
-	query := fmt.Sprintf("FOR d IN %s FILTER d.user_id == @user_id AND d.key_name == @key_name REMOVE d IN %s", schemas.Collections.SessionToken, schemas.Collections.SessionToken)
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
+	// RETURN OLD makes the removal report what it actually removed: a document
+	// is removed by exactly one AQL execution, so only the winning caller reads
+	// a row back. ignoreErrors keeps a loser's concurrent REMOVE from erroring
+	// on an already-deleted document.
+	query := fmt.Sprintf("FOR d IN %s FILTER d.user_id == @user_id AND d.key_name == @key_name REMOVE d IN %s OPTIONS { ignoreErrors: true } RETURN OLD", schemas.Collections.SessionToken, schemas.Collections.SessionToken)
 	bindVars := map[string]interface{}{
 		"user_id":  userId,
 		"key_name": key,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() { _ = cursor.Close() }()
-	return nil
+	return cursor.HasMore(), nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
@@ -342,17 +346,22 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
-	query := fmt.Sprintf("FOR d IN %s FILTER d.state_key == @state_key REMOVE d IN %s", schemas.Collections.OAuthState, schemas.Collections.OAuthState)
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
+	// RETURN OLD makes the removal report what it actually removed: each document
+	// is removed by exactly one AQL execution, so only the winning caller reads a
+	// row back. ignoreErrors keeps the loser's concurrent REMOVE from erroring on
+	// an already-deleted document (it simply returns nothing).
+	query := fmt.Sprintf("FOR d IN %s FILTER d.state_key == @state_key REMOVE d IN %s OPTIONS { ignoreErrors: true } RETURN OLD",
+		schemas.Collections.OAuthState, schemas.Collections.OAuthState)
 	bindVars := map[string]interface{}{
 		"state_key": key,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() { _ = cursor.Close() }()
-	return nil
+	return cursor.HasMore(), nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

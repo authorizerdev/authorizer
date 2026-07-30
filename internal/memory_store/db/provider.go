@@ -95,15 +95,28 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 		return "", fmt.Errorf("not found")
 	}
 
-	// Check expiration
+	// Check expiration. Inclusive (<=): a token is invalid AT its expiry second,
+	// not one second later. This matches the in-memory store, which serves an
+	// entry only while ExpiresAt > now, and Redis, whose native TTL drops the key
+	// at the deadline. The exclusive form left a session usable for one extra
+	// second on this provider only — a cross-provider parity gap.
 	currentTime := time.Now().Unix()
-	if token.ExpiresAt < currentTime {
+	if token.ExpiresAt <= currentTime {
 		// Delete expired token
 		_ = p.deleteSessionToken(ctx, token.ID)
 		return "", fmt.Errorf("not found")
 	}
 
 	return token.Token, nil
+}
+
+// ClaimRefreshToken atomically consumes the refresh-token entry for this nonce
+// and reports whether this call consumed it (see memory_store.Provider). The
+// storage layer decides the race in one operation — this method must never
+// read-then-delete.
+func (p *provider) ClaimRefreshToken(userId, nonce string) (bool, error) {
+	ctx := context.Background()
+	return p.storageProvider.DeleteSessionTokenByUserIDAndKey(ctx, userId, constants.TokenTypeRefreshToken+"_"+nonce)
 }
 
 // DeleteUserSession deletes the user session
@@ -194,7 +207,8 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 		if !strings.HasPrefix(session.KeyName, prefix) {
 			continue
 		}
-		if session.ExpiresAt < currentTime {
+		// Inclusive expiry, matching GetUserSession and the in-memory store.
+		if session.ExpiresAt <= currentTime {
 			_ = p.deleteMFASession(ctx, session.ID)
 			return "", fmt.Errorf("not found")
 		}
@@ -288,14 +302,14 @@ func (p *provider) SetState(key, state string) error {
 	}
 	oauthState.Key = oauthState.ID
 
-	// Delete existing if any
-	err := p.deleteOAuthStateByKey(ctx, key)
-	if err != nil {
+	// Delete existing if any. Whether a row was actually removed is irrelevant
+	// here — this is an overwrite, not a single-use claim.
+	if _, err := p.deleteOAuthStateByKey(ctx, key); err != nil {
 		p.dependencies.Log.Debug().Err(err).Msg("Error deleting existing OAuth state")
 		// Continue anyway
 	}
 
-	err = p.addOAuthState(ctx, oauthState)
+	err := p.addOAuthState(ctx, oauthState)
 	if err != nil {
 		return fmt.Errorf("error setting state: %w", err)
 	}
@@ -314,28 +328,44 @@ func (p *provider) GetState(key string) (string, error) {
 	// Enforce 10-minute TTL consistent with Redis provider.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
 		// Clean up expired entry asynchronously.
-		go func() { _ = p.deleteOAuthStateByKey(context.Background(), key) }()
+		go func() { _, _ = p.deleteOAuthStateByKey(context.Background(), key) }()
 		return "", fmt.Errorf("state expired")
 	}
 	return oauthState.State, nil
 }
 
-// RemoveState removes the social login state from the session store
+// RemoveState removes the social login state from the session store. Unlike
+// GetAndRemoveState this is an unconditional cleanup, so "was it already gone"
+// is not an error.
 func (p *provider) RemoveState(key string) error {
 	ctx := context.Background()
-	return p.deleteOAuthStateByKey(ctx, key)
+	_, err := p.deleteOAuthStateByKey(ctx, key)
+	return err
 }
 
 // GetAndRemoveState atomically retrieves and deletes the state from the DB.
 // Enforces 10-minute TTL consistent with other providers.
+//
+// The DELETE — not the preceding read — is what makes this single-use. The read
+// only fetches the payload and can legitimately succeed for several concurrent
+// callers redeeming the same authorization code; the storage layer's delete
+// decides, in one atomic operation, which single caller actually consumed it
+// (see storage.Provider.DeleteOAuthStateByKey). Returning the state on the
+// strength of the read alone would hand the same code to every racer, which is
+// an authorization-code replay (RFC 6749 §4.1.2).
 func (p *provider) GetAndRemoveState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
 		return "", fmt.Errorf("not found")
 	}
-	// Delete immediately after retrieval; a concurrent request will fail on getOAuthStateByKey.
-	if err := p.deleteOAuthStateByKey(ctx, key); err != nil {
+	claimed, err := p.deleteOAuthStateByKey(ctx, key)
+	if err != nil {
+		return "", fmt.Errorf("not found")
+	}
+	if !claimed {
+		// Another caller won the delete: this request is redeeming an already
+		// consumed key. Same opaque error as a missing key — no replay oracle.
 		return "", fmt.Errorf("not found")
 	}
 	// Enforce 10-minute TTL.
@@ -396,8 +426,12 @@ func (p *provider) deleteSessionToken(ctx context.Context, id string) error {
 	return p.storageProvider.DeleteSessionToken(ctx, id)
 }
 
+// deleteSessionTokenByUserIDAndKey removes an entry, discarding the storage
+// layer's "did I claim it" answer — the callers here (upsert, logout-style
+// cleanup) only need it gone. Use ClaimRefreshToken where the answer matters.
 func (p *provider) deleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
-	return p.storageProvider.DeleteSessionTokenByUserIDAndKey(ctx, userId, key)
+	_, err := p.storageProvider.DeleteSessionTokenByUserIDAndKey(ctx, userId, key)
+	return err
 }
 
 func (p *provider) deleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
@@ -448,7 +482,9 @@ func (p *provider) getOAuthStateByKey(ctx context.Context, key string) (*schemas
 	return p.storageProvider.GetOAuthStateByKey(ctx, key)
 }
 
-func (p *provider) deleteOAuthStateByKey(ctx context.Context, key string) error {
+// deleteOAuthStateByKey removes the entry and reports whether THIS call was the
+// one that removed it (see storage.Provider.DeleteOAuthStateByKey).
+func (p *provider) deleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
 	return p.storageProvider.DeleteOAuthStateByKey(ctx, key)
 }
 

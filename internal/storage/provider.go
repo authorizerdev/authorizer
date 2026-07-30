@@ -142,8 +142,25 @@ type Provider interface {
 	GetSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.SessionToken, error)
 	// DeleteSessionToken deletes a session token by ID
 	DeleteSessionToken(ctx context.Context, id string) error
-	// DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-	DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error
+	// DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and
+	// key. The bool reports whether THIS call removed the row, and it MUST be
+	// decided by a single atomic database operation — never by a separate
+	// existence check followed by a delete.
+	//
+	// This is the single-use primitive behind refresh-token rotation (OAuth 2.1
+	// §6.1): the token endpoint claims the presented refresh token before
+	// issuing its replacement, so under concurrent redemption of the same token
+	// exactly one caller may observe true. A read-then-delete implementation
+	// lets every racer mint an independent token family, which defeats rotation
+	// and its reuse detection. Deleting an absent key is not an error — it
+	// returns (false, nil).
+	//
+	// FAULT TOLERANCE: on error the bool is always false, even where a multi-row
+	// implementation already removed one row before failing. Fail-safe direction —
+	// callers MUST check the error first and treat an error as "claim outcome
+	// unknown", never as "not claimed" (TokenHandler answers 503, not
+	// invalid_grant, for exactly that reason).
+	DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error)
 	// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
 	DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error
 	// DeleteSessionTokensByNamespace deletes all session tokens for a namespace (e.g., "auth_provider")
@@ -174,8 +191,25 @@ type Provider interface {
 	AddOAuthState(ctx context.Context, state *schemas.OAuthState) error
 	// GetOAuthStateByKey retrieves an OAuth state by key
 	GetOAuthStateByKey(ctx context.Context, key string) (*schemas.OAuthState, error)
-	// DeleteOAuthStateByKey deletes an OAuth state by key
-	DeleteOAuthStateByKey(ctx context.Context, key string) error
+	// DeleteOAuthStateByKey deletes an OAuth state by key. The bool reports
+	// whether THIS call removed the row, and it MUST be decided by a single
+	// atomic database operation (row-level DELETE, LWT, or conditional write) —
+	// never by a separate existence check followed by a delete.
+	//
+	// This is the single-use primitive behind authorization codes (RFC 6749
+	// §4.1.2) and the SSO broker's `state`: under concurrent redemption of the
+	// same code exactly one caller may observe true. A read-then-delete
+	// implementation hands the same code to every racer, which is an
+	// authorization-code replay. Deleting an absent key is not an error — it
+	// returns (false, nil).
+	//
+	// FAULT TOLERANCE: on error the bool is always false, even where a multi-row
+	// implementation already removed one row before failing. That is the
+	// fail-safe direction — a caller that ignored the error would decline to
+	// proceed rather than proceed twice. Callers MUST check the error before
+	// trusting the bool, and MUST treat an error as "claim outcome unknown", not
+	// as "not claimed".
+	DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error)
 	// GetAllOAuthStates retrieves all OAuth states (for testing)
 	GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error)
 

@@ -50,22 +50,31 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
 	f := expression.Name("key_name").Equal(expression.Value(key))
 	items, err := p.queryEq(ctx, schemas.Collections.SessionToken, "user_id", "user_id", userId, &f)
 	if err != nil {
-		return err
+		return false, err
 	}
+	// The query is NOT the race arbiter — concurrent callers can both see the
+	// item. The conditional delete is: DynamoDB evaluates attribute_exists(id)
+	// atomically, so exactly one caller's delete succeeds and the rest get
+	// ConditionalCheckFailed.
+	deleted := false
 	for _, it := range items {
 		var t schemas.SessionToken
 		if err := unmarshalItem(it, &t); err != nil {
-			return err
+			return false, err
 		}
-		if err := p.deleteItemByHash(ctx, schemas.Collections.SessionToken, "id", t.ID); err != nil {
-			return err
+		ok, err := p.deleteItemByHashIfExists(ctx, schemas.Collections.SessionToken, "id", t.ID)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			deleted = true
 		}
 	}
-	return nil
+	return deleted, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
@@ -296,21 +305,31 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
 	items, err := p.queryEq(ctx, schemas.Collections.OAuthState, "state_key", "state_key", key, nil)
 	if err != nil {
-		return err
+		return false, err
 	}
+	// The GSI query is NOT the race arbiter — concurrent callers can both see the
+	// item. The conditional delete is: DynamoDB evaluates attribute_exists(id)
+	// atomically against the item, so exactly one caller's delete succeeds and
+	// every other gets ConditionalCheckFailed. That distinguishes the caller that
+	// consumed the single-use code from one replaying it.
+	deleted := false
 	for _, it := range items {
 		var s schemas.OAuthState
 		if err := unmarshalItem(it, &s); err != nil {
-			return err
+			return false, err
 		}
-		if err := p.deleteItemByHash(ctx, schemas.Collections.OAuthState, "id", s.ID); err != nil {
-			return err
+		ok, err := p.deleteItemByHashIfExists(ctx, schemas.Collections.OAuthState, "id", s.ID)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			deleted = true
 		}
 	}
-	return nil
+	return deleted, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

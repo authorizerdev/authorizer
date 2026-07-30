@@ -2,6 +2,7 @@ package couchbase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -56,27 +57,38 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
 	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE user_id = $1 AND key_name = $2`,
 		p.scopeName, schemas.Collections.SessionToken)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
 		PositionalParameters: []interface{}{userId, key},
 	})
 	if err != nil {
-		return err
+		return false, err
 	}
 	type idRow struct {
 		ID string `json:"_id"`
 	}
+	// The N1QL SELECT is NOT the race arbiter. A KV Remove on a single document
+	// is atomic: the winner removes it, every other caller gets
+	// ErrDocumentNotFound.
+	deleted := false
 	for q.Next() {
 		var row idRow
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		if _, rErr := p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx}); rErr != nil {
+			if errors.Is(rErr, gocb.ErrDocumentNotFound) {
+				continue
+			}
+			return false, rErr
+		}
+		deleted = true
 	}
-	return nil
+	return deleted, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
@@ -371,27 +383,39 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
 	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE state_key = $1`,
 		p.scopeName, schemas.Collections.OAuthState)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
 		PositionalParameters: []interface{}{key},
 	})
 	if err != nil {
-		return err
+		return false, err
 	}
 	type idRow struct {
 		ID string `json:"_id"`
 	}
+	// The N1QL SELECT is NOT the race arbiter — concurrent callers can both read
+	// the id. A KV Remove on a single document is atomic: the winner removes it,
+	// every other caller gets ErrDocumentNotFound. That is what distinguishes the
+	// caller that consumed the single-use code from one replaying it.
+	deleted := false
 	for q.Next() {
 		var row idRow
 		if err := q.Row(&row); err != nil {
 			continue
 		}
-		_, _ = p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})
+		if _, rErr := p.db.Collection(schemas.Collections.OAuthState).Remove(row.ID, &gocb.RemoveOptions{Context: ctx}); rErr != nil {
+			if errors.Is(rErr, gocb.ErrDocumentNotFound) {
+				continue
+			}
+			return false, rErr
+		}
+		deleted = true
 	}
-	return nil
+	return deleted, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing)

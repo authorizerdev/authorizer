@@ -305,7 +305,7 @@ e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/M
 	docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso mock-oauth mock-saml-idp mailpit sms-sink; \
 	status=$$?; \
 	if [ $$status -eq 0 ]; then \
-		docker compose -f e2e-playground/docker-compose.yml run --rm playwright npx playwright test; \
+		docker compose -f e2e-playground/docker-compose.yml run --rm --build playwright npx playwright test; \
 		status=$$?; \
 	fi; \
 	docker compose -f e2e-playground/docker-compose.yml down -v; \

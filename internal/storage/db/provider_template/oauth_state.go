@@ -40,9 +40,15 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key (StateKey).
-func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
-	// TODO: delete where state_key = ?
-	return nil
+func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) (bool, error) {
+	// TODO: delete where state_key = ?, returning whether THIS call removed the
+	// row. The bool MUST come from one atomic operation (a DELETE's affected-row
+	// count, a conditional/compare-and-set delete, or an LWT) — never a separate
+	// existence check then a delete. Authorization-code single-use (RFC 6749
+	// §4.1.2) depends on exactly one concurrent caller observing true; a
+	// read-then-delete hands the same code to every racer. Absent key =>
+	// (false, nil), not an error.
+	return false, nil
 }
 
 // GetAllOAuthStates retrieves all OAuth states (for testing).

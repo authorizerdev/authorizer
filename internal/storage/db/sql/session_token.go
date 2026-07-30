@@ -49,8 +49,14 @@ func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
-func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
-	return p.db.WithContext(ctx).Where("user_id = ? AND key_name = ?", userId, key).Delete(&schemas.SessionToken{}).Error
+func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (bool, error) {
+	// One DELETE decides the race: the row lock serializes concurrent refresh
+	// redemptions and RowsAffected tells the winner from the loser.
+	res := p.db.WithContext(ctx).Where("user_id = ? AND key_name = ?", userId, key).Delete(&schemas.SessionToken{})
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
 }
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.

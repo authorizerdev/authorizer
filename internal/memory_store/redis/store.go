@@ -39,6 +39,19 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 }
 
 // DeleteUserSession deletes the user session from redis store.
+// ClaimRefreshToken atomically consumes the refresh-token entry for this nonce
+// and reports whether this call consumed it (see memory_store.Provider). Redis
+// DEL is atomic and returns the number of keys it actually removed, so exactly
+// one concurrent caller can see a non-zero count.
+func (p *provider) ClaimRefreshToken(userId, nonce string) (bool, error) {
+	key := fmt.Sprintf("%s:%s_%s", userId, constants.TokenTypeRefreshToken, nonce)
+	removed, err := p.store.Del(p.ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+	return removed > 0, nil
+}
+
 func (p *provider) DeleteUserSession(userId, key string) error {
 	keys := []string{
 		constants.TokenTypeSessionToken + "_" + key,

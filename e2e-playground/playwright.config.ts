@@ -21,6 +21,9 @@ export default defineConfig({
         /sso-discovery\.spec\.ts/,
         /webauthn\.spec\.ts/,
         /magic-link\.spec\.ts/,
+        // Drives authorizer-replica-a/-b directly by absolute URL rather than
+        // this project's baseURL; see the `replica` project below.
+        /replica-shared-state\.spec\.ts/,
         '**/mocks/**',
         '**/node_modules/**',
       ],
@@ -80,6 +83,21 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_MAGIC_LINK_BASE_URL || 'http://localhost:8083',
+      },
+    },
+    {
+      // Runs against authorizer-replica-a AND authorizer-replica-b — two
+      // replicas of ONE deployment sharing a Postgres (docker-compose.yml).
+      // Unlike every other project this one is not about a distinct
+      // CONFIGURATION; it is the only place two instances share state at all,
+      // which is what makes cross-replica coherence testable. The spec targets
+      // both replicas by absolute URL, so baseURL here is only a default for
+      // the fixture and the spec never relies on it.
+      name: 'replica',
+      testMatch: /replica-shared-state\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_REPLICA_A_BASE_URL || 'http://authorizer-replica-a:8080',
       },
     },
   ],

@@ -953,7 +953,7 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 
 	// Test AddSessionToken with same key (should replace - delete first then add)
 	// Note: Multiple sessions per user are allowed (different key_name), but same (user_id, key_name) should be unique
-	err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	_, err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
 	assert.NoError(t, err)
 
 	token2 := &schemas.SessionToken{
@@ -981,9 +981,16 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 	err = provider.AddSessionToken(ctx, token3)
 	require.NoError(t, err)
 
-	// Test DeleteSessionTokenByUserIDAndKey
-	err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	// Test DeleteSessionTokenByUserIDAndKey — reports true only for the call
+	// that actually removed the row (the single-use claim behind refresh-token
+	// rotation), and a repeat delete is false, not an error.
+	claimedToken, err := provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
 	assert.NoError(t, err)
+	assert.True(t, claimedToken, "the first delete of an existing entry must report it claimed the row")
+
+	claimedToken, err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.NoError(t, err, "deleting an absent entry is not an error")
+	assert.False(t, claimedToken, "a repeat delete must not claim the row")
 
 	// Verify deletion
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
@@ -1327,9 +1334,16 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 	err = provider.AddOAuthState(ctx, state3)
 	require.NoError(t, err)
 
-	// Test DeleteOAuthStateByKey
-	err = provider.DeleteOAuthStateByKey(ctx, "test_state_key_1")
+	// Test DeleteOAuthStateByKey — reports true only for the call that actually
+	// removed the row (the single-use claim behind authorization codes).
+	claimed, err := provider.DeleteOAuthStateByKey(ctx, "test_state_key_1")
 	assert.NoError(t, err)
+	assert.True(t, claimed, "the first delete of an existing key must report it claimed the row")
+
+	// A second delete of the same key removed nothing: false, and NOT an error.
+	claimed, err = provider.DeleteOAuthStateByKey(ctx, "test_state_key_1")
+	assert.NoError(t, err, "deleting an absent key is not an error")
+	assert.False(t, claimed, "a repeat delete must not claim the row")
 
 	// Verify deletion
 	_, err = provider.GetOAuthStateByKey(ctx, "test_state_key_1")
