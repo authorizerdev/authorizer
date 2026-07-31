@@ -24,8 +24,10 @@ import (
 // Without it every service-account token in a deployment carries the same `aud`
 // (the deployment's global client_id), so a token minted for one internal
 // service is equally valid at every other — the resource server loses the
-// cheapest rejection it has. Auth0 makes `audience` mandatory on this grant and
-// Keycloak binds it via audience mappers; this is the equivalent.
+// cheapest rejection it has. Binding a machine token to the API it is meant for
+// is the established shape for this grant; `resource` (RFC 8707) is the
+// standards-track spelling of it, and some providers expose the same idea as an
+// `audience` request parameter or an audience claim mapper.
 func TestClientCredentialsAudienceBinding(t *testing.T) {
 	ts := initTestSetup(t, getTestConfig())
 	router := gin.New()

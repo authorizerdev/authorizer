@@ -8,7 +8,7 @@ import (
 )
 
 // ScimEndpoint is the per-organization inbound SCIM 2.0 connection credential.
-// A customer's IdP (Okta, Entra, …) authenticates to /scim/v2/ with a bearer
+// A customer's IdP (e.g. Okta, Entra) authenticates to /scim/v2/ with a bearer
 // token; the org it may provision is derived ONLY from the matched endpoint
 // (design §4.4 H6 — never from the URL or payload).
 //

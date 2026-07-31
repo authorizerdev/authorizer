@@ -118,7 +118,9 @@ type TrustedIssuer struct {
 	// EnableTokenReview activates online K8s TokenReview validation (kubernetes_sa only).
 	// When true, Authorizer calls the K8s API server after offline JWT verification to
 	// confirm the bound Pod/ServiceAccount still exists.
-	// Default false — offline JWKS validation only (same as Keycloak default).
+	// Default false — offline JWKS validation only, which is the usual default
+	// for JWT-bearer trust across OIDC providers (an online revocation check
+	// costs an API round-trip on every authentication).
 	// SECURITY NOTE (S7): offline-only validation accepts tokens for deleted objects
 	// until exp. Enable this flag for high-security workloads.
 	EnableTokenReview bool `json:"enable_token_review" bson:"enable_token_review" cql:"enable_token_review" dynamo:"enable_token_review"`

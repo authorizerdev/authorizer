@@ -271,8 +271,9 @@ contention, not the server's ceiling.
 ## Publishing numbers worldwide — checklist
 
 Any number that leaves this repo needs its methodology attached, or it's not
-defensible against scrutiny (this is a self-hosted auth server competing on
-"lighter than Keycloak" — the number needs to survive a skeptical read):
+defensible against scrutiny. Resource-footprint claims about a self-hosted auth
+server get read skeptically and get benchmarked back at you, so publish nothing
+that can't survive someone reproducing it:
 
 - [ ] Hardware: exact chip, core count, RAM, arch (x86_64 vs arm64)
 - [ ] Native vs Docker/VM (Docker Desktop on macOS adds virtualization overhead — disclose it)

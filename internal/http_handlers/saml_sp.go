@@ -1,7 +1,7 @@
 package http_handlers
 
 // Per-organization enterprise SAML 2.0 SSO — Authorizer acting as the Service
-// Provider (SP). An org configures its upstream corporate IdP (Okta/Entra/ADFS)
+// Provider (SP). An org configures its upstream corporate IdP (e.g. Okta, Entra, ADFS)
 // as an sso_saml TrustedIssuer row; its users log in through that IdP, Authorizer
 // validates the signed assertion, JIT-provisions the user (namespaced by
 // (org_id, IdP-entity-id, NameID)) and issues a normal Authorizer session.
