@@ -111,9 +111,14 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, meta RequestMe
 	if id == "" {
 		return nil, nil, InvalidArgument("id is required")
 	}
+	// The lookup necessarily precedes authorization — the SP's OrgID is what
+	// requireOrgAdmin is checked against (design H2). That makes an unmasked
+	// "not found" an existence oracle: any authenticated caller could probe
+	// whether an SP id exists in ANY org, with the id echoed back. Mask it for
+	// everyone but a super-admin, matching the org OIDC/SAML/domain paths.
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, id)
 	if err != nil || existing == nil {
-		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", id))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound(fmt.Sprintf("service provider not found: %s", id)))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -188,7 +193,7 @@ func (p *provider) UpdateSAMLServiceProvider(ctx context.Context, meta RequestMe
 func (p *provider) DeleteSAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.Response, *ResponseSideEffects, error) {
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || existing == nil {
-		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", params.ID))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound(fmt.Sprintf("service provider not found: %s", params.ID)))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -206,7 +211,7 @@ func (p *provider) DeleteSAMLServiceProvider(ctx context.Context, meta RequestMe
 func (p *provider) SAMLServiceProvider(ctx context.Context, meta RequestMetadata, params *model.SAMLServiceProviderRequest) (*model.SAMLServiceProvider, *ResponseSideEffects, error) {
 	existing, err := p.StorageProvider.GetSAMLServiceProviderByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || existing == nil {
-		return nil, nil, NotFound(fmt.Sprintf("service provider not found: %s", params.ID))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound(fmt.Sprintf("service provider not found: %s", params.ID)))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, existing.OrgID); err != nil {
 		return nil, nil, err
@@ -291,7 +296,7 @@ func (p *provider) RotateSAMLIDPCert(ctx context.Context, meta RequestMetadata, 
 func (p *provider) RetireSAMLIDPKey(ctx context.Context, meta RequestMetadata, params *model.RetireSAMLIDPKeyRequest) (*model.Response, *ResponseSideEffects, error) {
 	key, err := p.StorageProvider.GetSAMLIDPKeyByID(ctx, strings.TrimSpace(params.ID))
 	if err != nil || key == nil {
-		return nil, nil, NotFound(fmt.Sprintf("signing key not found: %s", params.ID))
+		return nil, nil, p.maskNonSuperAdminError(ctx, meta, NotFound(fmt.Sprintf("signing key not found: %s", params.ID)))
 	}
 	if err := p.requireOrgAdmin(ctx, meta, key.OrgID); err != nil {
 		return nil, nil, err

@@ -79,7 +79,32 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 		gc := &gin.Context{Request: meta.Request}
 
 		if serviceName == adminServiceName {
-			if !tp.IsSuperAdmin(gc) {
+			// Platform super-admin: unchanged, and still the only identity that
+			// reaches the platform-wide operations.
+			if tp.IsSuperAdmin(gc) {
+				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
+				return handler(ctx, req)
+			}
+
+			// Not a super-admin — but super-admin is NOT the only identity the admin
+			// surface accepts. The service layer authorizes org-scoped operations
+			// with requireOrgAdmin, which passes for a super-admin OR for that
+			// org's own org-admin (constants.OrgRoleAdmin). Rejecting every
+			// non-super-admin here meant those ops were reachable over GraphQL but
+			// not over gRPC/REST: an org-admin listing their own org's members got
+			// `<nil>` on GraphQL and Unauthenticated on the other two.
+			//
+			// So attach the caller's identity and let the service layer decide, the
+			// same way the public service below does. This is only safe because
+			// EVERY admin method except AdminLogin (the bootstrap, handled above)
+			// opens with requireSuperAdmin or requireOrgAdmin — verified across all
+			// 78 AdminProvider methods, each gate at the top level of the function,
+			// never inside a branch. A new admin method that forgets its gate would
+			// now be reachable by any authenticated user, which is what
+			// TestAdminMethodsAreGated exists to prevent.
+			tokenData, err := tp.GetUserIDFromSessionOrAccessToken(gc)
+			if err != nil || tokenData == nil || tokenData.UserID == "" {
+				// No usable credential at all — reject before reaching a handler.
 				if isPublicMethod(methodDesc) {
 					// This method carries the `public` proto annotation but isn't
 					// AdminLogin, so the bypass above deliberately did not honor it —
@@ -89,12 +114,20 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 					// distinctly from an ordinary unauthenticated caller.
 					metrics.RecordSecurityEvent("admin_public_bypass_blocked", "grpc_auth")
 					if log != nil {
-						log.Warn().Str("method", string(methodDesc.Name())).Msg("admin RPC marked public but is not AdminLogin — bypass denied, super-admin still required")
+						log.Warn().Str("method", string(methodDesc.Name())).Msg("admin RPC marked public but is not AdminLogin — bypass denied, authentication still required")
 					}
 				}
 				return nil, status.Error(codes.Unauthenticated, "unauthorized")
 			}
-			ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
+			// Authenticated, not super-admin. The handler's service call decides:
+			// requireSuperAdmin still rejects (the principal carries no
+			// IsSuperAdmin and the request carries no admin secret), while
+			// requireOrgAdmin can now resolve this caller's org membership.
+			ctx = authctx.WithPrincipal(ctx, &authctx.Principal{
+				UserID:      tokenData.UserID,
+				LoginMethod: tokenData.LoginMethod,
+				Nonce:       tokenData.Nonce,
+			})
 			return handler(ctx, req)
 		}
 

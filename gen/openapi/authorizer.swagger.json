@@ -53,6 +53,39 @@
         ]
       }
     },
+    "/v1/admin/add_org_member": {
+      "post": {
+        "summary": "AddOrgMember binds a user to an organization with an optional set of\nper-org roles. Requires super-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_AddOrgMember",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddOrgMemberResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddOrgMemberRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/add_trusted_issuer": {
       "post": {
         "summary": "AddTrustedIssuer registers an external JWT issuer for a service account.\nsubject_claim defaults to \"sub\" when omitted. Requires super-admin auth.",
@@ -79,6 +112,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1AddTrustedIssuerRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/add_verified_org_domain": {
+      "post": {
+        "summary": "AddVerifiedOrgDomain marks a domain verified WITHOUT a DNS challenge.\nSuper-admin only by design — it bypasses proof of ownership, and a domain\nverified for one org cannot be claimed by another.",
+        "operationId": "AuthorizerAdminService_AddVerifiedOrgDomain",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddVerifiedOrgDomainResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddVerifiedOrgDomainRequest"
             }
           }
         ],
@@ -256,6 +322,105 @@
         ]
       }
     },
+    "/v1/admin/create_org_oidc_connection": {
+      "post": {
+        "summary": "CreateOrgOIDCConnection registers an upstream OIDC IdP for an organization.\nclient_secret is stored encrypted and never returned.",
+        "operationId": "AuthorizerAdminService_CreateOrgOidcConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrgOidcConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrgOidcConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/create_org_saml_connection": {
+      "post": {
+        "summary": "CreateOrgSamlConnection registers an upstream SAML IdP for an organization.\nAssertion signatures are validated ONLY against idp_certificate.",
+        "operationId": "AuthorizerAdminService_CreateOrgSamlConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrgSamlConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrgSamlConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/create_organization": {
+      "post": {
+        "summary": "CreateOrganization creates an organization. `name` is a unique, URL-safe\nslug. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_CreateOrganization",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrganizationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrganizationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/create_saml_service_provider": {
       "post": {
         "summary": "CreateSamlServiceProvider registers a downstream SAML 2.0 SP that Authorizer\n(acting as the IdP) issues signed assertions to. Requires super-admin auth.",
@@ -282,6 +447,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1CreateSamlServiceProviderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/create_scim_endpoint": {
+      "post": {
+        "summary": "CreateScimEndpoint provisions an org's inbound SCIM connection and returns\nits bearer token EXACTLY ONCE (only the bcrypt hash is stored). One\nendpoint per organization.",
+        "operationId": "AuthorizerAdminService_CreateScimEndpoint",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateScimEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateScimEndpointRequest"
             }
           }
         ],
@@ -358,6 +556,139 @@
         ]
       }
     },
+    "/v1/admin/delete_org_domain": {
+      "post": {
+        "summary": "DeleteOrgDomain removes a domain claim. The org is resolved from the stored\nrow, so authorization is checked against the domain's real owner.",
+        "operationId": "AuthorizerAdminService_DeleteOrgDomain",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgDomainResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgDomainRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_org_oidc_connection": {
+      "post": {
+        "summary": "DeleteOrgOidcConnection deletes an upstream OIDC connection.",
+        "operationId": "AuthorizerAdminService_DeleteOrgOidcConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgOidcConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteOrgOidcConnectionRequest / GetOrgOidcConnectionRequest look the\nconnection up by id OR org_id (supply exactly one) — the service rejects a\nrequest that names neither, and rejects an org_id that disagrees with the\nloaded row's owner.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgOidcConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_org_saml_connection": {
+      "post": {
+        "summary": "DeleteOrgSamlConnection deletes an upstream SAML connection.",
+        "operationId": "AuthorizerAdminService_DeleteOrgSamlConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgSamlConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrgSamlConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_organization": {
+      "post": {
+        "summary": "DeleteOrganization deletes an organization by id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteOrganization",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrganizationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrganizationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/delete_saml_service_provider": {
       "post": {
         "summary": "DeleteSamlServiceProvider deletes a downstream SP by id. Requires\nsuper-admin auth.",
@@ -384,6 +715,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteSamlServiceProviderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_scim_endpoint": {
+      "post": {
+        "summary": "DeleteScimEndpoint removes an org's SCIM connection.",
+        "operationId": "AuthorizerAdminService_DeleteScimEndpoint",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteScimEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteScimEndpointRequest"
             }
           }
         ],
@@ -967,6 +1331,270 @@
         ]
       }
     },
+    "/v1/admin/org_domains": {
+      "post": {
+        "summary": "OrgDomains returns a paginated list of an organization's domains. Requires\nsuper-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_OrgDomains",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1OrgDomainsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1OrgDomainsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/org_members": {
+      "post": {
+        "summary": "OrgMembers returns a paginated list of an organization's members, with\nresolved user identity for display. Requires super-admin or that org's\norg-admin.",
+        "operationId": "AuthorizerAdminService_OrgMembers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1OrgMembersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1OrgMembersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/org_oidc_connection": {
+      "post": {
+        "summary": "GetOrgOidcConnection returns a single OIDC connection, looked up by\nconnection id OR org_id (supply exactly one).",
+        "operationId": "AuthorizerAdminService_GetOrgOidcConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetOrgOidcConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetOrgOidcConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/org_saml_connection": {
+      "post": {
+        "summary": "GetOrgSamlConnection returns a single SAML connection, looked up by\nconnection id OR org_id (supply exactly one).",
+        "operationId": "AuthorizerAdminService_GetOrgSamlConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetOrgSamlConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetOrgSamlConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/organization": {
+      "post": {
+        "summary": "GetOrganization returns a single organization by id. Requires super-admin\nor that org's org-admin.",
+        "operationId": "AuthorizerAdminService_GetOrganization",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetOrganizationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetOrganizationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/organizations": {
+      "post": {
+        "summary": "Organizations returns a paginated list of organizations. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_Organizations",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1OrganizationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1OrganizationsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/remove_org_member": {
+      "post": {
+        "summary": "RemoveOrgMember removes a user's membership of an organization. Requires\nsuper-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_RemoveOrgMember",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RemoveOrgMemberResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RemoveOrgMemberRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/request_org_domain": {
+      "post": {
+        "summary": "RequestOrgDomain starts DNS ownership verification for a domain and returns\nthe TXT record to publish. Requires super-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_RequestOrgDomain",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RequestOrgDomainResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RequestOrgDomainRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/retire_saml_idp_key": {
       "post": {
         "summary": "RetireSamlIdpKey retires a published-but-not-signing SAML IdP key by id.\nRequires super-admin auth.",
@@ -1103,6 +1731,39 @@
         ]
       }
     },
+    "/v1/admin/rotate_scim_token": {
+      "post": {
+        "summary": "RotateScimToken mints a fresh SCIM bearer token, invalidating the previous\none, and returns it exactly once. Reuses CreateScimEndpointResponse — the\nonly other admin message carrying a secret.",
+        "operationId": "AuthorizerAdminService_RotateScimToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateScimEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RotateScimTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/saml_idp_keys": {
       "post": {
         "summary": "ListSamlIdpKeys returns all SAML IdP signing keys for an org. Requires\nsuper-admin auth.",
@@ -1197,6 +1858,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1ListSamlServiceProvidersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/scim_endpoint": {
+      "post": {
+        "summary": "GetScimEndpoint returns an org's SCIM endpoint metadata. The bearer token\nis never surfaced here.",
+        "operationId": "AuthorizerAdminService_GetScimEndpoint",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetScimEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetScimEndpointRequest"
             }
           }
         ],
@@ -1398,6 +2092,105 @@
         ]
       }
     },
+    "/v1/admin/update_org_oidc_connection": {
+      "post": {
+        "summary": "UpdateOrgOidcConnection updates an upstream OIDC connection. Supplying\nclient_secret rotates it; omitting leaves the stored secret intact.",
+        "operationId": "AuthorizerAdminService_UpdateOrgOidcConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrgOidcConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrgOidcConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_org_saml_connection": {
+      "post": {
+        "summary": "UpdateOrgSamlConnection updates an upstream SAML connection. Supplying\nidp_certificate replaces it; omitting leaves the stored certificate intact.",
+        "operationId": "AuthorizerAdminService_UpdateOrgSamlConnection",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrgSamlConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrgSamlConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_organization": {
+      "post": {
+        "summary": "UpdateOrganization updates an organization's slug, display name, or\nenabled state. Requires super-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_UpdateOrganization",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrganizationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrganizationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/update_saml_service_provider": {
       "post": {
         "summary": "UpdateSamlServiceProvider updates a downstream SP's name, endpoints,\ncertificate, attribute mapping, or active state. Requires super-admin auth.",
@@ -1568,6 +2361,39 @@
         ]
       }
     },
+    "/v1/admin/user_organizations": {
+      "post": {
+        "summary": "UserOrganizations returns the organizations a user belongs to, with that\nuser's per-org roles. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UserOrganizations",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UserOrganizationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UserOrganizationsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/users": {
       "post": {
         "summary": "Users returns a paginated list of all users. Requires super-admin auth.",
@@ -1626,6 +2452,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1VerificationRequestsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/verify_org_domain": {
+      "post": {
+        "summary": "VerifyOrgDomain checks the published TXT record and, on success, marks the\ndomain verified. Requires super-admin or that org's org-admin.",
+        "operationId": "AuthorizerAdminService_VerifyOrgDomain",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOrgDomainResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOrgDomainRequest"
             }
           }
         ],
@@ -2328,6 +3187,39 @@
         ]
       }
     },
+    "/v1/totp_mfa_setup": {
+      "post": {
+        "summary": "TotpMfaSetup generates a fresh TOTP secret, QR image and recovery codes and\ncreates an unverified TOTP enrollment. Same dual-mode permissions as\nEmailOtpMfaSetup / SmsOtpMfaSetup: an authenticated caller (bearer token)\nadding a second factor from the settings screen, or a caller in the\nwithheld first-time-offer state identified by the MFA session cookie plus\nemail/phone_number. The enrollment becomes active only once VerifyOtp is\ncalled with is_totp=true.",
+        "operationId": "AuthorizerService_TotpMfaSetup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuthResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TotpMfaSetupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
     "/v1/update_profile": {
       "post": {
         "operationId": "AuthorizerService_UpdateProfile",
@@ -2480,6 +3372,194 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1VerifyOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_credentials": {
+      "post": {
+        "summary": "WebauthnCredentials lists the authenticated caller's own passkeys.\nRequires authentication.",
+        "operationId": "AuthorizerService_WebauthnCredentials",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnCredentialsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_delete_credential": {
+      "post": {
+        "summary": "WebauthnDeleteCredential deletes one of the authenticated caller's own\npasskeys by id. Requires authentication.",
+        "operationId": "AuthorizerService_WebauthnDeleteCredential",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnDeleteCredentialResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnDeleteCredentialRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_login_options": {
+      "post": {
+        "summary": "WebauthnLoginOptions begins a passkey login ceremony and returns\nJSON-encoded PublicKeyCredentialRequestOptions. Usernameless (discoverable\ncredential) when email is omitted.",
+        "operationId": "AuthorizerService_WebauthnLoginOptions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnLoginOptionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnLoginOptionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_login_verify": {
+      "post": {
+        "summary": "WebauthnLoginVerify verifies a passkey assertion and logs the user in.",
+        "operationId": "AuthorizerService_WebauthnLoginVerify",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuthResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnLoginVerifyRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_registration_options": {
+      "post": {
+        "summary": "WebauthnRegistrationOptions begins a passkey registration ceremony and\nreturns JSON-encoded PublicKeyCredentialCreationOptions. email /\nphone_number are used only on the MFA-session-cookie path to resolve which\nuser is enrolling; they are ignored for a bearer-authenticated caller.",
+        "operationId": "AuthorizerService_WebauthnRegistrationOptions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnRegistrationOptionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnRegistrationOptionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/webauthn_registration_verify": {
+      "post": {
+        "summary": "WebauthnRegistrationVerify verifies the attestation and stores the passkey.\nReturns AuthResponse: access_token is set only on the MFA-session-cookie\nenrollment path (which completes a login); an ordinary settings-page caller\ngets a message-only response.",
+        "operationId": "AuthorizerService_WebauthnRegistrationVerify",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuthResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebauthnRegistrationVerifyRequest"
             }
           }
         ],
@@ -2749,6 +3829,32 @@
         }
       }
     },
+    "v1AddOrgMemberRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "roles defaults to an empty set when omitted."
+        }
+      }
+    },
+    "v1AddOrgMemberResponse": {
+      "type": "object",
+      "properties": {
+        "org_member": {
+          "$ref": "#/definitions/v1OrgMember"
+        }
+      }
+    },
     "v1AddTrustedIssuerRequest": {
       "type": "object",
       "properties": {
@@ -2799,6 +3905,25 @@
       "properties": {
         "trusted_issuer": {
           "$ref": "#/definitions/v1TrustedIssuer"
+        }
+      }
+    },
+    "v1AddVerifiedOrgDomainRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AddVerifiedOrgDomainResponse": {
+      "type": "object",
+      "properties": {
+        "org_domain": {
+          "$ref": "#/definitions/v1OrgDomain"
         }
       }
     },
@@ -3146,6 +4271,109 @@
       },
       "description": "CreateClientResponse carries the created service account plus the\nplaintext client_secret, returned exactly once. This is the ONLY admin\nmessage with a secret field; RotateClientSecret reuses it."
     },
+    "v1CreateOrgOidcConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "issuer_url": {
+          "type": "string",
+          "description": "issuer_url is the upstream IdP issuer (its OIDC discovery base)."
+        },
+        "client_id": {
+          "type": "string",
+          "description": "client_id / client_secret are the credentials Authorizer holds AT the\nupstream IdP. The secret is stored encrypted and never returned."
+        },
+        "client_secret": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "string",
+          "description": "scopes is space-separated. Defaults to \"openid profile email\" when omitted."
+        },
+        "redirect_uri": {
+          "type": "string",
+          "description": "redirect_uri registered at the upstream IdP. Derived from the request host\nwhen omitted."
+        }
+      }
+    },
+    "v1CreateOrgOidcConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_oidc_connection": {
+          "$ref": "#/definitions/v1OrgOidcConnection"
+        }
+      }
+    },
+    "v1CreateOrgSamlConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "idp_entity_id": {
+          "type": "string",
+          "description": "idp_entity_id is matched against the assertion Issuer. Globally unique\nacross all trusted issuers."
+        },
+        "idp_sso_url": {
+          "type": "string",
+          "description": "idp_sso_url is the IdP Single Sign-On endpoint (HTTP-Redirect binding)."
+        },
+        "idp_certificate": {
+          "type": "string",
+          "description": "idp_certificate is the IdP X.509 signing certificate (PEM). Assertion\nsignatures are validated ONLY against this certificate."
+        },
+        "sp_entity_id": {
+          "type": "string"
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "attribute_mapping": {
+          "type": "string",
+          "description": "attribute_mapping is JSON, e.g. {\"email\":\"email\",\"given_name\":\"firstName\"}."
+        },
+        "allow_idp_initiated": {
+          "type": "boolean",
+          "description": "allow_idp_initiated defaults to false (SP-initiated only)."
+        }
+      }
+    },
+    "v1CreateOrgSamlConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_saml_connection": {
+          "$ref": "#/definitions/v1OrgSamlConnection"
+        }
+      }
+    },
+    "v1CreateOrganizationRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "name must be a unique, URL-safe slug."
+        },
+        "display_name": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateOrganizationResponse": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "$ref": "#/definitions/v1Organization"
+        }
+      }
+    },
     "v1CreateSamlServiceProviderRequest": {
       "type": "object",
       "properties": {
@@ -3186,6 +4414,26 @@
           "$ref": "#/definitions/v1SamlServiceProvider"
         }
       }
+    },
+    "v1CreateScimEndpointRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateScimEndpointResponse": {
+      "type": "object",
+      "properties": {
+        "scim_endpoint": {
+          "$ref": "#/definitions/v1ScimEndpoint"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "description": "CreateScimEndpointResponse carries the endpoint plus its plaintext bearer\ntoken, returned ONCE at creation and ONCE at rotation. Only the bcrypt hash\nis persisted; the token can never be retrieved again."
     },
     "v1DeactivateAccountRequest": {
       "type": "object"
@@ -3232,6 +4480,77 @@
         }
       }
     },
+    "v1DeleteOrgDomainRequest": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrgDomainResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrgOidcConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteOrgOidcConnectionRequest / GetOrgOidcConnectionRequest look the\nconnection up by id OR org_id (supply exactly one) — the service rejects a\nrequest that names neither, and rejects an org_id that disagrees with the\nloaded row's owner."
+    },
+    "v1DeleteOrgOidcConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrgSamlConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrgSamlConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrganizationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteOrganizationResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1DeleteSamlServiceProviderRequest": {
       "type": "object",
       "properties": {
@@ -3242,6 +4561,22 @@
       "description": "DeleteSamlServiceProviderRequest mirrors model.SAMLServiceProviderRequest (a\nsingle SP id). Kept distinct from GetSamlServiceProviderRequest per buf's\none-message-per-RPC rule."
     },
     "v1DeleteSamlServiceProviderResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteScimEndpointRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteScimEndpointResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -3651,6 +4986,60 @@
         }
       }
     },
+    "v1GetOrgOidcConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetOrgOidcConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_oidc_connection": {
+          "$ref": "#/definitions/v1OrgOidcConnection"
+        }
+      }
+    },
+    "v1GetOrgSamlConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetOrgSamlConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_saml_connection": {
+          "$ref": "#/definitions/v1OrgSamlConnection"
+        }
+      }
+    },
+    "v1GetOrganizationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetOrganizationResponse": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "$ref": "#/definitions/v1Organization"
+        }
+      }
+    },
     "v1GetSamlServiceProviderRequest": {
       "type": "object",
       "properties": {
@@ -3665,6 +5054,22 @@
       "properties": {
         "saml_service_provider": {
           "$ref": "#/definitions/v1SamlServiceProvider"
+        }
+      }
+    },
+    "v1GetScimEndpointRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetScimEndpointResponse": {
+      "type": "object",
+      "properties": {
+        "scim_endpoint": {
+          "$ref": "#/definitions/v1ScimEndpoint"
         }
       }
     },
@@ -3930,6 +5335,279 @@
         }
       }
     },
+    "v1OrgDomain": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "OrgDomain mirrors the GraphQL OrgDomain type. verified_at is unset until the\nDNS challenge succeeds (or a super-admin adds it pre-verified)."
+    },
+    "v1OrgDomainChallenge": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string",
+          "description": "record_type is always \"TXT\"."
+        },
+        "record_name": {
+          "type": "string",
+          "title": "record_name is the DNS name to create, e.g. _authorizer-challenge.acme.com"
+        },
+        "record_value": {
+          "type": "string",
+          "title": "record_value is the exact TXT value to publish, e.g.\nauthorizer-domain-verification=\u003ctoken\u003e"
+        }
+      },
+      "description": "OrgDomainChallenge is the DNS TXT record the caller must publish to prove\nownership of the domain."
+    },
+    "v1OrgDomainsRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1OrgDomainsResponse": {
+      "type": "object",
+      "properties": {
+        "org_domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1OrgDomain"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1OrgMember": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "roles is the set of per-organization roles granted to this member."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "OrgMember mirrors the GraphQL OrgMember type. email/given_name/family_name\nare resolved from the user store for display and are blank when the\nreferenced user no longer exists."
+    },
+    "v1OrgMembersRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1OrgMembersResponse": {
+      "type": "object",
+      "properties": {
+        "org_members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1OrgMember"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1OrgOidcConnection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "issuer_url": {
+          "type": "string"
+        },
+        "sso_client_id": {
+          "type": "string",
+          "description": "sso_client_id is the client_id Authorizer uses AT the upstream IdP."
+        },
+        "scopes": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "OrgOidcConnection mirrors the GraphQL OrgOIDCConnection type. The upstream\nclient secret is stored encrypted and never returned."
+    },
+    "v1OrgSamlConnection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "idp_entity_id": {
+          "type": "string",
+          "description": "idp_entity_id is the upstream IdP entity ID (the assertion Issuer)."
+        },
+        "idp_sso_url": {
+          "type": "string",
+          "description": "idp_sso_url is the IdP Single Sign-On endpoint the AuthnRequest is sent to."
+        },
+        "sp_entity_id": {
+          "type": "string",
+          "description": "sp_entity_id / acs_url are the SP identity Authorizer advertises for this\norg. Empty means \"derived from the request host\"."
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "attribute_mapping": {
+          "type": "string",
+          "description": "attribute_mapping is JSON mapping profile fields to SAML attribute names."
+        },
+        "allow_idp_initiated": {
+          "type": "boolean"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "OrgSamlConnection mirrors the GraphQL OrgSAMLConnection type. The IdP signing\ncertificate is stored but not returned."
+    },
+    "v1Organization": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "name is a unique, URL-safe slug identifying the organization."
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "Organization mirrors the GraphQL Organization type."
+    },
+    "v1OrganizationsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1OrganizationsResponse": {
+      "type": "object",
+      "properties": {
+        "organizations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Organization"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
     "v1Pagination": {
       "type": "object",
       "properties": {
@@ -4019,6 +5697,44 @@
         }
       },
       "description": "PermissionCheckResult is the outcome of one permission check, echoing the\nchecked pair so batch results are self-describing (and positionally\naligned). Mirrors the GraphQL PermissionCheckResult type."
+    },
+    "v1RemoveOrgMemberRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RemoveOrgMemberResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RequestOrgDomainRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RequestOrgDomainResponse": {
+      "type": "object",
+      "properties": {
+        "challenge": {
+          "$ref": "#/definitions/v1OrgDomainChallenge"
+        }
+      }
     },
     "v1ResendOtpRequest": {
       "type": "object",
@@ -4169,6 +5885,14 @@
         }
       }
     },
+    "v1RotateScimTokenRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        }
+      }
+    },
     "v1SamlIdpKey": {
       "type": "object",
       "properties": {
@@ -4264,6 +5988,29 @@
         }
       },
       "description": "SamlSpMetadataParseResult mirrors model.SAMLSPMetadataParseResult. It does NOT\ncreate a record — it returns fields to prefill a create call."
+    },
+    "v1ScimEndpoint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "ScimEndpoint mirrors the GraphQL ScimEndpoint type. The bearer token is never\ncarried here — only CreateScimEndpointResponse returns it, once."
     },
     "v1SessionRequest": {
       "type": "object",
@@ -4418,6 +6165,18 @@
       },
       "description": "TestEndpointResponse mirrors model.TestEndpointResponse."
     },
+    "v1TotpMfaSetupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Only used in the MFA-session-cookie mode (a caller in the withheld\nfirst-time-offer state, with no bearer token yet) to resolve which user's\nMFA session cookie this is — same pattern as EmailOtpMfaSetupRequest.\nIgnored when the caller has a valid bearer token/session."
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      }
+    },
     "v1TrustedIssuer": {
       "type": "object",
       "properties": {
@@ -4563,6 +6322,113 @@
       "properties": {
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "v1UpdateOrgOidcConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "issuer_url": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "string"
+        },
+        "client_secret": {
+          "type": "string",
+          "description": "Supplying client_secret rotates it; omitting leaves the stored secret intact."
+        },
+        "scopes": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1UpdateOrgOidcConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_oidc_connection": {
+          "$ref": "#/definitions/v1OrgOidcConnection"
+        }
+      }
+    },
+    "v1UpdateOrgSamlConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "idp_entity_id": {
+          "type": "string"
+        },
+        "idp_sso_url": {
+          "type": "string"
+        },
+        "idp_certificate": {
+          "type": "string",
+          "description": "Supplying idp_certificate replaces it; omitting leaves the stored\ncertificate intact."
+        },
+        "sp_entity_id": {
+          "type": "string"
+        },
+        "acs_url": {
+          "type": "string"
+        },
+        "attribute_mapping": {
+          "type": "string"
+        },
+        "allow_idp_initiated": {
+          "type": "boolean"
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1UpdateOrgSamlConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "org_saml_connection": {
+          "$ref": "#/definitions/v1OrgSamlConnection"
+        }
+      }
+    },
+    "v1UpdateOrganizationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1UpdateOrganizationResponse": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "$ref": "#/definitions/v1Organization"
         }
       }
     },
@@ -4805,6 +6671,47 @@
         }
       }
     },
+    "v1UserOrganization": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "$ref": "#/definitions/v1Organization"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "UserOrganization pairs an organization with the caller-supplied user's roles\nin it."
+    },
+    "v1UserOrganizationsRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1UserOrganizationsResponse": {
+      "type": "object",
+      "properties": {
+        "user_organizations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1UserOrganization"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
     "v1UserRequest": {
       "type": "object",
       "properties": {
@@ -4992,6 +6899,25 @@
         }
       }
     },
+    "v1VerifyOrgDomainRequest": {
+      "type": "object",
+      "properties": {
+        "org_id": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        }
+      }
+    },
+    "v1VerifyOrgDomainResponse": {
+      "type": "object",
+      "properties": {
+        "org_domain": {
+          "$ref": "#/definitions/v1OrgDomain"
+        }
+      }
+    },
     "v1VerifyOtpRequest": {
       "type": "object",
       "properties": {
@@ -5007,6 +6933,139 @@
         },
         "is_totp": {
           "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1WebauthnCredentialInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "transports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "last_used_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "WebauthnCredentialInfo describes one stored passkey. Mirrors the GraphQL\nWebauthnCredentialInfo type."
+    },
+    "v1WebauthnCredentialsResponse": {
+      "type": "object",
+      "properties": {
+        "webauthn_credentials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WebauthnCredentialInfo"
+          }
+        }
+      }
+    },
+    "v1WebauthnDeleteCredentialRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1WebauthnDeleteCredentialResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1WebauthnLoginOptionsRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Omit for a usernameless (discoverable credential) ceremony."
+        }
+      }
+    },
+    "v1WebauthnLoginOptionsResponse": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "string",
+          "description": "JSON-encoded PublicKeyCredentialRequestOptions to pass to\nnavigator.credentials.get()."
+        }
+      }
+    },
+    "v1WebauthnLoginVerifyRequest": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "OAuth authorize state to continue an in-progress authorization, if any."
+        },
+        "credential": {
+          "type": "string",
+          "description": "JSON-encoded PublicKeyCredential assertion response from\nnavigator.credentials.get()."
+        }
+      }
+    },
+    "v1WebauthnRegistrationOptionsRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Used only on the MFA-session-cookie enrollment path to resolve the user;\nignored for a bearer-authenticated caller."
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      }
+    },
+    "v1WebauthnRegistrationOptionsResponse": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "string",
+          "description": "JSON-encoded PublicKeyCredentialCreationOptions to pass to\nnavigator.credentials.create()."
+        }
+      }
+    },
+    "v1WebauthnRegistrationVerifyRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Optional human label for the passkey (e.g. \"MacBook Touch ID\")."
+        },
+        "credential": {
+          "type": "string",
+          "description": "JSON-encoded PublicKeyCredential attestation response from\nnavigator.credentials.create()."
+        },
+        "email": {
+          "type": "string",
+          "description": "email / phone_number / state are used only on the MFA-session-cookie\nenrollment path; ignored for an ordinary bearer-authenticated caller."
+        },
+        "phone_number": {
+          "type": "string"
         },
         "state": {
           "type": "string"

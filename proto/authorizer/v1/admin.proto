@@ -507,6 +507,256 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === Organizations ===
+  //
+  // Org-scoped ops accept EITHER a platform super-admin or that org's own
+  // org-admin (the reserved namespaced role constants.OrgRoleAdmin). The
+  // service layer sources the org id for the authorization check from the
+  // resource AFTER loading it by id — never from a caller-supplied org id
+  // checked beforehand — so these RPCs inherit that guarantee unchanged.
+
+  // CreateOrganization creates an organization. `name` is a unique, URL-safe
+  // slug. Requires super-admin auth.
+  rpc CreateOrganization(CreateOrganizationRequest) returns (CreateOrganizationResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_organization"
+      body: "*"
+    };
+  }
+
+  // UpdateOrganization updates an organization's slug, display name, or
+  // enabled state. Requires super-admin or that org's org-admin.
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_organization"
+      body: "*"
+    };
+  }
+
+  // DeleteOrganization deletes an organization by id. Requires super-admin auth.
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_organization"
+      body: "*"
+    };
+  }
+
+  // GetOrganization returns a single organization by id. Requires super-admin
+  // or that org's org-admin.
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/organization"
+      body: "*"
+    };
+  }
+
+  // Organizations returns a paginated list of organizations. Requires
+  // super-admin auth.
+  rpc Organizations(OrganizationsRequest) returns (OrganizationsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/organizations"
+      body: "*"
+    };
+  }
+
+  // UserOrganizations returns the organizations a user belongs to, with that
+  // user's per-org roles. Requires super-admin auth.
+  rpc UserOrganizations(UserOrganizationsRequest) returns (UserOrganizationsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/user_organizations"
+      body: "*"
+    };
+  }
+
+  // AddOrgMember binds a user to an organization with an optional set of
+  // per-org roles. Requires super-admin or that org's org-admin.
+  rpc AddOrgMember(AddOrgMemberRequest) returns (AddOrgMemberResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/add_org_member"
+      body: "*"
+    };
+  }
+
+  // RemoveOrgMember removes a user's membership of an organization. Requires
+  // super-admin or that org's org-admin.
+  rpc RemoveOrgMember(RemoveOrgMemberRequest) returns (RemoveOrgMemberResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/remove_org_member"
+      body: "*"
+    };
+  }
+
+  // OrgMembers returns a paginated list of an organization's members, with
+  // resolved user identity for display. Requires super-admin or that org's
+  // org-admin.
+  rpc OrgMembers(OrgMembersRequest) returns (OrgMembersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/org_members"
+      body: "*"
+    };
+  }
+
+  // === Organization verified domains ===
+
+  // RequestOrgDomain starts DNS ownership verification for a domain and returns
+  // the TXT record to publish. Requires super-admin or that org's org-admin.
+  rpc RequestOrgDomain(RequestOrgDomainRequest) returns (RequestOrgDomainResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/request_org_domain"
+      body: "*"
+    };
+  }
+
+  // VerifyOrgDomain checks the published TXT record and, on success, marks the
+  // domain verified. Requires super-admin or that org's org-admin.
+  rpc VerifyOrgDomain(VerifyOrgDomainRequest) returns (VerifyOrgDomainResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/verify_org_domain"
+      body: "*"
+    };
+  }
+
+  // AddVerifiedOrgDomain marks a domain verified WITHOUT a DNS challenge.
+  // Super-admin only by design — it bypasses proof of ownership, and a domain
+  // verified for one org cannot be claimed by another.
+  rpc AddVerifiedOrgDomain(AddVerifiedOrgDomainRequest) returns (AddVerifiedOrgDomainResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/add_verified_org_domain"
+      body: "*"
+    };
+  }
+
+  // OrgDomains returns a paginated list of an organization's domains. Requires
+  // super-admin or that org's org-admin.
+  rpc OrgDomains(OrgDomainsRequest) returns (OrgDomainsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/org_domains"
+      body: "*"
+    };
+  }
+
+  // DeleteOrgDomain removes a domain claim. The org is resolved from the stored
+  // row, so authorization is checked against the domain's real owner.
+  rpc DeleteOrgDomain(DeleteOrgDomainRequest) returns (DeleteOrgDomainResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_org_domain"
+      body: "*"
+    };
+  }
+
+  // === Per-organization OIDC SSO connections ===
+
+  // CreateOrgOIDCConnection registers an upstream OIDC IdP for an organization.
+  // client_secret is stored encrypted and never returned.
+  rpc CreateOrgOidcConnection(CreateOrgOidcConnectionRequest) returns (CreateOrgOidcConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_org_oidc_connection"
+      body: "*"
+    };
+  }
+
+  // UpdateOrgOidcConnection updates an upstream OIDC connection. Supplying
+  // client_secret rotates it; omitting leaves the stored secret intact.
+  rpc UpdateOrgOidcConnection(UpdateOrgOidcConnectionRequest) returns (UpdateOrgOidcConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_org_oidc_connection"
+      body: "*"
+    };
+  }
+
+  // DeleteOrgOidcConnection deletes an upstream OIDC connection.
+  rpc DeleteOrgOidcConnection(DeleteOrgOidcConnectionRequest) returns (DeleteOrgOidcConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_org_oidc_connection"
+      body: "*"
+    };
+  }
+
+  // GetOrgOidcConnection returns a single OIDC connection, looked up by
+  // connection id OR org_id (supply exactly one).
+  rpc GetOrgOidcConnection(GetOrgOidcConnectionRequest) returns (GetOrgOidcConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/org_oidc_connection"
+      body: "*"
+    };
+  }
+
+  // === Per-organization SAML SSO connections ===
+
+  // CreateOrgSamlConnection registers an upstream SAML IdP for an organization.
+  // Assertion signatures are validated ONLY against idp_certificate.
+  rpc CreateOrgSamlConnection(CreateOrgSamlConnectionRequest) returns (CreateOrgSamlConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_org_saml_connection"
+      body: "*"
+    };
+  }
+
+  // UpdateOrgSamlConnection updates an upstream SAML connection. Supplying
+  // idp_certificate replaces it; omitting leaves the stored certificate intact.
+  rpc UpdateOrgSamlConnection(UpdateOrgSamlConnectionRequest) returns (UpdateOrgSamlConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_org_saml_connection"
+      body: "*"
+    };
+  }
+
+  // DeleteOrgSamlConnection deletes an upstream SAML connection.
+  rpc DeleteOrgSamlConnection(DeleteOrgSamlConnectionRequest) returns (DeleteOrgSamlConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_org_saml_connection"
+      body: "*"
+    };
+  }
+
+  // GetOrgSamlConnection returns a single SAML connection, looked up by
+  // connection id OR org_id (supply exactly one).
+  rpc GetOrgSamlConnection(GetOrgSamlConnectionRequest) returns (GetOrgSamlConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/org_saml_connection"
+      body: "*"
+    };
+  }
+
+  // === Per-organization inbound SCIM ===
+
+  // CreateScimEndpoint provisions an org's inbound SCIM connection and returns
+  // its bearer token EXACTLY ONCE (only the bcrypt hash is stored). One
+  // endpoint per organization.
+  rpc CreateScimEndpoint(CreateScimEndpointRequest) returns (CreateScimEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/create_scim_endpoint"
+      body: "*"
+    };
+  }
+
+  // RotateScimToken mints a fresh SCIM bearer token, invalidating the previous
+  // one, and returns it exactly once. Reuses CreateScimEndpointResponse — the
+  // only other admin message carrying a secret.
+  rpc RotateScimToken(RotateScimTokenRequest) returns (CreateScimEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/rotate_scim_token"
+      body: "*"
+    };
+  }
+
+  // DeleteScimEndpoint removes an org's SCIM connection.
+  rpc DeleteScimEndpoint(DeleteScimEndpointRequest) returns (DeleteScimEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_scim_endpoint"
+      body: "*"
+    };
+  }
+
+  // GetScimEndpoint returns an org's SCIM endpoint metadata. The bearer token
+  // is never surfaced here.
+  rpc GetScimEndpoint(GetScimEndpointRequest) returns (GetScimEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/scim_endpoint"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -1285,4 +1535,375 @@ message ImportSamlSpMetadataRequest {
 }
 message ImportSamlSpMetadataResponse {
   SamlSpMetadataParseResult result = 1;
+}
+
+// === Organizations ===
+
+// Organization mirrors the GraphQL Organization type.
+message Organization {
+  string id = 1;
+  // name is a unique, URL-safe slug identifying the organization.
+  string name = 2;
+  optional string display_name = 3;
+  bool enabled = 4;
+  optional int64 created_at = 5;
+  optional int64 updated_at = 6;
+}
+
+// OrgMember mirrors the GraphQL OrgMember type. email/given_name/family_name
+// are resolved from the user store for display and are blank when the
+// referenced user no longer exists.
+message OrgMember {
+  string id = 1;
+  string org_id = 2;
+  string user_id = 3;
+  optional string email = 4;
+  optional string given_name = 5;
+  optional string family_name = 6;
+  // roles is the set of per-organization roles granted to this member.
+  repeated string roles = 7;
+  optional int64 created_at = 8;
+  optional int64 updated_at = 9;
+}
+
+// UserOrganization pairs an organization with the caller-supplied user's roles
+// in it.
+message UserOrganization {
+  Organization organization = 1;
+  repeated string roles = 2;
+}
+
+message CreateOrganizationRequest {
+  // name must be a unique, URL-safe slug.
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  optional string display_name = 2;
+}
+message CreateOrganizationResponse {
+  Organization organization = 1;
+}
+
+message UpdateOrganizationRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string display_name = 3;
+  optional bool enabled = 4;
+}
+message UpdateOrganizationResponse {
+  Organization organization = 1;
+}
+
+message DeleteOrganizationRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteOrganizationResponse {
+  string message = 1;
+}
+
+message GetOrganizationRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetOrganizationResponse {
+  Organization organization = 1;
+}
+
+message OrganizationsRequest {
+  PaginationRequest pagination = 1;
+}
+message OrganizationsResponse {
+  repeated Organization organizations = 1;
+  Pagination pagination = 2;
+}
+
+message UserOrganizationsRequest {
+  string user_id = 1 [(buf.validate.field).string.min_len = 1];
+  PaginationRequest pagination = 2;
+}
+message UserOrganizationsResponse {
+  repeated UserOrganization user_organizations = 1;
+  Pagination pagination = 2;
+}
+
+message AddOrgMemberRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string user_id = 2 [(buf.validate.field).string.min_len = 1];
+  // roles defaults to an empty set when omitted.
+  repeated string roles = 3;
+}
+message AddOrgMemberResponse {
+  OrgMember org_member = 1;
+}
+
+message RemoveOrgMemberRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string user_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+message RemoveOrgMemberResponse {
+  string message = 1;
+}
+
+message OrgMembersRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  PaginationRequest pagination = 2;
+}
+message OrgMembersResponse {
+  repeated OrgMember org_members = 1;
+  Pagination pagination = 2;
+}
+
+// === Organization verified domains ===
+
+// OrgDomain mirrors the GraphQL OrgDomain type. verified_at is unset until the
+// DNS challenge succeeds (or a super-admin adds it pre-verified).
+message OrgDomain {
+  string domain = 1;
+  string org_id = 2;
+  optional int64 verified_at = 3;
+  optional int64 created_at = 4;
+  optional int64 updated_at = 5;
+}
+
+// OrgDomainChallenge is the DNS TXT record the caller must publish to prove
+// ownership of the domain.
+message OrgDomainChallenge {
+  string domain = 1;
+  // record_type is always "TXT".
+  string record_type = 2;
+  // record_name is the DNS name to create, e.g. _authorizer-challenge.acme.com
+  string record_name = 3;
+  // record_value is the exact TXT value to publish, e.g.
+  // authorizer-domain-verification=<token>
+  string record_value = 4;
+}
+
+message RequestOrgDomainRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string domain = 2 [(buf.validate.field).string.min_len = 1];
+}
+message RequestOrgDomainResponse {
+  OrgDomainChallenge challenge = 1;
+}
+
+message VerifyOrgDomainRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string domain = 2 [(buf.validate.field).string.min_len = 1];
+}
+message VerifyOrgDomainResponse {
+  OrgDomain org_domain = 1;
+}
+
+message AddVerifiedOrgDomainRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string domain = 2 [(buf.validate.field).string.min_len = 1];
+}
+message AddVerifiedOrgDomainResponse {
+  OrgDomain org_domain = 1;
+}
+
+message OrgDomainsRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  PaginationRequest pagination = 2;
+}
+message OrgDomainsResponse {
+  repeated OrgDomain org_domains = 1;
+  Pagination pagination = 2;
+}
+
+message DeleteOrgDomainRequest {
+  string domain = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteOrgDomainResponse {
+  string message = 1;
+}
+
+// === Per-organization OIDC SSO connections ===
+
+// OrgOidcConnection mirrors the GraphQL OrgOIDCConnection type. The upstream
+// client secret is stored encrypted and never returned.
+message OrgOidcConnection {
+  string id = 1;
+  string org_id = 2;
+  string name = 3;
+  string issuer_url = 4;
+  // sso_client_id is the client_id Authorizer uses AT the upstream IdP.
+  string sso_client_id = 5;
+  optional string scopes = 6;
+  optional string redirect_uri = 7;
+  bool is_active = 8;
+  optional int64 created_at = 9;
+  optional int64 updated_at = 10;
+}
+
+message CreateOrgOidcConnectionRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  // issuer_url is the upstream IdP issuer (its OIDC discovery base).
+  string issuer_url = 3 [(buf.validate.field).string.min_len = 1];
+  // client_id / client_secret are the credentials Authorizer holds AT the
+  // upstream IdP. The secret is stored encrypted and never returned.
+  string client_id = 4 [(buf.validate.field).string.min_len = 1];
+  string client_secret = 5 [(buf.validate.field).string.min_len = 1];
+  // scopes is space-separated. Defaults to "openid profile email" when omitted.
+  optional string scopes = 6;
+  // redirect_uri registered at the upstream IdP. Derived from the request host
+  // when omitted.
+  optional string redirect_uri = 7;
+}
+message CreateOrgOidcConnectionResponse {
+  OrgOidcConnection org_oidc_connection = 1;
+}
+
+message UpdateOrgOidcConnectionRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string issuer_url = 3;
+  optional string client_id = 4;
+  // Supplying client_secret rotates it; omitting leaves the stored secret intact.
+  optional string client_secret = 5;
+  optional string scopes = 6;
+  optional string redirect_uri = 7;
+  optional bool is_active = 8;
+}
+message UpdateOrgOidcConnectionResponse {
+  OrgOidcConnection org_oidc_connection = 1;
+}
+
+// DeleteOrgOidcConnectionRequest / GetOrgOidcConnectionRequest look the
+// connection up by id OR org_id (supply exactly one) — the service rejects a
+// request that names neither, and rejects an org_id that disagrees with the
+// loaded row's owner.
+message DeleteOrgOidcConnectionRequest {
+  optional string id = 1;
+  optional string org_id = 2;
+}
+message DeleteOrgOidcConnectionResponse {
+  string message = 1;
+}
+
+message GetOrgOidcConnectionRequest {
+  optional string id = 1;
+  optional string org_id = 2;
+}
+message GetOrgOidcConnectionResponse {
+  OrgOidcConnection org_oidc_connection = 1;
+}
+
+// === Per-organization SAML SSO connections ===
+
+// OrgSamlConnection mirrors the GraphQL OrgSAMLConnection type. The IdP signing
+// certificate is stored but not returned.
+message OrgSamlConnection {
+  string id = 1;
+  string org_id = 2;
+  string name = 3;
+  // idp_entity_id is the upstream IdP entity ID (the assertion Issuer).
+  string idp_entity_id = 4;
+  // idp_sso_url is the IdP Single Sign-On endpoint the AuthnRequest is sent to.
+  optional string idp_sso_url = 5;
+  // sp_entity_id / acs_url are the SP identity Authorizer advertises for this
+  // org. Empty means "derived from the request host".
+  optional string sp_entity_id = 6;
+  optional string acs_url = 7;
+  // attribute_mapping is JSON mapping profile fields to SAML attribute names.
+  optional string attribute_mapping = 8;
+  bool allow_idp_initiated = 9;
+  bool is_active = 10;
+  optional int64 created_at = 11;
+  optional int64 updated_at = 12;
+}
+
+message CreateOrgSamlConnectionRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  // idp_entity_id is matched against the assertion Issuer. Globally unique
+  // across all trusted issuers.
+  string idp_entity_id = 3 [(buf.validate.field).string.min_len = 1];
+  // idp_sso_url is the IdP Single Sign-On endpoint (HTTP-Redirect binding).
+  string idp_sso_url = 4 [(buf.validate.field).string.min_len = 1];
+  // idp_certificate is the IdP X.509 signing certificate (PEM). Assertion
+  // signatures are validated ONLY against this certificate.
+  string idp_certificate = 5 [(buf.validate.field).string.min_len = 1];
+  optional string sp_entity_id = 6;
+  optional string acs_url = 7;
+  // attribute_mapping is JSON, e.g. {"email":"email","given_name":"firstName"}.
+  optional string attribute_mapping = 8;
+  // allow_idp_initiated defaults to false (SP-initiated only).
+  optional bool allow_idp_initiated = 9;
+}
+message CreateOrgSamlConnectionResponse {
+  OrgSamlConnection org_saml_connection = 1;
+}
+
+message UpdateOrgSamlConnectionRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string name = 2;
+  optional string idp_entity_id = 3;
+  optional string idp_sso_url = 4;
+  // Supplying idp_certificate replaces it; omitting leaves the stored
+  // certificate intact.
+  optional string idp_certificate = 5;
+  optional string sp_entity_id = 6;
+  optional string acs_url = 7;
+  optional string attribute_mapping = 8;
+  optional bool allow_idp_initiated = 9;
+  optional bool is_active = 10;
+}
+message UpdateOrgSamlConnectionResponse {
+  OrgSamlConnection org_saml_connection = 1;
+}
+
+message DeleteOrgSamlConnectionRequest {
+  optional string id = 1;
+  optional string org_id = 2;
+}
+message DeleteOrgSamlConnectionResponse {
+  string message = 1;
+}
+
+message GetOrgSamlConnectionRequest {
+  optional string id = 1;
+  optional string org_id = 2;
+}
+message GetOrgSamlConnectionResponse {
+  OrgSamlConnection org_saml_connection = 1;
+}
+
+// === Per-organization inbound SCIM ===
+
+// ScimEndpoint mirrors the GraphQL ScimEndpoint type. The bearer token is never
+// carried here — only CreateScimEndpointResponse returns it, once.
+message ScimEndpoint {
+  string id = 1;
+  string org_id = 2;
+  bool enabled = 3;
+  optional int64 created_at = 4;
+  optional int64 updated_at = 5;
+}
+
+message CreateScimEndpointRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+// CreateScimEndpointResponse carries the endpoint plus its plaintext bearer
+// token, returned ONCE at creation and ONCE at rotation. Only the bcrypt hash
+// is persisted; the token can never be retrieved again.
+message CreateScimEndpointResponse {
+  ScimEndpoint scim_endpoint = 1;
+  string token = 2;
+}
+
+message RotateScimTokenRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteScimEndpointRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteScimEndpointResponse {
+  string message = 1;
+}
+
+message GetScimEndpointRequest {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetScimEndpointResponse {
+  ScimEndpoint scim_endpoint = 1;
 }

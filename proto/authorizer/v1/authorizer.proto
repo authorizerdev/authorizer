@@ -291,6 +291,96 @@ service AuthorizerService {
     };
     option (authorizer.v1.mcp_tool) = {exposed: true};
   }
+
+  // === TOTP enrollment ===
+
+  // TotpMfaSetup generates a fresh TOTP secret, QR image and recovery codes and
+  // creates an unverified TOTP enrollment. Same dual-mode permissions as
+  // EmailOtpMfaSetup / SmsOtpMfaSetup: an authenticated caller (bearer token)
+  // adding a second factor from the settings screen, or a caller in the
+  // withheld first-time-offer state identified by the MFA session cookie plus
+  // email/phone_number. The enrollment becomes active only once VerifyOtp is
+  // called with is_totp=true.
+  rpc TotpMfaSetup(TotpMfaSetupRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/v1/totp_mfa_setup"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // === WebAuthn / passkeys ===
+  //
+  // Registration and login are two-step ceremonies: an `options` call returns
+  // the JSON the browser passes to navigator.credentials.create()/get(), and a
+  // `verify` call consumes the browser's response. The options calls are public
+  // for the same reason the login/signup RPCs are — a caller may be mid-login
+  // with no bearer token yet; the verify calls establish or continue the
+  // session. Listing and deleting a passkey act on the CALLER'S OWN
+  // credentials and therefore require authentication.
+
+  // WebauthnRegistrationOptions begins a passkey registration ceremony and
+  // returns JSON-encoded PublicKeyCredentialCreationOptions. email /
+  // phone_number are used only on the MFA-session-cookie path to resolve which
+  // user is enrolling; they are ignored for a bearer-authenticated caller.
+  rpc WebauthnRegistrationOptions(WebauthnRegistrationOptionsRequest) returns (WebauthnRegistrationOptionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn_registration_options"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+  }
+
+  // WebauthnRegistrationVerify verifies the attestation and stores the passkey.
+  // Returns AuthResponse: access_token is set only on the MFA-session-cookie
+  // enrollment path (which completes a login); an ordinary settings-page caller
+  // gets a message-only response.
+  rpc WebauthnRegistrationVerify(WebauthnRegistrationVerifyRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn_registration_verify"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // WebauthnLoginOptions begins a passkey login ceremony and returns
+  // JSON-encoded PublicKeyCredentialRequestOptions. Usernameless (discoverable
+  // credential) when email is omitted.
+  rpc WebauthnLoginOptions(WebauthnLoginOptionsRequest) returns (WebauthnLoginOptionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn_login_options"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+  }
+
+  // WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+  rpc WebauthnLoginVerify(WebauthnLoginVerifyRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn_login_verify"
+      body: "*"
+    };
+    option (authorizer.v1.public) = true;
+    option (authorizer.v1.audit_log) = true;
+  }
+
+  // WebauthnCredentials lists the authenticated caller's own passkeys.
+  // Requires authentication.
+  rpc WebauthnCredentials(WebauthnCredentialsRequest) returns (WebauthnCredentialsResponse) {
+    option (google.api.http) = {post: "/v1/webauthn_credentials"};
+  }
+
+  // WebauthnDeleteCredential deletes one of the authenticated caller's own
+  // passkeys by id. Requires authentication.
+  rpc WebauthnDeleteCredential(WebauthnDeleteCredentialRequest) returns (WebauthnDeleteCredentialResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn_delete_credential"
+      body: "*"
+    };
+    option (authorizer.v1.audit_log) = true;
+  }
 }
 
 // ============================================================================
@@ -563,4 +653,83 @@ message ListPermissionsResponse {
   // True when the result was capped (1000 entries) and more permissions
   // exist.
   bool truncated = 3;
+}
+
+// === TOTP enrollment ===
+
+message TotpMfaSetupRequest {
+  // Only used in the MFA-session-cookie mode (a caller in the withheld
+  // first-time-offer state, with no bearer token yet) to resolve which user's
+  // MFA session cookie this is — same pattern as EmailOtpMfaSetupRequest.
+  // Ignored when the caller has a valid bearer token/session.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+}
+
+// === WebAuthn / passkeys ===
+
+// WebauthnCredentialInfo describes one stored passkey. Mirrors the GraphQL
+// WebauthnCredentialInfo type.
+message WebauthnCredentialInfo {
+  string id = 1;
+  string name = 2;
+  repeated string transports = 3;
+  optional int64 created_at = 4;
+  optional int64 updated_at = 5;
+  optional int64 last_used_at = 6;
+}
+
+message WebauthnRegistrationOptionsRequest {
+  // Used only on the MFA-session-cookie enrollment path to resolve the user;
+  // ignored for a bearer-authenticated caller.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+}
+message WebauthnRegistrationOptionsResponse {
+  // JSON-encoded PublicKeyCredentialCreationOptions to pass to
+  // navigator.credentials.create().
+  string options = 1;
+}
+
+message WebauthnRegistrationVerifyRequest {
+  // Optional human label for the passkey (e.g. "MacBook Touch ID").
+  optional string name = 1;
+  // JSON-encoded PublicKeyCredential attestation response from
+  // navigator.credentials.create().
+  string credential = 2 [(buf.validate.field).string.min_len = 1];
+  // email / phone_number / state are used only on the MFA-session-cookie
+  // enrollment path; ignored for an ordinary bearer-authenticated caller.
+  optional string email = 3;
+  optional string phone_number = 4;
+  optional string state = 5;
+}
+
+message WebauthnLoginOptionsRequest {
+  // Omit for a usernameless (discoverable credential) ceremony.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+}
+message WebauthnLoginOptionsResponse {
+  // JSON-encoded PublicKeyCredentialRequestOptions to pass to
+  // navigator.credentials.get().
+  string options = 1;
+}
+
+message WebauthnLoginVerifyRequest {
+  // OAuth authorize state to continue an in-progress authorization, if any.
+  optional string state = 1;
+  // JSON-encoded PublicKeyCredential assertion response from
+  // navigator.credentials.get().
+  string credential = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message WebauthnCredentialsRequest {}
+message WebauthnCredentialsResponse {
+  repeated WebauthnCredentialInfo webauthn_credentials = 1;
+}
+
+message WebauthnDeleteCredentialRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message WebauthnDeleteCredentialResponse {
+  string message = 1;
 }

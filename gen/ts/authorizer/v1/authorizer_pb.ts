@@ -37,7 +37,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file authorizer/v1/authorizer.proto.
  */
 export const file_authorizer_v1_authorizer: GenFile = /*@__PURE__*/
-  fileDesc("Ch5hdXRob3JpemVyL3YxL2F1dGhvcml6ZXIucHJvdG8SDWF1dGhvcml6ZXIudjEioAMKDVNpZ251cFJlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACEh0KDHBob25lX251bWJlchgCIAEoCUIHukgEcgIYIBIcCghwYXNzd29yZBgDIAEoCUIKukgHcgUQARiAARIkChBjb25maXJtX3Bhc3N3b3JkGAQgASgJQgq6SAdyBRABGIABEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSDgoGZ2VuZGVyGAkgASgJEhEKCWJpcnRoZGF0ZRgKIAEoCRIPCgdwaWN0dXJlGAsgASgJEg0KBXJvbGVzGAwgAygJEg0KBXNjb3BlGA0gAygJEhQKDHJlZGlyZWN0X3VyaRgOIAEoCRINCgVzdGF0ZRgQIAEoCRIoCghhcHBfZGF0YRgRIAEoCzIWLmF1dGhvcml6ZXIudjEuQXBwRGF0YUoECA8QEFIcaXNfbXVsdGlfZmFjdG9yX2F1dGhfZW5hYmxlZCKRAQoMTG9naW5SZXF1ZXN0EhcKBWVtYWlsGAEgASgJQgi6SAVyAxjAAhIdCgxwaG9uZV9udW1iZXIYAiABKAlCB7pIBHICGCASHAoIcGFzc3dvcmQYAyABKAlCCrpIB3IFEAEYgAESDQoFcm9sZXMYBCADKAkSDQoFc2NvcGUYBSADKAkSDQoFc3RhdGUYBiABKAkiDwoNTG9nb3V0UmVxdWVzdCIhCg5Mb2dvdXRSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJInMKFU1hZ2ljTGlua0xvZ2luUmVxdWVzdBIXCgVlbWFpbBgBIAEoCUIIukgFcgMYwAISDQoFcm9sZXMYAiADKAkSDQoFc2NvcGUYAyADKAkSDQoFc3RhdGUYBCABKAkSFAoMcmVkaXJlY3RfdXJpGAUgASgJIikKFk1hZ2ljTGlua0xvZ2luUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSI7ChJWZXJpZnlFbWFpbFJlcXVlc3QSFgoFdG9rZW4YASABKAlCB7pIBHICEAESDQoFc3RhdGUYAiABKAkiXwoYUmVzZW5kVmVyaWZ5RW1haWxSZXF1ZXN0EhcKBWVtYWlsGAEgASgJQgi6SAVyAxjAAhIbCgppZGVudGlmaWVyGAIgASgJQge6SARyAhABEg0KBXN0YXRlGAMgASgJIiwKGVJlc2VuZFZlcmlmeUVtYWlsUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSKCAQoQVmVyaWZ5T3RwUmVxdWVzdBIXCgVlbWFpbBgBIAEoCUIIukgFcgMYwAISHQoMcGhvbmVfbnVtYmVyGAIgASgJQge6SARyAhggEhYKA290cBgDIAEoCUIJukgGcgQQARgQEg8KB2lzX3RvdHAYBCABKAgSDQoFc3RhdGUYBSABKAkiWQoQUmVzZW5kT3RwUmVxdWVzdBIXCgVlbWFpbBgBIAEoCUIIukgFcgMYwAISHQoMcGhvbmVfbnVtYmVyGAIgASgJQge6SARyAhggEg0KBXN0YXRlGAMgASgJIiQKEVJlc2VuZE90cFJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiXAoTU2tpcE1mYVNldHVwUmVxdWVzdBIXCgVlbWFpbBgBIAEoCUIIukgFcgMYwAISHQoMcGhvbmVfbnVtYmVyGAIgASgJQge6SARyAhggEg0KBXN0YXRlGAMgASgJIkgKDkxvY2tNZmFSZXF1ZXN0EhcKBWVtYWlsGAEgASgJQgi6SAVyAxjAAhIdCgxwaG9uZV9udW1iZXIYAiABKAlCB7pIBHICGCAiIgoPTG9ja01mYVJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiUQoXRW1haWxPdHBNZmFTZXR1cFJlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACEh0KDHBob25lX251bWJlchgCIAEoCUIHukgEcgIYICIrChhFbWFpbE90cE1mYVNldHVwUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSJPChVTbXNPdHBNZmFTZXR1cFJlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACEh0KDHBob25lX251bWJlchgCIAEoCUIHukgEcgIYICIpChZTbXNPdHBNZmFTZXR1cFJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkidAoVRm9yZ290UGFzc3dvcmRSZXF1ZXN0EhcKBWVtYWlsGAEgASgJQgi6SAVyAxjAAhIdCgxwaG9uZV9udW1iZXIYAiABKAlCB7pIBHICGCASDQoFc3RhdGUYAyABKAkSFAoMcmVkaXJlY3RfdXJpGAQgASgJIlAKFkZvcmdvdFBhc3N3b3JkUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCRIlCh1zaG91bGRfc2hvd19tb2JpbGVfb3RwX3NjcmVlbhgCIAEoCCKVAQoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSCwoDb3RwGAIgASgJEh0KDHBob25lX251bWJlchgDIAEoCUIHukgEcgIYIBIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQARiAARIkChBjb25maXJtX3Bhc3N3b3JkGAUgASgJQgq6SAdyBRABGIABIigKFVJlc2V0UGFzc3dvcmRSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIhAKDlByb2ZpbGVSZXF1ZXN0IqYDChRVcGRhdGVQcm9maWxlUmVxdWVzdBIUCgxvbGRfcGFzc3dvcmQYASABKAkSHgoMbmV3X3Bhc3N3b3JkGAIgASgJQgi6SAVyAxiAARImChRjb25maXJtX25ld19wYXNzd29yZBgDIAEoCUIIukgFcgMYgAESFwoFZW1haWwYBCABKAlCCLpIBXIDGMACEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSDgoGZ2VuZGVyGAkgASgJEhEKCWJpcnRoZGF0ZRgKIAEoCRIdCgxwaG9uZV9udW1iZXIYCyABKAlCB7pIBHICGCASDwoHcGljdHVyZRgMIAEoCRIpChxpc19tdWx0aV9mYWN0b3JfYXV0aF9lbmFibGVkGA0gASgISACIAQESKAoIYXBwX2RhdGEYDiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGFCHwodX2lzX211bHRpX2ZhY3Rvcl9hdXRoX2VuYWJsZWQiKAoVVXBkYXRlUHJvZmlsZVJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiGgoYRGVhY3RpdmF0ZUFjY291bnRSZXF1ZXN0IiwKGURlYWN0aXZhdGVBY2NvdW50UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIvCg1SZXZva2VSZXF1ZXN0Eh4KDXJlZnJlc2hfdG9rZW4YASABKAlCB7pIBHICEAEiIQoOUmV2b2tlUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSJ6Cg5TZXNzaW9uUmVxdWVzdBINCgVyb2xlcxgBIAMoCRINCgVzY29wZRgCIAMoCRINCgVzdGF0ZRgDIAEoCRI7ChJyZXF1aXJlZF9yZWxhdGlvbnMYBCADKAsyHy5hdXRob3JpemVyLnYxLkZnYVJlbGF0aW9uSW5wdXQimgEKF1ZhbGlkYXRlSnd0VG9rZW5SZXF1ZXN0EhsKCnRva2VuX3R5cGUYASABKAlCB7pIBHICEAESFgoFdG9rZW4YAiABKAlCB7pIBHICEAESDQoFcm9sZXMYAyADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAQgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0IlQKGFZhbGlkYXRlSnd0VG9rZW5SZXNwb25zZRIQCghpc192YWxpZBgBIAEoCBImCgZjbGFpbXMYAiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGEifQoWVmFsaWRhdGVTZXNzaW9uUmVxdWVzdBIXCgZjb29raWUYASABKAlCB7pIBHICEAESDQoFcm9sZXMYAiADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAMgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0Ik4KF1ZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlEhAKCGlzX3ZhbGlkGAEgASgIEiEKBHVzZXIYAiABKAsyEy5hdXRob3JpemVyLnYxLlVzZXIiDQoLTWV0YVJlcXVlc3QiaAoXQ2hlY2tQZXJtaXNzaW9uc1JlcXVlc3QSPwoGY2hlY2tzGAEgAygLMiMuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tJbnB1dEIKukgHkgEECAEQZBIMCgR1c2VyGAIgASgJIlEKGENoZWNrUGVybWlzc2lvbnNSZXNwb25zZRI1CgdyZXN1bHRzGAEgAygLMiQuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tSZXN1bHQiTQoWTGlzdFBlcm1pc3Npb25zUmVxdWVzdBIQCghyZWxhdGlvbhgBIAEoCRITCgtvYmplY3RfdHlwZRgCIAEoCRIMCgR1c2VyGAMgASgJIm0KF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEg8KB29iamVjdHMYASADKAkSLgoLcGVybWlzc2lvbnMYAiADKAsyGS5hdXRob3JpemVyLnYxLlBlcm1pc3Npb24SEQoJdHJ1bmNhdGVkGAMgASgIMucWChFBdXRob3JpemVyU2VydmljZRJmCgZTaWdudXASHC5hdXRob3JpemVyLnYxLlNpZ251cFJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIhkrUYAJi1GAGgtRgBgtPkkwIPOgEqIgovdjEvc2lnbnVwEmMKBUxvZ2luEhsuYXV0aG9yaXplci52MS5Mb2dpblJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIgkrUYAJi1GAGgtRgBgtPkkwIOOgEqIgkvdjEvbG9naW4SXQoGTG9nb3V0EhwuYXV0aG9yaXplci52MS5Mb2dvdXRSZXF1ZXN0Gh0uYXV0aG9yaXplci52MS5Mb2dvdXRSZXNwb25zZSIWmLUYAYLT5JMCDCIKL3YxL2xvZ291dBKGAQoOTWFnaWNMaW5rTG9naW4SJC5hdXRob3JpemVyLnYxLk1hZ2ljTGlua0xvZ2luUmVxdWVzdBolLmF1dGhvcml6ZXIudjEuTWFnaWNMaW5rTG9naW5SZXNwb25zZSInmLUYAaC1GAGC0+STAhk6ASoiFC92MS9tYWdpY19saW5rX2xvZ2luEnIKC1ZlcmlmeUVtYWlsEiEuYXV0aG9yaXplci52MS5WZXJpZnlFbWFpbFJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIjmLUYAaC1GAGC0+STAhU6ASoiEC92MS92ZXJpZnlfZW1haWwSjgEKEVJlc2VuZFZlcmlmeUVtYWlsEicuYXV0aG9yaXplci52MS5SZXNlbmRWZXJpZnlFbWFpbFJlcXVlc3QaKC5hdXRob3JpemVyLnYxLlJlc2VuZFZlcmlmeUVtYWlsUmVzcG9uc2UiJqC1GAGC0+STAhw6ASoiFy92MS9yZXNlbmRfdmVyaWZ5X2VtYWlsEmwKCVZlcmlmeU90cBIfLmF1dGhvcml6ZXIudjEuVmVyaWZ5T3RwUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiGYtRgBoLUYAYLT5JMCEzoBKiIOL3YxL3ZlcmlmeV9vdHASbQoJUmVzZW5kT3RwEh8uYXV0aG9yaXplci52MS5SZXNlbmRPdHBSZXF1ZXN0GiAuYXV0aG9yaXplci52MS5SZXNlbmRPdHBSZXNwb25zZSIdoLUYAYLT5JMCEzoBKiIOL3YxL3Jlc2VuZF9vdHASdgoMU2tpcE1mYVNldHVwEiIuYXV0aG9yaXplci52MS5Ta2lwTWZhU2V0dXBSZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiJZi1GAGgtRgBgtPkkwIXOgEqIhIvdjEvc2tpcF9tZmFfc2V0dXASaQoHTG9ja01mYRIdLmF1dGhvcml6ZXIudjEuTG9ja01mYVJlcXVlc3QaHi5hdXRob3JpemVyLnYxLkxvY2tNZmFSZXNwb25zZSIfmLUYAaC1GAGC0+STAhE6ASoiDC92MS9sb2NrX21mYRKPAQoQRW1haWxPdHBNZmFTZXR1cBImLmF1dGhvcml6ZXIudjEuRW1haWxPdHBNZmFTZXR1cFJlcXVlc3QaJy5hdXRob3JpemVyLnYxLkVtYWlsT3RwTWZhU2V0dXBSZXNwb25zZSIqmLUYAaC1GAGC0+STAhw6ASoiFy92MS9lbWFpbF9vdHBfbWZhX3NldHVwEocBCg5TbXNPdHBNZmFTZXR1cBIkLmF1dGhvcml6ZXIudjEuU21zT3RwTWZhU2V0dXBSZXF1ZXN0GiUuYXV0aG9yaXplci52MS5TbXNPdHBNZmFTZXR1cFJlc3BvbnNlIiiYtRgBoLUYAYLT5JMCGjoBKiIVL3YxL3Ntc19vdHBfbWZhX3NldHVwEoEBCg5Gb3Jnb3RQYXNzd29yZBIkLmF1dGhvcml6ZXIudjEuRm9yZ290UGFzc3dvcmRSZXF1ZXN0GiUuYXV0aG9yaXplci52MS5Gb3Jnb3RQYXNzd29yZFJlc3BvbnNlIiKgtRgBgtPkkwIYOgEqIhMvdjEvZm9yZ290X3Bhc3N3b3JkEoEBCg1SZXNldFBhc3N3b3JkEiMuYXV0aG9yaXplci52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBokLmF1dGhvcml6ZXIudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlIiWYtRgBoLUYAYLT5JMCFzoBKiISL3YxL3Jlc2V0X3Bhc3N3b3JkElgKB1Byb2ZpbGUSHS5hdXRob3JpemVyLnYxLlByb2ZpbGVSZXF1ZXN0GhMuYXV0aG9yaXplci52MS5Vc2VyIhmStRgCCAGC0+STAg0SCy92MS9wcm9maWxlEn0KDVVwZGF0ZVByb2ZpbGUSIy5hdXRob3JpemVyLnYxLlVwZGF0ZVByb2ZpbGVSZXF1ZXN0GiQuYXV0aG9yaXplci52MS5VcGRhdGVQcm9maWxlUmVzcG9uc2UiIZi1GAGC0+STAhc6ASoiEi92MS91cGRhdGVfcHJvZmlsZRKTAQoRRGVhY3RpdmF0ZUFjY291bnQSJy5hdXRob3JpemVyLnYxLkRlYWN0aXZhdGVBY2NvdW50UmVxdWVzdBooLmF1dGhvcml6ZXIudjEuRGVhY3RpdmF0ZUFjY291bnRSZXNwb25zZSIrkrUYAhgBmLUYAYLT5JMCGzoBKiIWL3YxL2RlYWN0aXZhdGVfYWNjb3VudBJkCgZSZXZva2USHC5hdXRob3JpemVyLnYxLlJldm9rZVJlcXVlc3QaHS5hdXRob3JpemVyLnYxLlJldm9rZVJlc3BvbnNlIh2YtRgBoLUYAYLT5JMCDzoBKiIKL3YxL3Jldm9rZRJdCgdTZXNzaW9uEh0uYXV0aG9yaXplci52MS5TZXNzaW9uUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIhaC0+STAhA6ASoiCy92MS9zZXNzaW9uEooBChBWYWxpZGF0ZUp3dFRva2VuEiYuYXV0aG9yaXplci52MS5WYWxpZGF0ZUp3dFRva2VuUmVxdWVzdBonLmF1dGhvcml6ZXIudjEuVmFsaWRhdGVKd3RUb2tlblJlc3BvbnNlIiWgtRgBgtPkkwIbOgEqIhYvdjEvdmFsaWRhdGVfand0X3Rva2VuEoUBCg9WYWxpZGF0ZVNlc3Npb24SJS5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlcXVlc3QaJi5hdXRob3JpemVyLnYxLlZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlIiOgtRgBgtPkkwIZOgEqIhQvdjEvdmFsaWRhdGVfc2Vzc2lvbhJTCgRNZXRhEhouYXV0aG9yaXplci52MS5NZXRhUmVxdWVzdBoTLmF1dGhvcml6ZXIudjEuTWV0YSIakrUYAggBoLUYAYLT5JMCChIIL3YxL21ldGESiwEKEENoZWNrUGVybWlzc2lvbnMSJi5hdXRob3JpemVyLnYxLkNoZWNrUGVybWlzc2lvbnNSZXF1ZXN0GicuYXV0aG9yaXplci52MS5DaGVja1Blcm1pc3Npb25zUmVzcG9uc2UiJpK1GAIIAYLT5JMCGjoBKiIVL3YxL2NoZWNrX3Blcm1pc3Npb25zEocBCg9MaXN0UGVybWlzc2lvbnMSJS5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaJi5hdXRob3JpemVyLnYxLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIiWStRgCCAGC0+STAhk6ASoiFC92MS9saXN0X3Blcm1pc3Npb25zYgZwcm90bzM", [file_authorizer_v1_annotations, file_authorizer_v1_common, file_authorizer_v1_types, file_buf_validate_validate, file_google_api_annotations]);
+  fileDesc("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CgxwaG9uZV9udW1iZXIYAiABKAlCB7pIBHICGCASDQoFc3RhdGUYAyABKAkSFAoMcmVkaXJlY3RfdXJpGAQgASgJIlAKFkZvcmdvdFBhc3N3b3JkUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCRIlCh1zaG91bGRfc2hvd19tb2JpbGVfb3RwX3NjcmVlbhgCIAEoCCKVAQoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSCwoDb3RwGAIgASgJEh0KDHBob25lX251bWJlchgDIAEoCUIHukgEcgIYIBIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQARiAARIkChBjb25maXJtX3Bhc3N3b3JkGAUgASgJQgq6SAdyBRABGIABIigKFVJlc2V0UGFzc3dvcmRSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIhAKDlByb2ZpbGVSZXF1ZXN0IqYDChRVcGRhdGVQcm9maWxlUmVxdWVzdBIUCgxvbGRfcGFzc3dvcmQYASABKAkSHgoMbmV3X3Bhc3N3b3JkGAIgASgJQgi6SAVyAxiAARImChRjb25maXJtX25ld19wYXNzd29yZBgDIAEoCUIIukgFcgMYgAESFwoFZW1haWwYBCABKAlCCLpIBXIDGMACEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSDgoGZ2VuZGVyGAkgASgJEhEKCWJpcnRoZGF0ZRgKIAEoCRIdCgxwaG9uZV9udW1iZXIYCyABKAlCB7pIBHICGCASDwoHcGljdHVyZRgMIAEoCRIpChxpc19tdWx0aV9mYWN0b3JfYXV0aF9lbmFibGVkGA0gASgISACIAQESKAoIYXBwX2RhdGEYDiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGFCHwodX2lzX211bHRpX2ZhY3Rvcl9hdXRoX2VuYWJsZWQiKAoVVXBkYXRlUHJvZmlsZVJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiGgoYRGVhY3RpdmF0ZUFjY291bnRSZXF1ZXN0IiwKGURlYWN0aXZhdGVBY2NvdW50UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIvCg1SZXZva2VSZXF1ZXN0Eh4KDXJlZnJlc2hfdG9rZW4YASABKAlCB7pIBHICEAEiIQoOUmV2b2tlUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSJ6Cg5TZXNzaW9uUmVxdWVzdBINCgVyb2xlcxgBIAMoCRINCgVzY29wZRgCIAMoCRINCgVzdGF0ZRgDIAEoCRI7ChJyZXF1aXJlZF9yZWxhdGlvbnMYBCADKAsyHy5hdXRob3JpemVyLnYxLkZnYVJlbGF0aW9uSW5wdXQimgEKF1ZhbGlkYXRlSnd0VG9rZW5SZXF1ZXN0EhsKCnRva2VuX3R5cGUYASABKAlCB7pIBHICEAESFgoFdG9rZW4YAiABKAlCB7pIBHICEAESDQoFcm9sZXMYAyADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAQgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0IlQKGFZhbGlkYXRlSnd0VG9rZW5SZXNwb25zZRIQCghpc192YWxpZBgBIAEoCBImCgZjbGFpbXMYAiABKAsyFi5hdXRob3JpemVyLnYxLkFwcERhdGEifQoWVmFsaWRhdGVTZXNzaW9uUmVxdWVzdBIXCgZjb29raWUYASABKAlCB7pIBHICEAESDQoFcm9sZXMYAiADKAkSOwoScmVxdWlyZWRfcmVsYXRpb25zGAMgAygLMh8uYXV0aG9yaXplci52MS5GZ2FSZWxhdGlvbklucHV0Ik4KF1ZhbGlkYXRlU2Vzc2lvblJlc3BvbnNlEhAKCGlzX3ZhbGlkGAEgASgIEiEKBHVzZXIYAiABKAsyEy5hdXRob3JpemVyLnYxLlVzZXIiDQoLTWV0YVJlcXVlc3QiaAoXQ2hlY2tQZXJtaXNzaW9uc1JlcXVlc3QSPwoGY2hlY2tzGAEgAygLMiMuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tJbnB1dEIKukgHkgEECAEQZBIMCgR1c2VyGAIgASgJIlEKGENoZWNrUGVybWlzc2lvbnNSZXNwb25zZRI1CgdyZXN1bHRzGAEgAygLMiQuYXV0aG9yaXplci52MS5QZXJtaXNzaW9uQ2hlY2tSZXN1bHQiTQoWTGlzdFBlcm1pc3Npb25zUmVxdWVzdBIQCghyZWxhdGlvbhgBIAEoCRITCgtvYmplY3RfdHlwZRgCIAEoCRIMCgR1c2VyGAMgASgJIm0KF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEg8KB29iamVjdHMYASADKAkSLgoLcGVybWlzc2lvbnMYAiADKAsyGS5hdXRob3JpemVyLnYxLlBlcm1pc3Npb24SEQoJdHJ1bmNhdGVkGAMgASgIIk0KE1RvdHBNZmFTZXR1cFJlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACEh0KDHBob25lX251bWJlchgCIAEoCUIHukgEcgIYICLCAQoWV2ViYXV0aG5DcmVkZW50aWFsSW5mbxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhIKCnRyYW5zcG9ydHMYAyADKAkSFwoKY3JlYXRlZF9hdBgEIAEoA0gAiAEBEhcKCnVwZGF0ZWRfYXQYBSABKANIAYgBARIZCgxsYXN0X3VzZWRfYXQYBiABKANIAogBAUINCgtfY3JlYXRlZF9hdEINCgtfdXBkYXRlZF9hdEIPCg1fbGFzdF91c2VkX2F0IlwKIldlYmF1dGhuUmVnaXN0cmF0aW9uT3B0aW9uc1JlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACEh0KDHBob25lX251bWJlchgCIAEoCUIHukgEcgIYICI2CiNXZWJhdXRoblJlZ2lzdHJhdGlvbk9wdGlvbnNSZXNwb25zZRIPCgdvcHRpb25zGAEgASgJIsQBCiFXZWJhdXRoblJlZ2lzdHJhdGlvblZlcmlmeVJlcXVlc3QSEQoEbmFtZRgBIAEoCUgAiAEBEhsKCmNyZWRlbnRpYWwYAiABKAlCB7pIBHICEAESEgoFZW1haWwYAyABKAlIAYgBARIZCgxwaG9uZV9udW1iZXIYBCABKAlIAogBARISCgVzdGF0ZRgFIAEoCUgDiAEBQgcKBV9uYW1lQggKBl9lbWFpbEIPCg1fcGhvbmVfbnVtYmVyQggKBl9zdGF0ZSI2ChtXZWJhdXRobkxvZ2luT3B0aW9uc1JlcXVlc3QSFwoFZW1haWwYASABKAlCCLpIBXIDGMACIi8KHFdlYmF1dGhuTG9naW5PcHRpb25zUmVzcG9uc2USDwoHb3B0aW9ucxgBIAEoCSJXChpXZWJhdXRobkxvZ2luVmVyaWZ5UmVxdWVzdBISCgVzdGF0ZRgBIAEoCUgAiAEBEhsKCmNyZWRlbnRpYWwYAiABKAlCB7pIBHICEAFCCAoGX3N0YXRlIhwKGldlYmF1dGhuQ3JlZGVudGlhbHNSZXF1ZXN0ImIKG1dlYmF1dGhuQ3JlZGVudGlhbHNSZXNwb25zZRJDChR3ZWJhdXRobl9jcmVkZW50aWFscxgBIAMoCzIlLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5DcmVkZW50aWFsSW5mbyI2Ch9XZWJhdXRobkRlbGV0ZUNyZWRlbnRpYWxSZXF1ZXN0EhMKAmlkGAEgASgJQge6SARyAhABIjMKIFdlYmF1dGhuRGVsZXRlQ3JlZGVudGlhbFJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkypB8KEUF1dGhvcml6ZXJTZXJ2aWNlEmYKBlNpZ251cBIcLmF1dGhvcml6ZXIudjEuU2lnbnVwUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiGStRgAmLUYAaC1GAGC0+STAg86ASoiCi92MS9zaWdudXASYwoFTG9naW4SGy5hdXRob3JpemVyLnYxLkxvZ2luUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiCStRgAmLUYAaC1GAGC0+STAg46ASoiCS92MS9sb2dpbhJdCgZMb2dvdXQSHC5hdXRob3JpemVyLnYxLkxvZ291dFJlcXVlc3QaHS5hdXRob3JpemVyLnYxLkxvZ291dFJlc3BvbnNlIhaYtRgBgtPkkwIMIgovdjEvbG9nb3V0EoYBCg5NYWdpY0xpbmtMb2dpbhIkLmF1dGhvcml6ZXIudjEuTWFnaWNMaW5rTG9naW5SZXF1ZXN0GiUuYXV0aG9yaXplci52MS5NYWdpY0xpbmtMb2dpblJlc3BvbnNlIieYtRgBoLUYAYLT5JMCGToBKiIUL3YxL21hZ2ljX2xpbmtfbG9naW4ScgoLVmVyaWZ5RW1haWwSIS5hdXRob3JpemVyLnYxLlZlcmlmeUVtYWlsUmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiOYtRgBoLUYAYLT5JMCFToBKiIQL3YxL3ZlcmlmeV9lbWFpbBKOAQoRUmVzZW5kVmVyaWZ5RW1haWwSJy5hdXRob3JpemVyLnYxLlJlc2VuZFZlcmlmeUVtYWlsUmVxdWVzdBooLmF1dGhvcml6ZXIudjEuUmVzZW5kVmVyaWZ5RW1haWxSZXNwb25zZSImoLUYAYLT5JMCHDoBKiIXL3YxL3Jlc2VuZF92ZXJpZnlfZW1haWwSbAoJVmVyaWZ5T3RwEh8uYXV0aG9yaXplci52MS5WZXJpZnlPdHBSZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiIZi1GAGgtRgBgtPkkwITOgEqIg4vdjEvdmVyaWZ5X290cBJtCglSZXNlbmRPdHASHy5hdXRob3JpemVyLnYxLlJlc2VuZE90cFJlcXVlc3QaIC5hdXRob3JpemVyLnYxLlJlc2VuZE90cFJlc3BvbnNlIh2gtRgBgtPkkwITOgEqIg4vdjEvcmVzZW5kX290cBJ2CgxTa2lwTWZhU2V0dXASIi5hdXRob3JpemVyLnYxLlNraXBNZmFTZXR1cFJlcXVlc3QaGy5hdXRob3JpemVyLnYxLkF1dGhSZXNwb25zZSIlmLUYAaC1GAGC0+STAhc6ASoiEi92MS9za2lwX21mYV9zZXR1cBJpCgdMb2NrTWZhEh0uYXV0aG9yaXplci52MS5Mb2NrTWZhUmVxdWVzdBoeLmF1dGhvcml6ZXIudjEuTG9ja01mYVJlc3BvbnNlIh+YtRgBoLUYAYLT5JMCEToBKiIML3YxL2xvY2tfbWZhEo8BChBFbWFpbE90cE1mYVNldHVwEiYuYXV0aG9yaXplci52MS5FbWFpbE90cE1mYVNldHVwUmVxdWVzdBonLmF1dGhvcml6ZXIudjEuRW1haWxPdHBNZmFTZXR1cFJlc3BvbnNlIiqYtRgBoLUYAYLT5JMCHDoBKiIXL3YxL2VtYWlsX290cF9tZmFfc2V0dXAShwEKDlNtc090cE1mYVNldHVwEiQuYXV0aG9yaXplci52MS5TbXNPdHBNZmFTZXR1cFJlcXVlc3QaJS5hdXRob3JpemVyLnYxLlNtc090cE1mYVNldHVwUmVzcG9uc2UiKJi1GAGgtRgBgtPkkwIaOgEqIhUvdjEvc21zX290cF9tZmFfc2V0dXASgQEKDkZvcmdvdFBhc3N3b3JkEiQuYXV0aG9yaXplci52MS5Gb3Jnb3RQYXNzd29yZFJlcXVlc3QaJS5hdXRob3JpemVyLnYxLkZvcmdvdFBhc3N3b3JkUmVzcG9uc2UiIqC1GAGC0+STAhg6ASoiEy92MS9mb3Jnb3RfcGFzc3dvcmQSgQEKDVJlc2V0UGFzc3dvcmQSIy5hdXRob3JpemVyLnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0GiQuYXV0aG9yaXplci52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2UiJZi1GAGgtRgBgtPkkwIXOgEqIhIvdjEvcmVzZXRfcGFzc3dvcmQSWAoHUHJvZmlsZRIdLmF1dGhvcml6ZXIudjEuUHJvZmlsZVJlcXVlc3QaEy5hdXRob3JpemVyLnYxLlVzZXIiGZK1GAIIAYLT5JMCDRILL3YxL3Byb2ZpbGUSfQoNVXBkYXRlUHJvZmlsZRIjLmF1dGhvcml6ZXIudjEuVXBkYXRlUHJvZmlsZVJlcXVlc3QaJC5hdXRob3JpemVyLnYxLlVwZGF0ZVByb2ZpbGVSZXNwb25zZSIhmLUYAYLT5JMCFzoBKiISL3YxL3VwZGF0ZV9wcm9maWxlEpMBChFEZWFjdGl2YXRlQWNjb3VudBInLmF1dGhvcml6ZXIudjEuRGVhY3RpdmF0ZUFjY291bnRSZXF1ZXN0GiguYXV0aG9yaXplci52MS5EZWFjdGl2YXRlQWNjb3VudFJlc3BvbnNlIiuStRgCGAGYtRgBgtPkkwIbOgEqIhYvdjEvZGVhY3RpdmF0ZV9hY2NvdW50EmQKBlJldm9rZRIcLmF1dGhvcml6ZXIudjEuUmV2b2tlUmVxdWVzdBodLmF1dGhvcml6ZXIudjEuUmV2b2tlUmVzcG9uc2UiHZi1GAGgtRgBgtPkkwIPOgEqIgovdjEvcmV2b2tlEl0KB1Nlc3Npb24SHS5hdXRob3JpemVyLnYxLlNlc3Npb25SZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiFoLT5JMCEDoBKiILL3YxL3Nlc3Npb24SigEKEFZhbGlkYXRlSnd0VG9rZW4SJi5hdXRob3JpemVyLnYxLlZhbGlkYXRlSnd0VG9rZW5SZXF1ZXN0GicuYXV0aG9yaXplci52MS5WYWxpZGF0ZUp3dFRva2VuUmVzcG9uc2UiJaC1GAGC0+STAhs6ASoiFi92MS92YWxpZGF0ZV9qd3RfdG9rZW4ShQEKD1ZhbGlkYXRlU2Vzc2lvbhIlLmF1dGhvcml6ZXIudjEuVmFsaWRhdGVTZXNzaW9uUmVxdWVzdBomLmF1dGhvcml6ZXIudjEuVmFsaWRhdGVTZXNzaW9uUmVzcG9uc2UiI6C1GAGC0+STAhk6ASoiFC92MS92YWxpZGF0ZV9zZXNzaW9uElMKBE1ldGESGi5hdXRob3JpemVyLnYxLk1ldGFSZXF1ZXN0GhMuYXV0aG9yaXplci52MS5NZXRhIhqStRgCCAGgtRgBgtPkkwIKEggvdjEvbWV0YRKLAQoQQ2hlY2tQZXJtaXNzaW9ucxImLmF1dGhvcml6ZXIudjEuQ2hlY2tQZXJtaXNzaW9uc1JlcXVlc3QaJy5hdXRob3JpemVyLnYxLkNoZWNrUGVybWlzc2lvbnNSZXNwb25zZSImkrUYAggBgtPkkwIaOgEqIhUvdjEvY2hlY2tfcGVybWlzc2lvbnMShwEKD0xpc3RQZXJtaXNzaW9ucxIlLmF1dGhvcml6ZXIudjEuTGlzdFBlcm1pc3Npb25zUmVxdWVzdBomLmF1dGhvcml6ZXIudjEuTGlzdFBlcm1pc3Npb25zUmVzcG9uc2UiJZK1GAIIAYLT5JMCGToBKiIUL3YxL2xpc3RfcGVybWlzc2lvbnMSdgoMVG90cE1mYVNldHVwEiIuYXV0aG9yaXplci52MS5Ub3RwTWZhU2V0dXBSZXF1ZXN0GhsuYXV0aG9yaXplci52MS5BdXRoUmVzcG9uc2UiJZi1GAGgtRgBgtPkkwIXOgEqIhIvdjEvdG90cF9tZmFfc2V0dXAStgEKG1dlYmF1dGhuUmVnaXN0cmF0aW9uT3B0aW9ucxIxLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5SZWdpc3RyYXRpb25PcHRpb25zUmVxdWVzdBoyLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5SZWdpc3RyYXRpb25PcHRpb25zUmVzcG9uc2UiMKC1GAGC0+STAiY6ASoiIS92MS93ZWJhdXRobl9yZWdpc3RyYXRpb25fb3B0aW9ucxKgAQoaV2ViYXV0aG5SZWdpc3RyYXRpb25WZXJpZnkSMC5hdXRob3JpemVyLnYxLldlYmF1dGhuUmVnaXN0cmF0aW9uVmVyaWZ5UmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIjOYtRgBoLUYAYLT5JMCJToBKiIgL3YxL3dlYmF1dGhuX3JlZ2lzdHJhdGlvbl92ZXJpZnkSmgEKFFdlYmF1dGhuTG9naW5PcHRpb25zEiouYXV0aG9yaXplci52MS5XZWJhdXRobkxvZ2luT3B0aW9uc1JlcXVlc3QaKy5hdXRob3JpemVyLnYxLldlYmF1dGhuTG9naW5PcHRpb25zUmVzcG9uc2UiKaC1GAGC0+STAh86ASoiGi92MS93ZWJhdXRobl9sb2dpbl9vcHRpb25zEosBChNXZWJhdXRobkxvZ2luVmVyaWZ5EikuYXV0aG9yaXplci52MS5XZWJhdXRobkxvZ2luVmVyaWZ5UmVxdWVzdBobLmF1dGhvcml6ZXIudjEuQXV0aFJlc3BvbnNlIiyYtRgBoLUYAYLT5JMCHjoBKiIZL3YxL3dlYmF1dGhuX2xvZ2luX3ZlcmlmeRKOAQoTV2ViYXV0aG5DcmVkZW50aWFscxIpLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5DcmVkZW50aWFsc1JlcXVlc3QaKi5hdXRob3JpemVyLnYxLldlYmF1dGhuQ3JlZGVudGlhbHNSZXNwb25zZSIggtPkkwIaIhgvdjEvd2ViYXV0aG5fY3JlZGVudGlhbHMSqgEKGFdlYmF1dGhuRGVsZXRlQ3JlZGVudGlhbBIuLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5EZWxldGVDcmVkZW50aWFsUmVxdWVzdBovLmF1dGhvcml6ZXIudjEuV2ViYXV0aG5EZWxldGVDcmVkZW50aWFsUmVzcG9uc2UiLZi1GAGC0+STAiM6ASoiHi92MS93ZWJhdXRobl9kZWxldGVfY3JlZGVudGlhbGIGcHJvdG8z", [file_authorizer_v1_annotations, file_authorizer_v1_common, file_authorizer_v1_types, file_buf_validate_validate, file_google_api_annotations]);
 
 /**
  * @generated from message authorizer.v1.SignupRequest
@@ -1130,6 +1130,298 @@ export const ListPermissionsResponseSchema: GenMessage<ListPermissionsResponse> 
   messageDesc(file_authorizer_v1_authorizer, 39);
 
 /**
+ * @generated from message authorizer.v1.TotpMfaSetupRequest
+ */
+export type TotpMfaSetupRequest = Message<"authorizer.v1.TotpMfaSetupRequest"> & {
+  /**
+   * Only used in the MFA-session-cookie mode (a caller in the withheld
+   * first-time-offer state, with no bearer token yet) to resolve which user's
+   * MFA session cookie this is — same pattern as EmailOtpMfaSetupRequest.
+   * Ignored when the caller has a valid bearer token/session.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+};
+
+/**
+ * Describes the message authorizer.v1.TotpMfaSetupRequest.
+ * Use `create(TotpMfaSetupRequestSchema)` to create a new message.
+ */
+export const TotpMfaSetupRequestSchema: GenMessage<TotpMfaSetupRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 40);
+
+/**
+ * WebauthnCredentialInfo describes one stored passkey. Mirrors the GraphQL
+ * WebauthnCredentialInfo type.
+ *
+ * @generated from message authorizer.v1.WebauthnCredentialInfo
+ */
+export type WebauthnCredentialInfo = Message<"authorizer.v1.WebauthnCredentialInfo"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: repeated string transports = 3;
+   */
+  transports: string[];
+
+  /**
+   * @generated from field: optional int64 created_at = 4;
+   */
+  createdAt?: bigint;
+
+  /**
+   * @generated from field: optional int64 updated_at = 5;
+   */
+  updatedAt?: bigint;
+
+  /**
+   * @generated from field: optional int64 last_used_at = 6;
+   */
+  lastUsedAt?: bigint;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnCredentialInfo.
+ * Use `create(WebauthnCredentialInfoSchema)` to create a new message.
+ */
+export const WebauthnCredentialInfoSchema: GenMessage<WebauthnCredentialInfo> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 41);
+
+/**
+ * @generated from message authorizer.v1.WebauthnRegistrationOptionsRequest
+ */
+export type WebauthnRegistrationOptionsRequest = Message<"authorizer.v1.WebauthnRegistrationOptionsRequest"> & {
+  /**
+   * Used only on the MFA-session-cookie enrollment path to resolve the user;
+   * ignored for a bearer-authenticated caller.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string phone_number = 2;
+   */
+  phoneNumber: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnRegistrationOptionsRequest.
+ * Use `create(WebauthnRegistrationOptionsRequestSchema)` to create a new message.
+ */
+export const WebauthnRegistrationOptionsRequestSchema: GenMessage<WebauthnRegistrationOptionsRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 42);
+
+/**
+ * @generated from message authorizer.v1.WebauthnRegistrationOptionsResponse
+ */
+export type WebauthnRegistrationOptionsResponse = Message<"authorizer.v1.WebauthnRegistrationOptionsResponse"> & {
+  /**
+   * JSON-encoded PublicKeyCredentialCreationOptions to pass to
+   * navigator.credentials.create().
+   *
+   * @generated from field: string options = 1;
+   */
+  options: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnRegistrationOptionsResponse.
+ * Use `create(WebauthnRegistrationOptionsResponseSchema)` to create a new message.
+ */
+export const WebauthnRegistrationOptionsResponseSchema: GenMessage<WebauthnRegistrationOptionsResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 43);
+
+/**
+ * @generated from message authorizer.v1.WebauthnRegistrationVerifyRequest
+ */
+export type WebauthnRegistrationVerifyRequest = Message<"authorizer.v1.WebauthnRegistrationVerifyRequest"> & {
+  /**
+   * Optional human label for the passkey (e.g. "MacBook Touch ID").
+   *
+   * @generated from field: optional string name = 1;
+   */
+  name?: string;
+
+  /**
+   * JSON-encoded PublicKeyCredential attestation response from
+   * navigator.credentials.create().
+   *
+   * @generated from field: string credential = 2;
+   */
+  credential: string;
+
+  /**
+   * email / phone_number / state are used only on the MFA-session-cookie
+   * enrollment path; ignored for an ordinary bearer-authenticated caller.
+   *
+   * @generated from field: optional string email = 3;
+   */
+  email?: string;
+
+  /**
+   * @generated from field: optional string phone_number = 4;
+   */
+  phoneNumber?: string;
+
+  /**
+   * @generated from field: optional string state = 5;
+   */
+  state?: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnRegistrationVerifyRequest.
+ * Use `create(WebauthnRegistrationVerifyRequestSchema)` to create a new message.
+ */
+export const WebauthnRegistrationVerifyRequestSchema: GenMessage<WebauthnRegistrationVerifyRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 44);
+
+/**
+ * @generated from message authorizer.v1.WebauthnLoginOptionsRequest
+ */
+export type WebauthnLoginOptionsRequest = Message<"authorizer.v1.WebauthnLoginOptionsRequest"> & {
+  /**
+   * Omit for a usernameless (discoverable credential) ceremony.
+   *
+   * @generated from field: string email = 1;
+   */
+  email: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnLoginOptionsRequest.
+ * Use `create(WebauthnLoginOptionsRequestSchema)` to create a new message.
+ */
+export const WebauthnLoginOptionsRequestSchema: GenMessage<WebauthnLoginOptionsRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 45);
+
+/**
+ * @generated from message authorizer.v1.WebauthnLoginOptionsResponse
+ */
+export type WebauthnLoginOptionsResponse = Message<"authorizer.v1.WebauthnLoginOptionsResponse"> & {
+  /**
+   * JSON-encoded PublicKeyCredentialRequestOptions to pass to
+   * navigator.credentials.get().
+   *
+   * @generated from field: string options = 1;
+   */
+  options: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnLoginOptionsResponse.
+ * Use `create(WebauthnLoginOptionsResponseSchema)` to create a new message.
+ */
+export const WebauthnLoginOptionsResponseSchema: GenMessage<WebauthnLoginOptionsResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 46);
+
+/**
+ * @generated from message authorizer.v1.WebauthnLoginVerifyRequest
+ */
+export type WebauthnLoginVerifyRequest = Message<"authorizer.v1.WebauthnLoginVerifyRequest"> & {
+  /**
+   * OAuth authorize state to continue an in-progress authorization, if any.
+   *
+   * @generated from field: optional string state = 1;
+   */
+  state?: string;
+
+  /**
+   * JSON-encoded PublicKeyCredential assertion response from
+   * navigator.credentials.get().
+   *
+   * @generated from field: string credential = 2;
+   */
+  credential: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnLoginVerifyRequest.
+ * Use `create(WebauthnLoginVerifyRequestSchema)` to create a new message.
+ */
+export const WebauthnLoginVerifyRequestSchema: GenMessage<WebauthnLoginVerifyRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 47);
+
+/**
+ * @generated from message authorizer.v1.WebauthnCredentialsRequest
+ */
+export type WebauthnCredentialsRequest = Message<"authorizer.v1.WebauthnCredentialsRequest"> & {
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnCredentialsRequest.
+ * Use `create(WebauthnCredentialsRequestSchema)` to create a new message.
+ */
+export const WebauthnCredentialsRequestSchema: GenMessage<WebauthnCredentialsRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 48);
+
+/**
+ * @generated from message authorizer.v1.WebauthnCredentialsResponse
+ */
+export type WebauthnCredentialsResponse = Message<"authorizer.v1.WebauthnCredentialsResponse"> & {
+  /**
+   * @generated from field: repeated authorizer.v1.WebauthnCredentialInfo webauthn_credentials = 1;
+   */
+  webauthnCredentials: WebauthnCredentialInfo[];
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnCredentialsResponse.
+ * Use `create(WebauthnCredentialsResponseSchema)` to create a new message.
+ */
+export const WebauthnCredentialsResponseSchema: GenMessage<WebauthnCredentialsResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 49);
+
+/**
+ * @generated from message authorizer.v1.WebauthnDeleteCredentialRequest
+ */
+export type WebauthnDeleteCredentialRequest = Message<"authorizer.v1.WebauthnDeleteCredentialRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnDeleteCredentialRequest.
+ * Use `create(WebauthnDeleteCredentialRequestSchema)` to create a new message.
+ */
+export const WebauthnDeleteCredentialRequestSchema: GenMessage<WebauthnDeleteCredentialRequest> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 50);
+
+/**
+ * @generated from message authorizer.v1.WebauthnDeleteCredentialResponse
+ */
+export type WebauthnDeleteCredentialResponse = Message<"authorizer.v1.WebauthnDeleteCredentialResponse"> & {
+  /**
+   * @generated from field: string message = 1;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message authorizer.v1.WebauthnDeleteCredentialResponse.
+ * Use `create(WebauthnDeleteCredentialResponseSchema)` to create a new message.
+ */
+export const WebauthnDeleteCredentialResponseSchema: GenMessage<WebauthnDeleteCredentialResponse> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_authorizer, 51);
+
+/**
  * === Identity creation & authentication ===
  *
  * @generated from service authorizer.v1.AuthorizerService
@@ -1393,6 +1685,92 @@ export const AuthorizerService: GenService<{
     methodKind: "unary";
     input: typeof ListPermissionsRequestSchema;
     output: typeof ListPermissionsResponseSchema;
+  },
+  /**
+   * TotpMfaSetup generates a fresh TOTP secret, QR image and recovery codes and
+   * creates an unverified TOTP enrollment. Same dual-mode permissions as
+   * EmailOtpMfaSetup / SmsOtpMfaSetup: an authenticated caller (bearer token)
+   * adding a second factor from the settings screen, or a caller in the
+   * withheld first-time-offer state identified by the MFA session cookie plus
+   * email/phone_number. The enrollment becomes active only once VerifyOtp is
+   * called with is_totp=true.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.TotpMfaSetup
+   */
+  totpMfaSetup: {
+    methodKind: "unary";
+    input: typeof TotpMfaSetupRequestSchema;
+    output: typeof AuthResponseSchema;
+  },
+  /**
+   * WebauthnRegistrationOptions begins a passkey registration ceremony and
+   * returns JSON-encoded PublicKeyCredentialCreationOptions. email /
+   * phone_number are used only on the MFA-session-cookie path to resolve which
+   * user is enrolling; they are ignored for a bearer-authenticated caller.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnRegistrationOptions
+   */
+  webauthnRegistrationOptions: {
+    methodKind: "unary";
+    input: typeof WebauthnRegistrationOptionsRequestSchema;
+    output: typeof WebauthnRegistrationOptionsResponseSchema;
+  },
+  /**
+   * WebauthnRegistrationVerify verifies the attestation and stores the passkey.
+   * Returns AuthResponse: access_token is set only on the MFA-session-cookie
+   * enrollment path (which completes a login); an ordinary settings-page caller
+   * gets a message-only response.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnRegistrationVerify
+   */
+  webauthnRegistrationVerify: {
+    methodKind: "unary";
+    input: typeof WebauthnRegistrationVerifyRequestSchema;
+    output: typeof AuthResponseSchema;
+  },
+  /**
+   * WebauthnLoginOptions begins a passkey login ceremony and returns
+   * JSON-encoded PublicKeyCredentialRequestOptions. Usernameless (discoverable
+   * credential) when email is omitted.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnLoginOptions
+   */
+  webauthnLoginOptions: {
+    methodKind: "unary";
+    input: typeof WebauthnLoginOptionsRequestSchema;
+    output: typeof WebauthnLoginOptionsResponseSchema;
+  },
+  /**
+   * WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnLoginVerify
+   */
+  webauthnLoginVerify: {
+    methodKind: "unary";
+    input: typeof WebauthnLoginVerifyRequestSchema;
+    output: typeof AuthResponseSchema;
+  },
+  /**
+   * WebauthnCredentials lists the authenticated caller's own passkeys.
+   * Requires authentication.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnCredentials
+   */
+  webauthnCredentials: {
+    methodKind: "unary";
+    input: typeof WebauthnCredentialsRequestSchema;
+    output: typeof WebauthnCredentialsResponseSchema;
+  },
+  /**
+   * WebauthnDeleteCredential deletes one of the authenticated caller's own
+   * passkeys by id. Requires authentication.
+   *
+   * @generated from rpc authorizer.v1.AuthorizerService.WebauthnDeleteCredential
+   */
+  webauthnDeleteCredential: {
+    methodKind: "unary";
+    input: typeof WebauthnDeleteCredentialRequestSchema;
+    output: typeof WebauthnDeleteCredentialResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_authorizer_v1_authorizer, 0);
