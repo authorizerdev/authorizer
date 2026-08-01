@@ -301,7 +301,18 @@ perf-k6-check:
 
 .PHONY: e2e-playground
 e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/MFA) against an ephemeral docker-compose stack
+# The explicit `build` below is load-bearing: `docker compose up` builds an image
+# only when one does not already exist, so without it a second run silently
+# reuses the image from the FIRST run and the whole suite tests stale server
+# code. `down -v` at the end removes containers and volumes, never images, so a
+# stale image survives indefinitely. Building every service (rather than adding
+# --build to the `up` list) covers the instances started implicitly through the
+# playwright service's depends_on — authorizer-webauthn, -magic-link,
+# -mfa-enforced, -mfa-magic-link, -replica-a/-b, webhook-sink — which are never
+# named in the `up` line and so would otherwise never be rebuilt. Layer caching
+# makes this close to free when nothing changed.
 	export DOCKER_DEFAULT_PLATFORM=linux/$$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/'); \
+	docker compose -f e2e-playground/docker-compose.yml build; \
 	docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso mock-oauth mock-saml-idp mailpit sms-sink; \
 	status=$$?; \
 	if [ $$status -eq 0 ]; then \
