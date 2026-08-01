@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -521,4 +522,67 @@ func TestSurfaceConformanceOrgAdmin(t *testing.T) {
 		status := s.restBearer(t, "/v1/admin/org_members", "", `{"org_id":"`+orgA.ID+`"}`)
 		assert.NotEqual(t, http.StatusOK, status, "REST served an admin endpoint with no credential")
 	})
+
+	// A machine (client_credentials) token is authenticated, so the interceptor
+	// now admits it where it previously could not reach an admin handler at all.
+	// requireOrgAdmin rejects service accounts explicitly — they are never org
+	// members — and that guard is what stands between an M2M credential and the
+	// org admin surface. Assert it on every transport, including the org the
+	// caller would have to be an admin of for the call to make sense.
+	t.Run("machine tokens are refused on every surface", func(t *testing.T) {
+		m2m := s.machineToken(t)
+
+		clearCookies(s.ts)
+		s.ts.GinContext.Request.Header.Set("Authorization", "Bearer "+m2m)
+		_, gqlErr := s.ts.GraphQLProvider.OrgMembers(s.gqlCtx, &model.ListOrgMembersRequest{OrgID: orgA.ID})
+		assert.Error(t, gqlErr, "GraphQL served an admin op to a machine token")
+
+		_, grpcErr := s.grpc.OrgMembers(s.grpcBearer(m2m), &authorizerv1.OrgMembersRequest{OrgId: orgA.ID})
+		assert.Error(t, grpcErr, "gRPC served an admin RPC to a machine token")
+
+		status := s.restBearer(t, "/v1/admin/org_members", m2m, `{"org_id":"`+orgA.ID+`"}`)
+		assert.NotEqual(t, http.StatusOK, status, "REST served an admin endpoint to a machine token")
+	})
+}
+
+// machineToken mints a real client_credentials access token against this
+// harness's issuer, so it validates on every surface the same way a user token
+// does — the point being that it is a VALID credential that must still be
+// refused by the admin surface, not one rejected as malformed.
+func (s *surfaces) machineToken(t *testing.T) string {
+	t.Helper()
+	id, secret := createTestClient(t, s.ts, ccClientScope, true)
+
+	router := gin.New()
+	router.POST("/oauth/token", s.ts.HttpProvider.TokenHandler())
+
+	form := url.Values{}
+	form.Set("grant_type", constants.GrantTypeClientCredentials)
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(form.Encode()))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Authorizer-URL", s.issuer)
+	req.SetBasicAuth(id, secret)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "minting a machine token failed: %s", w.Body.String())
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	tok, _ := body["access_token"].(string)
+	require.NotEmpty(t, tok, "no access_token in client_credentials response")
+
+	// Non-vacuity guard. The admin-surface assertions are only meaningful if
+	// this token is a credential the server genuinely accepts — otherwise they
+	// would pass for a malformed token that every surface rejects on parsing,
+	// proving nothing about authorization. Confirm it resolves, and resolves as
+	// a service account, which is the identity requireOrgAdmin refuses.
+	clearCookies(s.ts)
+	s.ts.GinContext.Request.Header.Set("Authorization", "Bearer "+tok)
+	resolved, err := s.ts.TokenProvider.GetUserIDFromSessionOrAccessToken(s.ts.GinContext)
+	require.NoError(t, err, "the minted machine token does not resolve; the denial below would be vacuous")
+	require.NotNil(t, resolved)
+	require.Equal(t, constants.AuthRecipeMethodServiceAccount, resolved.LoginMethod)
+
+	return tok
 }
