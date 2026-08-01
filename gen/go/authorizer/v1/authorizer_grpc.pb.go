@@ -39,30 +39,37 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizerService_Signup_FullMethodName            = "/authorizer.v1.AuthorizerService/Signup"
-	AuthorizerService_Login_FullMethodName             = "/authorizer.v1.AuthorizerService/Login"
-	AuthorizerService_Logout_FullMethodName            = "/authorizer.v1.AuthorizerService/Logout"
-	AuthorizerService_MagicLinkLogin_FullMethodName    = "/authorizer.v1.AuthorizerService/MagicLinkLogin"
-	AuthorizerService_VerifyEmail_FullMethodName       = "/authorizer.v1.AuthorizerService/VerifyEmail"
-	AuthorizerService_ResendVerifyEmail_FullMethodName = "/authorizer.v1.AuthorizerService/ResendVerifyEmail"
-	AuthorizerService_VerifyOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/VerifyOtp"
-	AuthorizerService_ResendOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/ResendOtp"
-	AuthorizerService_SkipMfaSetup_FullMethodName      = "/authorizer.v1.AuthorizerService/SkipMfaSetup"
-	AuthorizerService_LockMfa_FullMethodName           = "/authorizer.v1.AuthorizerService/LockMfa"
-	AuthorizerService_EmailOtpMfaSetup_FullMethodName  = "/authorizer.v1.AuthorizerService/EmailOtpMfaSetup"
-	AuthorizerService_SmsOtpMfaSetup_FullMethodName    = "/authorizer.v1.AuthorizerService/SmsOtpMfaSetup"
-	AuthorizerService_ForgotPassword_FullMethodName    = "/authorizer.v1.AuthorizerService/ForgotPassword"
-	AuthorizerService_ResetPassword_FullMethodName     = "/authorizer.v1.AuthorizerService/ResetPassword"
-	AuthorizerService_Profile_FullMethodName           = "/authorizer.v1.AuthorizerService/Profile"
-	AuthorizerService_UpdateProfile_FullMethodName     = "/authorizer.v1.AuthorizerService/UpdateProfile"
-	AuthorizerService_DeactivateAccount_FullMethodName = "/authorizer.v1.AuthorizerService/DeactivateAccount"
-	AuthorizerService_Revoke_FullMethodName            = "/authorizer.v1.AuthorizerService/Revoke"
-	AuthorizerService_Session_FullMethodName           = "/authorizer.v1.AuthorizerService/Session"
-	AuthorizerService_ValidateJwtToken_FullMethodName  = "/authorizer.v1.AuthorizerService/ValidateJwtToken"
-	AuthorizerService_ValidateSession_FullMethodName   = "/authorizer.v1.AuthorizerService/ValidateSession"
-	AuthorizerService_Meta_FullMethodName              = "/authorizer.v1.AuthorizerService/Meta"
-	AuthorizerService_CheckPermissions_FullMethodName  = "/authorizer.v1.AuthorizerService/CheckPermissions"
-	AuthorizerService_ListPermissions_FullMethodName   = "/authorizer.v1.AuthorizerService/ListPermissions"
+	AuthorizerService_Signup_FullMethodName                      = "/authorizer.v1.AuthorizerService/Signup"
+	AuthorizerService_Login_FullMethodName                       = "/authorizer.v1.AuthorizerService/Login"
+	AuthorizerService_Logout_FullMethodName                      = "/authorizer.v1.AuthorizerService/Logout"
+	AuthorizerService_MagicLinkLogin_FullMethodName              = "/authorizer.v1.AuthorizerService/MagicLinkLogin"
+	AuthorizerService_VerifyEmail_FullMethodName                 = "/authorizer.v1.AuthorizerService/VerifyEmail"
+	AuthorizerService_ResendVerifyEmail_FullMethodName           = "/authorizer.v1.AuthorizerService/ResendVerifyEmail"
+	AuthorizerService_VerifyOtp_FullMethodName                   = "/authorizer.v1.AuthorizerService/VerifyOtp"
+	AuthorizerService_ResendOtp_FullMethodName                   = "/authorizer.v1.AuthorizerService/ResendOtp"
+	AuthorizerService_SkipMfaSetup_FullMethodName                = "/authorizer.v1.AuthorizerService/SkipMfaSetup"
+	AuthorizerService_LockMfa_FullMethodName                     = "/authorizer.v1.AuthorizerService/LockMfa"
+	AuthorizerService_EmailOtpMfaSetup_FullMethodName            = "/authorizer.v1.AuthorizerService/EmailOtpMfaSetup"
+	AuthorizerService_SmsOtpMfaSetup_FullMethodName              = "/authorizer.v1.AuthorizerService/SmsOtpMfaSetup"
+	AuthorizerService_ForgotPassword_FullMethodName              = "/authorizer.v1.AuthorizerService/ForgotPassword"
+	AuthorizerService_ResetPassword_FullMethodName               = "/authorizer.v1.AuthorizerService/ResetPassword"
+	AuthorizerService_Profile_FullMethodName                     = "/authorizer.v1.AuthorizerService/Profile"
+	AuthorizerService_UpdateProfile_FullMethodName               = "/authorizer.v1.AuthorizerService/UpdateProfile"
+	AuthorizerService_DeactivateAccount_FullMethodName           = "/authorizer.v1.AuthorizerService/DeactivateAccount"
+	AuthorizerService_Revoke_FullMethodName                      = "/authorizer.v1.AuthorizerService/Revoke"
+	AuthorizerService_Session_FullMethodName                     = "/authorizer.v1.AuthorizerService/Session"
+	AuthorizerService_ValidateJwtToken_FullMethodName            = "/authorizer.v1.AuthorizerService/ValidateJwtToken"
+	AuthorizerService_ValidateSession_FullMethodName             = "/authorizer.v1.AuthorizerService/ValidateSession"
+	AuthorizerService_Meta_FullMethodName                        = "/authorizer.v1.AuthorizerService/Meta"
+	AuthorizerService_CheckPermissions_FullMethodName            = "/authorizer.v1.AuthorizerService/CheckPermissions"
+	AuthorizerService_ListPermissions_FullMethodName             = "/authorizer.v1.AuthorizerService/ListPermissions"
+	AuthorizerService_TotpMfaSetup_FullMethodName                = "/authorizer.v1.AuthorizerService/TotpMfaSetup"
+	AuthorizerService_WebauthnRegistrationOptions_FullMethodName = "/authorizer.v1.AuthorizerService/WebauthnRegistrationOptions"
+	AuthorizerService_WebauthnRegistrationVerify_FullMethodName  = "/authorizer.v1.AuthorizerService/WebauthnRegistrationVerify"
+	AuthorizerService_WebauthnLoginOptions_FullMethodName        = "/authorizer.v1.AuthorizerService/WebauthnLoginOptions"
+	AuthorizerService_WebauthnLoginVerify_FullMethodName         = "/authorizer.v1.AuthorizerService/WebauthnLoginVerify"
+	AuthorizerService_WebauthnCredentials_FullMethodName         = "/authorizer.v1.AuthorizerService/WebauthnCredentials"
+	AuthorizerService_WebauthnDeleteCredential_FullMethodName    = "/authorizer.v1.AuthorizerService/WebauthnDeleteCredential"
 )
 
 // AuthorizerServiceClient is the client API for AuthorizerService service.
@@ -145,6 +152,36 @@ type AuthorizerServiceClient interface {
 	// `truncated` reports when more permissions exist. Subject resolution
 	// follows the same rules as CheckPermissions.
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	// TotpMfaSetup generates a fresh TOTP secret, QR image and recovery codes and
+	// creates an unverified TOTP enrollment. Same dual-mode permissions as
+	// EmailOtpMfaSetup / SmsOtpMfaSetup: an authenticated caller (bearer token)
+	// adding a second factor from the settings screen, or a caller in the
+	// withheld first-time-offer state identified by the MFA session cookie plus
+	// email/phone_number. The enrollment becomes active only once VerifyOtp is
+	// called with is_totp=true.
+	TotpMfaSetup(ctx context.Context, in *TotpMfaSetupRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// WebauthnRegistrationOptions begins a passkey registration ceremony and
+	// returns JSON-encoded PublicKeyCredentialCreationOptions. email /
+	// phone_number are used only on the MFA-session-cookie path to resolve which
+	// user is enrolling; they are ignored for a bearer-authenticated caller.
+	WebauthnRegistrationOptions(ctx context.Context, in *WebauthnRegistrationOptionsRequest, opts ...grpc.CallOption) (*WebauthnRegistrationOptionsResponse, error)
+	// WebauthnRegistrationVerify verifies the attestation and stores the passkey.
+	// Returns AuthResponse: access_token is set only on the MFA-session-cookie
+	// enrollment path (which completes a login); an ordinary settings-page caller
+	// gets a message-only response.
+	WebauthnRegistrationVerify(ctx context.Context, in *WebauthnRegistrationVerifyRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// WebauthnLoginOptions begins a passkey login ceremony and returns
+	// JSON-encoded PublicKeyCredentialRequestOptions. Usernameless (discoverable
+	// credential) when email is omitted.
+	WebauthnLoginOptions(ctx context.Context, in *WebauthnLoginOptionsRequest, opts ...grpc.CallOption) (*WebauthnLoginOptionsResponse, error)
+	// WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+	WebauthnLoginVerify(ctx context.Context, in *WebauthnLoginVerifyRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// WebauthnCredentials lists the authenticated caller's own passkeys.
+	// Requires authentication.
+	WebauthnCredentials(ctx context.Context, in *WebauthnCredentialsRequest, opts ...grpc.CallOption) (*WebauthnCredentialsResponse, error)
+	// WebauthnDeleteCredential deletes one of the authenticated caller's own
+	// passkeys by id. Requires authentication.
+	WebauthnDeleteCredential(ctx context.Context, in *WebauthnDeleteCredentialRequest, opts ...grpc.CallOption) (*WebauthnDeleteCredentialResponse, error)
 }
 
 type authorizerServiceClient struct {
@@ -395,6 +432,76 @@ func (c *authorizerServiceClient) ListPermissions(ctx context.Context, in *ListP
 	return out, nil
 }
 
+func (c *authorizerServiceClient) TotpMfaSetup(ctx context.Context, in *TotpMfaSetupRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_TotpMfaSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnRegistrationOptions(ctx context.Context, in *WebauthnRegistrationOptionsRequest, opts ...grpc.CallOption) (*WebauthnRegistrationOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebauthnRegistrationOptionsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnRegistrationOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnRegistrationVerify(ctx context.Context, in *WebauthnRegistrationVerifyRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnRegistrationVerify_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnLoginOptions(ctx context.Context, in *WebauthnLoginOptionsRequest, opts ...grpc.CallOption) (*WebauthnLoginOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebauthnLoginOptionsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnLoginOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnLoginVerify(ctx context.Context, in *WebauthnLoginVerifyRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnLoginVerify_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnCredentials(ctx context.Context, in *WebauthnCredentialsRequest, opts ...grpc.CallOption) (*WebauthnCredentialsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebauthnCredentialsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnCredentials_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerServiceClient) WebauthnDeleteCredential(ctx context.Context, in *WebauthnDeleteCredentialRequest, opts ...grpc.CallOption) (*WebauthnDeleteCredentialResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebauthnDeleteCredentialResponse)
+	err := c.cc.Invoke(ctx, AuthorizerService_WebauthnDeleteCredential_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerServiceServer is the server API for AuthorizerService service.
 // All implementations should embed UnimplementedAuthorizerServiceServer
 // for forward compatibility.
@@ -475,6 +582,36 @@ type AuthorizerServiceServer interface {
 	// `truncated` reports when more permissions exist. Subject resolution
 	// follows the same rules as CheckPermissions.
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
+	// TotpMfaSetup generates a fresh TOTP secret, QR image and recovery codes and
+	// creates an unverified TOTP enrollment. Same dual-mode permissions as
+	// EmailOtpMfaSetup / SmsOtpMfaSetup: an authenticated caller (bearer token)
+	// adding a second factor from the settings screen, or a caller in the
+	// withheld first-time-offer state identified by the MFA session cookie plus
+	// email/phone_number. The enrollment becomes active only once VerifyOtp is
+	// called with is_totp=true.
+	TotpMfaSetup(context.Context, *TotpMfaSetupRequest) (*AuthResponse, error)
+	// WebauthnRegistrationOptions begins a passkey registration ceremony and
+	// returns JSON-encoded PublicKeyCredentialCreationOptions. email /
+	// phone_number are used only on the MFA-session-cookie path to resolve which
+	// user is enrolling; they are ignored for a bearer-authenticated caller.
+	WebauthnRegistrationOptions(context.Context, *WebauthnRegistrationOptionsRequest) (*WebauthnRegistrationOptionsResponse, error)
+	// WebauthnRegistrationVerify verifies the attestation and stores the passkey.
+	// Returns AuthResponse: access_token is set only on the MFA-session-cookie
+	// enrollment path (which completes a login); an ordinary settings-page caller
+	// gets a message-only response.
+	WebauthnRegistrationVerify(context.Context, *WebauthnRegistrationVerifyRequest) (*AuthResponse, error)
+	// WebauthnLoginOptions begins a passkey login ceremony and returns
+	// JSON-encoded PublicKeyCredentialRequestOptions. Usernameless (discoverable
+	// credential) when email is omitted.
+	WebauthnLoginOptions(context.Context, *WebauthnLoginOptionsRequest) (*WebauthnLoginOptionsResponse, error)
+	// WebauthnLoginVerify verifies a passkey assertion and logs the user in.
+	WebauthnLoginVerify(context.Context, *WebauthnLoginVerifyRequest) (*AuthResponse, error)
+	// WebauthnCredentials lists the authenticated caller's own passkeys.
+	// Requires authentication.
+	WebauthnCredentials(context.Context, *WebauthnCredentialsRequest) (*WebauthnCredentialsResponse, error)
+	// WebauthnDeleteCredential deletes one of the authenticated caller's own
+	// passkeys by id. Requires authentication.
+	WebauthnDeleteCredential(context.Context, *WebauthnDeleteCredentialRequest) (*WebauthnDeleteCredentialResponse, error)
 }
 
 // UnimplementedAuthorizerServiceServer should be embedded to have
@@ -555,6 +692,27 @@ func (UnimplementedAuthorizerServiceServer) CheckPermissions(context.Context, *C
 }
 func (UnimplementedAuthorizerServiceServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPermissions not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) TotpMfaSetup(context.Context, *TotpMfaSetupRequest) (*AuthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TotpMfaSetup not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnRegistrationOptions(context.Context, *WebauthnRegistrationOptionsRequest) (*WebauthnRegistrationOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnRegistrationOptions not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnRegistrationVerify(context.Context, *WebauthnRegistrationVerifyRequest) (*AuthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnRegistrationVerify not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnLoginOptions(context.Context, *WebauthnLoginOptionsRequest) (*WebauthnLoginOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnLoginOptions not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnLoginVerify(context.Context, *WebauthnLoginVerifyRequest) (*AuthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnLoginVerify not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnCredentials(context.Context, *WebauthnCredentialsRequest) (*WebauthnCredentialsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnCredentials not implemented")
+}
+func (UnimplementedAuthorizerServiceServer) WebauthnDeleteCredential(context.Context, *WebauthnDeleteCredentialRequest) (*WebauthnDeleteCredentialResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebauthnDeleteCredential not implemented")
 }
 func (UnimplementedAuthorizerServiceServer) testEmbeddedByValue() {}
 
@@ -1008,6 +1166,132 @@ func _AuthorizerService_ListPermissions_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerService_TotpMfaSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TotpMfaSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).TotpMfaSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_TotpMfaSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).TotpMfaSetup(ctx, req.(*TotpMfaSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnRegistrationOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnRegistrationOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnRegistrationOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnRegistrationOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnRegistrationOptions(ctx, req.(*WebauthnRegistrationOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnRegistrationVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnRegistrationVerifyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnRegistrationVerify(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnRegistrationVerify_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnRegistrationVerify(ctx, req.(*WebauthnRegistrationVerifyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnLoginOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnLoginOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnLoginOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnLoginOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnLoginOptions(ctx, req.(*WebauthnLoginOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnLoginVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnLoginVerifyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnLoginVerify(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnLoginVerify_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnLoginVerify(ctx, req.(*WebauthnLoginVerifyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnCredentialsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnCredentials(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnCredentials_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnCredentials(ctx, req.(*WebauthnCredentialsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerService_WebauthnDeleteCredential_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebauthnDeleteCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerServiceServer).WebauthnDeleteCredential(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerService_WebauthnDeleteCredential_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerServiceServer).WebauthnDeleteCredential(ctx, req.(*WebauthnDeleteCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerService_ServiceDesc is the grpc.ServiceDesc for AuthorizerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1110,6 +1394,34 @@ var AuthorizerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPermissions",
 			Handler:    _AuthorizerService_ListPermissions_Handler,
+		},
+		{
+			MethodName: "TotpMfaSetup",
+			Handler:    _AuthorizerService_TotpMfaSetup_Handler,
+		},
+		{
+			MethodName: "WebauthnRegistrationOptions",
+			Handler:    _AuthorizerService_WebauthnRegistrationOptions_Handler,
+		},
+		{
+			MethodName: "WebauthnRegistrationVerify",
+			Handler:    _AuthorizerService_WebauthnRegistrationVerify_Handler,
+		},
+		{
+			MethodName: "WebauthnLoginOptions",
+			Handler:    _AuthorizerService_WebauthnLoginOptions_Handler,
+		},
+		{
+			MethodName: "WebauthnLoginVerify",
+			Handler:    _AuthorizerService_WebauthnLoginVerify_Handler,
+		},
+		{
+			MethodName: "WebauthnCredentials",
+			Handler:    _AuthorizerService_WebauthnCredentials_Handler,
+		},
+		{
+			MethodName: "WebauthnDeleteCredential",
+			Handler:    _AuthorizerService_WebauthnDeleteCredential_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

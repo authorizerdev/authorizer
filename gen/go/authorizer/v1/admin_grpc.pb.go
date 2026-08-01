@@ -80,6 +80,32 @@ const (
 	AuthorizerAdminService_RetireSamlIdpKey_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/RetireSamlIdpKey"
 	AuthorizerAdminService_ListSamlIdpKeys_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/ListSamlIdpKeys"
 	AuthorizerAdminService_ImportSamlSpMetadata_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/ImportSamlSpMetadata"
+	AuthorizerAdminService_CreateOrganization_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/CreateOrganization"
+	AuthorizerAdminService_UpdateOrganization_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateOrganization"
+	AuthorizerAdminService_DeleteOrganization_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteOrganization"
+	AuthorizerAdminService_GetOrganization_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetOrganization"
+	AuthorizerAdminService_Organizations_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/Organizations"
+	AuthorizerAdminService_UserOrganizations_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/UserOrganizations"
+	AuthorizerAdminService_AddOrgMember_FullMethodName              = "/authorizer.v1.AuthorizerAdminService/AddOrgMember"
+	AuthorizerAdminService_RemoveOrgMember_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/RemoveOrgMember"
+	AuthorizerAdminService_OrgMembers_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/OrgMembers"
+	AuthorizerAdminService_RequestOrgDomain_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/RequestOrgDomain"
+	AuthorizerAdminService_VerifyOrgDomain_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/VerifyOrgDomain"
+	AuthorizerAdminService_AddVerifiedOrgDomain_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/AddVerifiedOrgDomain"
+	AuthorizerAdminService_OrgDomains_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/OrgDomains"
+	AuthorizerAdminService_DeleteOrgDomain_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/DeleteOrgDomain"
+	AuthorizerAdminService_CreateOrgOidcConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/CreateOrgOidcConnection"
+	AuthorizerAdminService_UpdateOrgOidcConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/UpdateOrgOidcConnection"
+	AuthorizerAdminService_DeleteOrgOidcConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/DeleteOrgOidcConnection"
+	AuthorizerAdminService_GetOrgOidcConnection_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/GetOrgOidcConnection"
+	AuthorizerAdminService_CreateOrgSamlConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/CreateOrgSamlConnection"
+	AuthorizerAdminService_UpdateOrgSamlConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/UpdateOrgSamlConnection"
+	AuthorizerAdminService_DeleteOrgSamlConnection_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/DeleteOrgSamlConnection"
+	AuthorizerAdminService_GetOrgSamlConnection_FullMethodName      = "/authorizer.v1.AuthorizerAdminService/GetOrgSamlConnection"
+	AuthorizerAdminService_CreateScimEndpoint_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/CreateScimEndpoint"
+	AuthorizerAdminService_RotateScimToken_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/RotateScimToken"
+	AuthorizerAdminService_DeleteScimEndpoint_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteScimEndpoint"
+	AuthorizerAdminService_GetScimEndpoint_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetScimEndpoint"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -250,6 +276,84 @@ type AuthorizerAdminServiceClient interface {
 	// prefill a create call. It does NOT create a record and performs no remote
 	// fetch. Requires super-admin auth.
 	ImportSamlSpMetadata(ctx context.Context, in *ImportSamlSpMetadataRequest, opts ...grpc.CallOption) (*ImportSamlSpMetadataResponse, error)
+	// CreateOrganization creates an organization. `name` is a unique, URL-safe
+	// slug. Requires super-admin auth.
+	CreateOrganization(ctx context.Context, in *CreateOrganizationRequest, opts ...grpc.CallOption) (*CreateOrganizationResponse, error)
+	// UpdateOrganization updates an organization's slug, display name, or
+	// enabled state. Requires super-admin or that org's org-admin.
+	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*UpdateOrganizationResponse, error)
+	// DeleteOrganization deletes an organization by id. Requires super-admin auth.
+	DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*DeleteOrganizationResponse, error)
+	// GetOrganization returns a single organization by id. Requires super-admin
+	// or that org's org-admin.
+	GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*GetOrganizationResponse, error)
+	// Organizations returns a paginated list of organizations. Requires
+	// super-admin auth.
+	Organizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	// UserOrganizations returns the organizations a user belongs to, with that
+	// user's per-org roles. Requires super-admin auth.
+	UserOrganizations(ctx context.Context, in *UserOrganizationsRequest, opts ...grpc.CallOption) (*UserOrganizationsResponse, error)
+	// AddOrgMember binds a user to an organization with an optional set of
+	// per-org roles. Requires super-admin or that org's org-admin.
+	AddOrgMember(ctx context.Context, in *AddOrgMemberRequest, opts ...grpc.CallOption) (*AddOrgMemberResponse, error)
+	// RemoveOrgMember removes a user's membership of an organization. Requires
+	// super-admin or that org's org-admin.
+	RemoveOrgMember(ctx context.Context, in *RemoveOrgMemberRequest, opts ...grpc.CallOption) (*RemoveOrgMemberResponse, error)
+	// OrgMembers returns a paginated list of an organization's members, with
+	// resolved user identity for display. Requires super-admin or that org's
+	// org-admin.
+	OrgMembers(ctx context.Context, in *OrgMembersRequest, opts ...grpc.CallOption) (*OrgMembersResponse, error)
+	// RequestOrgDomain starts DNS ownership verification for a domain and returns
+	// the TXT record to publish. Requires super-admin or that org's org-admin.
+	RequestOrgDomain(ctx context.Context, in *RequestOrgDomainRequest, opts ...grpc.CallOption) (*RequestOrgDomainResponse, error)
+	// VerifyOrgDomain checks the published TXT record and, on success, marks the
+	// domain verified. Requires super-admin or that org's org-admin.
+	VerifyOrgDomain(ctx context.Context, in *VerifyOrgDomainRequest, opts ...grpc.CallOption) (*VerifyOrgDomainResponse, error)
+	// AddVerifiedOrgDomain marks a domain verified WITHOUT a DNS challenge.
+	// Super-admin only by design — it bypasses proof of ownership, and a domain
+	// verified for one org cannot be claimed by another.
+	AddVerifiedOrgDomain(ctx context.Context, in *AddVerifiedOrgDomainRequest, opts ...grpc.CallOption) (*AddVerifiedOrgDomainResponse, error)
+	// OrgDomains returns a paginated list of an organization's domains. Requires
+	// super-admin or that org's org-admin.
+	OrgDomains(ctx context.Context, in *OrgDomainsRequest, opts ...grpc.CallOption) (*OrgDomainsResponse, error)
+	// DeleteOrgDomain removes a domain claim. The org is resolved from the stored
+	// row, so authorization is checked against the domain's real owner.
+	DeleteOrgDomain(ctx context.Context, in *DeleteOrgDomainRequest, opts ...grpc.CallOption) (*DeleteOrgDomainResponse, error)
+	// CreateOrgOIDCConnection registers an upstream OIDC IdP for an organization.
+	// client_secret is stored encrypted and never returned.
+	CreateOrgOidcConnection(ctx context.Context, in *CreateOrgOidcConnectionRequest, opts ...grpc.CallOption) (*CreateOrgOidcConnectionResponse, error)
+	// UpdateOrgOidcConnection updates an upstream OIDC connection. Supplying
+	// client_secret rotates it; omitting leaves the stored secret intact.
+	UpdateOrgOidcConnection(ctx context.Context, in *UpdateOrgOidcConnectionRequest, opts ...grpc.CallOption) (*UpdateOrgOidcConnectionResponse, error)
+	// DeleteOrgOidcConnection deletes an upstream OIDC connection.
+	DeleteOrgOidcConnection(ctx context.Context, in *DeleteOrgOidcConnectionRequest, opts ...grpc.CallOption) (*DeleteOrgOidcConnectionResponse, error)
+	// GetOrgOidcConnection returns a single OIDC connection, looked up by
+	// connection id OR org_id (supply exactly one).
+	GetOrgOidcConnection(ctx context.Context, in *GetOrgOidcConnectionRequest, opts ...grpc.CallOption) (*GetOrgOidcConnectionResponse, error)
+	// CreateOrgSamlConnection registers an upstream SAML IdP for an organization.
+	// Assertion signatures are validated ONLY against idp_certificate.
+	CreateOrgSamlConnection(ctx context.Context, in *CreateOrgSamlConnectionRequest, opts ...grpc.CallOption) (*CreateOrgSamlConnectionResponse, error)
+	// UpdateOrgSamlConnection updates an upstream SAML connection. Supplying
+	// idp_certificate replaces it; omitting leaves the stored certificate intact.
+	UpdateOrgSamlConnection(ctx context.Context, in *UpdateOrgSamlConnectionRequest, opts ...grpc.CallOption) (*UpdateOrgSamlConnectionResponse, error)
+	// DeleteOrgSamlConnection deletes an upstream SAML connection.
+	DeleteOrgSamlConnection(ctx context.Context, in *DeleteOrgSamlConnectionRequest, opts ...grpc.CallOption) (*DeleteOrgSamlConnectionResponse, error)
+	// GetOrgSamlConnection returns a single SAML connection, looked up by
+	// connection id OR org_id (supply exactly one).
+	GetOrgSamlConnection(ctx context.Context, in *GetOrgSamlConnectionRequest, opts ...grpc.CallOption) (*GetOrgSamlConnectionResponse, error)
+	// CreateScimEndpoint provisions an org's inbound SCIM connection and returns
+	// its bearer token EXACTLY ONCE (only the bcrypt hash is stored). One
+	// endpoint per organization.
+	CreateScimEndpoint(ctx context.Context, in *CreateScimEndpointRequest, opts ...grpc.CallOption) (*CreateScimEndpointResponse, error)
+	// RotateScimToken mints a fresh SCIM bearer token, invalidating the previous
+	// one, and returns it exactly once. Reuses CreateScimEndpointResponse — the
+	// only other admin message carrying a secret.
+	RotateScimToken(ctx context.Context, in *RotateScimTokenRequest, opts ...grpc.CallOption) (*CreateScimEndpointResponse, error)
+	// DeleteScimEndpoint removes an org's SCIM connection.
+	DeleteScimEndpoint(ctx context.Context, in *DeleteScimEndpointRequest, opts ...grpc.CallOption) (*DeleteScimEndpointResponse, error)
+	// GetScimEndpoint returns an org's SCIM endpoint metadata. The bearer token
+	// is never surfaced here.
+	GetScimEndpoint(ctx context.Context, in *GetScimEndpointRequest, opts ...grpc.CallOption) (*GetScimEndpointResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -780,6 +884,266 @@ func (c *authorizerAdminServiceClient) ImportSamlSpMetadata(ctx context.Context,
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) CreateOrganization(ctx context.Context, in *CreateOrganizationRequest, opts ...grpc.CallOption) (*CreateOrganizationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateOrganizationResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*UpdateOrganizationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateOrganizationResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*DeleteOrganizationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrganizationResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*GetOrganizationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrganizationResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) Organizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_Organizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UserOrganizations(ctx context.Context, in *UserOrganizationsRequest, opts ...grpc.CallOption) (*UserOrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserOrganizationsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UserOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AddOrgMember(ctx context.Context, in *AddOrgMemberRequest, opts ...grpc.CallOption) (*AddOrgMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddOrgMemberResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AddOrgMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) RemoveOrgMember(ctx context.Context, in *RemoveOrgMemberRequest, opts ...grpc.CallOption) (*RemoveOrgMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveOrgMemberResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RemoveOrgMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) OrgMembers(ctx context.Context, in *OrgMembersRequest, opts ...grpc.CallOption) (*OrgMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrgMembersResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_OrgMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) RequestOrgDomain(ctx context.Context, in *RequestOrgDomainRequest, opts ...grpc.CallOption) (*RequestOrgDomainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestOrgDomainResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RequestOrgDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) VerifyOrgDomain(ctx context.Context, in *VerifyOrgDomainRequest, opts ...grpc.CallOption) (*VerifyOrgDomainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyOrgDomainResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_VerifyOrgDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AddVerifiedOrgDomain(ctx context.Context, in *AddVerifiedOrgDomainRequest, opts ...grpc.CallOption) (*AddVerifiedOrgDomainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddVerifiedOrgDomainResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AddVerifiedOrgDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) OrgDomains(ctx context.Context, in *OrgDomainsRequest, opts ...grpc.CallOption) (*OrgDomainsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrgDomainsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_OrgDomains_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteOrgDomain(ctx context.Context, in *DeleteOrgDomainRequest, opts ...grpc.CallOption) (*DeleteOrgDomainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrgDomainResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteOrgDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) CreateOrgOidcConnection(ctx context.Context, in *CreateOrgOidcConnectionRequest, opts ...grpc.CallOption) (*CreateOrgOidcConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateOrgOidcConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateOrgOidcConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateOrgOidcConnection(ctx context.Context, in *UpdateOrgOidcConnectionRequest, opts ...grpc.CallOption) (*UpdateOrgOidcConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateOrgOidcConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateOrgOidcConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteOrgOidcConnection(ctx context.Context, in *DeleteOrgOidcConnectionRequest, opts ...grpc.CallOption) (*DeleteOrgOidcConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrgOidcConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteOrgOidcConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetOrgOidcConnection(ctx context.Context, in *GetOrgOidcConnectionRequest, opts ...grpc.CallOption) (*GetOrgOidcConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrgOidcConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetOrgOidcConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) CreateOrgSamlConnection(ctx context.Context, in *CreateOrgSamlConnectionRequest, opts ...grpc.CallOption) (*CreateOrgSamlConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateOrgSamlConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateOrgSamlConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateOrgSamlConnection(ctx context.Context, in *UpdateOrgSamlConnectionRequest, opts ...grpc.CallOption) (*UpdateOrgSamlConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateOrgSamlConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateOrgSamlConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteOrgSamlConnection(ctx context.Context, in *DeleteOrgSamlConnectionRequest, opts ...grpc.CallOption) (*DeleteOrgSamlConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrgSamlConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteOrgSamlConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetOrgSamlConnection(ctx context.Context, in *GetOrgSamlConnectionRequest, opts ...grpc.CallOption) (*GetOrgSamlConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrgSamlConnectionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetOrgSamlConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) CreateScimEndpoint(ctx context.Context, in *CreateScimEndpointRequest, opts ...grpc.CallOption) (*CreateScimEndpointResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateScimEndpointResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_CreateScimEndpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) RotateScimToken(ctx context.Context, in *RotateScimTokenRequest, opts ...grpc.CallOption) (*CreateScimEndpointResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateScimEndpointResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RotateScimToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteScimEndpoint(ctx context.Context, in *DeleteScimEndpointRequest, opts ...grpc.CallOption) (*DeleteScimEndpointResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteScimEndpointResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteScimEndpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetScimEndpoint(ctx context.Context, in *GetScimEndpointRequest, opts ...grpc.CallOption) (*GetScimEndpointResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetScimEndpointResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetScimEndpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -948,6 +1312,84 @@ type AuthorizerAdminServiceServer interface {
 	// prefill a create call. It does NOT create a record and performs no remote
 	// fetch. Requires super-admin auth.
 	ImportSamlSpMetadata(context.Context, *ImportSamlSpMetadataRequest) (*ImportSamlSpMetadataResponse, error)
+	// CreateOrganization creates an organization. `name` is a unique, URL-safe
+	// slug. Requires super-admin auth.
+	CreateOrganization(context.Context, *CreateOrganizationRequest) (*CreateOrganizationResponse, error)
+	// UpdateOrganization updates an organization's slug, display name, or
+	// enabled state. Requires super-admin or that org's org-admin.
+	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error)
+	// DeleteOrganization deletes an organization by id. Requires super-admin auth.
+	DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error)
+	// GetOrganization returns a single organization by id. Requires super-admin
+	// or that org's org-admin.
+	GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error)
+	// Organizations returns a paginated list of organizations. Requires
+	// super-admin auth.
+	Organizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	// UserOrganizations returns the organizations a user belongs to, with that
+	// user's per-org roles. Requires super-admin auth.
+	UserOrganizations(context.Context, *UserOrganizationsRequest) (*UserOrganizationsResponse, error)
+	// AddOrgMember binds a user to an organization with an optional set of
+	// per-org roles. Requires super-admin or that org's org-admin.
+	AddOrgMember(context.Context, *AddOrgMemberRequest) (*AddOrgMemberResponse, error)
+	// RemoveOrgMember removes a user's membership of an organization. Requires
+	// super-admin or that org's org-admin.
+	RemoveOrgMember(context.Context, *RemoveOrgMemberRequest) (*RemoveOrgMemberResponse, error)
+	// OrgMembers returns a paginated list of an organization's members, with
+	// resolved user identity for display. Requires super-admin or that org's
+	// org-admin.
+	OrgMembers(context.Context, *OrgMembersRequest) (*OrgMembersResponse, error)
+	// RequestOrgDomain starts DNS ownership verification for a domain and returns
+	// the TXT record to publish. Requires super-admin or that org's org-admin.
+	RequestOrgDomain(context.Context, *RequestOrgDomainRequest) (*RequestOrgDomainResponse, error)
+	// VerifyOrgDomain checks the published TXT record and, on success, marks the
+	// domain verified. Requires super-admin or that org's org-admin.
+	VerifyOrgDomain(context.Context, *VerifyOrgDomainRequest) (*VerifyOrgDomainResponse, error)
+	// AddVerifiedOrgDomain marks a domain verified WITHOUT a DNS challenge.
+	// Super-admin only by design — it bypasses proof of ownership, and a domain
+	// verified for one org cannot be claimed by another.
+	AddVerifiedOrgDomain(context.Context, *AddVerifiedOrgDomainRequest) (*AddVerifiedOrgDomainResponse, error)
+	// OrgDomains returns a paginated list of an organization's domains. Requires
+	// super-admin or that org's org-admin.
+	OrgDomains(context.Context, *OrgDomainsRequest) (*OrgDomainsResponse, error)
+	// DeleteOrgDomain removes a domain claim. The org is resolved from the stored
+	// row, so authorization is checked against the domain's real owner.
+	DeleteOrgDomain(context.Context, *DeleteOrgDomainRequest) (*DeleteOrgDomainResponse, error)
+	// CreateOrgOIDCConnection registers an upstream OIDC IdP for an organization.
+	// client_secret is stored encrypted and never returned.
+	CreateOrgOidcConnection(context.Context, *CreateOrgOidcConnectionRequest) (*CreateOrgOidcConnectionResponse, error)
+	// UpdateOrgOidcConnection updates an upstream OIDC connection. Supplying
+	// client_secret rotates it; omitting leaves the stored secret intact.
+	UpdateOrgOidcConnection(context.Context, *UpdateOrgOidcConnectionRequest) (*UpdateOrgOidcConnectionResponse, error)
+	// DeleteOrgOidcConnection deletes an upstream OIDC connection.
+	DeleteOrgOidcConnection(context.Context, *DeleteOrgOidcConnectionRequest) (*DeleteOrgOidcConnectionResponse, error)
+	// GetOrgOidcConnection returns a single OIDC connection, looked up by
+	// connection id OR org_id (supply exactly one).
+	GetOrgOidcConnection(context.Context, *GetOrgOidcConnectionRequest) (*GetOrgOidcConnectionResponse, error)
+	// CreateOrgSamlConnection registers an upstream SAML IdP for an organization.
+	// Assertion signatures are validated ONLY against idp_certificate.
+	CreateOrgSamlConnection(context.Context, *CreateOrgSamlConnectionRequest) (*CreateOrgSamlConnectionResponse, error)
+	// UpdateOrgSamlConnection updates an upstream SAML connection. Supplying
+	// idp_certificate replaces it; omitting leaves the stored certificate intact.
+	UpdateOrgSamlConnection(context.Context, *UpdateOrgSamlConnectionRequest) (*UpdateOrgSamlConnectionResponse, error)
+	// DeleteOrgSamlConnection deletes an upstream SAML connection.
+	DeleteOrgSamlConnection(context.Context, *DeleteOrgSamlConnectionRequest) (*DeleteOrgSamlConnectionResponse, error)
+	// GetOrgSamlConnection returns a single SAML connection, looked up by
+	// connection id OR org_id (supply exactly one).
+	GetOrgSamlConnection(context.Context, *GetOrgSamlConnectionRequest) (*GetOrgSamlConnectionResponse, error)
+	// CreateScimEndpoint provisions an org's inbound SCIM connection and returns
+	// its bearer token EXACTLY ONCE (only the bcrypt hash is stored). One
+	// endpoint per organization.
+	CreateScimEndpoint(context.Context, *CreateScimEndpointRequest) (*CreateScimEndpointResponse, error)
+	// RotateScimToken mints a fresh SCIM bearer token, invalidating the previous
+	// one, and returns it exactly once. Reuses CreateScimEndpointResponse — the
+	// only other admin message carrying a secret.
+	RotateScimToken(context.Context, *RotateScimTokenRequest) (*CreateScimEndpointResponse, error)
+	// DeleteScimEndpoint removes an org's SCIM connection.
+	DeleteScimEndpoint(context.Context, *DeleteScimEndpointRequest) (*DeleteScimEndpointResponse, error)
+	// GetScimEndpoint returns an org's SCIM endpoint metadata. The bearer token
+	// is never surfaced here.
+	GetScimEndpoint(context.Context, *GetScimEndpointRequest) (*GetScimEndpointResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -1112,6 +1554,84 @@ func (UnimplementedAuthorizerAdminServiceServer) ListSamlIdpKeys(context.Context
 }
 func (UnimplementedAuthorizerAdminServiceServer) ImportSamlSpMetadata(context.Context, *ImportSamlSpMetadataRequest) (*ImportSamlSpMetadataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ImportSamlSpMetadata not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) CreateOrganization(context.Context, *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateOrganization not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateOrganization not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrganization not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrganization not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) Organizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Organizations not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UserOrganizations(context.Context, *UserOrganizationsRequest) (*UserOrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserOrganizations not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AddOrgMember(context.Context, *AddOrgMemberRequest) (*AddOrgMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddOrgMember not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RemoveOrgMember(context.Context, *RemoveOrgMemberRequest) (*RemoveOrgMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveOrgMember not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) OrgMembers(context.Context, *OrgMembersRequest) (*OrgMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgMembers not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RequestOrgDomain(context.Context, *RequestOrgDomainRequest) (*RequestOrgDomainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestOrgDomain not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) VerifyOrgDomain(context.Context, *VerifyOrgDomainRequest) (*VerifyOrgDomainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifyOrgDomain not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AddVerifiedOrgDomain(context.Context, *AddVerifiedOrgDomainRequest) (*AddVerifiedOrgDomainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddVerifiedOrgDomain not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) OrgDomains(context.Context, *OrgDomainsRequest) (*OrgDomainsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgDomains not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteOrgDomain(context.Context, *DeleteOrgDomainRequest) (*DeleteOrgDomainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrgDomain not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) CreateOrgOidcConnection(context.Context, *CreateOrgOidcConnectionRequest) (*CreateOrgOidcConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateOrgOidcConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateOrgOidcConnection(context.Context, *UpdateOrgOidcConnectionRequest) (*UpdateOrgOidcConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateOrgOidcConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteOrgOidcConnection(context.Context, *DeleteOrgOidcConnectionRequest) (*DeleteOrgOidcConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrgOidcConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetOrgOidcConnection(context.Context, *GetOrgOidcConnectionRequest) (*GetOrgOidcConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrgOidcConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) CreateOrgSamlConnection(context.Context, *CreateOrgSamlConnectionRequest) (*CreateOrgSamlConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateOrgSamlConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateOrgSamlConnection(context.Context, *UpdateOrgSamlConnectionRequest) (*UpdateOrgSamlConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateOrgSamlConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteOrgSamlConnection(context.Context, *DeleteOrgSamlConnectionRequest) (*DeleteOrgSamlConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrgSamlConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetOrgSamlConnection(context.Context, *GetOrgSamlConnectionRequest) (*GetOrgSamlConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrgSamlConnection not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) CreateScimEndpoint(context.Context, *CreateScimEndpointRequest) (*CreateScimEndpointResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateScimEndpoint not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RotateScimToken(context.Context, *RotateScimTokenRequest) (*CreateScimEndpointResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateScimToken not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteScimEndpoint(context.Context, *DeleteScimEndpointRequest) (*DeleteScimEndpointResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteScimEndpoint not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetScimEndpoint(context.Context, *GetScimEndpointRequest) (*GetScimEndpointResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScimEndpoint not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -2069,6 +2589,474 @@ func _AuthorizerAdminService_ImportSamlSpMetadata_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_CreateOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).CreateOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_CreateOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).CreateOrganization(ctx, req.(*CreateOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrganization(ctx, req.(*UpdateOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrganization(ctx, req.(*DeleteOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetOrganization(ctx, req.(*GetOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_Organizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).Organizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_Organizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).Organizations(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UserOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserOrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UserOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UserOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UserOrganizations(ctx, req.(*UserOrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AddOrgMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddOrgMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AddOrgMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AddOrgMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AddOrgMember(ctx, req.(*AddOrgMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_RemoveOrgMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveOrgMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RemoveOrgMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RemoveOrgMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RemoveOrgMember(ctx, req.(*RemoveOrgMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_OrgMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).OrgMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_OrgMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).OrgMembers(ctx, req.(*OrgMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_RequestOrgDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestOrgDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RequestOrgDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RequestOrgDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RequestOrgDomain(ctx, req.(*RequestOrgDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_VerifyOrgDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyOrgDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).VerifyOrgDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_VerifyOrgDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).VerifyOrgDomain(ctx, req.(*VerifyOrgDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AddVerifiedOrgDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddVerifiedOrgDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AddVerifiedOrgDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AddVerifiedOrgDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AddVerifiedOrgDomain(ctx, req.(*AddVerifiedOrgDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_OrgDomains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgDomainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).OrgDomains(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_OrgDomains_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).OrgDomains(ctx, req.(*OrgDomainsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteOrgDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrgDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteOrgDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgDomain(ctx, req.(*DeleteOrgDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_CreateOrgOidcConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrgOidcConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).CreateOrgOidcConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_CreateOrgOidcConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).CreateOrgOidcConnection(ctx, req.(*CreateOrgOidcConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateOrgOidcConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOrgOidcConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrgOidcConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateOrgOidcConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrgOidcConnection(ctx, req.(*UpdateOrgOidcConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteOrgOidcConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrgOidcConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgOidcConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteOrgOidcConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgOidcConnection(ctx, req.(*DeleteOrgOidcConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetOrgOidcConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrgOidcConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetOrgOidcConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetOrgOidcConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetOrgOidcConnection(ctx, req.(*GetOrgOidcConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_CreateOrgSamlConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrgSamlConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).CreateOrgSamlConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_CreateOrgSamlConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).CreateOrgSamlConnection(ctx, req.(*CreateOrgSamlConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateOrgSamlConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOrgSamlConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrgSamlConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateOrgSamlConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateOrgSamlConnection(ctx, req.(*UpdateOrgSamlConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteOrgSamlConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrgSamlConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgSamlConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteOrgSamlConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteOrgSamlConnection(ctx, req.(*DeleteOrgSamlConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetOrgSamlConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrgSamlConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetOrgSamlConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetOrgSamlConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetOrgSamlConnection(ctx, req.(*GetOrgSamlConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_CreateScimEndpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateScimEndpointRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).CreateScimEndpoint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_CreateScimEndpoint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).CreateScimEndpoint(ctx, req.(*CreateScimEndpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_RotateScimToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateScimTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RotateScimToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RotateScimToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RotateScimToken(ctx, req.(*RotateScimTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteScimEndpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteScimEndpointRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteScimEndpoint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteScimEndpoint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteScimEndpoint(ctx, req.(*DeleteScimEndpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetScimEndpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetScimEndpointRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetScimEndpoint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetScimEndpoint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetScimEndpoint(ctx, req.(*GetScimEndpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2283,6 +3271,110 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ImportSamlSpMetadata",
 			Handler:    _AuthorizerAdminService_ImportSamlSpMetadata_Handler,
+		},
+		{
+			MethodName: "CreateOrganization",
+			Handler:    _AuthorizerAdminService_CreateOrganization_Handler,
+		},
+		{
+			MethodName: "UpdateOrganization",
+			Handler:    _AuthorizerAdminService_UpdateOrganization_Handler,
+		},
+		{
+			MethodName: "DeleteOrganization",
+			Handler:    _AuthorizerAdminService_DeleteOrganization_Handler,
+		},
+		{
+			MethodName: "GetOrganization",
+			Handler:    _AuthorizerAdminService_GetOrganization_Handler,
+		},
+		{
+			MethodName: "Organizations",
+			Handler:    _AuthorizerAdminService_Organizations_Handler,
+		},
+		{
+			MethodName: "UserOrganizations",
+			Handler:    _AuthorizerAdminService_UserOrganizations_Handler,
+		},
+		{
+			MethodName: "AddOrgMember",
+			Handler:    _AuthorizerAdminService_AddOrgMember_Handler,
+		},
+		{
+			MethodName: "RemoveOrgMember",
+			Handler:    _AuthorizerAdminService_RemoveOrgMember_Handler,
+		},
+		{
+			MethodName: "OrgMembers",
+			Handler:    _AuthorizerAdminService_OrgMembers_Handler,
+		},
+		{
+			MethodName: "RequestOrgDomain",
+			Handler:    _AuthorizerAdminService_RequestOrgDomain_Handler,
+		},
+		{
+			MethodName: "VerifyOrgDomain",
+			Handler:    _AuthorizerAdminService_VerifyOrgDomain_Handler,
+		},
+		{
+			MethodName: "AddVerifiedOrgDomain",
+			Handler:    _AuthorizerAdminService_AddVerifiedOrgDomain_Handler,
+		},
+		{
+			MethodName: "OrgDomains",
+			Handler:    _AuthorizerAdminService_OrgDomains_Handler,
+		},
+		{
+			MethodName: "DeleteOrgDomain",
+			Handler:    _AuthorizerAdminService_DeleteOrgDomain_Handler,
+		},
+		{
+			MethodName: "CreateOrgOidcConnection",
+			Handler:    _AuthorizerAdminService_CreateOrgOidcConnection_Handler,
+		},
+		{
+			MethodName: "UpdateOrgOidcConnection",
+			Handler:    _AuthorizerAdminService_UpdateOrgOidcConnection_Handler,
+		},
+		{
+			MethodName: "DeleteOrgOidcConnection",
+			Handler:    _AuthorizerAdminService_DeleteOrgOidcConnection_Handler,
+		},
+		{
+			MethodName: "GetOrgOidcConnection",
+			Handler:    _AuthorizerAdminService_GetOrgOidcConnection_Handler,
+		},
+		{
+			MethodName: "CreateOrgSamlConnection",
+			Handler:    _AuthorizerAdminService_CreateOrgSamlConnection_Handler,
+		},
+		{
+			MethodName: "UpdateOrgSamlConnection",
+			Handler:    _AuthorizerAdminService_UpdateOrgSamlConnection_Handler,
+		},
+		{
+			MethodName: "DeleteOrgSamlConnection",
+			Handler:    _AuthorizerAdminService_DeleteOrgSamlConnection_Handler,
+		},
+		{
+			MethodName: "GetOrgSamlConnection",
+			Handler:    _AuthorizerAdminService_GetOrgSamlConnection_Handler,
+		},
+		{
+			MethodName: "CreateScimEndpoint",
+			Handler:    _AuthorizerAdminService_CreateScimEndpoint_Handler,
+		},
+		{
+			MethodName: "RotateScimToken",
+			Handler:    _AuthorizerAdminService_RotateScimToken_Handler,
+		},
+		{
+			MethodName: "DeleteScimEndpoint",
+			Handler:    _AuthorizerAdminService_DeleteScimEndpoint_Handler,
+		},
+		{
+			MethodName: "GetScimEndpoint",
+			Handler:    _AuthorizerAdminService_GetScimEndpoint_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
