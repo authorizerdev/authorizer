@@ -1,7 +1,7 @@
 package http_handlers
 
 // Per-organization enterprise OIDC SSO — Authorizer acting as the Relying Party
-// (broker). An org configures its upstream OIDC IdP (Okta/Entra/Google) as a
+// (broker). An org configures its upstream OIDC IdP (e.g. Okta, Entra, Google) as a
 // sso_oidc TrustedIssuer row; its users log in through that IdP and Authorizer
 // JIT-provisions them and issues a normal Authorizer session.
 //

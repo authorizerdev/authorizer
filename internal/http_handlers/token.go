@@ -543,7 +543,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// NOTE: Do NOT delete the user's browser session here. The
 			// /authorize endpoint already performed session rollover when it
 			// created the authorization code. The /oauth/token endpoint is
-			// called server-to-server by the RP (Auth0/Okta/Keycloak), not
+			// called server-to-server by the RP (e.g. Auth0, Okta, Keycloak), not
 			// by the user's browser. Deleting the session here would
 			// invalidate the cookie the user's browser holds, breaking
 			// subsequent session lookups (e.g., GraphQL session query).

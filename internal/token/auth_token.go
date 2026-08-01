@@ -407,12 +407,12 @@ func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64
 		// RFC 8707 audience restriction. When the client_credentials request
 		// carried a `resource`, that resource becomes the audience so the token
 		// is usable ONLY at the named resource server — the same binding the
-		// authorization_code and token-exchange paths already apply, and what
-		// Auth0's required `audience` parameter and Keycloak's audience mappers
-		// provide. Without it every service-account token in a deployment shares
-		// one audience, so a token minted for service A is valid at service B.
-		// Omitted `resource` keeps the previous global-client_id audience, so
-		// existing single-audience deployments are unaffected.
+		// authorization_code and token-exchange paths already apply. Without it
+		// every service-account token in a deployment shares one audience, so a
+		// token minted for service A is valid at service B and the resource
+		// server loses its cheapest rejection. Omitted `resource` keeps the
+		// previous global-client_id audience, so existing single-audience
+		// deployments are unaffected.
 		"aud":          p.accessTokenAudience(cfg),
 		"nonce":        cfg.Nonce,
 		"sub":          cfg.ServiceAccountID,

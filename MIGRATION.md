@@ -510,7 +510,9 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 
 ### Model
 
-v2 ships a Keycloak-inspired four-pillar authorization engine:
+v2 ships a four-pillar authorization engine, following the role/group/permission
+model conventional in enterprise IAM (Keycloak and similar servers organise
+authorization along the same lines):
 
 | Concept    | Purpose                                                                 |
 | ---------- | ----------------------------------------------------------------------- |

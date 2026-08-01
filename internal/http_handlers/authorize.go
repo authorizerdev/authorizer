@@ -382,7 +382,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// Forward all RP-provided OIDC parameters through the login UI so
 		// the React app can send them back on the second /authorize
 		// round-trip. Without this, the code flow loses the RP-provided
-		// values and Auth0/Okta/Keycloak reject the resulting tokens.
+		// values and strict downstream RPs (e.g. Auth0, Okta, Keycloak) reject the
+		// resulting tokens.
 		authState += "&nonce=" + url.QueryEscape(nonce)
 		if codeChallenge != "" {
 			authState += "&code_challenge=" + url.QueryEscape(codeChallenge)
