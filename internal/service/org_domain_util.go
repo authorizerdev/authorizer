@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"strings"
 
 	"golang.org/x/net/idna"
@@ -10,10 +9,17 @@ import (
 
 // Domain-validation errors. Kept distinct so callers/tests can assert the exact
 // reason, and so the same messages flow to the API uniformly.
+//
+// These are InvalidArgument, not bare errors: every one of them reports a
+// malformed value the CALLER supplied. Callers return them to the transport
+// unwrapped, and an untyped error maps to Internal — so a request naming a
+// domain like "http://x" answered with 500 (gRPC Internal) instead of 400.
+// They remain singletons, so the errors.Is comparisons in the callers and
+// tests are unaffected.
 var (
-	errInvalidDomain      = errors.New("invalid domain")
-	errPublicSuffixDomain = errors.New("cannot verify a public suffix or bare TLD")
-	errConsumerDomain     = errors.New("cannot verify a shared consumer email domain")
+	errInvalidDomain      = InvalidArgument("invalid domain")
+	errPublicSuffixDomain = InvalidArgument("cannot verify a public suffix or bare TLD")
+	errConsumerDomain     = InvalidArgument("cannot verify a shared consumer email domain")
 )
 
 // consumerDomainBlocklist is a small set of well-known consumer email providers
