@@ -16,12 +16,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/test/bufconn"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/gateway"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
 // Cross-surface conformance.
@@ -46,12 +49,18 @@ import (
 
 // surfaces binds all three transports to one testSetup.
 type surfaces struct {
-	ts       *testSetup
-	grpc     authorizerv1.AuthorizerAdminServiceClient
+	ts   *testSetup
+	grpc authorizerv1.AuthorizerAdminServiceClient
+	// conn is the raw client connection, used by the dynamic admin-RPC sweep
+	// in TestAdminSurfaceDeniesPlainUser to invoke methods generically.
+	conn     *grpc.ClientConn
 	grpcCtx  context.Context
 	restURL  string
 	gqlCtx   context.Context
 	adminSec string
+	// issuer is the host the GraphQL surface mints tokens for. gRPC/REST bearer
+	// calls pin it so all three surfaces agree, as one deployment would.
+	issuer string
 }
 
 // newSurfaces boots the in-process gRPC server and the grpc-gateway REST mux
@@ -96,10 +105,12 @@ func newSurfaces(t *testing.T) *surfaces {
 	return &surfaces{
 		ts:       ts,
 		grpc:     authorizerv1.NewAuthorizerAdminServiceClient(conn),
+		conn:     conn,
 		grpcCtx:  adminCtx(cfg.AdminSecret),
 		restURL:  rest.URL,
 		gqlCtx:   gqlCtx,
 		adminSec: cfg.AdminSecret,
+		issuer:   parsers.GetHostFromRequest(ts.GinContext.Request),
 	}
 }
 
@@ -379,4 +390,135 @@ func adminRESTRaw(t *testing.T, baseURL, path, adminSecret, body string) []byte 
 	raw, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	return raw
+}
+
+// Bearer-token calls, unlike admin-secret calls, are subject to JWT issuer
+// validation: a token's `iss` must equal the host the validating surface
+// derives for itself (parsers.GetHostFromRequest). A real deployment serves all
+// three surfaces from one host — or pins one with --url — so they agree. This
+// harness runs each surface on its own listener, so each would derive a
+// different host and reject a token minted by another. The helpers below pin
+// the issuing host explicitly, which is the same mechanism a reverse proxy uses
+// (X-Authorizer-URL over HTTP/REST, x-authorizer-url metadata over gRPC).
+//
+// Without this every bearer call fails Unauthenticated for a transport reason,
+// which would make the negative authorization assertions below pass vacuously.
+
+// restBearer issues a REST call authenticated with a USER bearer token rather
+// than the admin secret — the credential an org-admin actually holds.
+func (s *surfaces) restBearer(t *testing.T, path, token, body string) int {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, s.restURL+path, strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", s.restURL)
+	req.Header.Set("X-Authorizer-URL", s.issuer)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	return resp.StatusCode
+}
+
+// grpcBearer builds a context carrying a user bearer token.
+func (s *surfaces) grpcBearer(token string) context.Context {
+	pairs := []string{"x-authorizer-url", s.issuer}
+	if token != "" {
+		pairs = append(pairs, "authorization", "Bearer "+token)
+	}
+	return metadata.NewOutgoingContext(context.Background(), metadata.Pairs(pairs...))
+}
+
+// TestSurfaceConformanceOrgAdmin pins the org-admin authorization contract
+// across all three surfaces.
+//
+// The admin surface accepts TWO identities, not one: a platform super-admin for
+// everything, and an org's own org-admin (constants.OrgRoleAdmin) for that
+// org's scoped operations. The gRPC interceptor used to require super-admin for
+// the whole admin service, so org-scoped ops worked over GraphQL and returned
+// Unauthenticated over gRPC/REST for the very persona multi-tenant SSO exists
+// for.
+//
+// The positive case alone would be satisfied by simply removing the auth check,
+// so the negative cases carry equal weight: a non-super-admin must still be
+// refused another org's data and refused the platform-wide operations.
+func TestSurfaceConformanceOrgAdmin(t *testing.T) {
+	s := newSurfaces(t)
+
+	s.asAdmin(t)
+	orgA, err := s.ts.GraphQLProvider.CreateOrganization(s.gqlCtx,
+		&model.CreateOrganizationRequest{Name: "orgadmin-a-" + uuid.NewString()})
+	require.NoError(t, err)
+	s.asAdmin(t)
+	orgB, err := s.ts.GraphQLProvider.CreateOrganization(s.gqlCtx,
+		&model.CreateOrganizationRequest{Name: "orgadmin-b-" + uuid.NewString()})
+	require.NoError(t, err)
+
+	// A user who is org-admin of A only.
+	email := "orgadmin_" + uuid.NewString() + "@authorizer.dev"
+	const pw = "Password@123"
+	signup, err := s.ts.GraphQLProvider.SignUp(s.gqlCtx, &model.SignUpRequest{
+		Email: &email, Password: pw, ConfirmPassword: pw,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, signup.AccessToken)
+	token := *signup.AccessToken
+
+	s.asAdmin(t)
+	_, err = s.ts.GraphQLProvider.AddOrgMember(s.gqlCtx, &model.AddOrgMemberRequest{
+		OrgID: orgA.ID, UserID: signup.User.ID, Roles: []string{constants.OrgRoleAdmin},
+	})
+	require.NoError(t, err)
+
+	asOrgAdmin := func() {
+		clearCookies(s.ts)
+		s.ts.GinContext.Request.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	t.Run("org-admin may read their OWN org on every surface", func(t *testing.T) {
+		asOrgAdmin()
+		_, gqlErr := s.ts.GraphQLProvider.OrgMembers(s.gqlCtx, &model.ListOrgMembersRequest{OrgID: orgA.ID})
+		assert.NoError(t, gqlErr, "GraphQL refused an org-admin their own org")
+
+		_, grpcErr := s.grpc.OrgMembers(s.grpcBearer(token), &authorizerv1.OrgMembersRequest{OrgId: orgA.ID})
+		assert.NoError(t, grpcErr, "gRPC refused an org-admin their own org")
+
+		status := s.restBearer(t, "/v1/admin/org_members", token, `{"org_id":"`+orgA.ID+`"}`)
+		assert.Equal(t, http.StatusOK, status, "REST refused an org-admin their own org")
+	})
+
+	t.Run("org-admin may NOT read another org on any surface", func(t *testing.T) {
+		asOrgAdmin()
+		_, gqlErr := s.ts.GraphQLProvider.OrgMembers(s.gqlCtx, &model.ListOrgMembersRequest{OrgID: orgB.ID})
+		assert.Error(t, gqlErr, "GraphQL leaked another org's members")
+
+		_, grpcErr := s.grpc.OrgMembers(s.grpcBearer(token), &authorizerv1.OrgMembersRequest{OrgId: orgB.ID})
+		assert.Error(t, grpcErr, "gRPC leaked another org's members")
+
+		status := s.restBearer(t, "/v1/admin/org_members", token, `{"org_id":"`+orgB.ID+`"}`)
+		assert.NotEqual(t, http.StatusOK, status, "REST leaked another org's members")
+	})
+
+	t.Run("org-admin may NOT use platform-wide operations on any surface", func(t *testing.T) {
+		// Organizations (list all) is requireSuperAdmin, not requireOrgAdmin.
+		asOrgAdmin()
+		_, gqlErr := s.ts.GraphQLProvider.Organizations(s.gqlCtx, &model.ListOrganizationsRequest{})
+		assert.Error(t, gqlErr, "GraphQL let an org-admin list every organization")
+
+		_, grpcErr := s.grpc.Organizations(s.grpcBearer(token), &authorizerv1.OrganizationsRequest{})
+		assert.Error(t, grpcErr, "gRPC let an org-admin list every organization")
+
+		status := s.restBearer(t, "/v1/admin/organizations", token, `{}`)
+		assert.NotEqual(t, http.StatusOK, status, "REST let an org-admin list every organization")
+	})
+
+	t.Run("anonymous is still refused on gRPC and REST", func(t *testing.T) {
+		_, grpcErr := s.grpc.OrgMembers(s.grpcBearer(""), &authorizerv1.OrgMembersRequest{OrgId: orgA.ID})
+		assert.Error(t, grpcErr, "gRPC served an admin RPC with no credential")
+
+		status := s.restBearer(t, "/v1/admin/org_members", "", `{"org_id":"`+orgA.ID+`"}`)
+		assert.NotEqual(t, http.StatusOK, status, "REST served an admin endpoint with no credential")
+	})
 }

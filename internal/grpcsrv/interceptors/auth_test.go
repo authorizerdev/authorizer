@@ -89,7 +89,11 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 		assert.False(t, called)
 		assert.Equal(t, 1, stub.superAdminChecks)
-		assert.Equal(t, 0, stub.userChecks)
+		// A non-super-admin is no longer rejected outright: the caller is
+		// resolved so an org-admin can be authorized by the service layer.
+		// With no credential at all that lookup yields nothing and the request
+		// is still refused here, before any handler runs.
+		assert.Equal(t, 1, stub.userChecks)
 	})
 
 	t.Run("attaches admin principal when authorized", func(t *testing.T) {
@@ -110,6 +114,72 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 		assert.Equal(t, 1, stub.superAdminChecks)
 		assert.Equal(t, 0, stub.userChecks)
 	})
+}
+
+// TestAuth_AdminMethodAllowsAuthenticatedNonSuperAdmin pins the org-admin path
+// through the interceptor.
+//
+// The admin surface accepts two identities: a platform super-admin for
+// everything, and an org's own org-admin for that org's scoped operations. The
+// interceptor cannot tell them apart — org membership lives in storage, which
+// it has no access to — so it resolves the caller, attaches the principal, and
+// leaves the decision to the service layer's requireSuperAdmin/requireOrgAdmin.
+//
+// The safety of that delegation rests on every admin method carrying its own
+// gate. That property is asserted separately and exhaustively, by
+// service.TestAdminMethodsAreGated (statically) and by
+// integration_tests.TestAdminSurfaceDeniesPlainUser (on the real transports).
+func TestAuth_AdminMethodAllowsAuthenticatedNonSuperAdmin(t *testing.T) {
+	stub := &stubTokenProvider{
+		superAdmin: false,
+		tokenData: &token.SessionOrAccessTokenData{
+			UserID:      "org-admin-1",
+			LoginMethod: "basic_auth",
+			Nonce:       "nonce-1",
+		},
+	}
+	mw := Auth(stub, nil)
+	called := false
+	_, err := mw(context.Background(), &authorizerv1.OrgMembersRequest{}, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName), func(ctx context.Context, _ any) (any, error) {
+		called = true
+		p, ok := authctx.FromContext(ctx)
+		require.True(t, ok, "an authenticated caller must reach the handler with a principal")
+		require.NotNil(t, p)
+		// Crucially NOT super-admin: the principal must not imply an authority
+		// the caller does not hold, or requireSuperAdmin would pass for them.
+		assert.False(t, p.IsSuperAdmin)
+		assert.Equal(t, "org-admin-1", p.UserID)
+		assert.Equal(t, "basic_auth", p.LoginMethod)
+		assert.Equal(t, "nonce-1", p.Nonce)
+		return &authorizerv1.OrgMembersResponse{}, nil
+	})
+	require.NoError(t, err)
+	assert.True(t, called, "an authenticated non-super-admin must reach the admin handler")
+	assert.Equal(t, 1, stub.superAdminChecks)
+	assert.Equal(t, 1, stub.userChecks)
+}
+
+// TestAuth_AdminMethodRejectsBadCredential covers the other half: a credential
+// that fails to resolve is refused at the interceptor, never reaching a handler.
+func TestAuth_AdminMethodRejectsBadCredential(t *testing.T) {
+	for name, stub := range map[string]*stubTokenProvider{
+		"invalid token":   {tokenErr: status.Error(codes.Unauthenticated, "bad token")},
+		"no token":        {},
+		"empty user id":   {tokenData: &token.SessionOrAccessTokenData{UserID: ""}},
+		"blank principal": {tokenData: &token.SessionOrAccessTokenData{LoginMethod: "basic_auth"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mw := Auth(stub, nil)
+			called := false
+			_, err := mw(context.Background(), &authorizerv1.OrgMembersRequest{}, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName), func(_ context.Context, _ any) (any, error) {
+				called = true
+				return &authorizerv1.OrgMembersResponse{}, nil
+			})
+			require.Error(t, err)
+			assert.Equal(t, codes.Unauthenticated, status.Code(err))
+			assert.False(t, called, "handler must not run without a resolvable caller")
+		})
+	}
 }
 
 func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
