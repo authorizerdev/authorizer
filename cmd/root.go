@@ -60,11 +60,14 @@ var (
 	defaultFacebookScopes    = []string{"public_profile", "email"}
 	defaultMicrosoftScopes   = []string{"openid", "profile", "email"}
 	defaultTwitchScopes      = []string{"openid", "user:read:email"}
-	defaultLinkedinScopes    = []string{"r_liteprofile", "r_emailaddress"}
-	defaultAppleScopes       = []string{"email", "name"}
-	defaultDiscordScopes     = []string{"identify", "email"}
-	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
-	defaultRobloxScopes      = []string{"openid", "profile"}
+	// LinkedIn's current product is "Sign In with LinkedIn using OpenID
+	// Connect"; the legacy r_liteprofile/r_emailaddress scopes are not
+	// provisioned for apps onboarded to it.
+	defaultLinkedinScopes = []string{"openid", "profile", "email"}
+	defaultAppleScopes    = []string{"email", "name"}
+	defaultDiscordScopes  = []string{"identify", "email"}
+	defaultTwitterScopes  = []string{"tweet.read", "users.read"}
+	defaultRobloxScopes   = []string{"openid", "profile"}
 	// Default RPS cap per IP; raised from 10 to reduce false positives on busy UIs.
 	defaultRateLimitRPS   = 30
 	defaultRateLimitBurst = 20

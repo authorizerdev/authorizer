@@ -28,3 +28,4 @@ node_modules/*
 .claude/worktrees
 docs/superpowers
 .worktrees/
+local.mk
