@@ -456,6 +456,55 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
+// oidcClaims is the allow-list of OpenID Connect standard claims Authorizer
+// maps onto a user. ID tokens are decoded into this and never straight into
+// schemas.User, for two reasons:
+//
+//  1. Type safety. IdPs emit claims whose types don't match the storage
+//     schema - Microsoft Entra's `roles` is an "Array of strings" (ID token
+//     claims reference) while schemas.User.Roles is a string, and a single
+//     mismatch fails the whole decode, so every login for a tenant that
+//     assigns app roles broke with "unable to extract claims".
+//  2. No claim can land in a storage-only column (_id, roles,
+//     signup_methods, is_active, created_at ...) merely by sharing its json
+//     tag.
+type oidcClaims struct {
+	Email       string `json:"email"`
+	GivenName   string `json:"given_name"`
+	FamilyName  string `json:"family_name"`
+	MiddleName  string `json:"middle_name"`
+	Nickname    string `json:"nickname"`
+	Gender      string `json:"gender"`
+	Birthdate   string `json:"birthdate"`
+	PhoneNumber string `json:"phone_number"`
+	Picture     string `json:"picture"`
+}
+
+// toUser maps the claims onto a user, leaving absent claims nil so they don't
+// overwrite stored values with empty strings.
+func (c *oidcClaims) toUser() *schemas.User {
+	user := &schemas.User{}
+	for _, f := range []struct {
+		value string
+		dest  **string
+	}{
+		{c.Email, &user.Email},
+		{c.GivenName, &user.GivenName},
+		{c.FamilyName, &user.FamilyName},
+		{c.MiddleName, &user.MiddleName},
+		{c.Nickname, &user.Nickname},
+		{c.Gender, &user.Gender},
+		{c.Birthdate, &user.Birthdate},
+		{c.PhoneNumber, &user.PhoneNumber},
+		{c.Picture, &user.Picture},
+	} {
+		if f.value != "" {
+			*f.dest = refs.NewStringRef(f.value)
+		}
+	}
+	return user
+}
+
 func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processGoogleUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodGoogle)
@@ -491,13 +540,23 @@ func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*sc
 		log.Debug().Err(err).Msg("Failed to verify ID Token")
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-	user := &schemas.User{}
-	if err := idToken.Claims(&user); err != nil {
+	claims := &oidcClaims{}
+	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
 		return nil, fmt.Errorf("unable to extract claims")
 	}
 
-	return user, nil
+	return claims.toUser(), nil
+}
+
+// setGithubHeaders applies the headers GitHub's REST API docs ask every
+// request to carry: a Bearer credential plus the explicit media type and API
+// version, so a future default-version bump can't silently change the payload
+// shape under us.
+func setGithubHeaders(req *http.Request, accessToken string) {
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 }
 
 func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
@@ -525,9 +584,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		log.Debug().Err(err).Msg("Failed to create github user info request")
 		return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
-	req.Header.Set(
-		"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
-	)
+	setGithubHeaders(req, oauth2Token.AccessToken)
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -546,13 +603,21 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, fmt.Errorf("failed to request github user info: %s", string(body))
 	}
 
-	userRawData := make(map[string]string)
+	// Only the three fields below are used. A typed struct (rather than a
+	// map[string]string) is required: GitHub's /user payload also carries
+	// numbers (id, public_repos), booleans (site_admin) and nulls, any of
+	// which fails a whole-map string decode.
+	var userRawData struct {
+		Name      string `json:"name"`
+		AvatarURL string `json:"avatar_url"`
+		Email     string `json:"email"`
+	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal github user info")
 		return nil, fmt.Errorf("failed to parse github user info: %s", err.Error())
 	}
 
-	name := strings.Split(userRawData["name"], " ")
+	name := strings.Split(userRawData.Name, " ")
 	firstName := ""
 	lastName := ""
 	if len(name) >= 1 && strings.TrimSpace(name[0]) != "" {
@@ -562,13 +627,14 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		lastName = name[1]
 	}
 
-	picture := userRawData["avatar_url"]
-	email := userRawData["email"]
+	picture := userRawData.AvatarURL
+	email := userRawData.Email
 
 	if email == "" {
 		type GithubUserEmails struct {
-			Email   string `json:"email"`
-			Primary bool   `json:"primary"`
+			Email    string `json:"email"`
+			Primary  bool   `json:"primary"`
+			Verified bool   `json:"verified"`
 		}
 
 		// fetch using /users/email endpoint
@@ -577,9 +643,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 			log.Debug().Err(err).Msg("Failed to create github emails request")
 			return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
 		}
-		req.Header.Set(
-			"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
-		)
+		setGithubHeaders(req, oauth2Token.AccessToken)
 
 		response, err := client.Do(req)
 		if err != nil {
@@ -605,11 +669,24 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 			return nil, fmt.Errorf("failed to parse github user email: %s", err.Error())
 		}
 
+		// GET /user/emails lists every address on the account, verified or
+		// not. An unverified address proves nothing about who controls it, and
+		// the caller looks the user up by email - accepting one would let a
+		// GitHub account that merely *typed* someone else's address log into
+		// that person's existing Authorizer account. Only verified addresses
+		// are eligible; the primary one wins.
 		for _, userEmail := range emailData {
+			if !userEmail.Verified {
+				continue
+			}
 			email = userEmail.Email
 			if userEmail.Primary {
 				break
 			}
+		}
+		if email == "" {
+			log.Debug().Msg("No verified email on github account")
+			return nil, fmt.Errorf("failed to get a verified email address from github")
 		}
 	}
 
@@ -662,22 +739,34 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request facebook user info")
 		return nil, fmt.Errorf("failed to request facebook user info: %s", string(body))
 	}
-	userRawData := make(map[string]interface{})
+	// Typed decode, not fmt.Sprintf over a map: Graph API omits `email`
+	// entirely when "no valid email address is available" (user/reference/user),
+	// and formatting a missing key stored the literal string "<nil>" as the
+	// user's email. Same for first_name/last_name.
+	var userRawData struct {
+		Email     string `json:"email"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Picture   struct {
+			Data struct {
+				URL string `json:"url"`
+			} `json:"data"`
+		} `json:"picture"`
+	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal facebook user info")
 		return nil, fmt.Errorf("failed to parse facebook user info: %s", err.Error())
 	}
 
-	email := fmt.Sprintf("%v", userRawData["email"])
-
-	picture := ""
-	if picObj, ok := userRawData["picture"].(map[string]interface{}); ok {
-		if picData, ok := picObj["data"].(map[string]interface{}); ok {
-			picture = fmt.Sprintf("%v", picData["url"])
-		}
+	email := userRawData.Email
+	if email == "" {
+		log.Debug().Msg("Facebook user info has no email")
+		return nil, fmt.Errorf("failed to get email from facebook user info: the account has no available email address")
 	}
-	firstName := fmt.Sprintf("%v", userRawData["first_name"])
-	lastName := fmt.Sprintf("%v", userRawData["last_name"])
+
+	picture := userRawData.Picture.Data.URL
+	firstName := userRawData.FirstName
+	lastName := userRawData.LastName
 
 	user := &schemas.User{
 		GivenName:  &firstName,
@@ -704,10 +793,8 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	}
 
 	userInfoURL := constants.LinkedInUserInfoURL
-	emailURL := constants.LinkedInEmailURL
 	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodLinkedIn); mockBase != "" {
 		userInfoURL = mockBase + "/userinfo"
-		emailURL = mockBase + "/emailAddress"
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", userInfoURL, nil)
@@ -737,80 +824,33 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
 	}
 
-	userRawData := make(map[string]interface{})
+	// OIDC userinfo shape (sub/name/given_name/family_name/picture/locale/
+	// email/email_verified) - one call, no separate /v2/emailAddress hop.
+	var userRawData struct {
+		GivenName  string `json:"given_name"`
+		FamilyName string `json:"family_name"`
+		Picture    string `json:"picture"`
+		Email      string `json:"email"`
+	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal linkedin user info")
 		return nil, fmt.Errorf("failed to parse linkedin user info: %s", err.Error())
 	}
 
-	req, err = http.NewRequest("GET", emailURL, nil)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to create linkedin email info request")
-		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
-	}
-	req.Header = http.Header{
-		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
-	}
-
-	response, err = client.Do(req)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to request linkedin email info")
-		return nil, err
-	}
-
-	defer func() { _ = response.Body.Close() }()
-	body, err = io.ReadAll(response.Body)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to read linkedin email info response body")
-		return nil, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
-	}
-	if response.StatusCode >= 400 {
-		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request linkedin user info")
-		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
-	}
-	emailRawData := make(map[string]interface{})
-	if err := json.Unmarshal(body, &emailRawData); err != nil {
-		log.Debug().Err(err).Msg("Failed to unmarshal linkedin email info")
-		return nil, fmt.Errorf("failed to parse linkedin email info: %s", err.Error())
-	}
-
-	firstName, _ := userRawData["localizedFirstName"].(string)
-	lastName, _ := userRawData["localizedLastName"].(string)
-
-	// Safely extract profile picture from nested LinkedIn structure
-	profilePicture := ""
-	if pp, ok := userRawData["profilePicture"].(map[string]interface{}); ok {
-		if di, ok := pp["displayImage~"].(map[string]interface{}); ok {
-			if elems, ok := di["elements"].([]interface{}); ok && len(elems) > 0 {
-				if elem, ok := elems[0].(map[string]interface{}); ok {
-					if ids, ok := elem["identifiers"].([]interface{}); ok && len(ids) > 0 {
-						if id, ok := ids[0].(map[string]interface{}); ok {
-							profilePicture, _ = id["identifier"].(string)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Safely extract email from nested LinkedIn structure
-	emailAddress := ""
-	if elems, ok := emailRawData["elements"].([]interface{}); ok && len(elems) > 0 {
-		if elem, ok := elems[0].(map[string]interface{}); ok {
-			if handle, ok := elem["handle~"].(map[string]interface{}); ok {
-				emailAddress, _ = handle["emailAddress"].(string)
-			}
-		}
-	}
-	if emailAddress == "" {
+	// `email` is documented as optional - it is only present when the member
+	// granted the `email` scope. Without it there is no identity key at all
+	// (LinkedIn's `sub` is pairwise per-app), so this is a hard error rather
+	// than a synthetic-email fallback.
+	if userRawData.Email == "" {
+		log.Debug().Msg("LinkedIn user info has no email")
 		return nil, fmt.Errorf("failed to extract email from linkedin response")
 	}
 
 	user := &schemas.User{
-		GivenName:  &firstName,
-		FamilyName: &lastName,
-		Picture:    &profilePicture,
-		Email:      &emailAddress,
+		GivenName:  &userRawData.GivenName,
+		FamilyName: &userRawData.FamilyName,
+		Picture:    &userRawData.Picture,
+		Email:      &userRawData.Email,
 	}
 
 	return user, nil
@@ -954,8 +994,13 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		log.Debug().Msg("Discord user info missing id")
 		return nil, fmt.Errorf("discord response missing id field")
 	}
-	avatar, _ := userRawData["avatar"].(string)
-	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", discordID, avatar)
+	// `avatar` is nullable (?string in Discord's user object) for accounts on
+	// the default avatar - building the CDN URL from an empty hash yields a
+	// dead ".../avatars/<id>/.png" link, so leave the picture unset instead.
+	profilePicture := ""
+	if avatar, ok := userRawData["avatar"].(string); ok && avatar != "" {
+		profilePicture = fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", discordID, avatar)
+	}
 
 	email := resolveDiscordEmail(discordID, userRawData)
 
@@ -1157,13 +1202,13 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 		log.Debug().Err(err).Msg("Failed to verify ID Token")
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-	user := &schemas.User{}
-	if err := idToken.Claims(&user); err != nil {
+	claims := &oidcClaims{}
+	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
 		return nil, fmt.Errorf("unable to extract claims")
 	}
 
-	return user, nil
+	return claims.toUser(), nil
 }
 
 // process twitch user information
@@ -1208,13 +1253,13 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
-	user := &schemas.User{}
-	if err := idToken.Claims(&user); err != nil {
+	claims := &oidcClaims{}
+	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
 		return nil, fmt.Errorf("unable to extract claims")
 	}
 
-	return user, nil
+	return claims.toUser(), nil
 }
 
 // process roblox user information

@@ -24,11 +24,15 @@ function defaultProfile(provider: string): Record<string, unknown> {
   const email = `mock-user@${provider}.example.com`;
   switch (provider) {
     case 'github':
-      return { name: 'Mock User', email, avatar_url: 'https://example.com/avatar.png' };
+      // Mixed types on purpose: GitHub's real GET /user carries a numeric id
+      // and boolean flags alongside the strings.
+      return { id: 583231, login: 'mockuser', name: 'Mock User', email, avatar_url: 'https://example.com/avatar.png', public_repos: 8, site_admin: false, company: null };
     case 'facebook':
       return { first_name: 'Mock', last_name: 'User', email, picture: { data: { url: 'https://example.com/avatar.png' } } };
     case 'linkedin':
-      return { localizedFirstName: 'Mock', localizedLastName: 'User' };
+      // OIDC userinfo shape (api.linkedin.com/v2/userinfo), which replaced the
+      // legacy /v2/me + /v2/emailAddress pair.
+      return { sub: 'mock-linkedin-sub', name: 'Mock User', given_name: 'Mock', family_name: 'User', picture: 'https://example.com/a.png', email, email_verified: true };
     case 'discord':
       // Flat shape matching Discord's real GET /users/@me response
       // (processDiscordUserInfo, internal/http_handlers/oauth_callback.go,
@@ -153,12 +157,7 @@ app.get(['/:provider/userinfo', '/:provider/user', '/:provider/@me', '/:provider
 
 app.get('/:provider/user/emails', (req, res) => {
   const profile = (profiles[req.params.provider] || defaultProfile(req.params.provider)) as { email?: string };
-  res.json([{ email: profile.email || 'mock-user@github.example.com', primary: true }]);
-});
-
-app.get('/:provider/emailAddress', (req, res) => {
-  const profile = (profiles[req.params.provider] || defaultProfile(req.params.provider)) as { email?: string };
-  res.json({ elements: [{ 'handle~': { emailAddress: profile.email || 'mock-user@linkedin.example.com' } }] });
+  res.json([{ email: profile.email || 'mock-user@github.example.com', primary: true, verified: true }]);
 });
 
 if (require.main === module) {

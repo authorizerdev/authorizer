@@ -11,9 +11,16 @@ const (
 	// Get github user emails when user info email is empty Ref: https://stackoverflow.com/a/35387123
 	GithubUserEmails = "https://api.github.com/user/emails"
 
-	// Ref: https://docs.microsoft.com/en-us/linkedin/shared/integrations/people/profile-api
-	LinkedInUserInfoURL = "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,emailAddress,profilePicture(displayImage~:playableStreams))"
-	LinkedInEmailURL    = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
+	// LinkedInUserInfoURL is the OpenID Connect userinfo endpoint published in
+	// LinkedIn's own discovery document
+	// (https://www.linkedin.com/oauth/.well-known/openid-configuration). It
+	// returns sub/name/given_name/family_name/picture/locale/email/
+	// email_verified in one call, replacing the legacy /v2/me +
+	// /v2/emailAddress pair, whose r_liteprofile/r_emailaddress scopes are not
+	// provisioned for apps onboarded via "Sign In with LinkedIn using OpenID
+	// Connect".
+	// Ref: https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2
+	LinkedInUserInfoURL = "https://api.linkedin.com/v2/userinfo"
 
 	// TwitterUserInfoURL requests confirmed_email as a sparse-fieldset field
 	// alongside the always-present id/name/profile_image_url/username. Per
