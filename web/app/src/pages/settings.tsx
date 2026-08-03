@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
 	AuthorizerMFASetup,
 	useAuthorizer,
@@ -6,19 +5,7 @@ import {
 import { Link } from 'react-router-dom';
 
 export default function Settings() {
-	const { user, config, authorizerRef } = useAuthorizer();
-	// AuthorizerMFASetup only knows what the caller tells it - there's no
-	// per-user enrolment signal for TOTP/email-OTP/SMS-OTP, but passkeys can
-	// be checked directly so the Passkey row can highlight as already set up.
-	const [passkeyRegistered, setPasskeyRegistered] = useState(false);
-
-	useEffect(() => {
-		authorizerRef.webauthnCredentials().then(({ data, errors }) => {
-			if (!errors?.length && data) {
-				setPasskeyRegistered(data.length > 0);
-			}
-		});
-	}, [authorizerRef]);
+	const { user, config } = useAuthorizer();
 
 	return (
 		<div>
@@ -35,8 +22,11 @@ export default function Settings() {
 					emailOtp: config.is_email_otp_mfa_enabled,
 					smsOtp: config.is_sms_otp_mfa_enabled,
 				}}
+				// What this user already enrolled (server-side truth, part of the
+				// user fragment) - those tiles render as "Enabled"/"Manage" instead
+				// of offering a fresh setup.
+				enrolledMethods={user?.enrolled_mfa_methods}
 				heading="Add a second step to sign in"
-				passkeyRegistered={passkeyRegistered}
 			/>
 			<br />
 			<div className="au-center">
