@@ -38,6 +38,7 @@ docker run -d --name authorizer_perf_app \
   --database-url="postgres://postgres:postgres@authorizer_perf_pg:5432/authorizer_perf?sslmode=disable" \
   --redis-url="redis://authorizer_perf_redis:6379" \
   --jwt-type=RS256 \
+  --encryption-key=perf-encryption-key-not-for-production \
   --jwt-private-key="$(cat "$REPO_ROOT/perf/dev-jwt-private.pem")" \
   --jwt-public-key="$(cat "$REPO_ROOT/perf/dev-jwt-public.pem")" \
   --client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH \

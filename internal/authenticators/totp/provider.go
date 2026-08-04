@@ -15,7 +15,10 @@ type Dependencies struct {
 	// DB so an abandoned re-setup can never desync a working authenticator.
 	MemoryStoreProvider memory_store.Provider
 	// EncryptionKey is the server-side key used to encrypt TOTP shared
-	// secrets at rest. Wired to Config.JWTSecret in internal/authenticators.
+	// secrets at rest. Wired to Config.EncryptionKey in internal/authenticators,
+	// which Config.Finalize resolves from --encryption-key, falling back to
+	// --jwt-secret. Startup refuses an empty value (Config.ValidateEncryptionKey)
+	// because HKDF over empty keying material yields a publicly computable key.
 	EncryptionKey string
 }
 

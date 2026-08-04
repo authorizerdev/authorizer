@@ -292,7 +292,7 @@ func (p *provider) generateAndStoreOTP(ctx context.Context, user *schemas.User, 
 	otpData, err := p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 		Email:       refs.StringValue(user.Email),
 		PhoneNumber: refs.StringValue(user.PhoneNumber),
-		Otp:         crypto.HashOTP(otp, p.Config.JWTSecret),
+		Otp:         crypto.HashOTP(otp, p.Config.EncryptionKey),
 		ExpiresAt:   expiresAt,
 	})
 	if err != nil {

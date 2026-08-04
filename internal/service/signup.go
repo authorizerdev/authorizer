@@ -277,7 +277,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		// over SMS by the existing smsBody above.
 		_, err = p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			PhoneNumber: phoneNumber,
-			Otp:         crypto.HashOTP(smsCode, p.Config.JWTSecret),
+			Otp:         crypto.HashOTP(smsCode, p.Config.EncryptionKey),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {

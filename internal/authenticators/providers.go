@@ -40,6 +40,8 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 		Log:                 deps.Log,
 		StorageProvider:     deps.StorageProvider,
 		MemoryStoreProvider: deps.MemoryStoreProvider,
-		EncryptionKey:       cfg.JWTSecret,
+		// Dedicated at-rest key; falls back to JWTSecret in Config.Finalize so
+		// seeds encrypted by earlier releases stay readable.
+		EncryptionKey: cfg.EncryptionKey,
 	})
 }

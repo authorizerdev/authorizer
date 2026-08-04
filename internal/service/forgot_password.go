@@ -153,7 +153,7 @@ func (p *provider) ForgotPassword(ctx context.Context, meta RequestMetadata, par
 		_, err = p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			Email:       refs.StringValue(user.Email),
 			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         crypto.HashOTP(otp, p.Config.JWTSecret),
+			Otp:         crypto.HashOTP(otp, p.Config.EncryptionKey),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {

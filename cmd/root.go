@@ -78,8 +78,11 @@ var (
 		Use: "authorizer",
 		// Derive runtime config (service availability, MFA defaults) before any
 		// subcommand runs so `authorizer` and `authorizer mcp` stay consistent.
-		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			rootArgs.config.Finalize()
+			// Fail closed rather than silently encrypting TOTP seeds with a
+			// publicly computable key derived from an empty secret.
+			return rootArgs.config.ValidateEncryptionKey()
 		},
 		Run: runRoot,
 	}
@@ -214,6 +217,7 @@ func init() {
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
 	f.StringVar(&rootArgs.config.JWTSecret, "jwt-secret", "", "Secret for the JWT")
+	f.StringVar(&rootArgs.config.EncryptionKey, "encryption-key", "", "Key used to encrypt secrets at rest (TOTP seeds). Defaults to --jwt-secret for backwards compatibility; set a distinct value before rotating --jwt-secret, otherwise rotation locks out every enrolled TOTP user")
 	f.StringVar(&rootArgs.config.JWTPrivateKey, "jwt-private-key", "", "Private key for the JWT")
 	f.StringVar(&rootArgs.config.JWTPublicKey, "jwt-public-key", "", "Public key for the JWT")
 	// JWT secondary key flags (for manual key rotation)

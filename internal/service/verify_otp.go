@@ -235,7 +235,7 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		// longer reveals usable codes. We deliberately do NOT fall back
 		// to literal equality — accepting the stored value verbatim
 		// would turn the digest itself into a usable credential.
-		if !crypto.VerifyOTPHash(params.Otp, otp.Otp, p.Config.JWTSecret) {
+		if !crypto.VerifyOTPHash(params.Otp, otp.Otp, p.Config.EncryptionKey) {
 			log.Debug().Msg("Failed to verify otp request: OTP mismatch")
 			return nil, nil, InvalidArgument(`invalid otp`)
 		}
