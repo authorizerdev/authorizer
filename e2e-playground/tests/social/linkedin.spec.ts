@@ -10,25 +10,30 @@ test.describe('Social login — LinkedIn', () => {
     await runSocialLoginHappyPath(page, request, {
       provider: 'linkedin',
       buttonName: /linkedin/i,
-      // LinkedIn is a two-URL REST-profile provider (like GitHub): mock-oauth's
-      // /linkedin/userinfo route returns this JSON verbatim, and
-      // processLinkedInUserInfo (internal/http_handlers/oauth_callback.go)
-      // reads localizedFirstName/localizedLastName straight into
-      // GivenName/FamilyName (no name-splitting like GitHub). Unlike GitHub's
-      // email fallback, LinkedIn's /userinfo response never carries an email
-      // at all - the handler unconditionally fetches mock-oauth's
-      // /linkedin/emailAddress route (real LinkedIn's separate email API) and
-      // errors out if that lookup fails, so `email` here only ever reaches
-      // Authorizer through that second call, not the userinfo payload.
-      profile: { localizedFirstName: 'Margaret', localizedLastName: 'Hamilton', email },
+      // Sign In with LinkedIn (OIDC): mock-oauth's /linkedin/userinfo route
+      // returns this JSON verbatim, and processLinkedInUserInfo
+      // (internal/http_handlers/oauth_callback.go) reads
+      // given_name/family_name/picture/email straight off it - one call, no
+      // separate /v2/emailAddress hop (the legacy /v2/me pair needed
+      // r_liteprofile/r_emailaddress, which OIDC-onboarded apps never get).
+      // `email` only arrives when the member granted the email scope; without
+      // it the handler hard-errors, since LinkedIn's `sub` is pairwise per-app
+      // and there is no other identity key.
+      profile: {
+        sub: 'mock-linkedin-sub',
+        given_name: 'Margaret',
+        family_name: 'Hamilton',
+        picture: 'https://example.com/a.png',
+        email,
+        email_verified: true,
+      },
       expectedEmail: email,
     });
 
     // The dashboard assertion inside the helper proves a real session; this
-    // proves localizedFirstName/localizedLastName actually landed on the
-    // stored user as given_name/family_name, the separate emailAddress call
-    // resolved to the right address, and "linkedin" was recorded as the
-    // signup method.
+    // proves the userinfo given_name/family_name actually landed on the stored
+    // user, the userinfo email resolved to the right address, and "linkedin"
+    // was recorded as the signup method.
     const user = await getUserByEmail(email);
     expect(user.given_name).toBe('Margaret');
     expect(user.family_name).toBe('Hamilton');
