@@ -53,6 +53,39 @@ func (c *provider) SetCache(key string, value string, ttlSeconds int64) error {
 	return nil
 }
 
+// SetCacheNX stores a key-value pair only if the key is not already held by a
+// LIVE entry, reporting whether this call took it.
+//
+// Uses the same sync.Map LoadOrStore/CompareAndSwap primitives as
+// IncrementCache so the decision is atomic: concurrent callers contend on a
+// single map slot and exactly one observes the transition. An expired entry is
+// taken over via CAS rather than deleted first, so a racing claimant cannot
+// slip in between the delete and the store.
+func (c *provider) SetCacheNX(key string, value string, ttlSeconds int64) (bool, error) {
+	for {
+		now := time.Now().Unix()
+		fresh := &cacheEntry{Value: value, ExpiresAt: now + ttlSeconds}
+
+		old, loaded := cacheStore.Load(key)
+		if !loaded {
+			if _, alreadyStored := cacheStore.LoadOrStore(key, fresh); !alreadyStored {
+				return true, nil
+			}
+			// Lost the race to another claimant; re-read and re-decide.
+			continue
+		}
+
+		// A live entry means the key is already claimed.
+		if old.(*cacheEntry).ExpiresAt >= now {
+			return false, nil
+		}
+		// Expired: swap it out, but only if nobody changed it meanwhile.
+		if cacheStore.CompareAndSwap(key, old, fresh) {
+			return true, nil
+		}
+	}
+}
+
 // GetCache retrieves a cached value by key.
 // Returns empty string and nil error if the key is not found or expired.
 func (c *provider) GetCache(key string) (string, error) {

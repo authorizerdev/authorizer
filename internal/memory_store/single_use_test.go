@@ -244,3 +244,154 @@ func TestDBStoreCacheDoesNotCollideWithState(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "the-cache-payload", stillCached, "redeeming a code must not evict a same-named cache entry")
 }
+
+// TestSetCacheNXIsSingleUse is the regression test for the replay defences that
+// claim a key by CREATING it: SAML assertion IDs (http_handlers/saml_sp.go) and
+// RFC 7523 client-assertion jti (service/clientauth). Both previously used a
+// GetCache/SetCache pair, which handed "unseen" to every racer replaying the
+// same assertion; SetCacheNX must decide the race in one operation so exactly
+// one caller may take the key.
+//
+// Runs against every provider so no future backend can regress the contract.
+func TestSetCacheNXIsSingleUse(t *testing.T) {
+	for _, storeType := range memoryStoreTypesForTest() {
+		t.Run(storeType, func(t *testing.T) {
+			p, err := newTestMemoryStore(t, storeType)
+			if storeType == memoryStoreTypeRedis && err != nil {
+				t.Skipf("skipping redis (is Redis running on localhost:6380?): %v", err)
+			}
+			require.NoError(t, err)
+
+			const rounds = 40
+			doubleClaims := 0
+
+			for i := 0; i < rounds; i++ {
+				// Stands in for a SAML AssertionID: fresh, never seen before.
+				key := "saml_assertion:org:" + uuid.New().String()
+
+				var wg sync.WaitGroup
+				claims := make([]bool, 2)
+				errs := make([]error, 2)
+				start := make(chan struct{})
+				for j := range claims {
+					wg.Add(1)
+					go func(idx int) {
+						defer wg.Done()
+						<-start
+						claims[idx], errs[idx] = p.SetCacheNX(key, "1", 600)
+					}(j)
+				}
+				close(start)
+				wg.Wait()
+
+				won := 0
+				for j := range claims {
+					require.NoError(t, errs[j])
+					if claims[j] {
+						won++
+					}
+				}
+				assert.NotZero(t, won,
+					"one caller must win — a legitimate first-use assertion must not be rejected")
+				if won > 1 {
+					doubleClaims++
+				}
+			}
+
+			assert.Zero(t, doubleClaims,
+				"an assertion ID must be consumable exactly once; "+
+					"%d of %d concurrent replays were accepted by both callers", doubleClaims, rounds)
+		})
+	}
+}
+
+// TestSetCacheNXRejectsASecondClaim pins the sequential contract the replay
+// callers depend on: once a key is held, every later claim is (false, nil) —
+// a rejection, not an error they would have to special-case.
+func TestSetCacheNXRejectsASecondClaim(t *testing.T) {
+	for _, storeType := range memoryStoreTypesForTest() {
+		t.Run(storeType, func(t *testing.T) {
+			p, err := newTestMemoryStore(t, storeType)
+			if storeType == memoryStoreTypeRedis && err != nil {
+				t.Skipf("skipping redis (is Redis running on localhost:6380?): %v", err)
+			}
+			require.NoError(t, err)
+
+			key := "saml_assertion:org:" + uuid.New().String()
+
+			claimed, err := p.SetCacheNX(key, "1", 600)
+			require.NoError(t, err)
+			assert.True(t, claimed, "the first claim of an unseen assertion must succeed")
+
+			replay, err := p.SetCacheNX(key, "1", 600)
+			require.NoError(t, err)
+			assert.False(t, replay, "replaying a consumed assertion must be rejected")
+
+			// The value must remain readable — callers may inspect the marker.
+			got, err := p.GetCache(key)
+			require.NoError(t, err)
+			assert.Equal(t, "1", got)
+		})
+	}
+}
+
+// TestSetCacheNXReclaimsAnExpiredKey pins that the single-use marker does not
+// become a permanent tombstone: once the replay window has passed, the key must
+// be claimable again, otherwise expired-but-unreaped rows would reject
+// legitimate new assertions forever.
+func TestSetCacheNXReclaimsAnExpiredKey(t *testing.T) {
+	for _, storeType := range memoryStoreTypesForTest() {
+		t.Run(storeType, func(t *testing.T) {
+			p, err := newTestMemoryStore(t, storeType)
+			if storeType == memoryStoreTypeRedis && err != nil {
+				t.Skipf("skipping redis (is Redis running on localhost:6380?): %v", err)
+			}
+			require.NoError(t, err)
+
+			key := "saml_assertion:org:" + uuid.New().String()
+
+			// TTL of 1s, then wait it out.
+			claimed, err := p.SetCacheNX(key, "1", 1)
+			require.NoError(t, err)
+			require.True(t, claimed)
+
+			time.Sleep(2 * time.Second)
+
+			reclaimed, err := p.SetCacheNX(key, "1", 600)
+			require.NoError(t, err)
+			assert.True(t, reclaimed, "an expired single-use marker must not block a new claim")
+		})
+	}
+}
+
+// TestSetCacheNXRejectsLegacyRandomIDRow is the regression test for a
+// rolling-upgrade hole in the DB-backed store. Its claim is decided by a
+// deterministic primary key, so an existing row written by an OLDER build
+// (SetCache used a random uuid) carries a different ID and would not collide —
+// the insert would succeed and report the key as claimed, silently accepting a
+// SAML assertion or client-assertion jti that was already consumed.
+//
+// Writing via SetCache and then claiming via SetCacheNX reproduces exactly that
+// mixed-build state.
+func TestSetCacheNXRejectsLegacyRandomIDRow(t *testing.T) {
+	for _, storeType := range memoryStoreTypesForTest() {
+		t.Run(storeType, func(t *testing.T) {
+			p, err := newTestMemoryStore(t, storeType)
+			if storeType == memoryStoreTypeRedis && err != nil {
+				t.Skipf("skipping redis (is Redis running on localhost:6380?): %v", err)
+			}
+			require.NoError(t, err)
+
+			key := "saml_assertion:org:" + uuid.New().String()
+
+			// Stands in for the row an older replica wrote when it consumed
+			// this assertion.
+			require.NoError(t, p.SetCache(key, "1", 600))
+
+			claimed, err := p.SetCacheNX(key, "1", 600)
+			require.NoError(t, err)
+			assert.False(t, claimed,
+				"a key already held by a row from an older build must not be re-claimable")
+		})
+	}
+}

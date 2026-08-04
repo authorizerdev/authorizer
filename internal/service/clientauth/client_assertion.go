@@ -266,6 +266,10 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	// 8. Replay (C2/H4): single-use per issuer. Prefer jti; fall back to a hash of
 	//    (iss,sub,iat,exp) when the token carries no jti (K8s SA tokens have none).
 	//    Held until the token's exp so a captured token cannot be re-presented.
+	//    This read is a cheap SHORT-CIRCUIT only — it rejects an obvious replay
+	//    before the (possibly remote) TokenReview call below. Correctness does
+	//    not rest on it: the atomic SetCacheNX claim further down is what
+	//    actually decides the race between simultaneous first-uses.
 	replayKey := assertionReplayKey(issuer.ID, claims, iss, subject, iat, exp)
 	if seen, _ := p.MemoryStoreProvider.GetCache(replayKey); seen != "" {
 		log.Debug().Msg("client_assertion replay detected")
@@ -299,11 +303,18 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	if replayTTL < 1 {
 		replayTTL = 1
 	}
-	// ponytail: best-effort check-then-set (memory_store has no atomic SetNX);
-	// a sub-second cross-instance race could let two simultaneous replays through.
-	// Acceptable given the short window; upgrade to SetNX if it ever matters.
-	if err := p.MemoryStoreProvider.SetCache(replayKey, "1", replayTTL); err != nil {
+	// Atomic single-use claim: the store decides the race in one operation, so
+	// two simultaneous first-presentations of the same assertion cannot both be
+	// accepted the way the earlier check-then-set pair allowed. Deliberately
+	// placed AFTER TokenReview so a transient apiserver failure does not burn a
+	// legitimate, still-retryable token.
+	claimed, err := p.MemoryStoreProvider.SetCacheNX(replayKey, "1", replayTTL)
+	if err != nil {
 		log.Debug().Err(err).Msg("failed to persist assertion replay marker")
+		return nil, ErrInvalidClient
+	}
+	if !claimed {
+		log.Debug().Msg("client_assertion replay detected (lost single-use claim)")
 		return nil, ErrInvalidClient
 	}
 

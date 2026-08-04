@@ -93,6 +93,19 @@ type Provider interface {
 	// SetCache stores a key-value pair with a TTL in seconds.
 	// Used by the authorization engine for permission evaluation caching.
 	SetCache(key string, value string, ttlSeconds int64) error
+	// SetCacheNX stores a key-value pair with a TTL only if the key is not
+	// already held, reporting whether THIS call took it. It is the single-use
+	// claim primitive for replay defences (SAML assertion IDs, RFC 7523
+	// client-assertion jti) — the same role ClaimRefreshToken plays for refresh
+	// tokens, but claiming by creation rather than by removal.
+	//
+	// Implementations MUST decide the race in one operation and MUST never
+	// read-then-write: a GetCache/SetCache pair lets two concurrent replays of
+	// the same assertion both observe "unseen" and both be accepted.
+	//
+	// A storage fault returns (false, err) — callers treat that as "not
+	// claimed" and reject, so replay defence fails CLOSED.
+	SetCacheNX(key string, value string, ttlSeconds int64) (bool, error)
 	// GetCache retrieves a cached value by key. Returns empty string and nil error if not found.
 	GetCache(key string) (string, error)
 	// DeleteCacheByPrefix removes all cache entries whose keys start with the given prefix.

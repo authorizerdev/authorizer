@@ -20,6 +20,19 @@ func (p *provider) SetCache(key string, value string, ttlSeconds int64) error {
 	return nil
 }
 
+// SetCacheNX stores a key-value pair only if the key is absent, reporting
+// whether this call took it. Redis SET NX decides the race server-side in a
+// single round trip, so concurrent callers can never both be told they won.
+func (p *provider) SetCacheNX(key string, value string, ttlSeconds int64) (bool, error) {
+	duration := time.Duration(ttlSeconds) * time.Second
+	claimed, err := p.store.SetNX(p.ctx, cachePrefix+key, value, duration).Result()
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("Error claiming cache key in redis")
+		return false, err
+	}
+	return claimed, nil
+}
+
 // GetCache retrieves a cached value by key from Redis.
 // Returns empty string and nil error if the key is not found.
 func (p *provider) GetCache(key string) (string, error) {

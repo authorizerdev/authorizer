@@ -83,8 +83,36 @@ func (p *provider) SetCache(key string, value string, ttlSeconds int64) error {
 		// Continue anyway — the add below is what must succeed.
 	}
 
+	entry := newCacheRow(key, value, now, ttlSeconds)
+	if err := p.addSessionToken(ctx, entry); err != nil {
+		return fmt.Errorf("error setting cache: %w", err)
+	}
+	return nil
+}
+
+// cacheRowNamespace seeds the deterministic cache-row UUIDs below. Arbitrary but
+// FIXED — changing it re-points every cache row at a new primary key and voids
+// the single-use guarantee for entries written by an older build.
+var cacheRowNamespace = uuid.MustParse("6f9619ff-8b86-d011-b42d-00c04fc964ff")
+
+// cacheRowID derives the row's primary key from the cache key itself, so the
+// SAME cache key always maps to the SAME row ID. Two properties follow:
+//
+//   - SetCache stays single-row per key (it deletes then inserts the same ID),
+//     instead of the random-UUID scheme that could leave duplicate rows for one
+//     key after a racing write, with GetCache then picking one arbitrarily.
+//   - SetCacheNX gets its atomicity for free from the PRIMARY KEY constraint —
+//     the second concurrent insert of the same cache key violates it and fails,
+//     with no read-then-write window. See SetCacheNX for the per-backend caveat.
+//
+// UUIDv5 keeps the value inside the column's char(36).
+func cacheRowID(key string) string {
+	return uuid.NewSHA1(cacheRowNamespace, []byte(key)).String()
+}
+
+func newCacheRow(key, value string, now, ttlSeconds int64) *schemas.SessionToken {
 	entry := &schemas.SessionToken{
-		ID:        uuid.New().String(),
+		ID:        cacheRowID(key),
 		UserID:    cacheNamespace,
 		KeyName:   key,
 		Token:     value,
@@ -93,10 +121,70 @@ func (p *provider) SetCache(key string, value string, ttlSeconds int64) error {
 		UpdatedAt: now,
 	}
 	entry.Key = entry.ID
-	if err := p.addSessionToken(ctx, entry); err != nil {
-		return fmt.Errorf("error setting cache: %w", err)
+	return entry
+}
+
+// SetCacheNX claims a key by CREATING its row, letting the primary-key
+// constraint decide the race rather than a read followed by a write. This is
+// the replay-defence primitive behind SAML assertion IDs and RFC 7523 jti.
+//
+// Fails CLOSED: a duplicate key and a genuine storage fault both return
+// "not claimed", so a database problem rejects the assertion rather than
+// waving through a possible replay.
+//
+// ponytail: atomic on backends whose insert REJECTS a duplicate primary key
+// (SQL, MongoDB, ArangoDB, Couchbase). DynamoDB PutItem and Cassandra/ScyllaDB
+// INSERT are upserts by default, so there a concurrent second claim is not
+// rejected and both callers can win — unchanged from the previous
+// read-then-write behaviour, not a regression.
+//
+// Closing that gap is cheaper than it looks: both backends support a
+// conditional write, and this repo already uses one — see
+// storage/db/cassandradb/authenticator.go, which issues
+// `INSERT ... IF NOT EXISTS`. The DynamoDB equivalent is PutItem with
+// ConditionExpression attribute_not_exists(id). Doing it properly means adding
+// a conditional-insert method to storage.Provider and implementing it in all
+// six backends, which is why it is tracked rather than done inline here.
+//
+// Deployments needing an exact guarantee today should configure REDIS_URL,
+// whose SET NX is atomic everywhere.
+func (p *provider) SetCacheNX(key string, value string, ttlSeconds int64) (bool, error) {
+	ctx := context.Background()
+	now := time.Now().Unix()
+
+	// An expired row that the reaper has not collected yet must not block a
+	// Resolve any pre-existing row for this key BEFORE the insert.
+	//
+	// This is not merely an optimisation. The insert's atomicity comes from the
+	// deterministic primary key (cacheRowID), so it only rejects a duplicate
+	// when the existing row carries that same ID. A row written by SetCache on
+	// a replica running a build older than this one has a RANDOM uuid instead,
+	// so the insert would NOT collide, would succeed, and would report the key
+	// as claimed — silently accepting a replay during a rolling upgrade, and
+	// leaving two rows for one key.
+	//
+	// So: a LIVE row of any ID means the key is already held. An EXPIRED row is
+	// cleared so it cannot block a legitimate fresh claim. Concurrency among
+	// live claimants is still decided by the primary key on insert.
+	if row, err := p.getSessionTokenByUserIDAndKey(ctx, cacheNamespace, key); err == nil && row != nil {
+		if row.ExpiresAt > now {
+			return false, nil
+		}
+		if err := p.deleteSessionTokenByUserIDAndKey(ctx, cacheNamespace, key); err != nil {
+			p.dependencies.Log.Debug().Err(err).Str("cache_key", key).
+				Msg("failed to clear expired cache row before claim")
+		}
 	}
-	return nil
+
+	if err := p.addSessionToken(ctx, newCacheRow(key, value, now, ttlSeconds)); err != nil {
+		// Duplicate primary key (already claimed) or a storage fault — both
+		// mean "this caller did not take the key". Debug, not Warn: a losing
+		// claim is the EXPECTED outcome on every replay attempt.
+		p.dependencies.Log.Debug().Err(err).Str("cache_key", key).
+			Msg("cache key not claimed (already held or storage fault)")
+		return false, nil
+	}
+	return true, nil
 }
 
 // GetCache retrieves a cached value by key. Returns an empty string and a nil
