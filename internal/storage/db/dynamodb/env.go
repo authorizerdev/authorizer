@@ -45,7 +45,7 @@ func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
 	}
 	var env schemas.Env
 	if err := unmarshalItem(items[0], &env); err != nil {
-		return nil, fmt.Errorf("config not found")
+		return nil, fmt.Errorf("config not found: %w", ErrNotFound)
 	}
 	return &env, nil
 }

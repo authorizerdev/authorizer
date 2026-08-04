@@ -55,7 +55,7 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 		}
 		return &token, nil
 	}
-	return nil, fmt.Errorf("session token not found")
+	return nil, fmt.Errorf("session token not found: %w", ErrNotFound)
 }
 
 // DeleteSessionToken deletes a session token by ID
@@ -200,7 +200,7 @@ func (p *provider) GetMFASessionByUserIDAndKey(ctx context.Context, userId, key 
 		}
 		return &session, nil
 	}
-	return nil, fmt.Errorf("MFA session not found")
+	return nil, fmt.Errorf("MFA session not found: %w", ErrNotFound)
 }
 
 // DeleteMFASession deletes an MFA session by ID
@@ -342,7 +342,7 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 		}
 		return &state, nil
 	}
-	return nil, fmt.Errorf("OAuth state not found")
+	return nil, fmt.Errorf("OAuth state not found: %w", ErrNotFound)
 }
 
 // DeleteOAuthStateByKey deletes an OAuth state by key

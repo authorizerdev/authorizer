@@ -86,7 +86,7 @@ func (p *provider) GetTrustedIssuerByID(ctx context.Context, id string) (*schema
 	for {
 		if !cursor.HasMore() {
 			if issuer == nil {
-				return nil, fmt.Errorf("trusted issuer not found")
+				return nil, fmt.Errorf("trusted issuer not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -115,7 +115,7 @@ func (p *provider) GetTrustedIssuerByIssuerURL(ctx context.Context, issuerURL st
 	for {
 		if !cursor.HasMore() {
 			if issuer == nil {
-				return nil, fmt.Errorf("trusted issuer not found")
+				return nil, fmt.Errorf("trusted issuer not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -145,7 +145,7 @@ func (p *provider) GetTrustedIssuerByOrgIDAndKind(ctx context.Context, orgID, ki
 	for {
 		if !cursor.HasMore() {
 			if issuer == nil {
-				return nil, fmt.Errorf("trusted issuer not found")
+				return nil, fmt.Errorf("trusted issuer not found: %w", ErrNotFound)
 			}
 			break
 		}

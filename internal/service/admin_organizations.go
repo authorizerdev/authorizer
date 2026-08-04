@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -96,6 +97,9 @@ func (p *provider) UpdateOrganization(ctx context.Context, meta RequestMetadata,
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetOrganizationByID")
 		p.logOrgFailure(meta, constants.AuditOrganizationUpdateFailedEvent, params.ID)
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("organization not found")
+		}
 		return nil, nil, err
 	}
 
@@ -164,6 +168,9 @@ func (p *provider) DeleteOrganization(ctx context.Context, meta RequestMetadata,
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetOrganizationByID")
 		p.logOrgFailure(meta, constants.AuditOrganizationDeleteFailedEvent, params.ID)
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("organization not found")
+		}
 		return nil, nil, err
 	}
 
@@ -203,6 +210,9 @@ func (p *provider) Organization(ctx context.Context, meta RequestMetadata, param
 	org, err := p.StorageProvider.GetOrganizationByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetOrganizationByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("organization not found")
+		}
 		return nil, nil, err
 	}
 	return org.AsAPIOrganization(), nil, nil

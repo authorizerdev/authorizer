@@ -223,6 +223,14 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	if err != nil {
 		return false, err
 	}
+	// Providers disagree on how "not enrolled" is reported: most return an
+	// error (gorm.ErrRecordNotFound and friends), but the DynamoDB provider
+	// returns (nil, nil). Without this guard that case dereferences a nil row
+	// below and panics, so treat a missing authenticator as a failed
+	// validation — there is no secret to check the passcode against.
+	if totpModel == nil {
+		return false, nil
+	}
 
 	// A pending re-enrollment secret takes precedence: if one is staged and the
 	// supplied code matches it, promote it now (the user is confirming their
@@ -254,10 +262,13 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 		migrate = true
 	default:
 		// Decryption was attempted (the row IS prefixed) but failed.
-		// The most likely cause is a key mismatch — operators rotating
-		// --jwt-secret without re-enrolling TOTP users would lock them
-		// out. Fail closed and log loudly.
-		log.Error().Err(decErr).Msg("failed to decrypt stored TOTP secret; check that --jwt-secret has not changed since enrollment")
+		// The most likely cause is a key mismatch: the at-rest key is
+		// --encryption-key, which falls back to --jwt-secret when unset, so
+		// rotating EITHER (without having set a dedicated --encryption-key
+		// first) changes the key and locks enrolled TOTP users out. There is
+		// no re-encryption path, so those users must re-enrol. Fail closed
+		// and log loudly.
+		log.Error().Err(decErr).Msg("failed to decrypt stored TOTP secret; check that --encryption-key (or --jwt-secret, if no encryption key is set) has not changed since enrollment")
 		return false, decErr
 	}
 
@@ -311,6 +322,11 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 	totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
+	}
+	// See Validate: the DynamoDB provider signals "not enrolled" as (nil, nil)
+	// rather than an error, so guard before dereferencing.
+	if totpModel == nil {
+		return false, nil
 	}
 	// convert recoveryCodes to map
 	recoveryCodesMap := map[string]bool{}

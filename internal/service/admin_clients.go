@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -134,6 +135,9 @@ func (p *provider) UpdateClient(ctx context.Context, meta RequestMetadata, param
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetClientByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("client not found")
+		}
 		return nil, nil, err
 	}
 
@@ -191,6 +195,9 @@ func (p *provider) DeleteClient(ctx context.Context, meta RequestMetadata, param
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetClientByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("client not found")
+		}
 		return nil, nil, err
 	}
 
@@ -230,6 +237,9 @@ func (p *provider) RotateClientSecret(ctx context.Context, meta RequestMetadata,
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetClientByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("client not found")
+		}
 		return nil, nil, err
 	}
 
@@ -277,6 +287,9 @@ func (p *provider) Client(ctx context.Context, meta RequestMetadata, params *mod
 	sa, err := p.StorageProvider.GetClientByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetClientByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("client not found")
+		}
 		return nil, nil, err
 	}
 	return sa.AsAPIClient(), nil, nil

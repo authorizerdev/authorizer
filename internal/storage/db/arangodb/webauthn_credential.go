@@ -85,7 +85,7 @@ func (p *provider) GetWebauthnCredentialByID(ctx context.Context, id string) (*s
 	for {
 		if !cursor.HasMore() {
 			if cred == nil {
-				return nil, fmt.Errorf("webauthn credential not found")
+				return nil, fmt.Errorf("webauthn credential not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -114,7 +114,7 @@ func (p *provider) GetWebauthnCredentialByCredentialID(ctx context.Context, cred
 	for {
 		if !cursor.HasMore() {
 			if cred == nil {
-				return nil, fmt.Errorf("webauthn credential not found")
+				return nil, fmt.Errorf("webauthn credential not found: %w", ErrNotFound)
 			}
 			break
 		}

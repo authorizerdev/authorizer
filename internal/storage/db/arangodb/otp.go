@@ -78,7 +78,7 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*sch
 	for {
 		if !cursor.HasMore() {
 			if otp == nil {
-				return nil, fmt.Errorf("otp with given email not found")
+				return nil, fmt.Errorf("otp with given email not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -105,7 +105,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 	for {
 		if !cursor.HasMore() {
 			if otp == nil {
-				return nil, fmt.Errorf("otp with given phone_number not found")
+				return nil, fmt.Errorf("otp with given phone_number not found: %w", ErrNotFound)
 			}
 			break
 		}

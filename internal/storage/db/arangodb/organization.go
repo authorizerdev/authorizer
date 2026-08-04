@@ -104,7 +104,7 @@ func (p *provider) GetOrganizationByID(ctx context.Context, id string) (*schemas
 	for {
 		if !cursor.HasMore() {
 			if org == nil {
-				return nil, fmt.Errorf("organization not found")
+				return nil, fmt.Errorf("organization not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -132,7 +132,7 @@ func (p *provider) GetOrganizationByName(ctx context.Context, name string) (*sch
 	for {
 		if !cursor.HasMore() {
 			if org == nil {
-				return nil, fmt.Errorf("organization not found")
+				return nil, fmt.Errorf("organization not found: %w", ErrNotFound)
 			}
 			break
 		}

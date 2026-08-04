@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -32,7 +33,12 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, nil
+		// Absent MUST be an error, matching every other backend
+		// (gorm.ErrRecordNotFound, mongo.ErrNoDocuments, ...). Callers in
+		// service/verify_email.go and service/reset_password.go branch on err
+		// alone and then dereference the row, so returning (nil, nil) here
+		// panics on this backend only.
+		return nil, fmt.Errorf("verification request not found: %w", ErrNotFound)
 	}
 	var v schemas.VerificationRequest
 	if err := unmarshalItem(items[0], &v); err != nil {
@@ -49,7 +55,10 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, nil
+		// See GetVerificationRequestByToken: absent is an error on every other
+		// backend, and resend_verify_email.go passes this row straight to
+		// DeleteVerificationRequest without a nil check.
+		return nil, fmt.Errorf("verification request not found: %w", ErrNotFound)
 	}
 	var v schemas.VerificationRequest
 	if err := unmarshalItem(items[0], &v); err != nil {

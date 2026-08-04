@@ -28,6 +28,39 @@ type Dependencies struct {
 // Delete methods are idempotent: deleting a non-existent id returns nil, not an
 // error. Callers that rely on delete-confirms-existence must check existence
 // separately first.
+//
+// # Not-found convention
+//
+// Every backend must agree on how "the row does not exist" is reported,
+// because callers branch on it. Two rules, and one explicitly documented
+// exception:
+//
+//  1. SINGLE-ENTITY GETTERS RETURN AN ERROR when the row is absent — the
+//     driver's own not-found value (gorm.ErrRecordNotFound,
+//     mongo.ErrNoDocuments, gocql.ErrNotFound, a bare errors.New for
+//     key-value backends). This is the default and covers all but one of them.
+//     Callers therefore treat `err != nil` as "absent or unavailable" and are
+//     entitled to dereference the returned pointer once err is nil.
+//
+//     Returning (nil, nil) from one of these is a PARITY BUG, not a style
+//     choice: callers written against the majority contract dereference the
+//     nil row and panic on that backend alone. Three DynamoDB methods did
+//     exactly this (authenticator and verification-request lookups) and
+//     crashed the TOTP and email-verification paths on that backend only.
+//
+//  2. LIST METHODS RETURN (nil, nil) FOR AN EMPTY RESULT. An empty collection
+//     is not an error, and callers range over the slice — a nil slice ranges
+//     zero times, so no guard is needed.
+//
+//  3. EXCEPTION — GetClientByClientID MUST return (nil, nil) for an absent
+//     client_id. Its callers distinguish "no such client" from "storage
+//     unavailable" solely by whether err is nil, so an absent row must not be
+//     reported as an error. See the method's own comment for the reasoning.
+//     Callers of THIS method must nil-check the returned pointer.
+//
+// When adding a method, follow rule 1 unless there is a documented reason not
+// to, and implement the same behaviour in all backends
+// (internal/storage/db/{sql,mongodb,arangodb,cassandradb,dynamodb,couchbase}).
 type Provider interface {
 	// AddUser to save user information in database
 	AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error)

@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -43,7 +44,9 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, nil
+		// Absent MUST be an error, matching every other backend. totp.Validate
+		// and ValidateRecoveryCode branch on err alone before dereferencing.
+		return nil, fmt.Errorf("authenticator not found: %w", ErrNotFound)
 	}
 	var a schemas.Authenticator
 	if err := unmarshalItem(items[0], &a); err != nil {
