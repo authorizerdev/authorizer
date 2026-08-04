@@ -438,6 +438,23 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Warn().Msg("running with --env=e2e: SSRF protection is relaxed for the SSO broker and webhooks, and OAuth/SMS are routed to e2e-playground mock addresses. This must never be set in a real deployment.")
 	}
 
+	// Warn when the at-rest key is only the JWT secret by fallback. This is
+	// cryptographically fine — JWTSecret is a real secret — but it couples two
+	// keys with opposite lifecycles. A signing key is meant to be rotatable and
+	// rotation is cheap (tokens expire, users log in again); the at-rest key has
+	// NO re-encryption path, so while they are the same value, rotating
+	// --jwt-secret silently makes every enrolled TOTP authenticator
+	// undecryptable and invalidates outstanding OTPs.
+	//
+	// A warning rather than a hard failure, deliberately: unlike an EMPTY key
+	// (which is rejected outright in Config.ValidateEncryptionKey because the
+	// data is unprotected *now*), the data here IS protected. The risk is a
+	// future operator action, and this is the only chance to inform that
+	// decision before enrolments exist and make the fix expensive.
+	if rootArgs.config.EncryptionKey == rootArgs.config.JWTSecret {
+		log.Warn().Msg("--encryption-key is not set and has fallen back to --jwt-secret. Secrets at rest (TOTP seeds, OTP digests) are keyed by the same value that signs tokens, so rotating --jwt-secret will lock out every enrolled TOTP user — there is no re-encryption path. Set a distinct --encryption-key now; doing it after users enrol requires them to re-enrol.")
+	}
+
 	// Initialize prometheus metrics
 	metrics.Init()
 
