@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -327,8 +328,14 @@ func (p *provider) GetState(key string) (string, error) {
 	}
 	// Enforce 10-minute TTL consistent with Redis provider.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
-		// Clean up expired entry asynchronously.
-		go func() { _, _ = p.deleteOAuthStateByKey(context.Background(), key) }()
+		// Clean up expired entry asynchronously. Routed through asyncutil.Go,
+		// not a bare `go func()`: this is detached one-shot request-scoped work,
+		// so it must be drained by graceful shutdown and have its panics
+		// recovered — an unrecovered panic in a bare goroutine takes down the
+		// whole process.
+		asyncutil.Go(p.dependencies.Log, func() {
+			_, _ = p.deleteOAuthStateByKey(context.Background(), key)
+		})
 		return "", fmt.Errorf("state expired")
 	}
 	return oauthState.State, nil
