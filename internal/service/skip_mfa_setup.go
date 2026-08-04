@@ -105,7 +105,7 @@ func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata, param
 	// passkey or OAuth, not password, but issueAuthResponse has no way to
 	// recover the original login method from the MFA session today. Out of
 	// scope for this task.
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodBasicAuth, "MFA setup skipped", params.State, false)
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodBasicAuth, "MFA setup skipped", params.State, false, p.consumeMFAScope(mfaSession))
 	if err != nil {
 		return nil, nil, err
 	}

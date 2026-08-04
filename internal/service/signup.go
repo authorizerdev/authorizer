@@ -381,7 +381,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		switch gate {
 		case mfaGateOfferAll, mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 				log.Debug().Err(err).Msg("Failed to set mfa session")
 				return nil, nil, err
 			}

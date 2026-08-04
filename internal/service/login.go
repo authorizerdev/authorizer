@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"context"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,18 +32,77 @@ import (
 // ops visibility.
 const loginGenericErrMsg = "invalid credentials"
 
+// mfaScopeKey namespaces the requested scope carried across an MFA
+// interruption, keyed by the MFA session id so it expires with it.
+func mfaScopeKey(mfaSession string) string {
+	return "mfa_scope:" + mfaSession
+}
+
+// consumeMFAScope returns the scope stashed by setMFASession and clears it, so
+// a captured cookie cannot replay the scope after the session is spent. A
+// missing or unreadable entry yields nil, and the caller falls back to the
+// default scope — losing scope must never block a legitimate login.
+func (p *provider) consumeMFAScope(mfaSession string) []string {
+	if mfaSession == "" {
+		return nil
+	}
+	key := mfaScopeKey(mfaSession)
+	blob, err := p.MemoryStoreProvider.GetCache(key)
+	if err != nil || blob == "" {
+		return nil
+	}
+	_ = p.MemoryStoreProvider.DeleteCacheByPrefix(key)
+	var scope []string
+	if err := json.Unmarshal([]byte(blob), &scope); err != nil {
+		return nil
+	}
+	return scope
+}
+
 // setMFASession arms a short-lived MFA session (memory-store entry + cookie)
 // proving the caller already completed a first authentication factor for
 // userID. verify_otp and the scoped webauthn_login_options/_verify flow both
 // require this session before they'll act. Shared by Login's TOTP branch and
 // WebauthnLoginVerify's EnforceMFA gate.
-func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64) error {
+//
+// The optional scope is the caller's requested OAuth scope, carried across
+// the interruption so the deferred token issuance can honour it.
+func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64, scope ...string) error {
 	mfaSession := uuid.NewString()
 	// Every caller of this helper (login, webauthn-verify, oauth callback) has
 	// already confirmed a first factor for userID, so the session is Verified —
 	// the only purpose skip_mfa_setup/lock_mfa will act on.
 	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, constants.MFASessionPurposeVerified, expiresAt); err != nil {
 		return err
+	}
+	// Carry the caller's requested scope across the MFA interruption.
+	//
+	// The token is issued later, by skip_mfa_setup / verify_otp / webauthn —
+	// none of which receive the original request. Without this the issuance
+	// path fell back to a hardcoded ["openid","email","profile"], silently
+	// dropping every other scope the caller asked for. Delegation flows lost
+	// exactly the scopes they exist to attenuate.
+	//
+	// Deliberately NOT re-supplied by the client at completion: those
+	// endpoints are unauthenticated, so accepting a scope there would let a
+	// caller self-grant privileges they never requested at login. It is
+	// carried, never re-asked.
+	//
+	// Held in the cache rather than on the MFA session row: the row has no
+	// scope column and adding one means a migration across all six storage
+	// backends, for state that is transient and already expires with the
+	// session. Same pattern as the pending-TOTP-secret and OTP-lockout keys.
+	if len(scope) > 0 {
+		ttl := expiresAt - time.Now().Unix()
+		if ttl > 0 {
+			if blob, err := json.Marshal(scope); err == nil {
+				if err := p.MemoryStoreProvider.SetCache(mfaScopeKey(mfaSession), string(blob), ttl); err != nil {
+					// Non-fatal: losing the scope degrades to the default set
+					// rather than blocking a legitimate login.
+					p.Log.Debug().Err(err).Msg("failed to persist mfa session scope")
+				}
+			}
+		}
 	}
 	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
 		side.AddCookie(c)
@@ -193,7 +253,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -234,7 +294,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -333,7 +393,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -371,7 +431,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -416,7 +476,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		switch gate {
 		case mfaGateBlockVerify:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -434,7 +494,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return res, side, nil
 		case mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -458,7 +518,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return res, side, nil
 		case mfaGateOfferAll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}

@@ -135,10 +135,14 @@ func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestM
 	}
 	// Single-use: drop the session so a captured cookie cannot be replayed.
 	gc := &gin.Context{Request: meta.Request}
+	// Resolve the carried scope BEFORE dropping the session — consumeMFAScope
+	// is keyed by the same session id.
+	var carriedScope []string
 	if mfaSession, sErr := cookie.GetMfaSession(gc); sErr == nil {
+		carriedScope = p.consumeMFAScope(mfaSession)
 		_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 	}
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false)
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false, carriedScope)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -255,7 +259,7 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		UserAgent:    meta.UserAgent,
 	})
 
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Logged in successfully with passkey.", params.State, false)
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Logged in successfully with passkey.", params.State, false, nil)
 	if err != nil {
 		return nil, nil, err
 	}
