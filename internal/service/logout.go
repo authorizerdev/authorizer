@@ -43,7 +43,7 @@ func (p *provider) Logout(ctx context.Context, meta RequestMetadata) (*model.Res
 
 	metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
 	metrics.ActiveSessions.Dec()
-	p.AuditProvider.LogEvent(applyDelegationActor(ctx, audit.Event{
+	p.AuditProvider.LogEvent(applyDelegationActor(tokenData.ActorID, audit.Event{
 		Action:   constants.AuditLogoutEvent,
 		Protocol: meta.Protocol, ActorID: tokenData.UserID,
 		ActorType:    constants.AuditActorTypeUser,

@@ -259,7 +259,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, nil, err
 	}
-	p.AuditProvider.LogEvent(applyDelegationActor(ctx, audit.Event{
+	p.AuditProvider.LogEvent(applyDelegationActor(tokenData.ActorID, audit.Event{
 		Action:   constants.AuditProfileUpdatedEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,

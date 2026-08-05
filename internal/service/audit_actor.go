@@ -1,11 +1,10 @@
 package service
 
 import (
-	"context"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/constants"
 )
 
@@ -34,18 +33,26 @@ import (
 //	                event carried one), so "who did this, and for whom" both
 //	                survive
 //
-// A non-delegated caller is returned unchanged, so every existing call site
-// keeps its current behaviour exactly.
-func applyDelegationActor(ctx context.Context, event audit.Event) audit.Event {
-	principal, ok := authctx.FromContext(ctx)
-	if !ok || !principal.IsDelegated() {
+// An empty actorID — an ordinary, non-delegated caller — returns the event
+// unchanged, so every existing call site keeps its current behaviour exactly.
+//
+// The actor is passed in rather than read from the context on purpose. It used
+// to come from authctx.Principal, which ONLY the gRPC interceptor populates, so
+// on GraphQL every agent action was attributed to the human and the whole
+// mechanism was dead on the primary surface. Callers already hold the resolved
+// caller identity (callerTokenData), which knows the actor on every transport;
+// taking it from there makes the attribution transport-independent by
+// construction rather than by a second lookup that can drift again.
+func applyDelegationActor(actorID string, event audit.Event) audit.Event {
+	actorID = strings.TrimSpace(actorID)
+	if actorID == "" {
 		return event
 	}
 
 	delegatedUserID := event.ActorID
 	delegatedEmail := event.ActorEmail
 
-	event.ActorID = principal.ActorID
+	event.ActorID = actorID
 	event.ActorType = constants.AuditActorTypeAgent
 	event.ActorEmail = ""
 	event.Metadata = mergeAuditMetadata(event.Metadata, delegatedUserID, delegatedEmail)
