@@ -52,13 +52,18 @@ type document
 // (d) INTERSECTION BYPASS
 // ---------------------------------------------------------------------------
 
-// TestAdvIntersectionBypassViaExplicitUser attacks the delegation intersection
-// in internal/service/check_permissions.go:47-52, which skips
-// delegationSubjects whenever params.User is non-empty. The in-code comment
-// claims an explicit `user` is "super-admin only", but
-// service/fga.go resolveFgaSubject:84 also honours SELF-specification for any
-// caller. A delegated agent can therefore echo back its own subject and have
-// the agent:<client_id> half of the intersection dropped.
+// TestAdvIntersectionBypassViaExplicitUser is the regression test for a
+// one-parameter defeat of the whole intersection.
+//
+// CheckPermissions used to skip delegationSubjects whenever params.User was
+// non-empty, on the stated grounds that an explicit `user` is "super-admin
+// only". It is not: resolveFgaSubject also honours SELF-specification for any
+// caller, since that is exactly what the token already proves. A delegated
+// agent could therefore echo back its own subject and have the
+// agent:<client_id> half dropped — using a field it controls.
+//
+// The gate now keys on WHO the caller is, never on what they typed. Each
+// subtest below is one spelling of the old bypass.
 func TestAdvIntersectionBypassViaExplicitUser(t *testing.T) {
 	cfg := getTestConfig()
 	ts, eng := initFGATestSetup(t, cfg)
@@ -119,11 +124,15 @@ func TestAdvIntersectionBypassViaExplicitUser(t *testing.T) {
 	})
 }
 
-// TestAdvListPermissionsHasNoIntersection attacks the OTHER authority-answering
-// API. Only CheckPermissions was taught about delegation; ListPermissions
-// (internal/service/list_permissions.go) still enumerates for the single
-// resolved subject.
-func TestAdvListPermissionsHasNoIntersection(t *testing.T) {
+// TestAdvListPermissionsIntersectsToo covers the OTHER authority-answering API.
+// Only CheckPermissions was taught about delegation at first, leaving
+// ListPermissions enumerating for the single resolved subject.
+//
+// Enumeration has to intersect as well, and for a reason distinct from
+// CheckPermissions': an agent that cannot ACT on an object would still see it
+// LISTED, leaking the delegating user's resource names to an agent that was
+// never granted them. The explicit-`user` bypass applied here identically.
+func TestAdvListPermissionsIntersectsToo(t *testing.T) {
 	cfg := getTestConfig()
 	ts, eng := initFGATestSetup(t, cfg)
 	req, ctx := createContext(ts)
@@ -621,10 +630,15 @@ func TestAdvDelegatedTokenDiesWithItsSession(t *testing.T) {
 // (c) ActorID shape — tuple/userset smuggling into the agent subject
 // ---------------------------------------------------------------------------
 
-// TestAdvActorIDUsersetSmuggling probes delegationSubjects
-// (internal/service/fga_agent.go:141), which concatenates ActorID into an FGA
-// subject WITHOUT the ContainsAny(":#@ \t\n") guard that machineFgaSubject
-// applies at internal/service/fga.go:181.
+// TestAdvActorIDUsersetSmuggling covers the missing shape guard.
+// delegationSubjects concatenated ActorID into an FGA subject WITHOUT the
+// ContainsAny(":#@ \t\n") check machineFgaSubject applies, so a separator
+// smuggled through would address a different subject than the one that
+// authenticated — "agent:x#member" is a userset, not a concrete agent.
+//
+// Driven end to end here rather than at the unit level: whatever the guard
+// does, the OUTCOME an attacker gets must never be "allowed". The unit-level
+// pin on the guard itself is TestAdvAgentSubjectStringIsValidated.
 func TestAdvActorIDUsersetSmuggling(t *testing.T) {
 	cfg := getTestConfig()
 	ts, eng := initFGATestSetup(t, cfg)
