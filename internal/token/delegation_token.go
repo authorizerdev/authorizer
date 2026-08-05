@@ -100,8 +100,18 @@ type DelegationTokenConfig struct {
 // claim on a delegated token would make service/fga.go classify the caller as a
 // service_account subject, silently breaking the invariant that a delegated
 // token always resolves to "user:<sub>".
+//
+// NOTE the OIDC Back-Channel Logout token (backchannel_logout.go) also carries
+// a `sid`, and sends the BARE NONCE. The two are deliberately not identical —
+// that one is an outward-facing OIDC contract with relying parties and must not
+// change shape — but this value ends with it, so a consumer that ever needs to
+// correlate the two can match on the suffix. Both are opaque to their
+// recipients; only this server interprets either.
 func DelegationSessionID(loginMethod, userID, nonce string) string {
-	if strings.TrimSpace(userID) == "" || strings.TrimSpace(nonce) == "" {
+	// Trim before building, not just before testing: the result is a lookup key,
+	// and a stray space baked into it would address an entry that never exists.
+	loginMethod, userID, nonce = strings.TrimSpace(loginMethod), strings.TrimSpace(userID), strings.TrimSpace(nonce)
+	if userID == "" || nonce == "" {
 		return ""
 	}
 	sessionKey := userID

@@ -48,8 +48,7 @@ import (
 //     session lookup, so revoking a user still stops their agents.
 //   - The session the delegation was derived from must still exist. See
 //     DelegationSessionID: this is what makes logout and password reset stop a
-//     delegated token here, and it is checked LAST because it is the only step
-//     that touches the memory store.
+//     delegated token here.
 //
 // # What is knowingly given up
 //
@@ -112,6 +111,14 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 		return res, fmt.Errorf(`unauthorized: token audience is not this server`)
 	}
 
+	// Session first, subject second: the session lookup hits the memory store
+	// (in-process or Redis) while the subject lookup hits the database, so a
+	// token whose delegation has already been revoked is rejected without
+	// spending a DB read.
+	if !p.delegationSessionIsLive(res) {
+		return res, fmt.Errorf(`unauthorized: originating session is no longer valid`)
+	}
+
 	if !p.delegationSubjectIsLive(gc, userID) {
 		return res, fmt.Errorf(`unauthorized: delegation subject is not active`)
 	}
@@ -130,10 +137,6 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 
 	if res["token_type"] != constants.TokenTypeAccessToken {
 		return res, fmt.Errorf(`unauthorized: invalid token type`)
-	}
-
-	if !p.delegationSessionIsLive(res) {
-		return res, fmt.Errorf(`unauthorized: originating session is no longer valid`)
 	}
 
 	return res, nil
