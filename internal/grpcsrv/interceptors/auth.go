@@ -127,6 +127,7 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 				UserID:      tokenData.UserID,
 				LoginMethod: tokenData.LoginMethod,
 				Nonce:       tokenData.Nonce,
+				ActorID:     tokenData.ActorID,
 			})
 			return handler(ctx, req)
 		}
@@ -159,6 +160,7 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 			UserID:      tokenData.UserID,
 			LoginMethod: tokenData.LoginMethod,
 			Nonce:       tokenData.Nonce,
+			ActorID:     tokenData.ActorID,
 		})
 		return handler(ctx, req)
 	}

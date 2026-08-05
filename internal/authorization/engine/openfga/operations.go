@@ -373,3 +373,33 @@ func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 	}
 	return modelID, *dsl, nil
 }
+
+// TypeNames returns every object type declared in the active model, sorted.
+//
+// Distinct from TypeRelations, which omits types that declare no relations.
+// That omission makes it unusable for detecting a type that is only ever a
+// SUBJECT — the canonical `type agent` has no relations of its own, so
+// TypeRelations never reports it and any feature keyed on that would silently
+// never activate.
+func (e *engineImpl) TypeNames(ctx context.Context) ([]string, error) {
+	storeID, modelID := e.ids()
+	if modelID == "" {
+		return nil, fmt.Errorf("openfga.TypeNames: %w", engine.ErrNoModel)
+	}
+	res, err := e.srv.ReadAuthorizationModel(ctx, &openfgav1.ReadAuthorizationModelRequest{
+		StoreId: storeID,
+		Id:      modelID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("openfga.TypeNames: %w", err)
+	}
+	defs := res.GetAuthorizationModel().GetTypeDefinitions()
+	out := make([]string, 0, len(defs))
+	for _, td := range defs {
+		if n := td.GetType(); n != "" {
+			out = append(out, n)
+		}
+	}
+	sort.Strings(out)
+	return out, nil
+}

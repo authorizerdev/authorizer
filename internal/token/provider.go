@@ -67,6 +67,11 @@ type Provider interface {
 	SignJWTToken(jwtclaims jwt.MapClaims) (string, error)
 	// ValidateAccessToken validates access token
 	ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error)
+	// ValidateDelegatedAccessToken validates a stateless RFC 8693 delegated
+	// access token presented at Authorizer's own API. Weaker than
+	// ValidateAccessToken by exactly one property (no session lookup) and
+	// stricter by one (audience must be this server) — see its doc comment.
+	ValidateDelegatedAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error)
 	// ValidateAdminToken validates session token
 	ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionData, error)
 	// ValidateJWTClaims validates jwt claims

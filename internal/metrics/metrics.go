@@ -173,6 +173,27 @@ var (
 		[]string{"operation", "result"},
 	)
 
+	// FgaDelegatedChecksTotal counts access decisions made for an RFC 8693
+	// DELEGATED caller — an agent acting on behalf of a user — and, when
+	// denied, which side of the intersection refused.
+	//
+	// A separate series rather than another label on FgaChecksTotal: adding a
+	// dimension there would fan out every existing series and silently change
+	// the meaning of dashboards and alerts already aggregating that family.
+	//
+	// The outcome label is what makes an intersection denial diagnosable.
+	// Without it, an agent losing access looks identical to any other denial,
+	// and the operator cannot tell whether to grant the AGENT a tuple or fix
+	// the USER's access — the single most likely support question once agent
+	// subjects are in play.
+	FgaDelegatedChecksTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_fga_delegated_checks_total",
+			Help: "Fine-grained authorization decisions for delegated (agent-acting-for-user) callers. operation=check_permissions|list_permissions, outcome=allowed|denied_by_agent|denied_by_user",
+		},
+		[]string{"operation", "outcome"},
+	)
+
 	// FgaCheckDuration tracks the latency of FGA access-decision calls (the
 	// OpenFGA engine Check/ListObjects call), in seconds, across every
 	// decision surface — see FgaChecksTotal's doc comment for the QPS caveat
@@ -296,6 +317,7 @@ func Init() {
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
 		prometheus.MustRegister(FgaChecksTotal)
+		prometheus.MustRegister(FgaDelegatedChecksTotal)
 		prometheus.MustRegister(FgaCheckDuration)
 		prometheus.MustRegister(FgaOperationsTotal)
 		prometheus.MustRegister(PanicsRecoveredTotal)
@@ -398,6 +420,27 @@ const (
 	FgaResultError   = "error"
 	FgaResultSuccess = "success"
 )
+
+// Outcomes for FgaDelegatedChecksTotal.
+const (
+	// FgaDelegatedAllowed means both the agent and the delegating user were
+	// permitted — the intersection held.
+	FgaDelegatedAllowed = "allowed"
+	// FgaDelegatedDeniedByAgent means the agent lacks its own grant. The user
+	// may well have access; the agent was not given it. Fix: grant the AGENT.
+	FgaDelegatedDeniedByAgent = "denied_by_agent"
+	// FgaDelegatedDeniedByUser means the agent had its grant but the
+	// delegating user does not have access. This is the Confused Deputy case
+	// the intersection exists to stop. Fix: do NOT widen the agent — the user
+	// genuinely lacks access.
+	FgaDelegatedDeniedByUser = "denied_by_user"
+)
+
+// RecordFgaDelegatedCheck records one delegated access decision and, on a
+// denial, which side of the intersection refused.
+func RecordFgaDelegatedCheck(operation, outcome string) {
+	FgaDelegatedChecksTotal.WithLabelValues(operation, outcome).Inc()
+}
 
 // RecordFgaCheck records a single FGA access decision.
 // operation must be FgaOpCheckPermissions; result must be one of

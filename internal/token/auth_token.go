@@ -796,6 +796,30 @@ type SessionOrAccessTokenData struct {
 	UserID      string
 	LoginMethod string
 	Nonce       string
+	// ActorID is the IMMEDIATE actor of an RFC 8693 delegated token — the
+	// agent's registered client_id, taken from the `act.sub` claim. Empty for
+	// every first-party token, which is what distinguishes "a user did this"
+	// from "an agent did this for a user".
+	//
+	// Only the immediate actor is surfaced. Prior actors nested deeper in the
+	// chain are informational and MUST NOT influence an access-control
+	// decision: they were asserted by an upstream party, not verified here.
+	// They remain available in the raw token for audit reconstruction.
+	ActorID string
+}
+
+// ImmediateActor extracts the `act.sub` of an RFC 8693 delegated token.
+//
+// Returns "" when the token carries no `act`, i.e. it is not delegated. The
+// claim is read from a JWT this server signed and has already validated, so it
+// is not client-controlled input.
+func ImmediateActor(claims map[string]interface{}) string {
+	act, ok := claims["act"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	sub, _ := act["sub"].(string)
+	return strings.TrimSpace(sub)
 }
 
 // GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
@@ -827,8 +851,23 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	// If not session, then validate the access token
 	claims, err := p.ValidateAccessToken(gc, token)
 	if err != nil {
-		p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
-		return nil, fmt.Errorf(`unauthorized`)
+		// An RFC 8693 delegated token is stateless and therefore always fails
+		// the stateful check above (no nonce, no session entry). Fall back to
+		// the delegated validator, which enforces every other check plus a
+		// strict audience match. See ValidateDelegatedAccessToken.
+		//
+		// Ordered as a fallback, not a branch: a first-party token is validated
+		// exactly as before and never touches the weaker path.
+		//
+		// Scoped deliberately to THIS function. The other caller of
+		// ValidateAccessToken is the OIDC /userinfo handler, which is left
+		// untouched so its behaviour stays spec-conformant.
+		delegatedClaims, dErr := p.ValidateDelegatedAccessToken(gc, token)
+		if dErr != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
+			return nil, fmt.Errorf(`unauthorized`)
+		}
+		claims = delegatedClaims
 	}
 	userID, ok := claims["sub"].(string)
 	if !ok || userID == "" {
@@ -840,6 +879,7 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		UserID:      userID,
 		LoginMethod: loginMethod,
 		Nonce:       nonce,
+		ActorID:     ImmediateActor(claims),
 	}, nil
 }
 
