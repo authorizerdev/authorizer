@@ -38,21 +38,27 @@ import (
 //   - Signature and expiry, via ParseJWTToken.
 //   - An `act` claim MUST be present. Without it the token is not delegated and
 //     has no business on this path.
-//   - `aud` MUST equal this server's client_id. A token minted with an RFC 8707
+//   - `aud` MUST equal this server's own URL. A token minted with an RFC 8707
 //     resource indicator carries that resource as its `aud` and is usable ONLY
 //     there — accepting it here would be audience confusion and would make the
 //     resource binding decorative. An agent that wants to call Authorizer must
-//     explicitly request Authorizer as the resource.
+//     explicitly request Authorizer's URL as the resource.
 //   - Issuer/claims via ValidateJWTClaims, and token_type must be an access token.
-//   - The subject user must not be revoked. userIsRevoked is a database lookup,
-//     not a session lookup, so revoking a user still stops their agents.
+//   - The subject must not be revoked or deactivated — a database lookup, not a
+//     session lookup, so revoking a user still stops their agents.
+//   - The session the delegation was derived from must still exist. See
+//     DelegationSessionID: this is what makes logout and password reset stop a
+//     delegated token here, and it is checked LAST because it is the only step
+//     that touches the memory store.
 //
 // # What is knowingly given up
 //
-// Per-session revocation. A first-party token dies when its session entry is
-// deleted (logout, password reset); a delegated token cannot, because it was
-// never stored. That is bounded by DelegatedAccessTokenTTL, which is short by
-// construction, and is the same trade already accepted for resource servers.
+// The byte-for-byte comparison against a stored copy of the token. A first-party
+// token is compared against the exact bytes held in its session entry; a
+// delegated token is never stored, so this path can only confirm that the
+// originating session is still live, not that this specific token is the one
+// that session issued. The signature, the short TTL and the audience binding
+// carry the rest.
 func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 	if accessToken == "" {
@@ -126,7 +132,49 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 		return res, fmt.Errorf(`unauthorized: invalid token type`)
 	}
 
+	if !p.delegationSessionIsLive(res) {
+		return res, fmt.Errorf(`unauthorized: originating session is no longer valid`)
+	}
+
 	return res, nil
+}
+
+// delegationSessionIsLive reports whether the session this delegation was
+// derived from still exists in the memory store.
+//
+// This is the revocation lever. Without it a delegated token kept working after
+// the delegating user logged out, reset their password, changed their email, or
+// had every session wiped by an admin — none of which touch anything a stateless
+// token depends on, so the only bound was DelegatedAccessTokenTTL. The `sid`
+// claim (see DelegationSessionID) addresses the same memory-store entry that
+// ValidateAccessToken checks for the first-party token the delegation came from,
+// so every existing revocation path takes the delegation down with it, with no
+// new storage, no schema change and no new revocation surface to maintain.
+//
+// Only the ENTRY'S EXISTENCE is checked, never its value: the entry holds the
+// original subject token, not this one.
+//
+// Fails CLOSED on a missing or malformed `sid`. A delegated token minted from a
+// subject that had no session cannot be checked, and something uncheckable must
+// not authenticate at Authorizer's own API — it stays usable at the downstream
+// resource server it was actually bound to, which is where it belongs.
+func (p *provider) delegationSessionIsLive(claims map[string]interface{}) bool {
+	if p.dependencies.MemoryStoreProvider == nil {
+		return false
+	}
+	sid, _ := claims["sid"].(string)
+	sessionKey, nonce, ok := ParseDelegationSessionID(sid)
+	if !ok {
+		p.dependencies.Log.Debug().
+			Msg("delegated token rejected: no usable sid claim, so the originating session cannot be verified")
+		return false
+	}
+	if _, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce); err != nil {
+		p.dependencies.Log.Debug().Err(err).Str("session_key", sessionKey).
+			Msg("delegated token rejected: originating session is gone (logout, password reset or admin revoke)")
+		return false
+	}
+	return true
 }
 
 // sameAudience compares an audience claim with this server's URL, tolerating a

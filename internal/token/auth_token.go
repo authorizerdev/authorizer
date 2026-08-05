@@ -62,6 +62,11 @@ var reservedClaims = map[string]bool{
 	// detection (OAuth 2.1 §6.1). A script that could forge it would let a
 	// stolen token masquerade as a different family and dodge revocation.
 	"family_id": true,
+	// sid names the session a delegated token was derived from and is the only
+	// thing that makes it revocable (token.DelegationSessionID). A script that
+	// could set it would point the check at a session that is still alive and
+	// survive the logout that should have ended the delegation.
+	"sid": true,
 }
 
 // AuthTokenConfig is the configuration for auth token

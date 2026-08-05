@@ -16,16 +16,37 @@ import (
 )
 
 // mintDelegated builds an RFC 8693 delegated access token with the given
-// audience, mirroring what /oauth/token issues for the delegation grant.
+// audience, mirroring what /oauth/token issues for the delegation grant. It also
+// creates the originating session the token's `sid` names, because without one
+// the token is unrevocable and therefore refused at Authorizer's own API — see
+// token.DelegationSessionID.
 func mintDelegated(t *testing.T, ts *testSetup, subject, agentID, aud string) string {
 	t.Helper()
+	return mintDelegatedWithSession(t, ts, subject, agentID, aud, true)
+}
+
+// mintDelegatedWithSession is mintDelegated with control over whether the
+// originating session exists, so tests can exercise the revoked case.
+func mintDelegatedWithSession(t *testing.T, ts *testSetup, subject, agentID, aud string, liveSession bool) string {
+	t.Helper()
+	nonce := uuid.NewString()
+	loginMethod := constants.AuthRecipeMethodBasicAuth
+	if liveSession {
+		require.NoError(t, ts.MemoryStoreProvider.SetUserSession(
+			loginMethod+":"+subject,
+			constants.TokenTypeAccessToken+"_"+nonce,
+			"subject-token-placeholder",
+			time.Now().Add(time.Hour).Unix(),
+		))
+	}
 	tok, err := ts.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
-		Subject:  subject,
-		Actor:    map[string]interface{}{"sub": agentID},
-		Audience: aud,
-		Scope:    []string{"openid"},
-		ClientID: agentID,
-		HostName: testAuthorizerHost(ts),
+		Subject:   subject,
+		Actor:     map[string]interface{}{"sub": agentID},
+		Audience:  aud,
+		Scope:     []string{"openid"},
+		ClientID:  agentID,
+		HostName:  testAuthorizerHost(ts),
+		SessionID: token.DelegationSessionID(loginMethod, subject, nonce),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, tok)

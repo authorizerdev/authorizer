@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/authctx"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 // FgaAgentSubjectType is the OpenFGA object type an agent is represented as
@@ -57,17 +57,22 @@ type agentSubjectsState struct {
 // deny EVERY permission check, a total authorization outage rather than a
 // graceful degradation. Auto-detection makes that state unreachable.
 //
-// Fails safe in both directions: any error resolving the model leaves agent
-// subjects OFF, which is the current, working behaviour.
-func (p *provider) agentSubjectsEnabled(ctx context.Context) bool {
+// Detection is only consulted for a DELEGATED caller, so the blast radius of
+// an error here is limited to agent traffic. That is what makes failing CLOSED
+// affordable: a model read that fails must DENY the delegated request rather
+// than quietly fall back to authorizing the user alone. The fallback is the
+// dangerous direction — it drops the agent half of the intersection, which is
+// the entire protection, and it is reachable by anyone who can make the model
+// read fail. An unreachable datastore fails the subsequent Check anyway, so
+// denying here costs nothing that was going to succeed.
+func (p *provider) agentSubjectsEnabled(ctx context.Context) (bool, error) {
 	if p.AuthzEngine == nil {
-		return false
+		return false, ErrFgaNotEnabled
 	}
 
 	modelID, _, err := p.AuthzEngine.ReadModel(ctx)
 	if err != nil {
-		// No model, or the store is unreachable. Either way: behave as today.
-		return false
+		return false, err
 	}
 
 	p.agentSubjects.mu.RLock()
@@ -75,15 +80,15 @@ func (p *provider) agentSubjectsEnabled(ctx context.Context) bool {
 	p.agentSubjects.mu.RUnlock()
 
 	if modelID != "" && cachedID == modelID {
-		return cachedEnabled
+		return cachedEnabled, nil
 	}
 	if modelID == "" && !checkedAt.IsZero() && time.Since(checkedAt) < agentModelTTL {
-		return cachedEnabled
+		return cachedEnabled, nil
 	}
 
 	names, err := p.AuthzEngine.TypeNames(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	enabled := false
 	for _, n := range names {
@@ -99,7 +104,7 @@ func (p *provider) agentSubjectsEnabled(ctx context.Context) bool {
 	p.agentSubjects.checkedAt = time.Now()
 	p.agentSubjects.mu.Unlock()
 
-	return enabled
+	return enabled, nil
 }
 
 // delegationSubjects returns the subjects a permission check must satisfy for
@@ -120,28 +125,52 @@ func (p *provider) agentSubjectsEnabled(ctx context.Context) bool {
 // `act` chain are informational and must not influence the decision — they were
 // asserted upstream, not verified here.
 //
-// Returns nil when there is no authenticated caller, which callers treat as
-// unauthenticated rather than as "allow".
-func (p *provider) delegationSubjects(ctx context.Context, ownSubject string) []string {
-	ownSubject = strings.TrimSpace(ownSubject)
-	if ownSubject == "" {
-		return nil
+// An error DENIES the request. It is never "authorize the user alone": that
+// silently discards the agent half and is precisely the Confused Deputy this
+// exists to prevent.
+//
+// `subject` is whatever the trust gate resolved — for a delegated caller
+// resolveFgaSubject guarantees that is the delegating user's own subject, so
+// the agent half can never be shed by naming a subject explicitly.
+func (p *provider) delegationSubjects(ctx context.Context, caller fgaCaller, subject, operation string) ([]string, error) {
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		return nil, Unauthenticated("unauthorized")
+	}
+	if !caller.isDelegated() {
+		// The overwhelmingly common path: one subject, zero model reads,
+		// behaviour bit-for-bit identical to before delegation existed.
+		return []string{subject}, nil
 	}
 
-	principal, ok := authctx.FromContext(ctx)
-	if !ok || !principal.IsDelegated() {
-		return []string{ownSubject}
-	}
-	if !p.agentSubjectsEnabled(ctx) {
-		// Model cannot express agent grants; preserve existing behaviour.
-		return []string{ownSubject}
+	// Defense in depth. actorID is a server-generated client_id today, but this
+	// value is about to be concatenated into an OpenFGA subject string, and a
+	// separator smuggled in there would address a different subject entirely
+	// (e.g. "agent:x#member" is a userset, not a concrete agent). Mirrors the
+	// identical guard in machineFgaSubject.
+	actorID := caller.actorID
+	if strings.ContainsAny(actorID, ":#@ \t\n") {
+		return nil, PermissionDenied("unauthorized")
 	}
 
-	agentSubject := FgaAgentSubjectType + ":" + strings.TrimSpace(principal.ActorID)
-	if agentSubject == FgaAgentSubjectType+":" {
-		return []string{ownSubject}
+	enabled, err := p.agentSubjectsEnabled(ctx)
+	if err != nil {
+		return nil, PermissionDenied("authorization check failed")
 	}
+	if !enabled {
+		// The model cannot express agent grants, so the agent half cannot be
+		// evaluated and the request is authorized as the user alone. That is a
+		// deliberate, documented compatibility choice — checking `agent:x`
+		// against a model with no agent type ERRORS rather than returning
+		// false, which would deny every delegated request — but it means an
+		// agent token carries the user's full authority. Counted so an operator
+		// can SEE that agent traffic is arriving unconstrained instead of
+		// discovering it during an incident.
+		metrics.RecordFgaDelegatedCheck(operation, metrics.FgaDelegatedNotEnforced)
+		return []string{subject}, nil
+	}
+
 	// Agent first: it is the cheaper, more selective denial, and a denied agent
 	// short-circuits before the user check runs.
-	return []string{agentSubject, ownSubject}
+	return []string{FgaAgentSubjectType + ":" + actorID, subject}, nil
 }

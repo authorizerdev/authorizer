@@ -33,7 +33,13 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 	if len(params.Checks) > maxPermissionChecks {
 		return nil, nil, InvalidArgument(fmt.Sprintf("too many checks: max %d per request", maxPermissionChecks))
 	}
-	subject, err := p.resolveFgaSubject(ctx, meta, refs.StringValue(params.User))
+	// Resolved once and threaded through both gates below; see fgaCaller.
+	caller, err := p.resolveFgaCaller(ctx, meta)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to resolve caller")
+		return nil, nil, err
+	}
+	subject, err := p.resolveFgaSubject(ctx, meta, caller, refs.StringValue(params.User))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, nil, err
@@ -43,13 +49,18 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 	// [agent:<client_id>, user:<sub>], and EVERY subject must be allowed —
 	// effective authority is perms(agent) ∩ perms(user). See delegationSubjects.
 	//
-	// An explicitly supplied `user` (super-admin only) is never intersected:
-	// the caller is asking about that subject specifically, not acting as it.
-	subjects := []string{subject}
-	if strings.TrimSpace(refs.StringValue(params.User)) == "" {
-		if resolved := p.delegationSubjects(ctx, subject); len(resolved) > 0 {
-			subjects = resolved
-		}
+	// This is deliberately NOT conditioned on `user` being absent. It used to
+	// be, and that made the intersection defeatable with one parameter: a
+	// delegated agent echoing back its own subject — which resolveFgaSubject
+	// accepts, since it is exactly what the token proves — skipped the
+	// expansion and was authorized as the user alone. The gate belongs on WHO
+	// the caller is, never on what they typed. A super-admin naming a different
+	// subject is not delegated, so this is the identity operation for them.
+	subjects, err := p.delegationSubjects(ctx, caller, subject, metrics.FgaOpCheckPermissions)
+	if err != nil {
+		metrics.RecordFgaCheck(metrics.FgaOpCheckPermissions, metrics.FgaResultError)
+		log.Debug().Err(err).Msg("Failed to resolve delegation subjects; denying")
+		return nil, nil, err
 	}
 
 	// Requests are laid out subject-major: all checks for subject[0], then all

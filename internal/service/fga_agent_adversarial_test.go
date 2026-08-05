@@ -4,18 +4,22 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
+// These tests were written as ATTACKS on the agent-delegation path and each one
+// originally passed against a real defect. They are kept in attack form — the
+// failure message describes what an attacker gets if the assertion ever flips
+// back — so a regression reads as an exploit rather than as a diff.
+
 // advStubEngine implements just enough of engine.AuthorizationEngine for the
-// agent-detection path. Every other method panics so an accidental dependency
-// on it is loud rather than silent.
+// agent-detection path. Every other method is nil-embedded so an accidental
+// dependency on it panics loudly rather than silently returning a zero value.
 type advStubEngine struct {
 	engine.AuthorizationEngine
 
@@ -42,89 +46,171 @@ func (e *advStubEngine) TypeNames(context.Context) ([]string, error) {
 	return e.typeNames, nil
 }
 
-func advDelegatedCtx(userID, actorID string) context.Context {
-	return authctx.WithPrincipal(context.Background(), &authctx.Principal{
-		UserID:  userID,
-		ActorID: actorID,
-	})
+// advDelegatedCaller is an agent acting on behalf of a user.
+func advDelegatedCaller(userID, actorID string) fgaCaller {
+	return fgaCaller{subject: "user:" + userID, actorID: actorID}
 }
 
-// TestAdvAgentDetectionFailsOpen attacks internal/service/fga_agent.go:60-100.
-// agentSubjectsEnabled returns false on ANY error resolving the model, and
-// delegationSubjects then collapses to the single user subject — i.e. the agent
-// half of the intersection disappears and the agent inherits the delegating
-// user's FULL authority.
+// TestAdvAgentDetectionFailsClosed covers the fail-OPEN defect this path shipped
+// with: agentSubjectsEnabled swallowed every error and delegationSubjects then
+// collapsed to the single user subject, so the agent half of the intersection
+// disappeared and the agent inherited the delegating user's FULL authority.
 //
-// The critical property being probed: this happens INDEPENDENTLY of whether the
-// engine can still answer Check. ReadModel/TypeNames failing while BatchCheck
-// keeps working (a transient datastore hiccup on the model read path, a model
-// whose DSL rendering fails, a permissions difference on ReadAuthorizationModel)
-// yields user-level access rather than a denial.
-func TestAdvAgentDetectionFailsOpen(t *testing.T) {
-	t.Run("TypeNames error disables the agent subject", func(t *testing.T) {
+// The property that made it exploitable: it did not require the engine to be
+// down. ReadModel or TypeNames failing while Check keeps working — a hiccup on
+// the model-read path, a DSL rendering failure, a narrower permission on
+// ReadAuthorizationModel — was enough to silently widen every agent.
+func TestAdvAgentDetectionFailsClosed(t *testing.T) {
+	t.Run("TypeNames error denies", func(t *testing.T) {
 		p := &provider{}
 		p.AuthzEngine = &advStubEngine{
 			modelID:     "model-1",
 			typeNameErr: errors.New("datastore unavailable"),
 		}
-		got := p.delegationSubjects(advDelegatedCtx("alice", "bot"), "user:alice")
-		assert.Equal(t, []string{"agent:bot", "user:alice"}, got,
-			"FAIL-OPEN: a TypeNames error drops agent:bot and leaves the agent with the user's full authority")
+		got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.Error(t, err,
+			"FAIL-OPEN: a TypeNames error must not drop agent:bot and leave the agent holding the user's full authority")
+		assert.Nil(t, got)
 	})
 
-	t.Run("ReadModel error disables the agent subject", func(t *testing.T) {
+	t.Run("ReadModel error denies", func(t *testing.T) {
 		p := &provider{}
 		p.AuthzEngine = &advStubEngine{
 			readModelFn: func() (string, string, error) { return "", "", errors.New("model render failed") },
 		}
-		got := p.delegationSubjects(advDelegatedCtx("alice", "bot"), "user:alice")
-		assert.Equal(t, []string{"agent:bot", "user:alice"}, got,
-			"FAIL-OPEN: a ReadModel error drops agent:bot")
+		got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.Error(t, err, "FAIL-OPEN: a ReadModel error must not drop agent:bot")
+		assert.Nil(t, got)
+	})
+
+	t.Run("no engine denies", func(t *testing.T) {
+		p := &provider{}
+		_, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.Error(t, err)
 	})
 
 	t.Run("control: healthy engine with an agent type intersects", func(t *testing.T) {
 		p := &provider{}
 		p.AuthzEngine = &advStubEngine{modelID: "model-1", typeNames: []string{"agent", "user"}}
-		got := p.delegationSubjects(advDelegatedCtx("alice", "bot"), "user:alice")
-		require.Equal(t, []string{"agent:bot", "user:alice"}, got)
+		got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.NoError(t, err)
+		require.Equal(t, []string{"agent:bot", "user:alice"}, got,
+			"the agent must come first so a denied agent short-circuits the user check")
+	})
+
+	t.Run("model without an agent type authorizes the user alone", func(t *testing.T) {
+		p := &provider{}
+		p.AuthzEngine = &advStubEngine{modelID: "model-1", typeNames: []string{"user", "document"}}
+		got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.NoError(t, err,
+			"a model with no agent type is the documented compatibility path, not an error — "+
+				"checking agent:bot against it would ERROR and deny every delegated request")
+		assert.Equal(t, []string{"user:alice"}, got)
 	})
 }
 
-// TestAdvAgentDetectionCacheIsStickyOnEmptyModelID probes the TTL branch at
-// internal/service/fga_agent.go:78-80: when ReadModel returns an EMPTY model id
-// the previous answer is reused for agentModelTTL regardless of what the model
-// now says.
-func TestAdvAgentDetectionCacheIsStickyOnEmptyModelID(t *testing.T) {
+// TestAdvAgentDetectionIsCachedPerModel pins the cache contract. Detection reads
+// the model from the datastore, far too expensive per check, so the answer is
+// keyed on the model id — a model write mints a new id and invalidates it for
+// free.
+//
+// The staleness that would be dangerous is a stale "enabled=false" hiding a
+// model that now declares `agent`. That is unreachable: gaining an agent type
+// requires a model write, which changes the id, which misses the cache. The
+// reverse (stale "enabled=true" against a model that dropped `agent`) sends
+// agent:bot to a model with no such type, which ERRORS and therefore denies.
+// Both directions are safe.
+func TestAdvAgentDetectionIsCachedPerModel(t *testing.T) {
 	stub := &advStubEngine{modelID: "model-1", typeNames: []string{"agent", "user"}}
 	p := &provider{}
 	p.AuthzEngine = stub
+	caller := advDelegatedCaller("alice", "bot")
 
-	ctx := advDelegatedCtx("alice", "bot")
-	require.Equal(t, []string{"agent:bot", "user:alice"}, p.delegationSubjects(ctx, "user:alice"))
+	got, err := p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
+	require.NoError(t, err)
+	require.Equal(t, []string{"agent:bot", "user:alice"}, got)
 	require.Equal(t, 1, stub.typeNamesCalls)
 
-	// The engine now cannot name the model (empty id) and the model no longer
-	// declares `agent`. Detection must not keep serving the stale "enabled".
-	stub.modelID = ""
+	// Same model id: served from cache, no second datastore read.
+	_, err = p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
+	require.NoError(t, err)
+	assert.Equal(t, 1, stub.typeNamesCalls, "a repeat check on the same model must not re-read it")
+
+	// A model WRITE mints a new id, which must invalidate without any TTL wait.
+	stub.modelID = "model-2"
 	stub.typeNames = []string{"user"}
-	got := p.delegationSubjects(ctx, "user:alice")
-	assert.Equal(t, []string{"user:alice"}, got,
-		"an empty model id serves the cached answer for up to %s", agentModelTTL)
-	assert.Equal(t, 2, stub.typeNamesCalls, "re-detection should have run")
+	got, err = p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"user:alice"}, got, "a new model id must re-detect, not serve the stale answer")
+	assert.Equal(t, 2, stub.typeNamesCalls)
 }
 
-// TestAdvAgentSubjectStringIsUnvalidated pins that delegationSubjects performs
-// no shape validation on ActorID, unlike machineFgaSubject (internal/service/
-// fga.go:181) which rejects ":#@ \t\n" before building a subject string.
-func TestAdvAgentSubjectStringIsUnvalidated(t *testing.T) {
+// TestAdvAgentSubjectStringIsValidated covers the missing shape guard: ActorID
+// was concatenated into an OpenFGA subject verbatim, unlike machineFgaSubject
+// which rejects ":#@ \t\n" first. A separator smuggled through addresses a
+// DIFFERENT subject than the one authenticated — "agent:bot#member" is a
+// userset, not a concrete agent.
+func TestAdvAgentSubjectStringIsValidated(t *testing.T) {
 	p := &provider{}
 	p.AuthzEngine = &advStubEngine{modelID: "m", typeNames: []string{"agent", "user"}}
 
-	for _, actor := range []string{"bot#viewer", "bot:extra", "*", "a b"} {
-		got := p.delegationSubjects(advDelegatedCtx("alice", actor), "user:alice")
-		assert.NotEqual(t, "agent:"+actor, got[0],
-			"ActorID %q reaches the engine verbatim as an FGA subject with no shape guard", actor)
+	for _, actor := range []string{"bot#viewer", "bot:extra", "a b", "bot\nx", "bot@host"} {
+		t.Run(actor, func(t *testing.T) {
+			got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", actor), "user:alice", metrics.FgaOpCheckPermissions)
+			require.Error(t, err,
+				"ActorID %q must not reach the engine verbatim as an FGA subject", actor)
+			assert.Nil(t, got)
+		})
 	}
 }
 
-var _ = time.Second
+// TestAdvDelegatedCallerCannotNameAnotherSubject covers the one-parameter defeat
+// of the whole intersection.
+//
+// resolveFgaSubject honours SELF-specification for any caller (it is exactly
+// what the token proves), and CheckPermissions used to skip the delegation
+// expansion whenever `user` was supplied. A delegated agent could therefore echo
+// back its own subject and be authorized as the user ALONE — the agent half
+// silently dropped by a field the attacker controls. The gate now keys on who
+// the caller is, never on what they typed.
+func TestAdvDelegatedCallerCannotNameAnotherSubject(t *testing.T) {
+	p := &provider{}
+	p.AuthzEngine = &advStubEngine{modelID: "m", typeNames: []string{"agent", "user"}}
+	caller := advDelegatedCaller("alice", "bot")
+	ctx := context.Background()
+
+	t.Run("self-specification still intersects", func(t *testing.T) {
+		subject, err := p.resolveFgaSubject(ctx, RequestMetadata{}, caller, "user:alice")
+		require.NoError(t, err, "self-specification stays accepted; it is what the token proves")
+
+		got, err := p.delegationSubjects(ctx, caller, subject, metrics.FgaOpCheckPermissions)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"agent:bot", "user:alice"}, got,
+			"echoing back your own subject must NOT shed the agent half")
+	})
+
+	t.Run("bare id normalizes to self and still intersects", func(t *testing.T) {
+		subject, err := p.resolveFgaSubject(ctx, RequestMetadata{}, caller, "alice")
+		require.NoError(t, err)
+
+		got, err := p.delegationSubjects(ctx, caller, subject, metrics.FgaOpCheckPermissions)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"agent:bot", "user:alice"}, got)
+	})
+
+	t.Run("another subject is refused", func(t *testing.T) {
+		_, err := p.resolveFgaSubject(ctx, RequestMetadata{}, caller, "user:bob")
+		require.Error(t, err, "a delegated token must never widen its subject")
+	})
+
+	t.Run("a non-delegated caller is unaffected", func(t *testing.T) {
+		ordinary := fgaCaller{subject: "user:alice"}
+		subject, err := p.resolveFgaSubject(ctx, RequestMetadata{}, ordinary, "user:alice")
+		require.NoError(t, err)
+
+		got, err := p.delegationSubjects(ctx, ordinary, subject, metrics.FgaOpCheckPermissions)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"user:alice"}, got,
+			"an ordinary caller must see byte-for-byte the pre-delegation behaviour")
+	})
+}

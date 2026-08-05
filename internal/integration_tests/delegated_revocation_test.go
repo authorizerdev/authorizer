@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -80,14 +81,25 @@ func TestDelegatedTokenForDeactivatedServiceAccountIsRejected(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// A machine token carries login_method=service_account and its own nonce, so
+	// the delegation it seeds is bound to that session exactly as a user's is
+	// (see token.DelegationSessionID). Create the session the `sid` names so
+	// this test isolates SUBJECT liveness and nothing else.
+	nonce := uuid.NewString()
+	require.NoError(t, ts.MemoryStoreProvider.SetUserSession(
+		constants.AuthRecipeMethodServiceAccount+":"+sa.ID,
+		constants.TokenTypeAccessToken+"_"+nonce,
+		"machine-token-placeholder", time.Now().Add(time.Hour).Unix()))
+
 	mint := func() string {
 		tok, mErr := ts.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
-			Subject:  sa.ID, // the SUBJECT is a service account, not a user
-			Actor:    map[string]interface{}{"sub": "downstream-agent"},
-			Audience: testAuthorizerHost(ts),
-			Scope:    []string{"openid"},
-			ClientID: "downstream-agent",
-			HostName: testAuthorizerHost(ts),
+			Subject:   sa.ID, // the SUBJECT is a service account, not a user
+			Actor:     map[string]interface{}{"sub": "downstream-agent"},
+			Audience:  testAuthorizerHost(ts),
+			Scope:     []string{"openid"},
+			ClientID:  "downstream-agent",
+			HostName:  testAuthorizerHost(ts),
+			SessionID: token.DelegationSessionID(constants.AuthRecipeMethodServiceAccount, sa.ID, nonce),
 		})
 		require.NoError(t, mErr)
 		return tok.Token

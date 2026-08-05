@@ -230,13 +230,26 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		return
 	}
 
+	// Carry the subject's session forward so the delegation is revocable at
+	// Authorizer's own API (token.DelegationSessionID). A chained exchange
+	// re-exchanges an already-delegated token, which carries `sid` rather than
+	// `nonce`, so propagate that verbatim — otherwise the second hop would lose
+	// the binding and outlive the logout that killed the first.
+	sessionID, _ := subjectClaims["sid"].(string)
+	if sessionID == "" {
+		nonce, _ := subjectClaims["nonce"].(string)
+		loginMethod, _ := subjectClaims["login_method"].(string)
+		sessionID = token.DelegationSessionID(loginMethod, subject, nonce)
+	}
+
 	delegated, err := h.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
-		Subject:  subject,
-		Actor:    act,
-		Audience: resource,
-		Scope:    effective,
-		ClientID: agent.ClientID,
-		HostName: hostname,
+		Subject:   subject,
+		Actor:     act,
+		Audience:  resource,
+		Scope:     effective,
+		ClientID:  agent.ClientID,
+		HostName:  hostname,
+		SessionID: sessionID,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to mint delegated token")

@@ -46,7 +46,13 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 	}
 	relationFilter := strings.TrimSpace(refs.StringValue(params.Relation))
 	typeFilter := strings.TrimSpace(refs.StringValue(params.ObjectType))
-	subject, err := p.resolveFgaSubject(ctx, meta, refs.StringValue(params.User))
+	// Resolved once and threaded through both gates below; see fgaCaller.
+	caller, err := p.resolveFgaCaller(ctx, meta)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to resolve caller")
+		return nil, nil, err
+	}
+	subject, err := p.resolveFgaSubject(ctx, meta, caller, refs.StringValue(params.User))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, nil, err
@@ -70,13 +76,15 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 	// leaks the delegating user's resource names to an agent that was never
 	// granted them.
 	//
-	// An explicitly supplied `user` (super-admin only) is never intersected —
-	// the caller is asking about that subject, not acting as it.
-	subjects := []string{subject}
-	if strings.TrimSpace(refs.StringValue(params.User)) == "" {
-		if resolved := p.delegationSubjects(ctx, subject); len(resolved) > 0 {
-			subjects = resolved
-		}
+	// As in CheckPermissions, the expansion is gated on WHO the caller is and
+	// never on whether they supplied `user` — see the note there. A super-admin
+	// naming another subject is not delegated, so this stays the identity
+	// operation for them.
+	subjects, err := p.delegationSubjects(ctx, caller, subject, metrics.FgaOpListPermissions)
+	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpListPermissions, metrics.FgaResultError)
+		log.Debug().Err(err).Msg("Failed to resolve delegation subjects; denying")
+		return nil, nil, err
 	}
 
 	// Enumerate each (subject, pair) with bounded concurrency; results stay

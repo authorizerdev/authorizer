@@ -189,7 +189,7 @@ var (
 	FgaDelegatedChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_fga_delegated_checks_total",
-			Help: "Fine-grained authorization decisions for delegated (agent-acting-for-user) callers. operation=check_permissions|list_permissions, outcome=allowed|denied_by_agent|denied_by_user",
+			Help: "Fine-grained authorization decisions for delegated (agent-acting-for-user) callers. operation=check_permissions|list_permissions, outcome=allowed|denied_by_agent|denied_by_user|not_enforced",
 		},
 		[]string{"operation", "outcome"},
 	)
@@ -434,6 +434,17 @@ const (
 	// the intersection exists to stop. Fix: do NOT widen the agent — the user
 	// genuinely lacks access.
 	FgaDelegatedDeniedByUser = "denied_by_user"
+	// FgaDelegatedNotEnforced means a delegated caller arrived but the active
+	// authorization model declares no `agent` type, so the agent half of the
+	// intersection could not be evaluated and the request was authorized as
+	// the delegating USER ALONE.
+	//
+	// This is the only outcome that reports a security property NOT being
+	// enforced, and it is silent by construction — the request succeeds and
+	// nothing in the response says the agent was unconstrained. Alert on it:
+	// a non-zero rate means agent tokens are carrying their user's full
+	// authority. Fix: declare `type agent` in the model and grant the agents.
+	FgaDelegatedNotEnforced = "not_enforced"
 )
 
 // RecordFgaDelegatedCheck records one delegated access decision and, on a

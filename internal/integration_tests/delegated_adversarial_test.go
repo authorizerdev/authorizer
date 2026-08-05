@@ -22,6 +22,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/authorizerdev/authorizer/internal/token"
 )
 
 // advAgentModel declares `type agent`, which IS the operator opt-in that turns
@@ -201,8 +202,12 @@ func TestAdvNoAgentTypeDisablesEnforcement(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, res.Results, 1)
-	assert.False(t, res.Results[0].Allowed,
-		"a model with no agent type gives the agent the user's full authority (documented opt-in, pinned here)")
+	assert.True(t, res.Results[0].Allowed,
+		"a model with no agent type gives the agent the user's FULL authority. This is the "+
+			"documented compatibility path, not a bug — checking agent:<id> against a model with no "+
+			"agent type ERRORS in OpenFGA, so enforcing it here would deny every delegated request "+
+			"on every deployment that has not opted in. It is pinned so the trade stays visible, and "+
+			"it is counted as metrics.FgaDelegatedNotEnforced so an operator can alert on it.")
 }
 
 // TestAdvAgentDetectionFlipsOnModelRewrite is the cache-poisoning probe: the
@@ -237,8 +242,11 @@ func TestAdvAgentDetectionFlipsOnModelRewrite(t *testing.T) {
 
 	res, _, err = ts.ServiceProvider.CheckPermissions(delegatedCtx, meta, &model.CheckPermissionsInput{Checks: checks})
 	require.NoError(t, err)
-	assert.False(t, res.Results[0].Allowed,
-		"dropping `type agent` from the model turns the intersection off and re-grants the agent the user's authority")
+	assert.True(t, res.Results[0].Allowed,
+		"dropping `type agent` from the model turns the intersection off and re-grants the agent the "+
+			"user's authority. The point of this test is that the flip happens IMMEDIATELY: the "+
+			"detection cache is keyed on model id, so a rewrite must not be served from cache in "+
+			"either direction")
 }
 
 // ---------------------------------------------------------------------------
@@ -399,6 +407,15 @@ func TestAdvAudienceVariants(t *testing.T) {
 	host := testAuthorizerHost(ts)
 	gc := &gin.Context{Request: ts.GinContext.Request}
 
+	// A live originating session, so `sid` never decides these outcomes — only
+	// the audience does. See token.DelegationSessionID.
+	nonce := uuid.NewString()
+	require.NoError(t, ts.MemoryStoreProvider.SetUserSession(
+		constants.AuthRecipeMethodBasicAuth+":"+user.ID,
+		constants.TokenTypeAccessToken+"_"+nonce,
+		"subject-token-placeholder", time.Now().Add(time.Hour).Unix()))
+	sid := token.DelegationSessionID(constants.AuthRecipeMethodBasicAuth, user.ID, nonce)
+
 	base := func(aud interface{}) jwt.MapClaims {
 		return jwt.MapClaims{
 			"iss": host, "sub": user.ID,
@@ -406,32 +423,38 @@ func TestAdvAudienceVariants(t *testing.T) {
 			"jti": uuid.NewString(), "token_type": constants.TokenTypeAccessToken,
 			"scope": []string{"openid"}, "client_id": "adv-agent",
 			"act": map[string]interface{}{"sub": "adv-agent"},
+			"sid": sid,
 			"aud": aud,
 		}
 	}
 
-	cases := []struct {
+	// The audience contract is: `aud` must name THIS SERVER's URL. /oauth/token
+	// requires `resource` to be an absolute URI (RFC 8707 §2) and stamps it
+	// verbatim as `aud`, so the opaque --client-id is a value no delegated token
+	// can ever carry — an earlier revision required exactly that and made the
+	// whole path unreachable while these tests still passed.
+	rejected := []struct {
 		name string
 		aud  interface{}
 	}{
+		{"the deployment client_id", cfg.ClientID},
 		{"array containing the client_id", []string{cfg.ClientID}},
-		{"array of client_id plus a resource", []string{cfg.ClientID, "https://mcp.example.com"}},
-		{"trailing slash", cfg.ClientID + "/"},
-		{"upper case", strings.ToUpper(cfg.ClientID)},
-		{"issuer URL", host},
-		{"issuer URL with trailing slash", host + "/"},
+		{"array containing the host", []string{host}},
+		{"array of host plus another resource", []string{host, "https://mcp.example.com"}},
+		{"upper-cased host", strings.ToUpper(host)},
+		{"host with an appended path", host + "/graphql"},
 		{"empty string", ""},
-		{"resource indicator", "https://mcp.example.com"},
+		{"another resource server", "https://mcp.example.com"},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range rejected {
+		t.Run("reject: "+tc.name, func(t *testing.T) {
 			tok := advSign(t, cfg.JWTSecret, base(tc.aud))
 			_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
 			require.Error(t, err, "aud=%v must not authenticate at authorizer's own API", tc.aud)
 		})
 	}
 
-	t.Run("no aud claim at all", func(t *testing.T) {
+	t.Run("reject: no aud claim at all", func(t *testing.T) {
 		c := base(nil)
 		delete(c, "aud")
 		tok := advSign(t, cfg.JWTSecret, c)
@@ -439,10 +462,20 @@ func TestAdvAudienceVariants(t *testing.T) {
 		require.Error(t, err, "a token with no audience must not authenticate")
 	})
 
-	t.Run("control: exact client_id is accepted", func(t *testing.T) {
-		tok := advSign(t, cfg.JWTSecret, base(cfg.ClientID))
+	// An ARRAY aud must never pass. `aud, _ := res["aud"].(string)` yields "" for
+	// a non-string claim, so the only thing standing between a multi-audience
+	// token and acceptance is that sameAudience refuses an empty string.
+	t.Run("control: this server's URL is accepted", func(t *testing.T) {
+		tok := advSign(t, cfg.JWTSecret, base(host))
 		_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
 		require.NoError(t, err, "control: the exact-match case must pass, else the suite proves nothing")
+	})
+
+	t.Run("control: a trailing slash is the same audience", func(t *testing.T) {
+		tok := advSign(t, cfg.JWTSecret, base(host+"/"))
+		_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
+		require.NoError(t, err,
+			"the caller's exact spelling of the resource must not decide whether auth works")
 	})
 }
 
@@ -498,47 +531,72 @@ func TestAdvEmptyClientIDAudienceGate(t *testing.T) {
 // (b) REPLAY of a delegated token after user-side revocation events
 // ---------------------------------------------------------------------------
 
-func TestAdvDelegatedTokenSurvivesLogoutAndPasswordReset(t *testing.T) {
+// TestAdvDelegatedTokenDiesWithItsSession covers the revocation hole this path
+// shipped with: a delegated token is stateless, so NOTHING a user or admin can
+// do stopped it — logout, password reset, an admin wiping every session all
+// left it authenticating at Authorizer's own API until its TTL ran out. The
+// only lever that worked was RevokedTimestamp on the user row.
+//
+// The fix carries the originating session's coordinates as `sid` (see
+// token.DelegationSessionID), so every existing revocation path takes the
+// delegation down with it. Each subtest below is one of those paths.
+func TestAdvDelegatedTokenDiesWithItsSession(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
-
-	email := "adv_replay_" + uuid.NewString() + "@authorizer.dev"
-	password := "Password@123"
-	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-		Email: &email, Password: password, ConfirmPassword: password,
-	})
-	require.NoError(t, err)
-	login, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
-	require.NoError(t, err)
-	userID := login.User.ID
-
-	// Only a token whose aud == Config.ClientID reaches this path, so mint one
-	// directly (the token endpoint cannot produce this shape — see
-	// TestAdvDelegatedPathReachabilityViaRealEndpoint).
-	tok := mintDelegated(t, ts, userID, "adv-replay-agent", cfg.ClientID)
 	gc := &gin.Context{Request: ts.GinContext.Request}
-	_, err = ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
-	require.NoError(t, err, "control")
 
-	t.Run("survives logout / session wipe", func(t *testing.T) {
+	newUser := func(t *testing.T) string {
+		t.Helper()
+		email := "adv_replay_" + uuid.NewString() + "@authorizer.dev"
+		password := "Password@123"
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		login, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+		require.NoError(t, err)
+		return login.User.ID
+	}
+
+	// A delegated token names this server's URL as its audience, which is the
+	// only shape that reaches this path at all.
+	mint := func(t *testing.T, userID string) string {
+		t.Helper()
+		tok := mintDelegated(t, ts, userID, "adv-replay-agent", testAuthorizerHost(ts))
+		_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
+		require.NoError(t, err, "control: a freshly minted token with a live session authenticates")
+		return tok
+	}
+
+	t.Run("dies on logout / session wipe", func(t *testing.T) {
+		userID := newUser(t)
+		tok := mint(t, userID)
 		require.NoError(t, ts.MemoryStoreProvider.DeleteAllUserSessions(userID))
 		_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
-		assert.Error(t, err, "wiping every session must also stop the delegated token")
+		require.Error(t, err, "wiping every session must also stop the delegated token")
 	})
 
-	t.Run("survives password change", func(t *testing.T) {
+	t.Run("dies on password reset", func(t *testing.T) {
+		userID := newUser(t)
+		tok := mint(t, userID)
+		// service/reset_password.go calls DeleteAllUserSessions; do the same
+		// thing the service does rather than re-driving the whole reset flow.
 		u, err := ts.StorageProvider.GetUserByID(ctx, userID)
 		require.NoError(t, err)
 		newPwd := "NewPassword@456"
 		u.Password = &newPwd
 		_, err = ts.StorageProvider.UpdateUser(ctx, u)
 		require.NoError(t, err)
+		require.NoError(t, ts.MemoryStoreProvider.DeleteAllUserSessions(userID))
+
 		_, err = ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
-		assert.Error(t, err, "a password reset must stop the delegated token")
+		require.Error(t, err, "a password reset must stop the delegated token")
 	})
 
-	t.Run("revoking the user DOES stop it", func(t *testing.T) {
+	t.Run("dies when the user is revoked, even with a live session", func(t *testing.T) {
+		userID := newUser(t)
+		tok := mint(t, userID)
 		u, err := ts.StorageProvider.GetUserByID(ctx, userID)
 		require.NoError(t, err)
 		now := time.Now().Unix()
@@ -546,7 +604,16 @@ func TestAdvDelegatedTokenSurvivesLogoutAndPasswordReset(t *testing.T) {
 		_, err = ts.StorageProvider.UpdateUser(ctx, u)
 		require.NoError(t, err)
 		_, err = ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
-		require.Error(t, err, "RevokedTimestamp is the ONE revocation lever that works")
+		require.Error(t, err, "RevokedTimestamp must remain an independent lever")
+	})
+
+	t.Run("a token minted with no session cannot authenticate here", func(t *testing.T) {
+		userID := newUser(t)
+		tok := mintDelegatedWithSession(t, ts, userID, "adv-replay-agent", testAuthorizerHost(ts), false)
+		_, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
+		require.Error(t, err,
+			"fail closed: a delegation whose origin cannot be checked must not authenticate at "+
+				"authorizer's own API, however valid its signature")
 	})
 }
 
@@ -594,15 +661,21 @@ func TestAdvActorIDUsersetSmuggling(t *testing.T) {
 	}
 }
 
-// TestAdvGraphQLSurfaceHasNoDelegationPrincipal attacks the wiring rather than
-// the logic. authctx.Principal.ActorID is populated in exactly ONE place —
-// internal/grpcsrv/interceptors/auth.go:130/163 — so only the gRPC (and
-// grpc-gateway REST) surface ever sees a delegated principal. On the GraphQL
-// surface the service layer resolves the caller through
-// token.GetUserIDFromSessionOrAccessToken (which DOES accept a delegated token)
-// but no Principal is ever put on the context, so service.delegationSubjects
-// finds none and the agent half of the intersection never runs.
-func TestAdvGraphQLSurfaceHasNoDelegationPrincipal(t *testing.T) {
+// TestAdvGraphQLSurfaceEnforcesDelegation attacks the WIRING rather than the
+// logic, which is where this feature was in fact broken.
+//
+// authctx.Principal.ActorID is populated in exactly ONE place —
+// internal/grpcsrv/interceptors/auth.go — so only the gRPC (and grpc-gateway
+// REST) surface ever produces a delegated principal. The service layer read the
+// principal and nothing else, so on GraphQL — the PRIMARY surface — a delegated
+// caller was evaluated as the bare user: no agent check ran, and the audit
+// attribution built on the same signal was equally inert. Every unit test still
+// passed, because they all injected a Principal directly.
+//
+// resolveFgaCaller now falls back to the request token, so this test drives the
+// service with NO principal on the context and only a bearer token on the
+// request — exactly the shape GraphQL produces.
+func TestAdvGraphQLSurfaceEnforcesDelegation(t *testing.T) {
 	cfg := getTestConfig()
 	ts, eng := initFGATestSetup(t, cfg)
 	_, ctx := createContext(ts)
@@ -624,7 +697,7 @@ func TestAdvGraphQLSurfaceHasNoDelegationPrincipal(t *testing.T) {
 		{User: "user:" + user.ID, Relation: "viewer", Object: "document:gql"},
 	}))
 
-	delegated := mintDelegated(t, ts, user.ID, "adv-gql-agent", cfg.ClientID)
+	delegated := mintDelegated(t, ts, user.ID, "adv-gql-agent", testAuthorizerHost(ts))
 
 	httpReq, err := http.NewRequest(http.MethodPost, testAuthorizerHost(ts)+"/graphql", nil)
 	require.NoError(t, err)
@@ -638,8 +711,8 @@ func TestAdvGraphQLSurfaceHasNoDelegationPrincipal(t *testing.T) {
 	require.Equal(t, user.ID, data.UserID)
 	require.Equal(t, "adv-gql-agent", data.ActorID, "the actor is available at the token layer")
 
-	// ...but the GraphQL path never turns it into an authctx.Principal, so the
-	// service layer sees an ordinary user.
+	// ctx carries NO principal — only the request does. The intersection must
+	// still run.
 	meta := service.RequestMetadata{HostURL: testAuthorizerHost(ts), Request: httpReq}
 	res, _, err := ts.ServiceProvider.CheckPermissions(ctx, meta, &model.CheckPermissionsInput{
 		Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:gql"}},
@@ -647,5 +720,16 @@ func TestAdvGraphQLSurfaceHasNoDelegationPrincipal(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, res.Results, 1)
 	assert.False(t, res.Results[0].Allowed,
-		"BYPASS: on the GraphQL surface a delegated caller is evaluated as the bare user — no agent:<client_id> check runs")
+		"the agent holds no grant, so it must be denied on GraphQL exactly as on gRPC — "+
+			"if this passes the delegation is being evaluated as the bare user")
+
+	// And the same caller with an explicit self `user`, which used to skip the
+	// expansion entirely.
+	self := "user:" + user.ID
+	res, _, err = ts.ServiceProvider.CheckPermissions(ctx, meta, &model.CheckPermissionsInput{
+		User:   &self,
+		Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:gql"}},
+	})
+	require.NoError(t, err)
+	assert.False(t, res.Results[0].Allowed, "an explicit self `user` must not shed the agent half")
 }
