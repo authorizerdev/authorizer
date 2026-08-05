@@ -10,25 +10,17 @@ test.describe('Social login — LinkedIn', () => {
     await runSocialLoginHappyPath(page, request, {
       provider: 'linkedin',
       buttonName: /linkedin/i,
-      // OIDC userinfo shape (api.linkedin.com/v2/userinfo), which replaced the
-      // legacy /v2/me + /v2/emailAddress pair. mock-oauth's /linkedin/userinfo
-      // route returns this JSON verbatim and processLinkedInUserInfo
-      // (internal/http_handlers/oauth_callback.go) reads given_name/family_name
-      // straight into GivenName/FamilyName (no name-splitting like GitHub).
-      //
-      // `email` arrives in THIS payload, not a second call. It is documented as
-      // optional — present only when the member granted the `email` scope — and
-      // the handler treats its absence as a hard error rather than synthesizing
-      // one, because LinkedIn's `sub` is pairwise per-app and is therefore
-      // useless as an identity key.
-      //
-      // Keep this in the provider's real shape: __configure REPLACES the mock's
-      // default profile wholesale, so a stale field name here silently sends a
-      // payload the handler cannot read, and the assertions below fail with an
-      // empty string rather than anything that names the cause.
+      // Sign In with LinkedIn (OIDC): mock-oauth's /linkedin/userinfo route
+      // returns this JSON verbatim, and processLinkedInUserInfo
+      // (internal/http_handlers/oauth_callback.go) reads
+      // given_name/family_name/picture/email straight off it - one call, no
+      // separate /v2/emailAddress hop (the legacy /v2/me pair needed
+      // r_liteprofile/r_emailaddress, which OIDC-onboarded apps never get).
+      // `email` only arrives when the member granted the email scope; without
+      // it the handler hard-errors, since LinkedIn's `sub` is pairwise per-app
+      // and there is no other identity key.
       profile: {
         sub: 'mock-linkedin-sub',
-        name: 'Margaret Hamilton',
         given_name: 'Margaret',
         family_name: 'Hamilton',
         picture: 'https://example.com/a.png',
@@ -39,9 +31,9 @@ test.describe('Social login — LinkedIn', () => {
     });
 
     // The dashboard assertion inside the helper proves a real session; this
-    // proves given_name/family_name actually landed on the stored user, the
-    // email in the userinfo payload resolved to the right address, and
-    // "linkedin" was recorded as the signup method.
+    // proves the userinfo given_name/family_name actually landed on the stored
+    // user, the userinfo email resolved to the right address, and "linkedin"
+    // was recorded as the signup method.
     const user = await getUserByEmail(email);
     expect(user.given_name).toBe('Margaret');
     expect(user.family_name).toBe('Hamilton');
