@@ -60,22 +60,58 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 		return nil, nil, PermissionDenied("authorization list failed")
 	}
 
-	// Enumerate each pair with bounded concurrency; results stay positionally
-	// aligned with pairs so aggregation order is deterministic.
-	results := make([][]string, len(pairs))
+	// For an ordinary caller this is exactly [subject]. For an RFC 8693
+	// delegated caller it is [agent:<client_id>, user:<sub>], and the answer is
+	// the INTERSECTION of what each can reach — the same rule CheckPermissions
+	// applies, expressed over enumerated object sets instead of a yes/no.
+	//
+	// Enumeration must intersect too: without it an agent could not ACT on an
+	// object (CheckPermissions denies) yet would still see it listed, which
+	// leaks the delegating user's resource names to an agent that was never
+	// granted them.
+	//
+	// An explicitly supplied `user` (super-admin only) is never intersected —
+	// the caller is asking about that subject, not acting as it.
+	subjects := []string{subject}
+	if strings.TrimSpace(refs.StringValue(params.User)) == "" {
+		if resolved := p.delegationSubjects(ctx, subject); len(resolved) > 0 {
+			subjects = resolved
+		}
+	}
+
+	// Enumerate each (subject, pair) with bounded concurrency; results stay
+	// positionally aligned so aggregation order is deterministic.
+	perSubject := make([][][]string, len(subjects))
+	for s := range subjects {
+		perSubject[s] = make([][]string, len(pairs))
+	}
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(maxConcurrentFgaListCalls)
-	for i, pair := range pairs {
-		eg.Go(func() error {
-			objects, lerr := p.AuthzEngine.ListObjects(egCtx, subject, pair.relation, pair.objType)
-			if lerr != nil {
-				return lerr
-			}
-			results[i] = objects
-			return nil
-		})
+	for s, subj := range subjects {
+		for i, pair := range pairs {
+			eg.Go(func() error {
+				objects, lerr := p.AuthzEngine.ListObjects(egCtx, subj, pair.relation, pair.objType)
+				if lerr != nil {
+					return lerr
+				}
+				perSubject[s][i] = objects
+				return nil
+			})
+		}
 	}
 	egErr := eg.Wait()
+
+	// Fold to one object set per pair. With a single subject this is a copy and
+	// the outcome is identical to the pre-delegation behaviour.
+	results := make([][]string, len(pairs))
+	if egErr == nil {
+		for i := range pairs {
+			results[i] = perSubject[0][i]
+			for s := 1; s < len(subjects); s++ {
+				results[i] = intersectObjects(results[i], perSubject[s][i])
+			}
+		}
+	}
 	metrics.ObserveFgaCheckDuration(metrics.FgaOpListPermissions, time.Since(start).Seconds())
 	if egErr != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpListPermissions, metrics.FgaResultError)
@@ -142,4 +178,26 @@ func (p *provider) listPermissionPairs(ctx context.Context, relationFilter, type
 		return pairs[i].relation < pairs[j].relation
 	})
 	return pairs, nil
+}
+
+// intersectObjects returns the objects present in both slices, preserving the
+// order of a so enumeration stays deterministic.
+//
+// Used to fold a delegated caller's per-subject enumerations into the set the
+// agent AND the delegating user can both reach.
+func intersectObjects(a, b []string) []string {
+	if len(a) == 0 || len(b) == 0 {
+		return nil
+	}
+	inB := make(map[string]struct{}, len(b))
+	for _, o := range b {
+		inB[o] = struct{}{}
+	}
+	out := make([]string, 0, len(a))
+	for _, o := range a {
+		if _, ok := inB[o]; ok {
+			out = append(out, o)
+		}
+	}
+	return out
 }

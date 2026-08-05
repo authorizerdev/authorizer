@@ -3,6 +3,7 @@ package token
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -57,6 +58,12 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 	if accessToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
+	// Fail closed rather than panic. The audience and issuer checks below both
+	// derive this server's host from the request, and parsers.GetHost does not
+	// guard a nil one — an auth path must reject, never crash.
+	if gc == nil || gc.Request == nil {
+		return res, fmt.Errorf(`unauthorized: no request context`)
+	}
 
 	res, err := p.ParseJWTToken(accessToken)
 	if err != nil {
@@ -73,24 +80,36 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 		return res, fmt.Errorf(`unauthorized: missing sub claim`)
 	}
 
-	// Audience isolation. Anything that is not exactly this server's client_id
-	// is refused — in particular a resource-indicator audience, which is an
-	// absolute URI and belongs to a downstream resource server.
+	hostname := parsers.GetHost(gc)
+
+	// Audience isolation, RFC 8707. /oauth/token requires `resource` to be an
+	// ABSOLUTE URI and stamps it verbatim as `aud`, so the only way to name
+	// this server is to request this server's own URL as the resource. The
+	// audience must therefore equal that URL — not the opaque --client-id,
+	// which no resource indicator can ever be.
+	//
+	// Getting this wrong in the strict direction is not a safe failure: it
+	// makes the delegated path unreachable by any token this deployment can
+	// mint, so the feature silently does nothing. Getting it wrong in the loose
+	// direction accepts a token minted for a downstream resource server, which
+	// is audience confusion. Both are tested end to end through /oauth/token.
+	//
+	// Compared after trimming a trailing slash so "https://auth.example.com"
+	// and "https://auth.example.com/" are the same audience — otherwise the
+	// caller's exact spelling of the resource decides whether auth works.
 	aud, _ := res["aud"].(string)
-	if aud != p.config.ClientID {
+	if !sameAudience(aud, hostname) {
 		if u, uErr := url.Parse(aud); uErr == nil && u.IsAbs() {
-			p.dependencies.Log.Debug().Str("aud", aud).
-				Msg("delegated token rejected: resource-bound audience is not valid at authorizer's own endpoints")
+			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", hostname).
+				Msg("delegated token rejected: audience names a different resource server")
 		}
 		return res, fmt.Errorf(`unauthorized: token audience is not this server`)
 	}
 
-	if p.userIsRevoked(gc, userID) {
-		p.dependencies.Log.Debug().Str("user_id", userID).Msg("delegated token rejected: user revoked")
-		return res, fmt.Errorf(`unauthorized: user revoked`)
+	if !p.delegationSubjectIsLive(gc, userID) {
+		return res, fmt.Errorf(`unauthorized: delegation subject is not active`)
 	}
 
-	hostname := parsers.GetHost(gc)
 	// ValidateJWTTokenWithoutNonce, not ValidateJWTClaims: the latter compares
 	// the nonce claim unconditionally, and a delegated token carries none by
 	// design (it is stateless, so there is no session nonce to bind to). Every
@@ -108,4 +127,58 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 	}
 
 	return res, nil
+}
+
+// sameAudience compares an audience claim with this server's URL, tolerating a
+// trailing slash on either side. An empty audience never matches, so a token
+// with no aud cannot pass by accident.
+func sameAudience(aud, hostname string) bool {
+	a := strings.TrimSuffix(strings.TrimSpace(aud), "/")
+	h := strings.TrimSuffix(strings.TrimSpace(hostname), "/")
+	return a != "" && h != "" && a == h
+}
+
+// delegationSubjectIsLive reports whether the subject a delegated token was
+// minted for is still active.
+//
+// The subject is NOT always a user. RFC 8693 token exchange also accepts a
+// service account as the subject, which is how a multi-hop chain is expressed
+// (agent A delegates to agent B). userIsRevoked only ever looked the subject up
+// as a USER, so for a service-account subject it found nothing, reported "not
+// revoked", and the delegation kept working for the token's full lifetime after
+// the service account had been deactivated — deactivation did not stop the
+// chain it seeded.
+//
+// Resolution order mirrors how the token endpoint validates the subject at
+// mint time (see handleTokenExchangeGrant): try user, then client.
+//
+// Fails CLOSED when the subject resolves to neither. A subject we cannot
+// confirm is live must not authenticate — the same rule the exchange applies
+// before it will seed a delegation at all.
+func (p *provider) delegationSubjectIsLive(gc *gin.Context, subject string) bool {
+	if p.dependencies.StorageProvider == nil || subject == "" {
+		return false
+	}
+
+	if user, err := p.dependencies.StorageProvider.GetUserByID(gc, subject); err == nil && user != nil {
+		if user.RevokedTimestamp != nil {
+			p.dependencies.Log.Debug().Str("subject", subject).
+				Msg("delegated token rejected: subject user is revoked")
+			return false
+		}
+		return true
+	}
+
+	if client, err := p.dependencies.StorageProvider.GetClientByID(gc, subject); err == nil && client != nil {
+		if !client.IsActive {
+			p.dependencies.Log.Debug().Str("subject", subject).
+				Msg("delegated token rejected: subject service account is deactivated")
+			return false
+		}
+		return true
+	}
+
+	p.dependencies.Log.Debug().Str("subject", subject).
+		Msg("delegated token rejected: subject resolves to neither an active user nor an active client")
+	return false
 }

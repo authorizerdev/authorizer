@@ -32,6 +32,13 @@ func mintDelegated(t *testing.T, ts *testSetup, subject, agentID, aud string) st
 	return tok.Token
 }
 
+// NOTE: these are unit-level checks of the validator's negative cases. The
+// AUTHORITATIVE reachability proof is TestAgentDelegatedTokenReachesAuthorizerAPI,
+// which mints through the real /oauth/token endpoint. An earlier version of this
+// file passed `cfg.ClientID` as the audience — a value no resource indicator can
+// ever be — and so asserted a contract the system could not produce, hiding the
+// fact that the feature was unreachable.
+//
 // TestDelegatedTokenAtAuthorizerAPI pins the security envelope of the delegated
 // validation path added so an agent can ask Authorizer about its own authority.
 //
@@ -64,7 +71,7 @@ func TestDelegatedTokenAtAuthorizerAPI(t *testing.T) {
 	agentID := "agent-" + uuid.NewString()
 
 	t.Run("a token bound to THIS server is accepted", func(t *testing.T) {
-		tok := mintDelegated(t, ts, user.ID, agentID, cfg.ClientID)
+		tok := mintDelegated(t, ts, user.ID, agentID, testAuthorizerHost(ts))
 		claims, err := ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
 		require.NoError(t, err, "an agent must be able to reach Authorizer with a correctly-audienced delegated token")
 		assert.Equal(t, user.ID, claims["sub"])
@@ -106,7 +113,7 @@ func TestDelegatedTokenAtAuthorizerAPI(t *testing.T) {
 		_, err := ts.StorageProvider.UpdateUser(ctx, revoked)
 		require.NoError(t, err)
 
-		tok := mintDelegated(t, ts, revoked.ID, agentID, cfg.ClientID)
+		tok := mintDelegated(t, ts, revoked.ID, agentID, testAuthorizerHost(ts))
 		_, err = ts.TokenProvider.ValidateDelegatedAccessToken(gc, tok)
 		require.Error(t, err, "revoking the user must stop their agents — revocation is a DB lookup, not session-based")
 	})

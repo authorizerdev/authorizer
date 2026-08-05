@@ -45,7 +45,7 @@ func (p *provider) DeactivateAccount(ctx context.Context, meta RequestMetadata) 
 		_ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
 	})
-	p.AuditProvider.LogEvent(audit.Event{
+	p.AuditProvider.LogEvent(applyDelegationActor(ctx, audit.Event{
 		Action:   constants.AuditUserDeactivatedEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,
 		ActorType:    constants.AuditActorTypeUser,
@@ -54,7 +54,7 @@ func (p *provider) DeactivateAccount(ctx context.Context, meta RequestMetadata) 
 		ResourceID:   user.ID,
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
-	})
+	}))
 
 	return &model.Response{Message: "user account deactivated successfully"}, nil, nil
 }
