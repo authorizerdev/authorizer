@@ -27,6 +27,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
@@ -226,26 +227,54 @@ func (*httpProvider) gqlCollectResolvedFieldsMiddleware() gql.FieldMiddleware {
 func (h *httpProvider) gqlDelegatedScopeMiddleware() gql.FieldMiddleware {
 	return func(ctx context.Context, next gql.Resolver) (interface{}, error) {
 		fc := gql.GetFieldContext(ctx)
-		if fc == nil || fc.Field.Field == nil || !fc.IsMethod || fc.Object != "Query" && fc.Object != "Mutation" {
+		// Root fields only. Deliberately NOT also gated on fc.IsMethod: that
+		// reports how gqlgen resolves the field, which is an implementation
+		// detail of the generated code, and a false there would skip the gate
+		// entirely. Object is the schema-level fact this actually depends on.
+		if fc == nil || fc.Field.Field == nil || (fc.Object != "Query" && fc.Object != "Mutation") {
 			return next(ctx)
 		}
 		gc, err := utils.GinContextFromContext(ctx)
 		if err != nil || gc == nil {
 			return next(ctx)
 		}
-		tokenData, tErr := h.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
-		if tErr != nil || tokenData == nil || strings.TrimSpace(tokenData.ActorID) == "" {
-			// Not a delegated caller (or not authenticated at all — the
-			// resolver's own auth check owns that decision, not this one).
+
+		// Decided from the JWT alone — signature and claims, no storage.
+		//
+		// The first version resolved the caller through
+		// GetUserIDFromSessionOrAccessToken and skipped the gate whenever that
+		// returned an error. For a delegated token that call reads the session
+		// store and the user row, so a transient storage failure between this
+		// check and the resolver's own auth would have skipped the gate while
+		// the request still succeeded: fail-OPEN on the one path that exists to
+		// fail closed. Whether a token is delegated, and what it is scoped to,
+		// are properties of the signed token itself; nothing about that needs
+		// a database.
+		//
+		// It is also ~free, which matters because this runs per root field.
+		raw, tErr := h.TokenProvider.GetAccessToken(gc)
+		if tErr != nil || strings.TrimSpace(raw) == "" {
+			// No bearer token at all — a cookie/session or anonymous caller.
+			// Neither can be delegated; the resolver's own auth owns them.
 			return next(ctx)
 		}
+		claims, cErr := h.TokenProvider.ParseJWTToken(raw)
+		if cErr != nil {
+			// Unparseable or badly signed. Not our decision to make — the
+			// resolver's auth will reject it.
+			return next(ctx)
+		}
+		if token.ImmediateActor(claims) == "" {
+			return next(ctx) // first-party token; see the package comment.
+		}
+
 		required, ok := delegatedscope.RequiredForGraphQL(fc.Field.Name)
 		if !ok {
 			// Fail closed: an operation nobody has cleared for delegated
 			// callers is out of reach for an agent, whatever scope it holds.
 			return nil, gqlerror.Errorf("insufficient_scope")
 		}
-		if !delegatedscope.Satisfied(tokenData.Scope, required) {
+		if !delegatedscope.Satisfied(token.ClaimScopes(claims), required) {
 			return nil, gqlerror.Errorf("insufficient_scope")
 		}
 		return next(ctx)

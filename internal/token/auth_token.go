@@ -896,6 +896,19 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	}, nil
 }
 
+// ClaimScopes returns the `scope` claim of already-parsed claims as a slice.
+//
+// Exported so a caller that has only the raw JWT — the GraphQL scope gate,
+// which deliberately avoids any storage read — can reach the same
+// normalisation the session path uses, rather than reimplementing it and
+// drifting on the string-vs-array form.
+func ClaimScopes(claims map[string]interface{}) []string {
+	if claims == nil {
+		return nil
+	}
+	return claimToScopeSlice(claims["scope"])
+}
+
 // claimToScopeSlice normalises a `scope` claim to a slice. Tokens minted here
 // carry a JSON array, but a string form ("openid email profile") is the OAuth
 // wire convention and appears in tokens from other issuers, so accept both
