@@ -290,7 +290,16 @@ func toContextualTuples(in []*model.FgaTupleInput) ([]engine.ContextualTuple, er
 //
 // The subject is always derived server-side from the resolved userID, never
 // from client input.
-func (p *provider) enforceRequiredRelations(ctx context.Context, log zerolog.Logger, userID string, required []*model.FgaRelationInput) error {
+//
+// DELEGATION: this is the THIRD authorization-decision surface, alongside
+// CheckPermissions and ListPermissions, and it must answer the same question
+// the same way. It previously hardcoded "user:<sub>", so a delegated caller was
+// evaluated as the delegating user alone — `validate_jwt_token` reported a
+// relation SATISFIED that `check_permissions` denied for the same token, same
+// relation, same object. Two answers to one authority question is worse than
+// either answer: a gateway gating on required_relations would admit a request
+// the permission API refuses.
+func (p *provider) enforceRequiredRelations(ctx context.Context, meta RequestMetadata, log zerolog.Logger, userID string, required []*model.FgaRelationInput) error {
 	if len(required) == 0 {
 		return nil
 	}
@@ -300,24 +309,38 @@ func (p *provider) enforceRequiredRelations(ctx context.Context, log zerolog.Log
 	if strings.TrimSpace(userID) == "" {
 		return Unauthenticated("unauthorized")
 	}
-	subject := "user:" + userID
+	// Same expansion as the permission APIs: [subject] for an ordinary caller,
+	// [agent:<client_id>, user:<sub>] for a delegated one, with EVERY subject
+	// required to pass.
+	caller, err := p.resolveFgaCaller(ctx, meta)
+	if err != nil {
+		return PermissionDenied("unauthorized")
+	}
+	subjects, err := p.delegationSubjects(ctx, caller, "user:"+userID, metrics.FgaOpRequiredRelations)
+	if err != nil {
+		metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
+		log.Debug().Err(err).Msg("required relations: failed to resolve delegation subjects; denying")
+		return PermissionDenied("unauthorized")
+	}
 	for _, r := range required {
 		if r == nil || strings.TrimSpace(r.Relation) == "" || strings.TrimSpace(r.Object) == "" {
 			return InvalidArgument("each required relation needs relation and object")
 		}
-		start := time.Now()
-		allowed, err := p.AuthzEngine.Check(ctx, subject, r.Relation, r.Object)
-		metrics.ObserveFgaCheckDuration(metrics.FgaOpRequiredRelations, time.Since(start).Seconds())
-		if err != nil {
-			// Fail closed.
-			metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
-			log.Debug().Err(err).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation check errored")
-			return PermissionDenied("unauthorized")
-		}
-		metrics.RecordFgaCheckResult(metrics.FgaOpRequiredRelations, allowed)
-		if !allowed {
-			log.Debug().Str("relation", r.Relation).Str("object", r.Object).Msg("required relation denied")
-			return PermissionDenied("unauthorized")
+		for _, subject := range subjects {
+			start := time.Now()
+			allowed, err := p.AuthzEngine.Check(ctx, subject, r.Relation, r.Object)
+			metrics.ObserveFgaCheckDuration(metrics.FgaOpRequiredRelations, time.Since(start).Seconds())
+			if err != nil {
+				// Fail closed.
+				metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
+				log.Debug().Err(err).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation check errored")
+				return PermissionDenied("unauthorized")
+			}
+			metrics.RecordFgaCheckResult(metrics.FgaOpRequiredRelations, allowed)
+			if !allowed {
+				log.Debug().Str("subject", subject).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation denied")
+				return PermissionDenied("unauthorized")
+			}
 		}
 	}
 	return nil
