@@ -23,6 +23,10 @@ type Principal struct {
 	// delegated action is attributed to the human, which is both an audit lie
 	// and the Confused Deputy precondition.
 	ActorID string
+	// Scope is the token's `scope` claim, carried so the gRPC interceptor can
+	// enforce per-operation scope for delegated callers. See
+	// internal/delegatedscope.
+	Scope []string
 }
 
 // IsDelegated reports whether this principal is an agent acting for a user.

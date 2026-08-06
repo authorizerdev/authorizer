@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/delegatedscope"
 	"github.com/authorizerdev/authorizer/internal/graph"
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
 	"github.com/authorizerdev/authorizer/internal/graphql"
@@ -204,6 +206,52 @@ func (*httpProvider) gqlCollectResolvedFieldsMiddleware() gql.FieldMiddleware {
 	}
 }
 
+// gqlDelegatedScopeMiddleware gates a DELEGATED caller — an RFC 8693 agent
+// acting for a user — on the scope its token actually carries.
+//
+// GraphQL is the other transport that needs this; gRPC (and with it the REST
+// gateway and the MCP server) is handled in grpcsrv/interceptors. Both consult
+// the same table in internal/delegatedscope, so the two cannot disagree about
+// what an agent may do.
+//
+// Applied at ROOT fields only. Nested field resolvers inherit the decision of
+// the operation that reached them, and re-checking every leaf would both cost
+// a map lookup per field and, worse, deny nested selections that have no entry
+// of their own.
+//
+// First-party callers are not gated here. See the delegatedscope package
+// comment: a first-party `scope` is caller-supplied and unvalidated, so it is a
+// hint rather than a boundary, and enforcing it would break existing clients
+// for no security gain.
+func (h *httpProvider) gqlDelegatedScopeMiddleware() gql.FieldMiddleware {
+	return func(ctx context.Context, next gql.Resolver) (interface{}, error) {
+		fc := gql.GetFieldContext(ctx)
+		if fc == nil || fc.Field.Field == nil || !fc.IsMethod || fc.Object != "Query" && fc.Object != "Mutation" {
+			return next(ctx)
+		}
+		gc, err := utils.GinContextFromContext(ctx)
+		if err != nil || gc == nil {
+			return next(ctx)
+		}
+		tokenData, tErr := h.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
+		if tErr != nil || tokenData == nil || strings.TrimSpace(tokenData.ActorID) == "" {
+			// Not a delegated caller (or not authenticated at all — the
+			// resolver's own auth check owns that decision, not this one).
+			return next(ctx)
+		}
+		required, ok := delegatedscope.RequiredForGraphQL(fc.Field.Name)
+		if !ok {
+			// Fail closed: an operation nobody has cleared for delegated
+			// callers is out of reach for an agent, whatever scope it holds.
+			return nil, gqlerror.Errorf("insufficient_scope")
+		}
+		if !delegatedscope.Satisfied(tokenData.Scope, required) {
+			return nil, gqlerror.Errorf("insufficient_scope")
+		}
+		return next(ctx)
+	}
+}
+
 // gqlMetricsMiddleware records GraphQL operation duration and errors.
 // It captures errors returned in HTTP 200 responses (GraphQL convention).
 func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
@@ -298,6 +346,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	srv.AroundFields(h.gqlCollectResolvedFieldsMiddleware())
+	srv.AroundFields(h.gqlDelegatedScopeMiddleware())
 	srv.AroundOperations(h.gqlMetricsMiddleware())
 	if h.Config.EnableGraphQLIntrospection {
 		srv.Use(extension.Introspection{})

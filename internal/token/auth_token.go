@@ -811,6 +811,13 @@ type SessionOrAccessTokenData struct {
 	// decision: they were asserted by an upstream party, not verified here.
 	// They remain available in the raw token for audit reconstruction.
 	ActorID string
+	// Scope is the token's `scope` claim.
+	//
+	// Carried because for a DELEGATED token it is a privilege boundary: the
+	// token endpoint attenuates it to subject ∩ agent-ceiling, and
+	// internal/delegatedscope enforces it per operation. Without it here the
+	// attenuation is computed, returned to the caller, and then ignored.
+	Scope []string
 }
 
 // ImmediateActor extracts the `act.sub` of an RFC 8693 delegated token.
@@ -885,7 +892,31 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		LoginMethod: loginMethod,
 		Nonce:       nonce,
 		ActorID:     ImmediateActor(claims),
+		Scope:       claimToScopeSlice(claims["scope"]),
 	}, nil
+}
+
+// claimToScopeSlice normalises a `scope` claim to a slice. Tokens minted here
+// carry a JSON array, but a string form ("openid email profile") is the OAuth
+// wire convention and appears in tokens from other issuers, so accept both
+// rather than silently yield an empty scope — which, being fail-closed, would
+// deny every delegated call for a non-obvious reason.
+func claimToScopeSlice(v interface{}) []string {
+	switch t := v.(type) {
+	case []string:
+		return t
+	case string:
+		return strings.Fields(t)
+	case []interface{}:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
 }
 
 const scriptTimeout = 5 * time.Second
