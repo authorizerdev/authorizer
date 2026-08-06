@@ -1,6 +1,9 @@
 package integration_tests
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -125,4 +128,65 @@ func TestDelegatedDenialIsAttributedToTheUser(t *testing.T) {
 		"the USER is the side that refused; recording this as denied_by_agent would tell an "+
 			"operator to grant the agent a tuple, which cannot fix it and widens the agent for nothing")
 	assert.Equal(t, agentBefore, byAgent(), "the agent had its grant, so it did not deny")
+}
+
+// TestChainedDelegationKeepsItsSessionBinding covers MULTI-HOP delegation into
+// Authorizer's own API, which nothing else exercises.
+//
+// A delegated token carries `sid` (the originating session) and NO `nonce`. A
+// second hop therefore cannot rebuild the binding from nonce + login_method the
+// way a first hop does — it must propagate the incoming `sid` verbatim. Drop
+// that and hop 2 mints a token with no `sid`, which fails the session check and
+// cannot authenticate here at all: multi-hop agents break, and the failure
+// surfaces as a bare "unauthorized" that reads like a permissions problem.
+//
+// It matters in the other direction too: a hop-2 token that kept working
+// WITHOUT a binding would outlive the logout that ended the session it grew
+// from.
+func TestChainedDelegationKeepsItsSessionBinding(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	router := gin.New()
+	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+
+	host := testAuthorizerHost(ts)
+
+	// Hop 1: user -> agent A, bound to Authorizer itself.
+	firstHop, _, userID := mintDelegatedViaEndpoint(t, ts, router, host)
+
+	// Hop 2: agent B re-exchanges agent A's delegated token.
+	agentBID, agentBSecret := newDelegationAgent(t, ts, "openid,profile,email")
+	agentBActor := agentAccessToken(t, ts, router, agentBID, agentBSecret)
+
+	form := url.Values{}
+	form.Set("grant_type", tokenExchangeGrant)
+	form.Set("subject_token", firstHop)
+	form.Set("subject_token_type", accessTokenType)
+	form.Set("actor_token", agentBActor)
+	form.Set("actor_token_type", accessTokenType)
+	form.Set("resource", host)
+	rec := postTokenExchange(ts, router, form, agentBID, agentBSecret)
+	require.Equal(t, http.StatusOK, rec.Code, "the second hop must be permitted; body=%s", rec.Body.String())
+
+	var out struct {
+		AccessToken string `json:"access_token"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &out))
+	require.NotEmpty(t, out.AccessToken)
+
+	claims, err := ts.TokenProvider.ParseJWTToken(out.AccessToken)
+	require.NoError(t, err)
+	require.Equal(t, userID, claims["sub"], "the subject stays the original user across hops")
+	sid, _ := claims["sid"].(string)
+	require.NotEmpty(t, sid,
+		"the second hop must carry the originating session forward — a delegated subject_token "+
+			"has no nonce to rebuild it from, so dropping the incoming sid leaves the chain unable "+
+			"to authenticate here at all")
+
+	// And it must work end to end, not merely carry the claim.
+	presentDelegatedToken(ts, out.AccessToken)
+	data, aErr := ts.TokenProvider.GetUserIDFromSessionOrAccessToken(ts.GinContext)
+	require.NoError(t, aErr, "a two-hop delegated token naming Authorizer must authenticate here")
+	assert.Equal(t, userID, data.UserID)
+	assert.Equal(t, agentBID, data.ActorID, "the IMMEDIATE actor is the second-hop agent")
 }
