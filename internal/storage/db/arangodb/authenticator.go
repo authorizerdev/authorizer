@@ -79,7 +79,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	for {
 		if !cursor.HasMore() {
 			if authenticators == nil {
-				return authenticators, fmt.Errorf("authenticator not found")
+				return authenticators, fmt.Errorf("authenticator not found: %w", ErrNotFound)
 			}
 			break
 		}

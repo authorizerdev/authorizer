@@ -52,7 +52,7 @@ func (p *provider) GetFederatedIdentity(ctx context.Context, orgID, issuer, subj
 	for {
 		if !cursor.HasMore() {
 			if identity == nil {
-				return nil, fmt.Errorf("federated identity not found")
+				return nil, fmt.Errorf("federated identity not found: %w", ErrNotFound)
 			}
 			break
 		}

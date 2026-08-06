@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
@@ -82,6 +83,9 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata
 	emailTemplate, err := p.StorageProvider.GetEmailTemplateByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetEmailTemplateByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("email template not found")
+		}
 		return nil, nil, err
 	}
 
@@ -165,6 +169,9 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata
 	emailTemplate, err := p.StorageProvider.GetEmailTemplateByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get email template by id")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("email template not found")
+		}
 		return nil, nil, err
 	}
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -224,6 +225,21 @@ type Config struct {
 	JWTType string
 	// JWTSecret is the secret for the JWT
 	JWTSecret string
+	// EncryptionKey is the symmetric key used to encrypt secrets AT REST that
+	// the server must be able to read back — today the per-user TOTP seeds.
+	//
+	// Kept SEPARATE from JWTSecret because the two have different lifecycles.
+	// JWTSecret is a signing key and is expected to be rotatable: rotating it
+	// should invalidate outstanding tokens, which is cheap (users log in
+	// again). If the same value also encrypts TOTP seeds, that rotation
+	// silently makes every enrolled authenticator undecryptable and locks
+	// every MFA user out of their account. Separating them also means one
+	// leaked value does not compromise both signing and stored secrets.
+	//
+	// Defaults to JWTSecret when unset (see Finalize) so existing installs keep
+	// decrypting seeds written by earlier releases. Set it explicitly, to a
+	// value distinct from JWTSecret, before rotating JWTSecret.
+	EncryptionKey string
 	// JWTPublicKey is the public key for the JWT
 	JWTPublicKey string
 	// JWTPrivateKey is the private key for the JWT
@@ -407,6 +423,21 @@ type Config struct {
 // PersistentPreRun so every subcommand, including `mcp`, is consistent). It is
 // idempotent.
 func (c *Config) Finalize() {
+	// At-rest encryption falls back to the JWT secret when the operator has not
+	// set a dedicated key. Required for backwards compatibility: seeds written
+	// by releases before --encryption-key existed were encrypted with
+	// JWTSecret, and changing the key without a re-encryption pass would make
+	// every enrolled TOTP authenticator undecryptable.
+	//
+	// The fallback can still land on "" — JWTSecret is only required for HMAC
+	// JWT types, so an RS*/ES* install legitimately leaves it empty. An empty
+	// key is NOT allowed to reach the cipher (see ValidateEncryptionKey): HKDF
+	// over empty keying material yields a fixed, publicly computable AES key,
+	// which would leave TOTP seeds effectively unencrypted.
+	if strings.TrimSpace(c.EncryptionKey) == "" {
+		c.EncryptionKey = c.JWTSecret
+	}
+
 	// Provider availability is derived from credentials being present.
 	c.IsEmailServiceEnabled = strings.TrimSpace(c.SMTPHost) != "" &&
 		c.SMTPPort > 0 &&
@@ -440,4 +471,48 @@ func (c *Config) Finalize() {
 		c.EnableMFA = false
 		c.EnforceMFA = false
 	}
+}
+
+// ValidateEncryptionKey fails startup when secrets would be written at rest
+// under an empty key. Call AFTER Finalize, which resolves the JWTSecret
+// fallback and the derived MFA flags this check reads.
+//
+// Why this is fatal rather than a warning: deriveAESKey runs HKDF-SHA256 over
+// the key with no salt and a fixed info string, so an empty key produces a
+// DETERMINISTIC AES-256 key that anyone can recompute from this open-source
+// code. TOTP seeds encrypted under it are not protected at all, and the
+// failure is silent — encryption "succeeds" and the rows carry the enc:v1:
+// marker, so nothing looks wrong.
+//
+// This only triggers where a real gap exists: JWTSecret is mandatory for the
+// HMAC JWT types, so an HS* install always has a usable fallback. An RS*/ES*
+// install legitimately has no JWTSecret and MUST set --encryption-key.
+//
+// Deliberately UNCONDITIONAL rather than scoped to TOTP being enabled. This key
+// protects two different things, and only one of them is TOTP:
+//
+//   - TOTP seeds, encrypted with AES-GCM (authenticators/totp).
+//   - OTP digests, HMAC'd for email/SMS OTP, signup verification and
+//     PASSWORD RESET (service/forgot_password, reset_password, verify_otp).
+//
+// Password-reset OTPs are written whether or not TOTP is enabled, so a
+// TOTP-scoped check would leave the reset flow hashing under an empty key. An
+// empty HMAC key makes a stored digest trivially reversible — the attacker
+// knows the key and the OTP space is only 10^6 — so a database dump yields
+// every outstanding reset code and with it account takeover.
+//
+// The check costs an HS* install nothing: JWTSecret is mandatory there, so the
+// fallback always resolves. Only RS*/ES* installs, which legitimately have no
+// JWTSecret, must set --encryption-key explicitly.
+func (c *Config) ValidateEncryptionKey() error {
+	if strings.TrimSpace(c.EncryptionKey) == "" {
+		return fmt.Errorf(
+			"--encryption-key is required: no encryption key is set and --jwt-secret is " +
+				"empty (normal for RSA/ECDSA JWT types), so there is nothing to fall back to. " +
+				"This key protects TOTP secrets and the OTP digests used by email/SMS " +
+				"verification and password reset; an empty key makes stored OTPs trivially " +
+				"reversible and TOTP secrets recoverable with a publicly computable constant. " +
+				"Set --encryption-key to a strong random value")
+	}
+	return nil
 }

@@ -207,6 +207,34 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		log.Debug().Err(err).Msg("failed to add user")
 		return nil, nil, err
 	}
+
+	// Emit user.created and user.signup HERE — the moment the account exists —
+	// not at token issuance further down.
+	//
+	// Every path below this point can return early: the email-verification
+	// branch returns "check your inbox", the phone branch returns its OTP
+	// prompt, and the MFA gate returns "Proceed to mfa setup". Since 2.4.0 MFA
+	// is on by DEFAULT, so that gate fires for ordinary signups and the
+	// emissions that used to sit at the bottom of this function became
+	// unreachable — a default install emitted NO signup webhook at all, and
+	// with email verification on it emitted only user.created. Integrations
+	// that provision on signup (CRM records, welcome mail, seat accounting)
+	// silently never ran.
+	//
+	// Emitting at creation also gives the events one unambiguous meaning:
+	// "a new account now exists". user.login stays at token issuance, because
+	// that is a separate fact — a user who abandons MFA setup has signed up
+	// but not logged in, and the events should say exactly that.
+	loginMethod := constants.AuthRecipeMethodBasicAuth
+	if isMobileSignup {
+		loginMethod = constants.AuthRecipeMethodMobileBasicAuth
+	}
+	asyncutil.Go(p.Log, func() {
+		ctx := context.WithoutCancel(ctx)
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, loginMethod, user)
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
+	})
+
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 	hostname := meta.HostURL
@@ -250,13 +278,11 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}
 		// exec it as go routine so that we can reduce the api latency
 		asyncutil.Go(p.Log, func() {
-			ctx := context.WithoutCancel(ctx)
 			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		})
 
 		return &model.AuthResponse{
@@ -277,7 +303,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		// over SMS by the existing smsBody above.
 		_, err = p.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			PhoneNumber: phoneNumber,
-			Otp:         crypto.HashOTP(smsCode, p.Config.JWTSecret),
+			Otp:         crypto.HashOTP(smsCode, p.Config.EncryptionKey),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
@@ -296,9 +322,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			side.AddCookie(c)
 		}
 		asyncutil.Go(p.Log, func() {
-			ctx := context.WithoutCancel(ctx)
 			_ = p.SMSProvider.SendSMS(phoneNumber, smsBody.String())
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		})
 		return &model.AuthResponse{
 			Message:                   "Please check the OTP in your inbox",
@@ -357,7 +381,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		switch gate {
 		case mfaGateOfferAll, mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
 				log.Debug().Err(err).Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -446,14 +470,11 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	userAgent := meta.UserAgent
 	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
-		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		if isEmailSignup {
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		} else {
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-			_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-		}
+		// Only user.login here. user.created and user.signup already fired at
+		// account creation above — this point is reached solely when a token
+		// is issued straight away (no email/phone verification, no MFA offer),
+		// so it is the one place that adds "and they are now logged in".
+		_ = p.EventsProvider.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 
 		if err := p.StorageProvider.AddSession(ctx, &schemas.Session{
 			UserID:    user.ID,

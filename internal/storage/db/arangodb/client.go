@@ -104,7 +104,7 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 	for {
 		if !cursor.HasMore() {
 			if sa == nil {
-				return nil, fmt.Errorf("service account not found")
+				return nil, fmt.Errorf("service account not found: %w", ErrNotFound)
 			}
 			break
 		}

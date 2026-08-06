@@ -147,7 +147,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.U
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return nil, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -177,7 +177,7 @@ func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID st
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return nil, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -205,7 +205,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return nil, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -254,7 +254,7 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return nil, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found: %w", ErrNotFound)
 			}
 			break
 		}

@@ -88,7 +88,7 @@ func (p *provider) GetSAMLServiceProviderByID(ctx context.Context, id string) (*
 	for {
 		if !cursor.HasMore() {
 			if sp == nil {
-				return nil, fmt.Errorf("saml service provider not found")
+				return nil, fmt.Errorf("saml service provider not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -118,7 +118,7 @@ func (p *provider) GetSAMLServiceProviderByOrgAndEntityID(ctx context.Context, o
 	for {
 		if !cursor.HasMore() {
 			if sp == nil {
-				return nil, fmt.Errorf("saml service provider not found")
+				return nil, fmt.Errorf("saml service provider not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -237,7 +237,7 @@ func (p *provider) GetSAMLIDPKeyByID(ctx context.Context, id string) (*schemas.S
 	for {
 		if !cursor.HasMore() {
 			if key == nil {
-				return nil, fmt.Errorf("saml idp key not found")
+				return nil, fmt.Errorf("saml idp key not found: %w", ErrNotFound)
 			}
 			break
 		}

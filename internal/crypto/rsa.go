@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 // NewRSAKey to generate new RSA Key if env is not set
@@ -66,33 +67,66 @@ func ExportRsaPublicKeyAsPemStr(pubkey *rsa.PublicKey) string {
 	return string(pubkeyPem)
 }
 
-// ParseRsaPrivateKeyFromPemStr to parse RSA private key from pem string
+// ParseRsaPrivateKeyFromPemStr parses an RSA private key from a PEM string,
+// accepting BOTH encodings openssl emits:
+//
+//   - PKCS#1 — "BEGIN RSA PRIVATE KEY", what openssl 1.x genrsa produced.
+//   - PKCS#8 — "BEGIN PRIVATE KEY", what openssl 3.x genrsa produces BY
+//     DEFAULT, and therefore what anyone generating keys today gets.
+//
+// Only PKCS#1 was accepted before, so a key from a current openssl failed. The
+// failure was late and silent: the server started, signup worked, and only
+// token ISSUANCE failed — every login broke on an instance that looked healthy.
 func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(privPEM))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the key")
 	}
 
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if priv, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+		return priv, nil
+	}
+
+	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
+	priv, ok := parsed.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("expected an RSA private key, got %T", parsed)
+	}
 	return priv, nil
 }
 
-// ParseRsaPublicKeyFromPemStr to parse RSA public key from pem string
+// ParseRsaPublicKeyFromPemStr parses an RSA public key from a PEM string,
+// accepting BOTH encodings:
+//
+//   - PKCS#1 — "BEGIN RSA PUBLIC KEY".
+//   - PKIX/SPKI — "BEGIN PUBLIC KEY", which is what `openssl rsa -pubout`
+//     emits, i.e. the standard way to derive a public key.
+//
+// Only PKCS#1 was accepted before, which broke /.well-known/jwks.json for
+// those deployments — relying parties could not verify tokens even when
+// signing worked. Note the ECDSA path already used ParsePKIXPublicKey, so the
+// two algorithms disagreed on the accepted format.
 func ParseRsaPublicKeyFromPemStr(pubPEM string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(pubPEM))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the key")
 	}
 
-	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
+	if pub, err := x509.ParsePKCS1PublicKey(block.Bytes); err == nil {
+		return pub, nil
+	}
+
+	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
+	pub, ok := parsed.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected an RSA public key, got %T", parsed)
+	}
 	return pub, nil
 }
 

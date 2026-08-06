@@ -6,6 +6,24 @@ const (
 	AuditActorTypeUser = "user"
 	// AuditActorTypeAdmin identifies an admin as the audit actor.
 	AuditActorTypeAdmin = "admin"
+	// AuditActorTypeAgent identifies an AI agent acting ON BEHALF OF a user via
+	// an RFC 8693 delegated token.
+	//
+	// Distinct from AuditActorTypeServiceAccount, which is an autonomous
+	// machine acting as ITSELF with no user in the picture. The distinction is
+	// the whole point of delegation: RFC 8693 §1.1 defines it as "A
+	// representing B" where A keeps its own identity, as opposed to
+	// impersonation where A "is indistinguishable from B".
+	//
+	// Before this existed, a delegated action was recorded as though the human
+	// had performed it — the agent vanished from the audit trail entirely. An
+	// agent doing something damaging looked exactly like the user doing it,
+	// with no signal anything unusual had happened.
+	//
+	// ActorID carries the AGENT's client_id; the delegating user is recorded in
+	// the event Metadata under "delegated_user_id" so both halves of "who did
+	// this, and for whom" survive.
+	AuditActorTypeAgent = "agent"
 	// AuditActorTypeServiceAccount identifies a machine/workload service account
 	// as the audit actor (client_credentials grant, RFC 6749 §4.4).
 	AuditActorTypeServiceAccount = "service_account"

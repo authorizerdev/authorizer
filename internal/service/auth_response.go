@@ -24,14 +24,20 @@ import (
 // records the user session in the memory store, and fires the login/signup
 // webhooks. Callers remain responsible for their own audit-log entry, which is
 // flow-specific.
-func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User, loginMethod, message string, state *string, isSignUp bool) (*model.AuthResponse, error) {
+func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User, loginMethod, message string, state *string, isSignUp bool, scope []string) (*model.AuthResponse, error) {
 	log := p.Log.With().Str("func", "issueAuthResponse").Logger()
 	// TokenProvider.CreateAuthToken takes *gin.Context but doesn't read from it;
 	// reuse the request-wrapping shim so the call works for every transport.
 	gc := &gin.Context{Request: meta.Request}
 
 	roles := strings.Split(user.Roles, ",")
-	scope := []string{"openid", "email", "profile"}
+	// Default set, used when the caller requested nothing specific. A scope
+	// carried across an MFA interruption (see setMFASession/consumeMFAScope)
+	// overrides it — otherwise completing MFA silently downgraded the token to
+	// these three and dropped every custom scope the caller asked for.
+	if len(scope) == 0 {
+		scope = []string{"openid", "email", "profile"}
+	}
 	code := ""
 	codeChallenge := ""
 	nonce := ""

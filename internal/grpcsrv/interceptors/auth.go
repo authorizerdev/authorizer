@@ -17,6 +17,7 @@ import (
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/delegatedscope"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv/transport"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -127,7 +128,12 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 				UserID:      tokenData.UserID,
 				LoginMethod: tokenData.LoginMethod,
 				Nonce:       tokenData.Nonce,
+				ActorID:     tokenData.ActorID,
+				Scope:       tokenData.Scope,
 			})
+			if err := enforceDelegatedScope(tokenData, info.FullMethod); err != nil {
+				return nil, err
+			}
 			return handler(ctx, req)
 		}
 
@@ -159,9 +165,37 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 			UserID:      tokenData.UserID,
 			LoginMethod: tokenData.LoginMethod,
 			Nonce:       tokenData.Nonce,
+			ActorID:     tokenData.ActorID,
+			Scope:       tokenData.Scope,
 		})
+		if err := enforceDelegatedScope(tokenData, info.FullMethod); err != nil {
+			return nil, err
+		}
 		return handler(ctx, req)
 	}
+}
+
+// enforceDelegatedScope gates a DELEGATED caller on the scope its token
+// actually carries. First-party callers are untouched — see the
+// delegatedscope package comment for why that asymmetry is deliberate.
+//
+// This is the choke point for gRPC, the REST gateway (which dispatches through
+// these same methods) and the MCP server (which serves over an in-process
+// bufconn). GraphQL has its own, in http_handlers.
+func enforceDelegatedScope(tokenData *token.SessionOrAccessTokenData, fullMethod string) error {
+	if tokenData == nil || strings.TrimSpace(tokenData.ActorID) == "" {
+		return nil
+	}
+	required, ok := delegatedscope.RequiredForGRPC(fullMethod)
+	if !ok {
+		// Fail closed: an operation nobody has cleared for delegated callers is
+		// out of reach for an agent, whatever scope it holds.
+		return status.Error(codes.PermissionDenied, "insufficient_scope")
+	}
+	if !delegatedscope.Satisfied(tokenData.Scope, required) {
+		return status.Error(codes.PermissionDenied, "insufficient_scope")
+	}
+	return nil
 }
 
 func methodDescriptor(fullMethod string) (protoreflect.MethodDescriptor, bool) {

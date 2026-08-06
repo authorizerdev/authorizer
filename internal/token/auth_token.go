@@ -62,6 +62,11 @@ var reservedClaims = map[string]bool{
 	// detection (OAuth 2.1 §6.1). A script that could forge it would let a
 	// stolen token masquerade as a different family and dodge revocation.
 	"family_id": true,
+	// sid names the session a delegated token was derived from and is the only
+	// thing that makes it revocable (token.DelegationSessionID). A script that
+	// could set it would point the check at a session that is still alive and
+	// survive the logout that should have ended the delegation.
+	"sid": true,
 }
 
 // AuthTokenConfig is the configuration for auth token
@@ -796,6 +801,37 @@ type SessionOrAccessTokenData struct {
 	UserID      string
 	LoginMethod string
 	Nonce       string
+	// ActorID is the IMMEDIATE actor of an RFC 8693 delegated token — the
+	// agent's registered client_id, taken from the `act.sub` claim. Empty for
+	// every first-party token, which is what distinguishes "a user did this"
+	// from "an agent did this for a user".
+	//
+	// Only the immediate actor is surfaced. Prior actors nested deeper in the
+	// chain are informational and MUST NOT influence an access-control
+	// decision: they were asserted by an upstream party, not verified here.
+	// They remain available in the raw token for audit reconstruction.
+	ActorID string
+	// Scope is the token's `scope` claim.
+	//
+	// Carried because for a DELEGATED token it is a privilege boundary: the
+	// token endpoint attenuates it to subject ∩ agent-ceiling, and
+	// internal/delegatedscope enforces it per operation. Without it here the
+	// attenuation is computed, returned to the caller, and then ignored.
+	Scope []string
+}
+
+// ImmediateActor extracts the `act.sub` of an RFC 8693 delegated token.
+//
+// Returns "" when the token carries no `act`, i.e. it is not delegated. The
+// claim is read from a JWT this server signed and has already validated, so it
+// is not client-controlled input.
+func ImmediateActor(claims map[string]interface{}) string {
+	act, ok := claims["act"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	sub, _ := act["sub"].(string)
+	return strings.TrimSpace(sub)
 }
 
 // GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
@@ -827,8 +863,23 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	// If not session, then validate the access token
 	claims, err := p.ValidateAccessToken(gc, token)
 	if err != nil {
-		p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
-		return nil, fmt.Errorf(`unauthorized`)
+		// An RFC 8693 delegated token is stateless and therefore always fails
+		// the stateful check above (no nonce, no session entry). Fall back to
+		// the delegated validator, which enforces every other check plus a
+		// strict audience match. See ValidateDelegatedAccessToken.
+		//
+		// Ordered as a fallback, not a branch: a first-party token is validated
+		// exactly as before and never touches the weaker path.
+		//
+		// Scoped deliberately to THIS function. The other caller of
+		// ValidateAccessToken is the OIDC /userinfo handler, which is left
+		// untouched so its behaviour stays spec-conformant.
+		delegatedClaims, dErr := p.ValidateDelegatedAccessToken(gc, token)
+		if dErr != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
+			return nil, fmt.Errorf(`unauthorized`)
+		}
+		claims = delegatedClaims
 	}
 	userID, ok := claims["sub"].(string)
 	if !ok || userID == "" {
@@ -840,7 +891,45 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		UserID:      userID,
 		LoginMethod: loginMethod,
 		Nonce:       nonce,
+		ActorID:     ImmediateActor(claims),
+		Scope:       claimToScopeSlice(claims["scope"]),
 	}, nil
+}
+
+// ClaimScopes returns the `scope` claim of already-parsed claims as a slice.
+//
+// Exported so a caller that has only the raw JWT — the GraphQL scope gate,
+// which deliberately avoids any storage read — can reach the same
+// normalisation the session path uses, rather than reimplementing it and
+// drifting on the string-vs-array form.
+func ClaimScopes(claims map[string]interface{}) []string {
+	if claims == nil {
+		return nil
+	}
+	return claimToScopeSlice(claims["scope"])
+}
+
+// claimToScopeSlice normalises a `scope` claim to a slice. Tokens minted here
+// carry a JSON array, but a string form ("openid email profile") is the OAuth
+// wire convention and appears in tokens from other issuers, so accept both
+// rather than silently yield an empty scope — which, being fail-closed, would
+// deny every delegated call for a non-obvious reason.
+func claimToScopeSlice(v interface{}) []string {
+	switch t := v.(type) {
+	case []string:
+		return t
+	case string:
+		return strings.Fields(t)
+	case []interface{}:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
 }
 
 const scriptTimeout = 5 * time.Second

@@ -11,7 +11,9 @@ package openfga
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/openfga/openfga/pkg/server"
@@ -85,7 +87,30 @@ type engineImpl struct {
 	storeID   string
 	modelID   string
 	storeName string
+
+	// pinnedModel is true when the operator supplied Config.ModelID. A pinned
+	// model is never refreshed — the operator has chosen an exact version and
+	// silently moving off it would defeat the point.
+	pinnedModel bool
+	// modelCheckedAt is when the cached modelID was last reconciled with the
+	// datastore. Zero means never.
+	modelCheckedAt time.Time
 }
+
+// modelRefreshInterval bounds how stale a replica's view of the active model
+// can be.
+//
+// Checks pin an explicit AuthorizationModelId, and WriteModel only updates the
+// modelID of the replica that served it. Without this, a model written on
+// replica A was never picked up by replica B until B restarted — so a fleet
+// could evaluate the SAME request against DIFFERENT models indefinitely. That
+// is worse than a stale model: authorization becomes non-deterministic across
+// replicas, and any behaviour derived from the model (see TypeNames and the
+// agent-subject detection built on it) diverges with it.
+//
+// 30s trades a bounded window of staleness for one cheap ReadAuthorizationModels
+// per replica per interval, off the hot path of every Check.
+const modelRefreshInterval = 30 * time.Second
 
 // Compile-time interface verification.
 var _ engine.AuthorizationEngine = &engineImpl{}
@@ -137,6 +162,8 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 		storeID:   cfg.StoreID,
 		modelID:   cfg.ModelID,
 		storeName: cfg.StoreName,
+		// An operator-pinned model is authoritative: never refresh off it.
+		pinnedModel: strings.TrimSpace(cfg.ModelID) != "",
 	}
 
 	// Bind to a store. An explicit cfg.StoreID wins; otherwise reuse the
@@ -313,9 +340,50 @@ func (e *engineImpl) Close() {
 
 // ids returns the current store and model IDs under the read lock.
 func (e *engineImpl) ids() (storeID, modelID string) {
+	e.refreshModelIfStale()
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return e.storeID, e.modelID
+}
+
+// refreshModelIfStale reconciles this replica's cached modelID with the
+// datastore at most once per modelRefreshInterval, so a model written by
+// ANOTHER replica is picked up without a restart (see modelRefreshInterval).
+//
+// Deliberately does not run when the operator pinned Config.ModelID, and never
+// fails a caller: a datastore hiccup leaves the last known model in place and
+// the Check proceeds against it rather than erroring. Losing the refresh is a
+// staleness problem; failing the Check would be an outage.
+func (e *engineImpl) refreshModelIfStale() {
+	e.mu.RLock()
+	pinned, storeID, checkedAt := e.pinnedModel, e.storeID, e.modelCheckedAt
+	e.mu.RUnlock()
+	if pinned || storeID == "" {
+		return
+	}
+	if !checkedAt.IsZero() && time.Since(checkedAt) < modelRefreshInterval {
+		return
+	}
+
+	latest, err := latestModelID(e.srv, storeID)
+	// Stamp the attempt either way so a persistently failing datastore cannot
+	// turn every Check into a ReadAuthorizationModels call.
+	e.mu.Lock()
+	e.modelCheckedAt = time.Now()
+	prev := e.modelID
+	if err == nil && latest != "" && latest != prev {
+		e.modelID = latest
+	}
+	e.mu.Unlock()
+
+	if err != nil {
+		e.log.Debug().Err(err).Msg("model refresh failed; continuing with the last known model")
+		return
+	}
+	if latest != "" && latest != prev {
+		e.log.Info().Str("previous_model_id", prev).Str("model_id", latest).
+			Msg("adopted a newer authorization model written by another replica")
+	}
 }
 
 // toProtoContextual converts engine contextual tuples to the OpenFGA wire type.

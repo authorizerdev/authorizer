@@ -37,13 +37,35 @@ const maxPermissionChecks = 100
 // contextual tuples are accepted from any authenticated caller.
 const maxContextualTuplesPerCheck = 100
 
+// fgaCaller is the authenticated identity behind a permission request.
+//
+// It is resolved ONCE per call and threaded through the subject gate and the
+// delegation expansion, because every consumer of it would otherwise re-parse
+// the bearer token — and for a stateless delegated token that parse includes a
+// storage read for subject liveness. Three consumers meant three reads on the
+// hottest authorization path.
+type fgaCaller struct {
+	// subject is the caller's own OpenFGA subject — "user:<sub>" or
+	// "service_account:<client_id>" — or "" when the request carries no user or
+	// machine credential (e.g. a super admin authenticated only by the admin
+	// cookie/secret).
+	subject string
+	// actorID is the IMMEDIATE RFC 8693 actor (`act.sub`) when the caller
+	// presented a delegated token, otherwise "". Non-empty means "an agent is
+	// acting on behalf of subject".
+	actorID string
+}
+
+// isDelegated reports whether an agent is acting on the subject's behalf.
+func (c fgaCaller) isDelegated() bool { return c.actorID != "" }
+
 // resolveFgaSubject is the single, centralized trust gate for the public
 // permission APIs (CheckPermissions, ListPermissions). It decides which
 // OpenFGA subject ("type:id") a decision is evaluated for, given the optional
 // client-supplied explicitUser.
 //
 // Rules (fail-closed):
-//   - explicitUser empty → the caller's own subject (see callerOwnSubject):
+//   - explicitUser empty → the caller's own subject (see resolveFgaCaller):
 //     "user:<sub>" for a human/session caller, or "service_account:<client_id>"
 //     for an autonomous client_credentials (machine) caller. This is the
 //     default and the common case.
@@ -54,15 +76,10 @@ const maxContextualTuplesPerCheck = 100
 //     would let a caller probe another subject's access (IDOR / info
 //     disclosure). A machine caller may therefore only self-pin (its
 //     "service_account:<client_id>") or be denied; it is never a super-admin.
-func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, explicitUser string) (string, error) {
+//   - a DELEGATED caller may only ever name its own subject. See below.
+func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, caller fgaCaller, explicitUser string) (string, error) {
 	explicitUser = strings.TrimSpace(explicitUser)
-
-	// The caller's own subject, when they carry a user/session/machine token.
-	// Fail-closed: a machine token whose client cannot be resolved errors here.
-	ownSubject, err := p.callerOwnSubject(ctx, meta)
-	if err != nil {
-		return "", err
-	}
+	ownSubject := caller.subject
 
 	if explicitUser == "" {
 		// Default: pin to the caller's own subject.
@@ -81,8 +98,21 @@ func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, 
 	// `user`) while the server stays strict. The comparison is exact-string
 	// after outer TrimSpace + normalization — no inner-whitespace or case
 	// tolerance; a near-miss falls through and is rejected (fail-closed).
+	//
+	// For a delegated caller this returns the DELEGATING USER's subject, which
+	// the agent half is then intersected with by delegationSubjects — echoing
+	// back your own subject cannot shed the agent constraint.
 	if subject == ownSubject {
 		return subject, nil
+	}
+	// A delegated caller may NEVER widen its subject, not even holding an admin
+	// credential. An agent's authority is perms(agent) ∩ perms(user) and
+	// nothing else; letting it name a third subject would hand it a probe into
+	// access neither half of that intersection has. Checked BEFORE the
+	// super-admin escapes below so no admin credential riding along on the same
+	// request can unlock it.
+	if caller.isDelegated() {
+		return "", PermissionDenied("a delegated token may not query authorization for another subject")
 	}
 	// Only a super-admin may evaluate a different subject. The trust level is
 	// derived from the admin cookie/secret — never from client input.
@@ -96,11 +126,12 @@ func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, 
 	return "", PermissionDenied("not authorized to query authorization for another subject")
 }
 
-// callerOwnSubject returns the caller's canonical OpenFGA subject derived from
-// their authenticated token/session, or "" when the request carries no user or
-// machine credential (e.g. a super admin authenticated only by the admin
-// cookie/secret). It is the single place that classifies a caller as a machine
-// (client_credentials) subject vs a human user subject.
+// resolveFgaCaller returns the caller's canonical OpenFGA subject derived from
+// their authenticated token/session — or the zero value when the request
+// carries no user or machine credential (e.g. a super admin authenticated only
+// by the admin cookie/secret) — together with the immediate RFC 8693 actor when
+// the credential is a delegated token. It is the single place that classifies a
+// caller as a machine (client_credentials) subject vs a human user subject.
 //
 // MACHINE vs USER vs DELEGATED — the classification keys ONLY on the token's
 // login_method claim:
@@ -119,25 +150,40 @@ func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, 
 // The security-critical rule (delegated and user tokens stay user subjects; only
 // autonomous machine tokens become service_account subjects) holds by
 // construction.
-func (p *provider) callerOwnSubject(ctx context.Context, meta RequestMetadata) (string, error) {
-	callerID, loginMethod := "", ""
+//
+// The actor is read from the same source as the subject, never from a second
+// lookup: authctx.Principal is populated ONLY by the gRPC interceptor, so a
+// GraphQL or REST caller falls back to the request token. Reading the principal
+// alone left delegation — the intersection AND the audit attribution built on
+// the same signal — silently inert on the primary API surface.
+func (p *provider) resolveFgaCaller(ctx context.Context, meta RequestMetadata) (fgaCaller, error) {
+	callerID, loginMethod, actorID := "", "", ""
 	if principal, ok := authctx.FromContext(ctx); ok && strings.TrimSpace(principal.UserID) != "" {
 		callerID = principal.UserID
 		loginMethod = principal.LoginMethod
-	} else {
+		actorID = strings.TrimSpace(principal.ActorID)
+	} else if meta.Request != nil && p.TokenProvider != nil {
 		gc := &gin.Context{Request: meta.Request}
-		if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && strings.TrimSpace(tokenData.UserID) != "" {
+		if tokenData, terr := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc); terr == nil && tokenData != nil && strings.TrimSpace(tokenData.UserID) != "" {
 			callerID = tokenData.UserID
 			loginMethod = tokenData.LoginMethod
+			actorID = strings.TrimSpace(tokenData.ActorID)
 		}
 	}
 	if callerID == "" {
-		return "", nil
+		return fgaCaller{}, nil
 	}
 	if loginMethod == constants.AuthRecipeMethodServiceAccount {
-		return p.machineFgaSubject(ctx, callerID)
+		subject, err := p.machineFgaSubject(ctx, callerID)
+		if err != nil {
+			return fgaCaller{}, err
+		}
+		// A machine token never carries an `act` chain (see above), so a
+		// service_account subject is never delegated. Dropping any actorID here
+		// keeps that invariant enforced rather than merely documented.
+		return fgaCaller{subject: subject}, nil
 	}
-	return "user:" + callerID, nil
+	return fgaCaller{subject: "user:" + callerID, actorID: actorID}, nil
 }
 
 // machineFgaSubject maps an authenticated client_credentials caller — whose
@@ -244,7 +290,16 @@ func toContextualTuples(in []*model.FgaTupleInput) ([]engine.ContextualTuple, er
 //
 // The subject is always derived server-side from the resolved userID, never
 // from client input.
-func (p *provider) enforceRequiredRelations(ctx context.Context, log zerolog.Logger, userID string, required []*model.FgaRelationInput) error {
+//
+// DELEGATION: this is the THIRD authorization-decision surface, alongside
+// CheckPermissions and ListPermissions, and it must answer the same question
+// the same way. It previously hardcoded "user:<sub>", so a delegated caller was
+// evaluated as the delegating user alone — `validate_jwt_token` reported a
+// relation SATISFIED that `check_permissions` denied for the same token, same
+// relation, same object. Two answers to one authority question is worse than
+// either answer: a gateway gating on required_relations would admit a request
+// the permission API refuses.
+func (p *provider) enforceRequiredRelations(ctx context.Context, meta RequestMetadata, log zerolog.Logger, userID string, required []*model.FgaRelationInput) error {
 	if len(required) == 0 {
 		return nil
 	}
@@ -254,24 +309,38 @@ func (p *provider) enforceRequiredRelations(ctx context.Context, log zerolog.Log
 	if strings.TrimSpace(userID) == "" {
 		return Unauthenticated("unauthorized")
 	}
-	subject := "user:" + userID
+	// Same expansion as the permission APIs: [subject] for an ordinary caller,
+	// [agent:<client_id>, user:<sub>] for a delegated one, with EVERY subject
+	// required to pass.
+	caller, err := p.resolveFgaCaller(ctx, meta)
+	if err != nil {
+		return PermissionDenied("unauthorized")
+	}
+	subjects, err := p.delegationSubjects(ctx, caller, "user:"+userID, metrics.FgaOpRequiredRelations)
+	if err != nil {
+		metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
+		log.Debug().Err(err).Msg("required relations: failed to resolve delegation subjects; denying")
+		return PermissionDenied("unauthorized")
+	}
 	for _, r := range required {
 		if r == nil || strings.TrimSpace(r.Relation) == "" || strings.TrimSpace(r.Object) == "" {
 			return InvalidArgument("each required relation needs relation and object")
 		}
-		start := time.Now()
-		allowed, err := p.AuthzEngine.Check(ctx, subject, r.Relation, r.Object)
-		metrics.ObserveFgaCheckDuration(metrics.FgaOpRequiredRelations, time.Since(start).Seconds())
-		if err != nil {
-			// Fail closed.
-			metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
-			log.Debug().Err(err).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation check errored")
-			return PermissionDenied("unauthorized")
-		}
-		metrics.RecordFgaCheckResult(metrics.FgaOpRequiredRelations, allowed)
-		if !allowed {
-			log.Debug().Str("relation", r.Relation).Str("object", r.Object).Msg("required relation denied")
-			return PermissionDenied("unauthorized")
+		for _, subject := range subjects {
+			start := time.Now()
+			allowed, err := p.AuthzEngine.Check(ctx, subject, r.Relation, r.Object)
+			metrics.ObserveFgaCheckDuration(metrics.FgaOpRequiredRelations, time.Since(start).Seconds())
+			if err != nil {
+				// Fail closed.
+				metrics.RecordFgaCheck(metrics.FgaOpRequiredRelations, metrics.FgaResultError)
+				log.Debug().Err(err).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation check errored")
+				return PermissionDenied("unauthorized")
+			}
+			metrics.RecordFgaCheckResult(metrics.FgaOpRequiredRelations, allowed)
+			if !allowed {
+				log.Debug().Str("subject", subject).Str("relation", r.Relation).Str("object", r.Object).Msg("required relation denied")
+				return PermissionDenied("unauthorized")
+			}
 		}
 	}
 	return nil

@@ -85,7 +85,7 @@ func (p *provider) GetOrgMembership(ctx context.Context, orgID, userID string) (
 	for {
 		if !cursor.HasMore() {
 			if membership == nil {
-				return nil, fmt.Errorf("org membership not found")
+				return nil, fmt.Errorf("org membership not found: %w", ErrNotFound)
 			}
 			break
 		}

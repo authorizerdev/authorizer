@@ -121,7 +121,7 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 		// OTPs are stored as HMAC-SHA256 digests; we deliberately do NOT
 		// fall back to literal equality so the stored digest cannot be
 		// replayed as a credential by anyone with DB read access.
-		if !crypto.VerifyOTPHash(otp, otpRequest.Otp, p.Config.JWTSecret) {
+		if !crypto.VerifyOTPHash(otp, otpRequest.Otp, p.Config.EncryptionKey) {
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
 			return nil, nil, InvalidArgument(`invalid otp`)
 		}

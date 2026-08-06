@@ -88,7 +88,7 @@ func (p *provider) GetScimGroupByID(ctx context.Context, id string) (*schemas.Sc
 	for {
 		if !cursor.HasMore() {
 			if group == nil {
-				return nil, fmt.Errorf("scim group not found")
+				return nil, fmt.Errorf("scim group not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -159,7 +159,7 @@ func (p *provider) GetScimGroupByOrgAndDisplayName(ctx context.Context, orgID, d
 		p.dependencies.Log.Warn().Str("org_id", orgID).Int("examined", examined).
 			Msg("GetScimGroupByOrgAndDisplayName: hit the scan safety cap without a match")
 	}
-	return nil, fmt.Errorf("scim group not found")
+	return nil, fmt.Errorf("scim group not found: %w", ErrNotFound)
 }
 
 // GetScimGroupByOrgAndExternalID resolves the single group with the given
@@ -180,7 +180,7 @@ func (p *provider) GetScimGroupByOrgAndExternalID(ctx context.Context, orgID, ex
 	for {
 		if !cursor.HasMore() {
 			if group == nil {
-				return nil, fmt.Errorf("scim group not found")
+				return nil, fmt.Errorf("scim group not found: %w", ErrNotFound)
 			}
 			break
 		}

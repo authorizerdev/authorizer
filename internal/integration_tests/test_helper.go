@@ -161,16 +161,21 @@ func getTestConfigForDB(dbType, dbURL string) *config.Config {
 		DatabaseType:                   dbType,
 		DatabaseURL:                    dbURL,
 		JWTSecret:                      "test-secret",
-		ClientID:                       "test-client-id",
-		ClientSecret:                   "test-client-secret",
-		AllowedOrigins:                 []string{"http://localhost:3000"},
-		JWTType:                        "HS256",
-		AdminSecret:                    "test-admin-secret",
-		TwilioAPISecret:                "test-twilio-api-secret",
-		TwilioAPIKey:                   "test-twilio-api-key",
-		TwilioAccountSID:               "test-twilio-account-sid",
-		TwilioSender:                   "test-twilio-sender",
-		DefaultRoles:                   []string{"user"},
+		// Mirrors the EncryptionKey -> JWTSecret fallback Config.Finalize()
+		// applies at startup. Set explicitly rather than by calling Finalize()
+		// here, which would also derive the MFA flags and change the config
+		// shape every other test in this package was written against.
+		EncryptionKey:    "test-secret",
+		ClientID:         "test-client-id",
+		ClientSecret:     "test-client-secret",
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		JWTType:          "HS256",
+		AdminSecret:      "test-admin-secret",
+		TwilioAPISecret:  "test-twilio-api-secret",
+		TwilioAPIKey:     "test-twilio-api-key",
+		TwilioAccountSID: "test-twilio-account-sid",
+		TwilioSender:     "test-twilio-sender",
+		DefaultRoles:     []string{"user"},
 		Roles: []string{
 			"user", "admin", "viewer", "editor",
 			"accountant", "auditor",

@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 // NewECDSAKey to generate new ECDSA Key if env is not set
@@ -89,11 +90,22 @@ func ParseEcdsaPrivateKeyFromPemStr(privPEM string) (*ecdsa.PrivateKey, error) {
 		return nil, errors.New("failed to parse PEM block containing the key")
 	}
 
-	priv, err := x509.ParseECPrivateKey(block.Bytes)
+	// SEC1 ("BEGIN EC PRIVATE KEY") first, then PKCS#8 ("BEGIN PRIVATE KEY"),
+	// which is what `openssl genpkey` and openssl 3.x emit by default. Mirrors
+	// the RSA path: accepting only one encoding meant a key generated the
+	// standard way failed at token issuance rather than at startup.
+	if priv, err := x509.ParseECPrivateKey(block.Bytes); err == nil {
+		return priv, nil
+	}
+
+	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
-
+	priv, ok := parsed.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("expected an ECDSA private key, got %T", parsed)
+	}
 	return priv, nil
 }
 

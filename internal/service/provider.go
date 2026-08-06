@@ -219,6 +219,11 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 type provider struct {
 	*config.Config
 	Dependencies
+
+	// agentSubjects caches whether the active authorization model declares the
+	// `agent` type, which is what enables agent-subject intersection for RFC
+	// 8693 delegated tokens. Keyed on model id — see fga_agent.go.
+	agentSubjects agentSubjectsState
 }
 
 // Compile-time check that provider satisfies Provider.

@@ -56,7 +56,7 @@ func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
 	for {
 		if !cursor.HasMore() {
 			if env == nil {
-				return env, fmt.Errorf("config not found")
+				return env, fmt.Errorf("config not found: %w", ErrNotFound)
 			}
 			break
 		}

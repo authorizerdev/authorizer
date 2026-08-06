@@ -169,6 +169,10 @@ type AuthorizationEngine interface {
 	// access" enumeration. Returns ErrNoModel (wrapped) when no model has been
 	// written yet.
 	TypeRelations(ctx context.Context) (map[string][]string, error)
+	// TypeNames returns every object type declared in the active model,
+	// sorted. Unlike TypeRelations it INCLUDES types with no relations, which
+	// is required to detect a subject-only type such as `agent`.
+	TypeNames(ctx context.Context) ([]string, error)
 
 	// Reset deletes the entire authorization store (the model, all its versions,
 	// and all tuples) and starts a fresh, empty store. It is destructive and must

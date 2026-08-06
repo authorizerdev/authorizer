@@ -195,6 +195,21 @@ func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, or
 		return Unauthenticated("unauthorized")
 	}
 
+	// An RFC 8693 delegated caller is an AGENT acting for a user, and org-admin
+	// authority is not delegable. The membership lookup below keys on the
+	// delegating user, so without this an agent holding a token for any org
+	// admin inherits that admin's full authority over the org — SSO connections,
+	// SAML/OIDC config, domains, membership. That is the Confused Deputy the
+	// agent intersection exists to stop, on a surface the intersection does not
+	// reach: these handlers ask "is this user an org admin?", never "what may
+	// this agent do?".
+	//
+	// Delegation to an org admin is a real use case; it just needs an explicit
+	// grant model rather than silent inheritance. Refuse until one exists.
+	if strings.TrimSpace(tokenData.ActorID) != "" {
+		return Unauthenticated("unauthorized")
+	}
+
 	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, tokenData.UserID)
 	if err != nil || membership == nil {
 		return Unauthenticated("unauthorized")

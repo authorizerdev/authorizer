@@ -2,7 +2,7 @@ package dynamodb
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -35,7 +35,7 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.New("session token not found")
+		return nil, fmt.Errorf("session token not found: %w", ErrNotFound)
 	}
 	var t schemas.SessionToken
 	if err := unmarshalItem(items[0], &t); err != nil {
@@ -178,7 +178,7 @@ func (p *provider) GetMFASessionByUserIDAndKey(ctx context.Context, userId, key 
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.New("MFA session not found")
+		return nil, fmt.Errorf("MFA session not found: %w", ErrNotFound)
 	}
 	var s schemas.MFASession
 	if err := unmarshalItem(items[0], &s); err != nil {
@@ -295,7 +295,7 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.New("OAuth state not found")
+		return nil, fmt.Errorf("OAuth state not found: %w", ErrNotFound)
 	}
 	var s schemas.OAuthState
 	if err := unmarshalItem(items[0], &s); err != nil {

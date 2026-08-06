@@ -347,27 +347,31 @@ func (h *httpProvider) resolveSAMLResponseContext(c *gin.Context, sp *saml.Servi
 // Returns an error if the assertion was already consumed (replay). The cache TTL
 // tracks the assertion's own expiry so the entry cannot outlive the replay window.
 //
-// ponytail: check-then-set (not atomic) — the memory-store interface exposes no
-// SetNX, so two requests replaying the same assertion within the same few
-// milliseconds could both pass. The assertion's own short NotOnOrAfter window
-// bounds this; upgrade path: add an atomic SetNX to the memory store.
+// Claims via SetCacheNX so the store decides the race in ONE operation: two
+// requests replaying the same assertion in the same instant can no longer both
+// observe "unseen" and both be accepted, which is what the previous
+// check-then-set pair allowed. A store fault reports "not claimed" and the
+// assertion is rejected — replay defence fails closed.
 func (h *httpProvider) consumeSAMLAssertionID(orgID string, assertion *saml.Assertion) error {
 	id := strings.TrimSpace(assertion.ID)
 	if id == "" {
 		return fmt.Errorf("assertion has no ID")
 	}
 	key := samlAssertionPrefix + orgID + ":" + id
-	existing, err := h.MemoryStoreProvider.GetCache(key)
-	if err == nil && strings.TrimSpace(existing) != "" {
-		return fmt.Errorf("assertion replay detected")
-	}
 	ttl := samlReplayFallbackTTL
 	if assertion.Conditions != nil && !assertion.Conditions.NotOnOrAfter.IsZero() {
 		if secs := int64(time.Until(assertion.Conditions.NotOnOrAfter.Add(saml.MaxClockSkew)).Seconds()); secs > ttl {
 			ttl = secs
 		}
 	}
-	return h.MemoryStoreProvider.SetCache(key, "1", ttl)
+	claimed, err := h.MemoryStoreProvider.SetCacheNX(key, "1", ttl)
+	if err != nil {
+		return fmt.Errorf("assertion replay check failed: %w", err)
+	}
+	if !claimed {
+		return fmt.Errorf("assertion replay detected")
+	}
+	return nil
 }
 
 // resolveActiveSAMLConnection looks up the org by slug and its active sso_saml

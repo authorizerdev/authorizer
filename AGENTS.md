@@ -153,6 +153,36 @@ When the background closure needs a context, use `context.WithoutCancel(ctx)` (n
 - Any indexed lookup added to one provider (e.g. `GetUserByExternalID`) needs the matching index/equivalent in every other provider — a method that's O(1) in one backend and a full collection/table scan in another is a parity bug, not a perf nit.
 - Never build a query by string-concatenating or `fmt.Sprintf`-ing request-derived values into a WHERE/SET/CQL clause, even for NoSQL backends — always parameterize/bind, and never let a map of column names sourced from a request reach a query builder without an explicit allow-list.
 
+### The not-found contract (all 6 backends must agree)
+
+"The row does not exist" and "the query failed" are **different outcomes** and must stay distinguishable. Getting this wrong has already caused two classes of production bug in this repo: a nil-dereference panic on one backend only, and a database outage being reported to end users as an invalid credential.
+
+**Writing a storage method:**
+
+- A single-entity getter reports an absent row as an **error** — the driver's own value (`gorm.ErrRecordNotFound`, `mongo.ErrNoDocuments`, `gocql.ErrNotFound`, `gocb.ErrDocumentNotFound`). Backends with no canonical driver sentinel (ArangoDB, DynamoDB) wrap their package-level `ErrNotFound`: `fmt.Errorf("authenticator not found: %w", ErrNotFound)`.
+- **Never return `(nil, nil)` from a single-entity getter.** Callers branch on `err` and then dereference the pointer, so `(nil, nil)` panics — and because it usually diverges on only one backend, CI (SQLite-only) stays green while production crashes. This is exactly how three DynamoDB methods broke the TOTP and email-verification paths.
+- `List*` methods return `(nil, nil)` for an empty result. A nil slice ranges zero times, so no caller guard is needed.
+- The single documented exception is `GetClientByClientID`, which **must** return `(nil, nil)` — its callers distinguish absent from unavailable by `err` alone. Treat it as legacy, not as a pattern to copy; new code uses the error form.
+- Implement the same behaviour in **all six** backends. `TestNotFoundContractIsUniform` (`internal/storage`) compares them statically and fails on divergence, so a one-backend slip is caught without needing all six databases running.
+
+**Consuming a storage method:**
+
+Use `storage.IsNotFound(err)` — never `err != nil` alone — wherever the two outcomes should differ:
+
+```go
+org, err := p.StorageProvider.GetOrganizationByID(ctx, id)
+switch {
+case storage.IsNotFound(err):
+    return nil, nil, NotFound("organization not found")  // 404, permanent
+case err != nil:
+    return nil, nil, err                                 // 500, retryable
+}
+```
+
+Returning the raw storage error maps to `codes.Internal` (HTTP 500), so a missing row surfaces as a server fault; conversely, collapsing everything into a "not found"/"invalid" response tells a user their input was wrong during what is really an outage. Both are wrong, and both are silent.
+
+Do **not** apply this mechanically to auth paths. Turning a lookup failure into a distinct 404 on an unauthenticated endpoint can create an account-existence oracle — `VerifyEmail`'s `GetUserByEmail` is deliberately left conflated for exactly this reason. Org-scoped admin resolvers route their not-found through `maskNonSuperAdminError` so a tenant admin cannot probe another org.
+
 ## Critical Rules (Top of Mind)
 
 1. **Admin GraphQL ops prefixed with `_`** — not for public use. Same for `AuthorizerAdminService` gRPC.
@@ -161,6 +191,7 @@ When the background closure needs a context, use `context.WithoutCancel(ctx)` (n
 4. **Run `make proto-gen`** (or `make proto-check`) after editing `proto/`; commit `gen/`.
 5. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.
 6. **Fire-and-forget side effects go through `asyncutil.Go`, never a bare `go func()`** — see Background Work above.
+7. **Never return `(nil, nil)` from a single-entity storage getter**, and use `storage.IsNotFound(err)` rather than `err != nil` when absent and unavailable should differ — see [The not-found contract](#the-not-found-contract-all-6-backends-must-agree).
 
 Detailed rules load via skills (see below) — don't restate them here.
 

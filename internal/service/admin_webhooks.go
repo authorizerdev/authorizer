@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
@@ -99,6 +100,9 @@ func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, para
 	webhook, err := p.StorageProvider.GetWebhookByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetWebhookByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("webhook not found")
+		}
 		return nil, nil, err
 	}
 
@@ -200,6 +204,9 @@ func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, para
 	webhook, err := p.StorageProvider.GetWebhookByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get webhook by ID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("webhook not found")
+		}
 		return nil, nil, err
 	}
 
@@ -233,6 +240,9 @@ func (p *provider) Webhook(ctx context.Context, meta RequestMetadata, params *mo
 	webhook, err := p.StorageProvider.GetWebhookByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetWebhookByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("webhook not found")
+		}
 		return nil, nil, err
 	}
 	return webhook.AsAPIWebhook(), nil, nil

@@ -83,7 +83,7 @@ func (p *provider) GetScimEndpointByID(ctx context.Context, id string) (*schemas
 	for {
 		if !cursor.HasMore() {
 			if scimEndpoint == nil {
-				return nil, fmt.Errorf("scim endpoint not found")
+				return nil, fmt.Errorf("scim endpoint not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -112,7 +112,7 @@ func (p *provider) GetScimEndpointByOrgID(ctx context.Context, orgID string) (*s
 	for {
 		if !cursor.HasMore() {
 			if scimEndpoint == nil {
-				return nil, fmt.Errorf("scim endpoint not found")
+				return nil, fmt.Errorf("scim endpoint not found: %w", ErrNotFound)
 			}
 			break
 		}

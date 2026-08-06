@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -33,6 +34,9 @@ func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, param
 	user, err := p.StorageProvider.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user by id")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("user not found")
+		}
 		return nil, nil, err
 	}
 
@@ -82,6 +86,9 @@ func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, param
 	user, err := p.StorageProvider.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user by ID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("user not found")
+		}
 		return nil, nil, err
 	}
 

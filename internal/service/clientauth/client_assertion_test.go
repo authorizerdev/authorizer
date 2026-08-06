@@ -57,7 +57,10 @@ func (s *assertionStore) GetTrustedIssuerByIssuerURL(_ context.Context, url stri
 	return iss, nil
 }
 
-// fakeMemStore implements the SetCache/GetCache subset used by the resolver.
+// fakeMemStore implements the SetCache/GetCache/SetCacheNX subset used by the
+// resolver. SetCacheNX mirrors the real contract — claim by creation, under the
+// same mutex — so the jti single-use path is genuinely exercised here rather
+// than stubbed out to always succeed.
 type fakeMemStore struct {
 	memory_store.Provider
 	mu    sync.Mutex
@@ -71,6 +74,16 @@ func (m *fakeMemStore) SetCache(key, value string, _ int64) error {
 	defer m.mu.Unlock()
 	m.cache[key] = value
 	return nil
+}
+
+func (m *fakeMemStore) SetCacheNX(key, value string, _ int64) (bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, held := m.cache[key]; held {
+		return false, nil
+	}
+	m.cache[key] = value
+	return true, nil
 }
 
 func (m *fakeMemStore) GetCache(key string) (string, error) {

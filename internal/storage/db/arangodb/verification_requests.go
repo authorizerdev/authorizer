@@ -45,7 +45,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 	for {
 		if !cursor.HasMore() {
 			if verificationRequest == nil {
-				return verificationRequest, fmt.Errorf("verification request not found")
+				return verificationRequest, fmt.Errorf("verification request not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -73,7 +73,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 	for {
 		if !cursor.HasMore() {
 			if verificationRequest == nil {
-				return verificationRequest, fmt.Errorf("verification request not found")
+				return verificationRequest, fmt.Errorf("verification request not found: %w", ErrNotFound)
 			}
 			break
 		}

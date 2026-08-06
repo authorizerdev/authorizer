@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -173,6 +174,9 @@ func (p *provider) UpdateTrustedIssuer(ctx context.Context, meta RequestMetadata
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("trusted issuer not found")
+		}
 		return nil, nil, err
 	}
 
@@ -245,6 +249,9 @@ func (p *provider) DeleteTrustedIssuer(ctx context.Context, meta RequestMetadata
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("trusted issuer not found")
+		}
 		return nil, nil, err
 	}
 
@@ -277,6 +284,9 @@ func (p *provider) TrustedIssuer(ctx context.Context, meta RequestMetadata, para
 	issuer, err := p.StorageProvider.GetTrustedIssuerByID(ctx, params.ID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetTrustedIssuerByID")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("trusted issuer not found")
+		}
 		return nil, nil, err
 	}
 	return issuer.AsAPITrustedIssuer(), nil, nil

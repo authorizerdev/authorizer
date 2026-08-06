@@ -60,7 +60,7 @@ func (p *provider) GetOrgDomainByDomain(ctx context.Context, domain string) (*sc
 	for {
 		if !cursor.HasMore() {
 			if orgDomain == nil {
-				return nil, fmt.Errorf("org domain not found")
+				return nil, fmt.Errorf("org domain not found: %w", ErrNotFound)
 			}
 			break
 		}

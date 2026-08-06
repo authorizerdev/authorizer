@@ -94,7 +94,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 	for {
 		if !cursor.HasMore() {
 			if webhook == nil {
-				return nil, fmt.Errorf("webhook not found")
+				return nil, fmt.Errorf("webhook not found: %w", ErrNotFound)
 			}
 			break
 		}

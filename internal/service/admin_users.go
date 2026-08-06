@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -80,6 +81,9 @@ func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model
 		res, err := p.StorageProvider.GetUserByID(ctx, *params.ID)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed GetUserByID")
+			if storage.IsNotFound(err) {
+				return nil, nil, NotFound("user not found")
+			}
 			return nil, nil, err
 		}
 		return res.AsAPIUser(), nil, nil
@@ -89,6 +93,9 @@ func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model
 		res, err := p.StorageProvider.GetUserByEmail(ctx, *params.Email)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed GetUserByEmail")
+			if storage.IsNotFound(err) {
+				return nil, nil, NotFound("user not found")
+			}
 			return nil, nil, err
 		}
 		return res.AsAPIUser(), nil, nil
@@ -374,6 +381,9 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 	user, err := p.StorageProvider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user by email")
+		if storage.IsNotFound(err) {
+			return nil, nil, NotFound("user not found")
+		}
 		return nil, nil, err
 	}
 

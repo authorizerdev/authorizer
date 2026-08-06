@@ -90,7 +90,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 	for {
 		if !cursor.HasMore() {
 			if emailTemplate == nil {
-				return nil, fmt.Errorf("email template not found")
+				return nil, fmt.Errorf("email template not found: %w", ErrNotFound)
 			}
 			break
 		}
@@ -117,7 +117,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	for {
 		if !cursor.HasMore() {
 			if emailTemplate == nil {
-				return nil, fmt.Errorf("email template not found")
+				return nil, fmt.Errorf("email template not found: %w", ErrNotFound)
 			}
 			break
 		}
