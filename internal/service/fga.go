@@ -345,3 +345,55 @@ func (p *provider) enforceRequiredRelations(ctx context.Context, meta RequestMet
 	}
 	return nil
 }
+
+// fgaPurgePageSize is the ReadTuples page size used when scanning the store for
+// a deleted user's grants.
+const fgaPurgePageSize = 100
+
+// purgeFgaTuplesForUser removes every relationship tuple naming the given user,
+// so a hard-deleted account cannot keep holding grants. A no-op when FGA is not
+// enabled.
+//
+// ponytail: this pages through the WHOLE tuple store and matches client-side,
+// because OpenFGA's Read API rejects a user-only filter — it requires at least
+// an object type ("the 'tuple_key' field was provided but the object type field
+// is required"), and we do not know which types a user appears under. That is
+// fine for an admin delete-user call; the upgrade path, if the store grows big
+// enough to matter, is to enumerate the model's type definitions via ReadModel
+// and issue one filtered Read per type.
+func (p *provider) purgeFgaTuplesForUser(ctx context.Context, userID string) error {
+	if p.AuthzEngine == nil || strings.TrimSpace(userID) == "" {
+		return nil
+	}
+	subject := "user:" + userID
+	var stale []engine.TupleKey
+	contToken := ""
+	for {
+		res, err := p.AuthzEngine.ReadTuples(ctx, engine.ReadTuplesFilter{
+			PageSize:          fgaPurgePageSize,
+			ContinuationToken: contToken,
+		})
+		if err != nil {
+			return fmt.Errorf("read tuples: %w", err)
+		}
+		for _, t := range res.Tuples {
+			// Match the user as subject and as object: a model may name the
+			// account on either side, and leaving either behind is a live grant
+			// pointing at a dead id.
+			if t.User == subject || t.Object == subject {
+				stale = append(stale, t)
+			}
+		}
+		if res.ContinuationToken == "" {
+			break
+		}
+		contToken = res.ContinuationToken
+	}
+	if len(stale) == 0 {
+		return nil
+	}
+	if err := p.AuthzEngine.DeleteTuples(ctx, stale); err != nil {
+		return fmt.Errorf("delete %d tuples: %w", len(stale), err)
+	}
+	return nil
+}

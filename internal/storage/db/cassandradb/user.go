@@ -116,37 +116,40 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(query, user.ID).Exec()
-	if err != nil {
-		return err
-	}
-	getSessionsQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.Session)
-	scanner := p.db.Query(getSessionsQuery, user.ID).Iter().Scanner()
-	var sessionIDList []string
-	for scanner.Next() {
-		var wlID string
-		err = scanner.Scan(&wlID)
-		if err != nil {
+	// Children first, user row last: Cassandra has no cross-table transaction, so
+	// a partial failure must leave the user row intact and retryable rather than
+	// stranding orphans that point at a dead id (see
+	// schemas.UserOwnedCollections). Every one of these tables is keyed on `id`.
+	for _, table := range schemas.UserOwnedCollections {
+		selectQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = ? ALLOW FILTERING", KeySpace+"."+table)
+		scanner := p.db.Query(selectQuery, user.ID).Iter().Scanner()
+		var ids []string
+		for scanner.Next() {
+			var id string
+			if err := scanner.Scan(&id); err != nil {
+				return err
+			}
+			ids = append(ids, id)
+		}
+		if err := scanner.Err(); err != nil {
 			return err
 		}
-		sessionIDList = append(sessionIDList, wlID)
-	}
-	if len(sessionIDList) > 0 {
-		placeholders := strings.Repeat("?,", len(sessionIDList))
-		placeholders = strings.TrimSuffix(placeholders, ",")
-		deleteValues := make([]interface{}, len(sessionIDList))
-		for i, id := range sessionIDList {
+		if len(ids) == 0 {
+			continue
+		}
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+		deleteValues := make([]interface{}, len(ids))
+		for i, id := range ids {
 			deleteValues[i] = id
 		}
-		deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.Session, placeholders)
-		err = p.db.Query(deleteSessionQuery, deleteValues...).Exec()
-		if err != nil {
+		deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+table, placeholders)
+		if err := p.db.Query(deleteQuery, deleteValues...).Exec(); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.User)
+	return p.db.Query(query, user.ID).Exec()
 }
 
 // ListUsers to get list of users from database

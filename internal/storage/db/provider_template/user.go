@@ -41,7 +41,11 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	return user, nil
 }
 
-// DeleteUser to delete user information from database
+// DeleteUser to delete user information from database.
+//
+// A real implementation MUST cascade to every collection in
+// schemas.UserOwnedCollections (children first, user row last) — leaving an
+// orphaned federated-identity row behind is a permanent SSO lockout.
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return nil
 }

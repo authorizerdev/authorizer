@@ -226,6 +226,10 @@ func TestStorageProvider(t *testing.T) {
 				testUserScimFields(t, ctx, provider)
 			})
 
+			t.Run("Delete User Cascade", func(t *testing.T) {
+				testDeleteUserCascade(t, ctx, provider)
+			})
+
 			if isSQLTestDB(dbType) {
 				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
 					testSQLCRUDCorrectnessFixes(t, ctx, provider)
@@ -2256,4 +2260,79 @@ func testUserScimFields(t *testing.T, ctx context.Context, provider Provider) {
 	afterDeactivate, err := provider.GetUserByID(ctx, created.ID)
 	require.NoError(t, err)
 	assert.False(t, afterDeactivate.IsActive, "IsActive=false must persist")
+}
+
+// testDeleteUserCascade asserts the hard-delete cascade documented on
+// schemas.UserOwnedCollections holds on THIS backend: deleting a user removes
+// every row keyed on their id, not just their sessions.
+//
+// It runs for all six backends because that is the only way this class of bug
+// is caught — the cascade used to cover sessions on five backends and nothing
+// at all on Couchbase, and CI (SQLite only) was green throughout. The
+// federated-identity row is the one that matters: orphaned, it points at a dead
+// user id, SSO login fails closed on it, and the unique (org_id, issuer,
+// subject) triple blocks re-provisioning, so the principal is locked out for
+// good.
+func testDeleteUserCascade(t *testing.T, ctx context.Context, provider Provider) {
+	user, err := provider.AddUser(ctx, &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef("cascade_" + uuid.New().String() + "@test.com"),
+		SignupMethods: "basic_auth",
+	})
+	require.NoError(t, err)
+
+	orgID := "org_" + uuid.New().String()
+	issuer := "https://idp.example.com"
+	subject := "upstream_" + uuid.New().String()
+
+	require.NoError(t, provider.AddSession(ctx, &schemas.Session{UserID: user.ID}))
+	_, err = provider.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
+		OrgID: orgID, Issuer: issuer, Subject: subject, UserID: user.ID,
+	})
+	require.NoError(t, err)
+	_, err = provider.AddOrgMembership(ctx, &schemas.OrgMembership{OrgID: orgID, UserID: user.ID, Roles: "member"})
+	require.NoError(t, err)
+	_, err = provider.AddAuthenticator(ctx, &schemas.Authenticator{UserID: user.ID, Method: "totp", Secret: "s3cret"})
+	require.NoError(t, err)
+	_, err = provider.AddWebauthnCredential(ctx, &schemas.WebauthnCredential{
+		UserID: user.ID, CredentialID: "cred_" + uuid.New().String(), PublicKey: "pk", Name: "laptop",
+	})
+	require.NoError(t, err)
+	require.NoError(t, provider.AddSessionToken(ctx, &schemas.SessionToken{
+		UserID: user.ID, KeyName: "access", Token: "t", ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}))
+	require.NoError(t, provider.AddMFASession(ctx, &schemas.MFASession{
+		UserID: user.ID, KeyName: "mfa", ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}))
+
+	require.NoError(t, provider.DeleteUser(ctx, user))
+
+	_, err = provider.GetFederatedIdentity(ctx, orgID, issuer, subject)
+	assert.Error(t, err, "orphaned federated identity is a permanent SSO lockout")
+	_, err = provider.GetOrgMembership(ctx, orgID, user.ID)
+	assert.Error(t, err, "org membership must not survive the user")
+	_, err = provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, "totp")
+	assert.Error(t, err, "TOTP secret must not survive the user")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, user.ID, "access")
+	assert.Error(t, err, "session token must not survive the user")
+
+	creds, err := provider.ListWebauthnCredentialsByUserID(ctx, user.ID)
+	require.NoError(t, err)
+	assert.Empty(t, creds, "passkeys must not survive the user")
+	mfaSessions, err := provider.GetAllMFASessionsByUserID(ctx, user.ID)
+	require.NoError(t, err)
+	assert.Empty(t, mfaSessions, "MFA sessions must not survive the user")
+
+	// Lockout regression: the triple is free, so the same upstream principal can
+	// be re-provisioned onto a fresh account instead of failing closed forever.
+	fresh, err := provider.AddUser(ctx, &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef("reprovision_" + uuid.New().String() + "@test.com"),
+		SignupMethods: "basic_auth",
+	})
+	require.NoError(t, err)
+	_, err = provider.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
+		OrgID: orgID, Issuer: issuer, Subject: subject, UserID: fresh.ID,
+	})
+	assert.NoError(t, err, "the (org, issuer, subject) triple must be free again")
 }

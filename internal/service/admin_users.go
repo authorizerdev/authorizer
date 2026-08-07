@@ -132,6 +132,13 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 		params.Roles == nil &&
 		params.IsMultiFactorAuthEnabled == nil &&
 		params.ResetMfa == nil &&
+		// EmailVerified/PhoneNumberVerified were missing from this gate even
+		// though both are applied further down, so an admin force-verifying an
+		// address — the operator's escape hatch when a user cannot receive mail
+		// — was rejected with "please enter atleast one param to update" unless
+		// they padded the call with an unrelated field.
+		params.EmailVerified == nil &&
+		params.PhoneNumberVerified == nil &&
 		params.AppData == nil {
 		log.Debug().Msg("please enter atleast one param to update")
 		return nil, nil, InvalidArgument("please enter atleast one param to update")
@@ -391,6 +398,15 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to delete user")
 		return nil, nil, err
+	}
+
+	// FGA tuples live outside StorageProvider, so the storage cascade cannot
+	// reach them. Purge synchronously (this is security cleanup, and callers
+	// must not observe a deleted user still holding grants) but best-effort: a
+	// tuple-store failure is logged, not returned — the user row is already gone
+	// and failing here would report a delete that did happen as failed.
+	if err := p.purgeFgaTuplesForUser(ctx, user.ID); err != nil {
+		log.Warn().Err(err).Str("user_id", user.ID).Msg("Failed to purge FGA tuples for deleted user; grants may be orphaned")
 	}
 
 	res := &model.Response{

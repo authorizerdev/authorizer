@@ -141,23 +141,28 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	if user.ID == "" {
 		return nil
 	}
-	if err := p.deleteItemByHash(ctx, schemas.Collections.User, "id", user.ID); err != nil {
-		return err
-	}
-	items, err := p.queryEq(ctx, schemas.Collections.Session, "user_id", "user_id", user.ID, nil)
-	if err != nil {
-		return err
-	}
-	for _, it := range items {
-		var s schemas.Session
-		if err := unmarshalItem(it, &s); err != nil {
+	// Children first, user row last: DynamoDB has no transaction here, so a
+	// partial failure must leave the user row intact and retryable rather than
+	// stranding orphans that point at a dead id (see
+	// schemas.UserOwnedCollections). Every one of these tables hashes on "id" and
+	// carries a "user_id" GSI (see tables.go), so one query/delete loop serves
+	// them all.
+	for _, table := range schemas.UserOwnedCollections {
+		items, err := p.queryEq(ctx, table, "user_id", "user_id", user.ID, nil)
+		if err != nil {
 			return err
 		}
-		if err := p.deleteItemByHash(ctx, schemas.Collections.Session, "id", s.ID); err != nil {
-			return err
+		for _, it := range items {
+			id, ok := it["id"].(*types.AttributeValueMemberS)
+			if !ok || id.Value == "" {
+				continue
+			}
+			if err := p.deleteItemByHash(ctx, table, "id", id.Value); err != nil {
+				return err
+			}
 		}
 	}
-	return nil
+	return p.deleteItemByHash(ctx, schemas.Collections.User, "id", user.ID)
 }
 
 // ListUsers to get list of users from database

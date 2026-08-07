@@ -73,25 +73,27 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
-	collection, _ := p.db.Collection(ctx, schemas.Collections.User)
-	_, err := collection.RemoveDocument(ctx, user.Key)
-	if err != nil {
-		return err
-	}
-	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, schemas.Collections.Session, schemas.Collections.Session)
+	// Children first, user row last: ArangoDB runs these as separate queries, so
+	// a partial failure must leave the user row intact and retryable rather than
+	// stranding orphans that point at a dead id (see
+	// schemas.UserOwnedCollections).
 	bindVars := map[string]interface{}{
-		// Session.UserID is stored as the full document handle (collection/key),
-		// which is what user.ID holds after Add/Get. Binding user.Key (bare key)
-		// would match zero session rows. This cascade is the only session-cleanup
-		// path on user deletion.
+		// user_id is stored as the full document handle (collection/key), which
+		// is what user.ID holds after Add/Get. Binding user.Key (bare key) would
+		// match zero rows. This cascade is the only cleanup path on user deletion.
 		"user_id": user.ID,
 	}
-	cursor, err := p.db.Query(ctx, query, bindVars)
-	if err != nil {
-		return err
+	for _, collectionName := range schemas.UserOwnedCollections {
+		query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, collectionName, collectionName)
+		cursor, err := p.db.Query(ctx, query, bindVars)
+		if err != nil {
+			return err
+		}
+		_ = cursor.Close()
 	}
-	defer func() { _ = cursor.Close() }()
-	return nil
+	collection, _ := p.db.Collection(ctx, schemas.Collections.User)
+	_, err := collection.RemoveDocument(ctx, user.Key)
+	return err
 }
 
 // ListUsers to get list of users from database
