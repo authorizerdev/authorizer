@@ -35,6 +35,12 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing
 // Transport-agnostic: takes a RequestMetadata (host, IP, UA) instead of
 // reaching into gin.Context, and returns cookie side-effects for the
 // transport to apply.
+// signupVerificationSentMessage is returned BOTH when a signup succeeds and
+// when the address is already taken. The two must stay byte-identical or the
+// account-existence oracle comes back; keeping the string in one place is what
+// stops them drifting.
+const signupVerificationSentMessage = `Verification email has been sent. Please check your inbox`
+
 func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *model.SignUpRequest) (*model.AuthResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "SignUp").Logger()
 	side := &ResponseSideEffects{}
@@ -91,6 +97,22 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Email is already signed up.")
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
+			// Timing was already equalised above, but the RESPONSE still
+			// differed — a distinct error for a taken address versus
+			// "check your inbox" for a free one is a plain account-existence
+			// oracle, usable to build a targeted phishing or
+			// credential-stuffing list. Return the success wording verbatim
+			// instead. This mirrors what ForgotPassword, ResendVerifyEmail and
+			// MagicLinkLogin already do, and the anti-enumeration intent
+			// AGENTS.md documents for VerifyEmail.
+			//
+			// Only possible when verification is enabled: with it off, a real
+			// signup answers with tokens, so a collision is distinguishable by
+			// shape no matter what the message says. That case keeps the
+			// explicit error, since hiding it would be theatre.
+			if p.Config.EnableEmailVerification {
+				return &model.AuthResponse{Message: signupVerificationSentMessage}, nil, nil
+			}
 			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	} else {
@@ -287,7 +309,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		})
 
 		return &model.AuthResponse{
-			Message: `Verification email has been sent. Please check your inbox`,
+			Message: signupVerificationSentMessage,
 		}, side, nil
 	} else if isPhoneVerificationEnabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")

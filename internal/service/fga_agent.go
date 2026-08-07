@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
@@ -158,19 +160,53 @@ func (p *provider) delegationSubjects(ctx context.Context, caller fgaCaller, sub
 		return nil, PermissionDenied("authorization check failed")
 	}
 	if !enabled {
-		// The model cannot express agent grants, so the agent half cannot be
-		// evaluated and the request is authorized as the user alone. That is a
-		// deliberate, documented compatibility choice — checking `agent:x`
-		// against a model with no agent type ERRORS rather than returning
-		// false, which would deny every delegated request — but it means an
-		// agent token carries the user's full authority. Counted so an operator
-		// can SEE that agent traffic is arriving unconstrained instead of
-		// discovering it during an incident.
+		// The model cannot express agent grants, so the agent half of
+		// perms(agent) ∩ perms(user) cannot be evaluated at all. (Checking
+		// `agent:x` against a model with no agent type ERRORS rather than
+		// returning false, so there is no "just evaluate it anyway" option.)
+		//
+		// Fail closed. Authorizing as the user alone silently hands the agent
+		// the user's full authority — exactly the Confused Deputy this function
+		// exists to prevent — and it does so invisibly, at the moment the
+		// control is least able to defend itself. A security check that cannot
+		// be evaluated is not a check that passes.
+		//
+		// The remedy is to add `type agent` to the authorization model. An
+		// operator who needs the old behaviour while migrating can set
+		// --fga-allow-unconstrained-agents, which is metered so the exposure is
+		// visible in dashboards rather than discovered during an incident.
 		metrics.RecordFgaDelegatedCheck(operation, metrics.FgaDelegatedNotEnforced)
+		// Nil Config means an unconfigured provider, which must not read as
+		// "the operator opted out" — and must not nil-panic in a request path
+		// either, since an unrecovered panic here takes the process down.
+		allowUnconstrained := p.Config != nil && p.Config.FgaAllowUnconstrainedAgents
+		if !allowUnconstrained {
+			p.logWarn().
+				Str("operation", operation).
+				Str("agent", actorID).
+				Msg("denied delegated FGA check: the authorization model has no `type agent`, so the agent half of the permission intersection cannot be evaluated. Add `type agent` to the model, or set --fga-allow-unconstrained-agents to authorize as the delegating user alone")
+			return nil, PermissionDenied("unauthorized")
+		}
+		p.logWarn().
+			Str("operation", operation).
+			Str("agent", actorID).
+			Msg("delegated FGA check is NOT enforcing the agent constraint: the authorization model has no `type agent` and --fga-allow-unconstrained-agents is set, so this agent carries the delegating user's full authority")
 		return []string{subject}, nil
 	}
 
 	// Agent first: it is the cheaper, more selective denial, and a denied agent
 	// short-circuits before the user check runs.
 	return []string{FgaAgentSubjectType + ":" + actorID, subject}, nil
+}
+
+// logWarn returns a warn-level event, tolerating a provider built without a
+// logger (unit tests, and any future wiring that omits it). A nil *zerolog.Logger
+// here would panic inside an authorization decision, turning a missing
+// dependency into an outage.
+func (p *provider) logWarn() *zerolog.Event {
+	if p.Log == nil {
+		nop := zerolog.Nop()
+		return nop.Warn()
+	}
+	return p.Log.Warn()
 }

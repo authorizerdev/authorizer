@@ -338,6 +338,13 @@ type Config struct {
 	MicrosoftClientSecret string
 	// MicrosoftTenantID is the tenant ID for Microsoft OAuth
 	MicrosoftTenantID string
+	// FgaAllowUnconstrainedAgents restores the pre-2.4.0 behaviour for delegated
+	// FGA checks when the authorization model has no `type agent`: authorize as
+	// the delegating user alone rather than denying. That discards the agent
+	// half of perms(agent) ∩ perms(user), which is the Confused Deputy defense,
+	// so it is off by default. See delegationSubjects.
+	FgaAllowUnconstrainedAgents bool
+
 	// OAuthAllowUnverifiedProviderEmail is a temporary compatibility escape
 	// hatch for deployments upgrading from 2.3.x whose social provider does not
 	// attest email addresses (in practice: Microsoft Entra on a multi-tenant

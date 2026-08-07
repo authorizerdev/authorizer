@@ -432,3 +432,55 @@ func TestVerifyEmailMarksVerifiedBeforeMFAGate(t *testing.T) {
 		"clicking the verification link must record the address as verified even when MFA interrupts the login")
 	assert.Equal(t, before.ID, after.ID)
 }
+
+// TestSignupDoesNotLeakAccountExistence guards the account-existence oracle:
+// signing up with an address that is already registered must be
+// indistinguishable from signing up with a fresh one.
+//
+// Timing was already equalised with a dummy bcrypt, but the RESPONSE differed —
+// a distinct "signup failed" for a taken address versus "check your inbox" for
+// a free one is enough to enumerate which addresses hold accounts, which is how
+// targeted phishing and credential-stuffing lists get built.
+func TestSignupDoesNotLeakAccountExistence(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	taken := "signup_oracle_" + uuid.NewString() + "@authorizer.dev"
+	fresh := "signup_oracle_" + uuid.NewString() + "@authorizer.dev"
+
+	signup := func(email string) (*model.AuthResponse, error) {
+		return ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email:           &email,
+			Password:        "Password@123",
+			ConfirmPassword: "Password@123",
+		})
+	}
+
+	first, err := signup(taken)
+	require.NoError(t, err)
+	require.NotNil(t, first)
+
+	// Same address again — the probe an attacker actually runs.
+	collision, collisionErr := signup(taken)
+	// A different fresh address — the control.
+	control, controlErr := signup(fresh)
+
+	require.NoError(t, controlErr)
+	require.NotNil(t, control)
+
+	assert.NoError(t, collisionErr,
+		"a taken address must not answer with an error while a free one succeeds")
+	require.NotNil(t, collision)
+	assert.Equal(t, control.Message, collision.Message,
+		"the two responses must be byte-identical or the address is enumerable")
+	assert.Nil(t, collision.AccessToken, "a collision must never hand out a session")
+	assert.Nil(t, collision.User, "a collision must not echo back the existing account")
+
+	// And the guard must not have created a second account for that address.
+	original, err := ts.StorageProvider.GetUserByEmail(ctx, taken)
+	require.NoError(t, err)
+	assert.NotEmpty(t, original.ID, "the original account is still the one on file")
+}

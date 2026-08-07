@@ -184,10 +184,16 @@ func TestAdvListPermissionsIntersectsToo(t *testing.T) {
 // (e) FAIL-OPEN on agent detection
 // ---------------------------------------------------------------------------
 
-// TestAdvNoAgentTypeDisablesEnforcement pins what happens when the model does
-// NOT declare `type agent`: agentSubjectsEnabled returns false and the agent
-// half of the intersection silently vanishes.
-func TestAdvNoAgentTypeDisablesEnforcement(t *testing.T) {
+// TestAdvNoAgentTypeFailsClosed pins what happens when the model does NOT
+// declare `type agent`: the agent half of perms(agent) ∩ perms(user) cannot be
+// evaluated at all, so the delegated check is DENIED.
+//
+// This used to authorize as the user alone — the agent silently inherited the
+// delegating user's full authority, which is the Confused Deputy the
+// intersection exists to prevent. A security check that cannot be evaluated is
+// not a check that passes. Operators mid-migration opt back in explicitly with
+// --fga-allow-unconstrained-agents, covered below.
+func TestAdvNoAgentTypeFailsClosed(t *testing.T) {
 	cfg := getTestConfig()
 	ts, eng := initFGATestSetup(t, cfg)
 	req, ctx := createContext(ts)
@@ -206,17 +212,46 @@ func TestAdvNoAgentTypeDisablesEnforcement(t *testing.T) {
 		ActorID: "adv-noagent-agent-" + uuid.NewString(),
 	})
 
+	_, _, err = ts.ServiceProvider.CheckPermissions(delegatedCtx, meta, &model.CheckPermissionsInput{
+		Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:na1"}},
+	})
+	require.Error(t, err,
+		"the agent constraint cannot be evaluated against a model with no agent type, so the "+
+			"delegated request must be denied rather than authorized as the user alone")
+}
+
+// TestAdvNoAgentTypeOptOutRestoresUserOnlyAuthority pins the escape hatch: an
+// operator migrating an existing model can set --fga-allow-unconstrained-agents
+// to get the pre-2.4.0 behaviour back. It is deliberately explicit, logged on
+// every use, and still counted as metrics.FgaDelegatedNotEnforced so the
+// exposure shows up on a dashboard instead of during an incident.
+func TestAdvNoAgentTypeOptOutRestoresUserOnlyAuthority(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.FgaAllowUnconstrainedAgents = true
+	ts, eng := initFGATestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	_, err := eng.WriteModel(ctx, advNoAgentModel)
+	require.NoError(t, err)
+
+	userID := "adv-noagent-optout-user-" + uuid.NewString()
+	require.NoError(t, eng.WriteTuples(ctx, []engine.TupleKey{
+		{User: "user:" + userID, Relation: "viewer", Object: "document:na1"},
+	}))
+
+	meta := service.RequestMetadata{HostURL: testAuthorizerHost(ts), Request: req}
+	delegatedCtx := authctx.WithPrincipal(ctx, &authctx.Principal{
+		UserID:  userID,
+		ActorID: "adv-noagent-optout-agent-" + uuid.NewString(),
+	})
+
 	res, _, err := ts.ServiceProvider.CheckPermissions(delegatedCtx, meta, &model.CheckPermissionsInput{
 		Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:na1"}},
 	})
 	require.NoError(t, err)
 	require.Len(t, res.Results, 1)
 	assert.True(t, res.Results[0].Allowed,
-		"a model with no agent type gives the agent the user's FULL authority. This is the "+
-			"documented compatibility path, not a bug — checking agent:<id> against a model with no "+
-			"agent type ERRORS in OpenFGA, so enforcing it here would deny every delegated request "+
-			"on every deployment that has not opted in. It is pinned so the trade stays visible, and "+
-			"it is counted as metrics.FgaDelegatedNotEnforced so an operator can alert on it.")
+		"with the opt-out set, the agent carries the delegating user's full authority")
 }
 
 // TestAdvAgentDetectionFlipsOnModelRewrite is the cache-poisoning probe: the
@@ -249,11 +284,10 @@ func TestAdvAgentDetectionFlipsOnModelRewrite(t *testing.T) {
 	_, err = eng.WriteModel(ctx, advNoAgentModel)
 	require.NoError(t, err)
 
-	res, _, err = ts.ServiceProvider.CheckPermissions(delegatedCtx, meta, &model.CheckPermissionsInput{Checks: checks})
-	require.NoError(t, err)
-	assert.True(t, res.Results[0].Allowed,
-		"dropping `type agent` from the model turns the intersection off and re-grants the agent the "+
-			"user's authority. The point of this test is that the flip happens IMMEDIATELY: the "+
+	_, _, err = ts.ServiceProvider.CheckPermissions(delegatedCtx, meta, &model.CheckPermissionsInput{Checks: checks})
+	assert.Error(t, err,
+		"dropping `type agent` makes the agent half of the intersection unevaluable, so delegated "+
+			"checks are denied. The point of this test is that the flip happens IMMEDIATELY: the "+
 			"detection cache is keyed on model id, so a rewrite must not be served from cache in "+
 			"either direction")
 }

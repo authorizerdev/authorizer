@@ -10,19 +10,19 @@ import (
 // the nonce string, nonce hash, error
 func GenerateNonce() (string, string, error) {
 	nonce := uuid.New().String()
-	nonceHash := crypto.EncryptB64(nonce)
+	nonceHash := crypto.EncodeB64(nonce)
 	return nonce, nonceHash, nil
 }
 
 // EncryptNonce nonce string
 func EncryptNonce(nonce string) (string, error) {
-	nonceHash := crypto.EncryptB64(nonce)
+	nonceHash := crypto.EncodeB64(nonce)
 	return nonceHash, nil
 }
 
 // DecryptNonce nonce string
 func DecryptNonce(nonceHash string) (string, error) {
-	nonce, err := crypto.DecryptB64(nonceHash)
+	nonce, err := crypto.DecodeB64(nonceHash)
 	if err != nil {
 		return "", err
 	}
