@@ -47,106 +47,33 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		verificationRequest, err := h.StorageProvider.GetVerificationRequestByToken(c, tokenInQuery)
+		// Decision logic is shared with the GraphQL/gRPC mutation via
+		// service.ConsumeEmailVerificationToken — token validation, purpose
+		// binding, user lookup, the revoked check, and the email_verified_at
+		// write, in that order. This handler previously reimplemented all of it
+		// and drifted twice; see that function's comment. Only presentation
+		// stays here (redirect vs AuthResponse).
+		verified, err := h.ServiceProvider.ConsumeEmailVerificationToken(c, hostname, tokenInQuery)
 		if err != nil {
-			log.Debug().Err(err).Msg("Error getting verification request")
+			log.Debug().Err(err).Msg("Failed to consume verification token")
 			errorRes["error"] = err.Error()
 			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
-
-		// verify if token exists in db
-		claim, err := h.TokenProvider.ParseJWTToken(tokenInQuery)
-		if err != nil {
-			log.Debug().Err(err).Msg("Error parsing jwt token")
-			errorRes["error"] = err.Error()
-			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-			return
-		}
-		// // hostname, verificationRequest.Nonce, verificationRequest.Email
-		if ok, err := h.TokenProvider.ValidateJWTClaims(claim, &token.AuthTokenConfig{
-			HostName: hostname,
-			Nonce:    verificationRequest.Nonce,
-			User: &schemas.User{
-				Email: refs.NewStringRef(verificationRequest.Email),
-			},
-		}); !ok || err != nil {
-			log.Debug().Err(err).Msg("Error validating jwt token")
-			errorRes["error"] = err.Error()
-			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-			return
-		}
-
-		// Purpose binding: only the email-verification family may complete here.
-		// Every flow's token lives in one `verification_requests` table keyed by
-		// the token string alone, so without this a forgot-password token — the
-		// one credential this endpoint was never meant to see — redeems for a
-		// full session AND marks the address verified. Same reason the GraphQL
-		// mutation gates it (service.VerifyEmail); this handler is a separate
-		// implementation of the same flow and needs the same gate. Generic error
-		// so it is not an oracle for which flow a leaked token belongs to.
-		if !service.IsVerifyEmailPurpose(verificationRequest, claim) {
-			log.Debug().Str("identifier", verificationRequest.Identifier).Msg("Verification token used for the wrong purpose")
-			errorRes["error"] = "invalid verification token"
-			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-			return
-		}
-
-		user, err := h.StorageProvider.GetUserByEmail(c, verificationRequest.Email)
-		if err != nil {
-			log.Debug().Err(err).Msg("Error getting user by email")
-			errorRes["error"] = err.Error()
-			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-			return
-		}
-
-		if user.RevokedTimestamp != nil {
-			log.Debug().Msg("User access has been revoked")
-			errorRes["error"] = "user access has been revoked"
-			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-			return
-		}
+		user := verified.User
+		verificationRequest := verified.Request
+		isSignUp := verified.IsSignUp
+		loginMethod := verified.LoginMethod
 
 		// Resolved once, early: needed both for the MFA-gate-withheld redirect
 		// below and the success redirect further down.
 		if redirectURL == "" {
-			redirectURL = claimString(claim, "redirect_uri")
+			redirectURL = verified.RedirectURI
 		}
 		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI in token claim")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
 			return
-		}
-
-		// Record the address as verified HERE, BEFORE the MFA gate below.
-		//
-		// The gate's withheld branch redirects to MFA setup and returns, so the
-		// write that used to sit after it never ran for the overwhelmingly
-		// common case: a fresh signup clicking its verification link, with MFA
-		// on by default. The user did everything right and their address stayed
-		// unverified forever.
-		//
-		// Only passkey login surfaces it — webauthn.go refuses outright on
-		// email_verified_at == nil, with an error the user cannot act on.
-		// Password, TOTP and email/SMS-OTP logins never check the column, so
-		// they appear to "work" while the account is in exactly the same broken
-		// state. That asymmetry is why this hid.
-		//
-		// Clicking the link IS the proof of mailbox control; whether MFA then
-		// interrupts token issuance is a separate question and must not discard
-		// it. Mirrors service.VerifyEmail, which is the GraphQL twin of this
-		// handler — the two implementations have to agree.
-		emailJustVerified := user.EmailVerifiedAt == nil
-		if emailJustVerified {
-			now := time.Now().Unix()
-			user.EmailVerifiedAt = &now
-			user, err = h.StorageProvider.UpdateUser(c, user)
-			if err != nil {
-				log.Debug().Err(err).Msg("Error updating user")
-				errorRes["error"] = err.Error()
-				utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-				return
-			}
 		}
 
 		// MFA gate: this REST endpoint is what the emailed verification/magic
@@ -177,8 +104,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Set above, before the MFA gate — see the comment there.
-		isSignUp := emailJustVerified
 		// delete from verification table
 		if err := h.StorageProvider.DeleteVerificationRequest(c, verificationRequest); err != nil {
 			log.Debug().Err(err).Msg("Error deleting verification request")
@@ -206,10 +131,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			scope = []string{"openid", "email", "profile"}
 		} else {
 			scope = strings.Split(scopeString, " ")
-		}
-		loginMethod := constants.AuthRecipeMethodBasicAuth
-		if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
-			loginMethod = constants.AuthRecipeMethodMagicLinkLogin
 		}
 
 		code := ""

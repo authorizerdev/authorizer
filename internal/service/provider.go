@@ -170,6 +170,11 @@ type Provider interface {
 	// VerifyEmail completes email verification and logs the user in. Browser
 	// callers get a session cookie via side-effects. Public.
 	VerifyEmail(ctx context.Context, meta RequestMetadata, params *model.VerifyEmailRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+	// ConsumeEmailVerificationToken is the shared decision core behind both
+	// implementations of email verification (the GraphQL/gRPC mutation and the
+	// REST handler behind GET /verify_email). See verify_email_core.go for why
+	// it is shared rather than duplicated.
+	ConsumeEmailVerificationToken(ctx context.Context, hostname, rawToken string) (*EmailVerification, error)
 
 	// VerifyOTP validates an email/SMS OTP or TOTP/recovery code and logs the
 	// user in. Browser callers get a session cookie via side-effects. Public.
