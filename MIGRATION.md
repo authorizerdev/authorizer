@@ -97,7 +97,8 @@ Pass all config as **CLI arguments** when starting the server binary (e.g. the v
   --client-secret=YOUR_CLIENT_SECRET \
   --admin-secret=your-admin-secret \
   --jwt-type=HS256 \
-  --jwt-secret=your-jwt-secret
+  --jwt-secret=your-jwt-secret \
+  --encryption-key=your-encryption-key
 ```
 
 For local development (from repo root):
@@ -106,7 +107,7 @@ For local development (from repo root):
 make dev
 # or
 go run main.go --database-type=sqlite --database-url=test.db \
-  --jwt-type=HS256 --jwt-secret=test --admin-secret=admin \
+  --jwt-type=HS256 --jwt-secret=test --encryption-key=test-encryption-key --admin-secret=admin \
   --client-id=123456 --client-secret=secret
 ```
 
@@ -296,6 +297,7 @@ Use these v2 **CLI flags** instead of v1 env or dashboard config. Flag names use
 | `JWT_SECRET`                        | `--jwt-secret`                          |
 | `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` | `--jwt-private-key`, `--jwt-public-key` |
 | `JWT_ROLE_CLAIM`                    | `--jwt-role-claim`                      |
+| _(none — new in 2.4.0)_             | `--encryption-key`                      |
 | `CUSTOM_ACCESS_TOKEN_SCRIPT`        | `--custom-access-token-script`          |
 
 
@@ -370,7 +372,7 @@ These mutations and queries exist for compatibility but **return an error** in v
 | -------------------- | ------------------------------------------------------------------------- | --------- |
 | `_update_env`        | Returns error: *"deprecated. please configure env via cli args"*          | Configure via CLI flags at startup. |
 | `_admin_signup`      | Returns error: *"deprecated. please configure admin secret via cli args"* | Set admin secret with `--admin-secret` at startup. |
-| `_generate_jwt_keys` | Returns error: *"deprecated. please configure jwt keys via cli args"*     | Set JWT with `--jwt-type`, `--jwt-secret`, or `--jwt-private-key` / `--jwt-public-key` at startup. |
+| `_generate_jwt_keys` | Returns error: *"deprecated. please configure jwt keys via cli args"*     | Set JWT with `--jwt-type`, `--jwt-secret`, or `--jwt-private-key` / `--jwt-public-key` at startup. RSA/ECDSA also needs `--encryption-key` (2.4.0+). |
 | `mobile_signup`      | Returns error: *"deprecated, use signup with mobile phone_number"*        | Use the `signup` mutation with `phone_number` instead. |
 | `mobile_login`       | Returns error: *"deprecated, use login with mobile phone_number"*         | Use the `login` mutation with `phone_number` instead. |
 
@@ -384,6 +386,7 @@ These mutations and queries exist for compatibility but **return an error** in v
 
 - **Admin secret:** set with `--admin-secret` at startup.
 - **JWT keys/type:** set with `--jwt-type`, `--jwt-secret`, or `--jwt-private-key` / `--jwt-public-key` at startup.
+- **At-rest encryption key (2.4.0+):** `--encryption-key` protects TOTP secrets and OTP digests. Required with `RS*`/`ES*` — those have no `--jwt-secret` to fall back to, and the server refuses to start without it. HMAC deployments fall back automatically, but a distinct key keeps JWT-secret rotation from locking out enrolled TOTP users.
 - **All other env:** use the corresponding CLI flags when starting the server.
 
 If your app or dashboard calls any of the deprecated mutations or queries above, remove or replace those calls and use the migration guidance in the tables.
@@ -486,7 +489,7 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 
 - Copy all env configs from your v1 dashboard (client_id, client_secret, admin_secret, social provider configs, roles, JWT secrets, session/Redis config, email/SMTP config, allowed_origins, custom_access_token_script) and pass them as CLI args.
 - Set `**--client-id**` and `**--client-secret**` (required).
-- Set `**--admin-secret**` and JWT options (`**--jwt-type**` and `**--jwt-secret**` or key pair) at startup.
+- Set `**--admin-secret**` and JWT options (`**--jwt-type**` and `**--jwt-secret**` or key pair) at startup. With a key pair, also set `**--encryption-key**` (2.4.0+).
 - Stop calling `**_update_env**`, `**_admin_signup**`, and `**_generate_jwt_keys**`; remove or replace with startup config.
 - Update Docker/K8s/deployment to pass config as **CLI args** (or via a wrapper that maps env → args).
 - Upgrade **@authorizerdev/authorizer-js** to v3 and **@authorizerdev/authorizer-react** to v2; update type names and Node version as needed.

@@ -146,6 +146,7 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
     --database-url=test.db \
     --jwt-type=HS256 \
     --jwt-secret=test \
+    --encryption-key=test-encryption-key \
     --admin-secret=admin \
     --client-id=123456 \
     --client-secret=secret
@@ -168,7 +169,8 @@ The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite un
      --client-secret=secret \
      --admin-secret=admin \
      --jwt-type=HS256 \
-     --jwt-secret=test
+     --jwt-secret=test \
+     --encryption-key=test-encryption-key
    ```
 
 2. **Keep non-root** and make the mount writable by `65532` (good for production-style bind mounts):
@@ -268,6 +270,7 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
     --database-url=test.db \
     --jwt-type=HS256 \
     --jwt-secret=test \
+    --encryption-key=test-encryption-key \
     --admin-secret=admin \
     --client-id=123456 \
     --client-secret=secret

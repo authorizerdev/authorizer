@@ -113,13 +113,14 @@ createdb authorizer_perf
   --jwt-type RS256 \
   --jwt-private-key "$(cat perf/dev-jwt-private.pem)" \
   --jwt-public-key "$(cat perf/dev-jwt-public.pem)" \
+  --encryption-key perf-encryption-key-not-for-production \
   --client-id kbyuFDidLLm280LIwVFiazOqjO3ty8KH \
   --client-secret 60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa \
   --allowed-origins localhost:8080 \
   --http-port 8080
 ```
 
-`--admin-secret`, `--jwt-type`/`--jwt-private-key`/`--jwt-public-key`, and
+`--admin-secret`, `--jwt-type`/`--jwt-private-key`/`--jwt-public-key`, `--encryption-key`, and
 `--client-id`/`--client-secret` are all required — the server exits with
 `client ID missing in rootArgs` (or similar) without them. `--fga-store` can
 be omitted: it auto-reuses `--database-url` when the main DB is SQL-compatible
