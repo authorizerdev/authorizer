@@ -384,10 +384,19 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 		return nil, nil, err
 	}
 
-	log = log.With().Str("email", params.Email).Logger()
-	user, err := p.StorageProvider.GetUserByEmail(ctx, params.Email)
+	// By id only. Email was never an identifier every account has — a phone-only
+	// signup has none — so the previous email-keyed delete could not reach those
+	// accounts at all, and there was no second way in.
+	id := strings.TrimSpace(params.ID)
+	if id == "" {
+		log.Debug().Msg("user id is missing")
+		return nil, nil, InvalidArgument("id is required")
+	}
+
+	log = log.With().Str("user_id", id).Logger()
+	user, err := p.StorageProvider.GetUserByID(ctx, id)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by email")
+		log.Debug().Err(err).Msg("Failed to get user by id")
 		if storage.IsNotFound(err) {
 			return nil, nil, NotFound("user not found")
 		}

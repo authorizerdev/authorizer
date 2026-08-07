@@ -5809,7 +5809,10 @@ input ResetPasswordRequest {
 }
 
 input DeleteUserRequest {
-  email: String!
+  # BREAKING: was ` + "`" + `email: String!` + "`" + `. Email is not an identifier every account
+  # has — a phone-only signup has none — so an email-keyed delete could not
+  # reach those accounts at all.
+  id: String!
 }
 
 input MagicLinkLoginRequest {
@@ -36219,20 +36222,20 @@ func (ec *executionContext) unmarshalInputDeleteUserRequest(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email"}
+	fieldsInOrder := [...]string{"id"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "email":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Email = data
+			it.ID = data
 		}
 	}
 

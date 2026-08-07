@@ -792,7 +792,7 @@
     },
     "/v1/admin/delete_user": {
       "post": {
-        "summary": "DeleteUser deletes a user (and associated OTP/verification data) by email.\nRequires super-admin auth.",
+        "summary": "DeleteUser deletes a user (and associated OTP/verification data) by id.\nRequires super-admin auth.",
         "operationId": "AuthorizerAdminService_DeleteUser",
         "responses": {
           "200": {
@@ -811,7 +811,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "DeleteUserRequest mirrors model.DeleteUserRequest.",
+            "description": "DeleteUserRequest mirrors model.DeleteUserRequest.\n\nBREAKING: this took `email` and now takes `id` only. Email was never an\nidentifier every account has — a phone-only signup has none — so an\nemail-keyed delete could not reach those accounts at all, and there was no\nsecond way in.\n\nField 1 is RESERVED rather than reused. `email` was a string and `id` is a\nstring, so reusing tag 1 would let an old client's email decode silently as\nan id: wire-compatible, semantically wrong, and pointed at a delete. Reserving\nmakes an old client fail loudly instead.",
             "in": "body",
             "required": true,
             "schema": {
@@ -4604,11 +4604,11 @@
     "v1DeleteUserRequest": {
       "type": "object",
       "properties": {
-        "email": {
+        "id": {
           "type": "string"
         }
       },
-      "description": "DeleteUserRequest mirrors model.DeleteUserRequest."
+      "description": "DeleteUserRequest mirrors model.DeleteUserRequest.\n\nBREAKING: this took `email` and now takes `id` only. Email was never an\nidentifier every account has — a phone-only signup has none — so an\nemail-keyed delete could not reach those accounts at all, and there was no\nsecond way in.\n\nField 1 is RESERVED rather than reused. `email` was a string and `id` is a\nstring, so reusing tag 1 would let an old client's email decode silently as\nan id: wire-compatible, semantically wrong, and pointed at a delete. Reserving\nmakes an old client fail loudly instead."
     },
     "v1DeleteUserResponse": {
       "type": "object",

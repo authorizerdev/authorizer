@@ -127,10 +127,27 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 	if err != nil {
 		return nil, err
 	}
+	// AccountName is the label the authenticator app shows next to the code, and
+	// pquerna/otp REJECTS an empty one outright ("AccountName must be set").
+	// Email alone is therefore wrong: a phone-only signup has no email, so
+	// enrolling TOTP failed with that error surfaced straight to the user —
+	// which, since MFA is on by default, is the first thing a mobile signup
+	// hits after verifying.
+	//
+	// Fall back to the phone number, then the user id. The id is a poor label
+	// but it is never empty, so enrolment cannot fail on a missing identifier.
+	accountName := refs.StringValue(user.Email)
+	if accountName == "" {
+		accountName = refs.StringValue(user.PhoneNumber)
+	}
+	if accountName == "" {
+		accountName = user.ID
+	}
+
 	// Generate totp, Authenticators hash is valid for 30 seconds
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "authorizer",
-		AccountName: refs.StringValue(user.Email),
+		AccountName: accountName,
 	})
 	if err != nil {
 		return nil, err

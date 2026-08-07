@@ -134,7 +134,7 @@ type AuthorizerAdminServiceClient interface {
 	// UpdateUser updates a user's profile, roles, MFA, or verification state and
 	// returns the updated user. Requires super-admin auth.
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
-	// DeleteUser deletes a user (and associated OTP/verification data) by email.
+	// DeleteUser deletes a user (and associated OTP/verification data) by id.
 	// Requires super-admin auth.
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	// VerificationRequests returns a paginated list of pending verification
@@ -1170,7 +1170,7 @@ type AuthorizerAdminServiceServer interface {
 	// UpdateUser updates a user's profile, roles, MFA, or verification state and
 	// returns the updated user. Requires super-admin auth.
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
-	// DeleteUser deletes a user (and associated OTP/verification data) by email.
+	// DeleteUser deletes a user (and associated OTP/verification data) by id.
 	// Requires super-admin auth.
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	// VerificationRequests returns a paginated list of pending verification

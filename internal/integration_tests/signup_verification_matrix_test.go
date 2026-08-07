@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // Signup × email-verification matrix.
@@ -399,4 +400,72 @@ func TestVerifyEmailRESTMarksVerifiedBeforeMFAGate(t *testing.T) {
 	assert.NotNil(t, after.EmailVerifiedAt,
 		"clicking the emailed link must record the address as verified even when the MFA gate withholds the token — otherwise passkey login rejects the user permanently, while password/TOTP/OTP logins hide it by never checking")
 	assert.Equal(t, before.ID, after.ID)
+}
+
+// TestTOTPEnrollmentWorksForPhoneOnlyAccounts reproduces a mobile-signup bug:
+// enrolling TOTP failed with pquerna/otp's "AccountName must be set".
+//
+// AccountName is the label the authenticator app shows, and the enrolment used
+// the user's email verbatim. A phone-only signup has no email, so the value was
+// empty and the library refused. MFA is on by default, so this is the first
+// thing a mobile signup hits after verifying — the account could be created but
+// never finish MFA setup.
+//
+// Asserted across all three identifier shapes because the fallback chain is
+// email -> phone -> id, and only the middle one is exercised by mobile signup.
+func TestTOTPEnrollmentWorksForPhoneOnlyAccounts(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableMobileBasicAuthentication = true
+	cfg.EnableMFA = true
+	cfg.EnableTOTPLogin = true
+	ts := initTestSetup(t, cfg)
+	require.NotNil(t, ts.AuthenticatorProvider, "TOTP must be available for this test")
+	_, ctx := createContext(ts)
+
+	for _, tc := range []struct {
+		name  string
+		build func() *schemas.User
+	}{
+		{
+			name: "phone only — the reported case",
+			build: func() *schemas.User {
+				phone := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
+				return &schemas.User{
+					PhoneNumber:   &phone,
+					SignupMethods: constants.AuthRecipeMethodMobileBasicAuth,
+				}
+			},
+		},
+		{
+			name: "email only",
+			build: func() *schemas.User {
+				email := "totp_email_" + uuid.NewString() + "@authorizer.dev"
+				return &schemas.User{
+					Email:         &email,
+					SignupMethods: constants.AuthRecipeMethodBasicAuth,
+				}
+			},
+		},
+		{
+			name: "neither — falls back to the user id",
+			build: func() *schemas.User {
+				// Not a shape signup produces today, but the fallback must not
+				// depend on that staying true.
+				return &schemas.User{SignupMethods: constants.AuthRecipeMethodBasicAuth}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			user, err := ts.StorageProvider.AddUser(ctx, tc.build())
+			require.NoError(t, err)
+
+			authConfig, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
+			require.NoError(t, err,
+				"TOTP enrolment must not fail on a missing identifier — pquerna/otp rejects an empty AccountName")
+			require.NotNil(t, authConfig)
+			assert.NotEmpty(t, authConfig.Secret, "a usable secret must be issued")
+			assert.NotEmpty(t, authConfig.ScannerImage, "the QR code is what the user actually scans")
+		})
+	}
 }

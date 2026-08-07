@@ -112,12 +112,14 @@ func TestAdminUsersREST(t *testing.T) {
 	})
 
 	t.Run("delete_user happy path", func(t *testing.T) {
-		_, email := seedUser(t, ts)
+		// BREAKING: delete_user takes an id, not an email. Email was never an
+		// identifier every account has — a phone-only signup has none.
+		id, _ := seedUser(t, ts)
 		var out struct {
 			Message string `json:"message"`
 		}
 		status := adminRESTJSON(t, baseURL, http.MethodPost, "/v1/admin/delete_user", secret,
-			fmt.Sprintf(`{"email":%q}`, email), &out)
+			fmt.Sprintf(`{"id":%q}`, id), &out)
 		require.Equal(t, http.StatusOK, status)
 		require.Equal(t, "user deleted successfully", out.Message)
 	})

@@ -937,7 +937,10 @@ input ResetPasswordRequest {
 }
 
 input DeleteUserRequest {
-  email: String!
+  # BREAKING: was `email: String!`. Email is not an identifier every account
+  # has — a phone-only signup has none — so an email-keyed delete could not
+  # reach those accounts at all.
+  id: String!
 }
 
 input MagicLinkLoginRequest {

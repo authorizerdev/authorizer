@@ -196,24 +196,32 @@ func TestAdminUpdateUserGRPC(t *testing.T) {
 func TestAdminDeleteUserGRPC(t *testing.T) {
 	client, ts := newAdminClientWithSetup(t)
 	cfg := ts.Config
-	_, email := seedUser(t, ts)
+	// BREAKING: DeleteUser takes an id, not an email. Email was never an
+	// identifier every account has — a phone-only signup has none.
+	id, _ := seedUser(t, ts)
 
 	t.Run("fail closed without admin secret", func(t *testing.T) {
-		_, err := client.DeleteUser(context.Background(), &authorizerv1.DeleteUserRequest{Email: email})
+		_, err := client.DeleteUser(context.Background(), &authorizerv1.DeleteUserRequest{Id: id})
 		require.Error(t, err)
 		require.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
 	t.Run("deletes user", func(t *testing.T) {
-		resp, err := client.DeleteUser(adminCtx(cfg.AdminSecret), &authorizerv1.DeleteUserRequest{Email: email})
+		resp, err := client.DeleteUser(adminCtx(cfg.AdminSecret), &authorizerv1.DeleteUserRequest{Id: id})
 		require.NoError(t, err)
 		require.Equal(t, "user deleted successfully", resp.Message)
 	})
 
 	t.Run("deleting unknown user is an error", func(t *testing.T) {
 		_, err := client.DeleteUser(adminCtx(cfg.AdminSecret), &authorizerv1.DeleteUserRequest{
-			Email: "does-not-exist-" + uuid.New().String() + "@authorizer.test",
+			Id: "does-not-exist-" + uuid.New().String(),
 		})
+		require.Error(t, err)
+	})
+
+	t.Run("an empty id is rejected by proto validation", func(t *testing.T) {
+		// min_len = 1 on the field, so this never reaches the service.
+		_, err := client.DeleteUser(adminCtx(cfg.AdminSecret), &authorizerv1.DeleteUserRequest{Id: ""})
 		require.Error(t, err)
 	})
 }
