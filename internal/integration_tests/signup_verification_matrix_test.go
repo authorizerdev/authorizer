@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/authorizerdev/authorizer/internal/token"
 )
 
 // Signup × email-verification matrix.
@@ -399,4 +402,189 @@ func TestVerifyEmailRESTMarksVerifiedBeforeMFAGate(t *testing.T) {
 	assert.NotNil(t, after.EmailVerifiedAt,
 		"clicking the emailed link must record the address as verified even when the MFA gate withholds the token — otherwise passkey login rejects the user permanently, while password/TOTP/OTP logins hide it by never checking")
 	assert.Equal(t, before.ID, after.ID)
+}
+
+// TestExpiredVerificationLinkIsRefusedAndRecoverable covers the case a real user
+// hits most often: they did not click the link within 30 minutes.
+//
+// Two things must both hold, and only the pair is useful. The stale link must be
+// refused — it is a capability, and an expired one that still works is just a
+// long-lived one. And the user must be able to get a fresh link WITHOUT an
+// admin, or "your link expired" is a dead end.
+//
+// The 30 minutes comes from CreateVerificationToken's `exp` claim
+// (internal/token/verification_token.go); expiry is enforced by JWT validation
+// inside ConsumeEmailVerificationToken, not by the row's expires_at column.
+func TestExpiredVerificationLinkIsRefusedAndRecoverable(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	cfg.DisableMFA = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "expired_link_" + uuid.NewString() + "@authorizer.dev"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        "Password@123",
+		ConfirmPassword: "Password@123",
+	})
+	require.NoError(t, err)
+
+	original, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	// Mint a token that is already past its exp, and swap it onto the stored
+	// row so the row and the token agree — otherwise the lookup fails first and
+	// the test would pass without ever exercising expiry.
+	expiredToken, err := ts.TokenProvider.CreateVerificationToken(&token.AuthTokenConfig{
+		User:        &schemas.User{Email: &email},
+		Nonce:       original.Nonce,
+		HostName:    testAuthorizerHost(ts),
+		LoginMethod: constants.AuthRecipeMethodBasicAuth,
+	}, original.RedirectURI, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	expiredRow := *original
+	expiredRow.Token = expiredToken
+	expiredRow.ExpiresAt = time.Now().Add(-1 * time.Hour).Unix()
+	require.NoError(t, ts.StorageProvider.DeleteVerificationRequest(ctx, original))
+	_, err = ts.StorageProvider.AddVerificationRequest(ctx, &expiredRow)
+	require.NoError(t, err)
+
+	t.Run("an expired link is refused", func(t *testing.T) {
+		// A genuinely expired token, signed with exp in the past. Built from
+		// claims directly rather than CreateVerificationToken, which hardcodes
+		// exp to +30m — there is no way to test expiry through that helper
+		// without actually waiting, and a test that waits 30 minutes is a test
+		// nobody runs.
+		expiredClaims := jwt.MapClaims{
+			"iss":          testAuthorizerHost(ts),
+			"aud":          ts.Config.ClientID,
+			"sub":          email,
+			"exp":          time.Now().Add(-1 * time.Minute).Unix(),
+			"iat":          time.Now().Add(-31 * time.Minute).Unix(),
+			"token_type":   constants.VerificationTypeBasicAuthSignup,
+			"nonce":        expiredRow.Nonce,
+			"redirect_uri": expiredRow.RedirectURI,
+		}
+		signed, sErr := ts.TokenProvider.SignJWTToken(expiredClaims)
+		require.NoError(t, sErr)
+
+		// Put it on the stored row so the lookup succeeds and the request
+		// genuinely reaches the expiry check, rather than failing earlier as an
+		// unknown token — which would pass for the wrong reason.
+		row := expiredRow
+		row.Token = signed
+		require.NoError(t, ts.StorageProvider.DeleteVerificationRequest(ctx, &expiredRow))
+		_, aErr := ts.StorageProvider.AddVerificationRequest(ctx, &row)
+		require.NoError(t, aErr)
+		expiredRow = row
+
+		_, err := ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{Token: signed})
+		require.Error(t, err, "an expired verification link must not be redeemable — it is a capability, and an expired one that still works is just a long-lived one")
+		assert.Contains(t, err.Error(), "invalid verification token")
+
+		user, uErr := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, uErr)
+		assert.Nil(t, user.EmailVerifiedAt, "a refused link must not verify the address")
+	})
+
+	t.Run("a stale link whose nonce no longer matches is refused", func(t *testing.T) {
+		// This is what an expired-then-resent link looks like in practice: the
+		// resend rotates the nonce, so the OLD link stops validating even before
+		// its exp. Same refusal path, and testable without waiting 30 minutes.
+		_, err := ts.GraphQLProvider.ResendVerifyEmail(ctx, &model.ResendVerifyEmailRequest{
+			Email:      email,
+			Identifier: constants.VerificationTypeBasicAuthSignup,
+		})
+		require.NoError(t, err)
+
+		_, err = ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{Token: expiredRow.Token})
+		require.Error(t, err, "the superseded link must stop working once a new one is issued")
+		assert.Contains(t, err.Error(), "invalid verification token")
+
+		user, uErr := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, uErr)
+		assert.Nil(t, user.EmailVerifiedAt, "a refused link must not verify the address")
+	})
+
+	t.Run("the resent link works, so the user is never stuck", func(t *testing.T) {
+		fresh, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		require.NoError(t, err)
+		require.NotEqual(t, expiredRow.Token, fresh.Token)
+
+		_, err = ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{Token: fresh.Token})
+		require.NoError(t, err)
+
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		assert.NotNil(t, user.EmailVerifiedAt, "the recovery path must actually complete verification")
+	})
+}
+
+// TestVerificationTokenWithEmptySubjectIsRefused pins a guard that does not
+// depend on anything else being right.
+//
+// ValidateJWTClaims checks `sub` as
+//
+//	claims["sub"] != cfg.User.ID && claims["sub"] != cfg.User.Email
+//
+// and the verification path sets only Email, leaving User.ID as "". A token
+// whose `sub` is the empty STRING therefore satisfies the first comparison and
+// passes that check. Whether it then does damage depends on whether the storage
+// backend keeps a missing email as NULL or as "" — SQL keeps it NULL, so the
+// lookup finds nobody, but that is an accident of one backend's representation
+// across six implementations, not a declared property.
+//
+// So the subject is rejected outright. If this ever fails, an empty-subject
+// token is reaching account selection and the only thing standing between it
+// and a real account is a per-backend NULL convention.
+func TestVerificationTokenWithEmptySubjectIsRefused(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "empty_sub_" + uuid.NewString() + "@authorizer.dev"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        "Password@123",
+		ConfirmPassword: "Password@123",
+	})
+	require.NoError(t, err)
+
+	row, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	// Everything valid except the subject, which is empty.
+	forged, err := ts.TokenProvider.SignJWTToken(jwt.MapClaims{
+		"iss":          testAuthorizerHost(ts),
+		"aud":          ts.Config.ClientID,
+		"sub":          "",
+		"exp":          time.Now().Add(10 * time.Minute).Unix(),
+		"iat":          time.Now().Unix(),
+		"token_type":   constants.VerificationTypeBasicAuthSignup,
+		"nonce":        row.Nonce,
+		"redirect_uri": row.RedirectURI,
+	})
+	require.NoError(t, err)
+
+	// Attach it to the stored row so the lookup succeeds and the request really
+	// reaches subject handling instead of failing earlier as an unknown token.
+	forgedRow := *row
+	forgedRow.Token = forged
+	require.NoError(t, ts.StorageProvider.DeleteVerificationRequest(ctx, row))
+	_, err = ts.StorageProvider.AddVerificationRequest(ctx, &forgedRow)
+	require.NoError(t, err)
+
+	_, err = ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{Token: forged})
+	require.Error(t, err, "an empty subject must never be used to select an account")
+	assert.Contains(t, err.Error(), "invalid verification token")
+
+	// And nothing was verified as a side effect.
+	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	assert.Nil(t, user.EmailVerifiedAt)
 }
