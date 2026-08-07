@@ -64,7 +64,7 @@ func TestDeleteUserCascade(t *testing.T) {
 	clearCookies(ts)
 
 	setAdminCookie(t, ts)
-	deleteRes, err := ts.GraphQLProvider.DeleteUser(ctx, &model.DeleteUserRequest{Email: email})
+	deleteRes, err := ts.GraphQLProvider.DeleteUser(ctx, &model.DeleteUserRequest{ID: userID})
 	require.NoError(t, err)
 	require.NotNil(t, deleteRes)
 

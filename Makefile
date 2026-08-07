@@ -267,7 +267,10 @@ proto-lint: proto-tools
 
 # Compare the working tree's proto against origin/main; fails on breaking changes.
 # Override BUF_BREAKING_AGAINST for local runs (e.g. "main" or a SHA).
-BUF_BREAKING_AGAINST ?= .git#branch=origin/main,subdir=proto
+# The `#` must stay escaped: make treats a bare one as a comment, which silently
+# truncated this to `.git` — no subdir, so every import failed to resolve, and
+# no branch, so it compared against the working tree rather than origin/main.
+BUF_BREAKING_AGAINST ?= .git\#branch=origin/main,subdir=proto
 proto-breaking: proto-tools
 	cd proto && buf breaking --against '../$(BUF_BREAKING_AGAINST)'
 

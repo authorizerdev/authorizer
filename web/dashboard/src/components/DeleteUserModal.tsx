@@ -26,7 +26,9 @@ const DeleteUserModal = ({ user, updateUserList }: DeleteUserModalProps) => {
 
 	const deleteHandler = async () => {
 		const res = await client
-			.mutation(DeleteUser, { params: { email: user.email } })
+			// Delete by id: a phone-only account has no email, so an email-keyed
+			// delete could not reach it at all.
+			.mutation(DeleteUser, { params: { id: user.id } })
 			.toPromise();
 		if (res.error) {
 			toast.error(

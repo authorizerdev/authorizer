@@ -384,10 +384,19 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 		return nil, nil, err
 	}
 
-	log = log.With().Str("email", params.Email).Logger()
-	user, err := p.StorageProvider.GetUserByEmail(ctx, params.Email)
+	// By id only. Email was never an identifier every account has — a phone-only
+	// signup has none — so the previous email-keyed delete could not reach those
+	// accounts at all, and there was no second way in.
+	id := strings.TrimSpace(params.ID)
+	if id == "" {
+		log.Debug().Msg("user id is missing")
+		return nil, nil, InvalidArgument("id is required")
+	}
+
+	log = log.With().Str("user_id", id).Logger()
+	user, err := p.StorageProvider.GetUserByID(ctx, id)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by email")
+		log.Debug().Err(err).Msg("Failed to get user by id")
 		if storage.IsNotFound(err) {
 			return nil, nil, NotFound("user not found")
 		}
@@ -413,43 +422,58 @@ func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params 
 		Message: `user deleted successfully`,
 	}
 
+	// An identifier this account does not have must NEVER be used to look up
+	// rows to delete.
+	//
+	// generateAndStoreOTP writes Email and PhoneNumber as plain strings, so an
+	// account that has only one of them stores the OTHER as "" — not NULL. The
+	// lookups below are `WHERE email = ?` / `WHERE phone_number = ?`, so passing
+	// "" MATCHES every other account in the same shape, and the row it returns
+	// is then deleted. Deleting one phone-only user would delete a different
+	// phone-only user's live OTP.
+	//
+	// The phone side of this is reachable today for email-only accounts; the
+	// email side becomes reachable now that phone-only accounts can be deleted
+	// at all. Both are guarded here rather than in each storage provider,
+	// because the empty value is meaningless at the call site and six backends
+	// would each have to get the same guard right.
+	deletedEmail := refs.StringValue(user.Email)
+	deletedPhone := refs.StringValue(user.PhoneNumber)
+
 	asyncutil.Go(p.Log, func() {
 		ctx := context.WithoutCancel(ctx)
 		// delete otp for given email
-		otp, err := p.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(user.Email))
-		if err != nil {
-			log.Debug().Err(err).Msg("No OTP found for email")
-			// continue
-		} else {
-			err := p.StorageProvider.DeleteOTP(ctx, otp)
+		if deletedEmail != "" {
+			otp, err := p.StorageProvider.GetOTPByEmail(ctx, deletedEmail)
 			if err != nil {
+				log.Debug().Err(err).Msg("No OTP found for email")
+				// continue
+			} else if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 				log.Debug().Err(err).Msg("Failed to delete otp for given email")
 				// continue
 			}
 		}
 
 		// delete otp for given phone number
-		otp, err = p.StorageProvider.GetOTPByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber))
-		if err != nil {
-			log.Debug().Err(err).Msg("No OTP found for phone number")
-			// continue
-		} else {
-			err := p.StorageProvider.DeleteOTP(ctx, otp)
+		if deletedPhone != "" {
+			otp, err := p.StorageProvider.GetOTPByPhoneNumber(ctx, deletedPhone)
 			if err != nil {
+				log.Debug().Err(err).Msg("No OTP found for phone number")
+				// continue
+			} else if err := p.StorageProvider.DeleteOTP(ctx, otp); err != nil {
 				log.Debug().Err(err).Msg("Failed to delete otp for given phone number")
 				// continue
 			}
 		}
 
 		// delete verification requests for given email
-		for _, vt := range constants.VerificationTypes {
-			verificationRequest, err := p.StorageProvider.GetVerificationRequestByEmail(ctx, refs.StringValue(user.Email), vt)
-			if err != nil {
-				log.Debug().Err(err).Msg("No verification request found for email")
-				// continue
-			} else {
-				err := p.StorageProvider.DeleteVerificationRequest(ctx, verificationRequest)
+		if deletedEmail != "" {
+			for _, vt := range constants.VerificationTypes {
+				verificationRequest, err := p.StorageProvider.GetVerificationRequestByEmail(ctx, deletedEmail, vt)
 				if err != nil {
+					log.Debug().Err(err).Msg("No verification request found for email")
+					// continue
+				} else if err := p.StorageProvider.DeleteVerificationRequest(ctx, verificationRequest); err != nil {
 					log.Debug().Err(err).Msg("Failed to delete verification request for given email")
 					// continue
 				}

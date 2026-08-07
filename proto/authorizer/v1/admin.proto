@@ -77,7 +77,7 @@ service AuthorizerAdminService {
     };
   }
 
-  // DeleteUser deletes a user (and associated OTP/verification data) by email.
+  // DeleteUser deletes a user (and associated OTP/verification data) by id.
   // Requires super-admin auth.
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
     option (google.api.http) = {
@@ -848,8 +848,20 @@ message UpdateUserResponse {
 }
 
 // DeleteUserRequest mirrors model.DeleteUserRequest.
+//
+// BREAKING: this took `email` and now takes `id` only. Email was never an
+// identifier every account has — a phone-only signup has none — so an
+// email-keyed delete could not reach those accounts at all, and there was no
+// second way in.
+//
+// Field 1 is RESERVED rather than reused. `email` was a string and `id` is a
+// string, so reusing tag 1 would let an old client's email decode silently as
+// an id: wire-compatible, semantically wrong, and pointed at a delete. Reserving
+// makes an old client fail loudly instead.
 message DeleteUserRequest {
-  string email = 1 [(buf.validate.field).string.min_len = 1];
+  reserved 1;
+  reserved "email";
+  string id = 2 [(buf.validate.field).string.min_len = 1];
 }
 message DeleteUserResponse {
   string message = 1;

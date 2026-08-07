@@ -127,7 +127,7 @@ func (h *AdminHandler) UpdateUser(ctx context.Context, req *authorizerv1.UpdateU
 // DeleteUser delegates to service.DeleteUser. Requires super-admin auth.
 func (h *AdminHandler) DeleteUser(ctx context.Context, req *authorizerv1.DeleteUserRequest) (*authorizerv1.DeleteUserResponse, error) {
 	res, _, err := h.Service.DeleteUser(ctx, transport.MetaFromGRPC(ctx), &model.DeleteUserRequest{
-		Email: req.GetEmail(),
+		ID: req.GetId(),
 	})
 	if err != nil {
 		return nil, err
