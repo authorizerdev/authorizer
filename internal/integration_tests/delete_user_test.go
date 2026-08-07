@@ -98,3 +98,68 @@ func TestDeleteUserByIDIncludingPhoneOnlyAccounts(t *testing.T) {
 		assert.Contains(t, err.Error(), "id is required")
 	})
 }
+
+// TestDeleteUserDoesNotTouchOtherAccountsRows guards against cross-user data
+// deletion in the post-delete cleanup.
+//
+// generateAndStoreOTP writes Email and PhoneNumber as plain strings, so an
+// account holding only one of them stores the OTHER as "" — not NULL. The
+// cleanup's lookups are `WHERE email = ?` / `WHERE phone_number = ?`, so
+// passing "" matches every OTHER account in the same shape, and the row it
+// returns is then DELETED.
+//
+// The scenario below is deterministic on purpose: the deleted account has no
+// OTP of its own, so the empty-phone lookup can only match the bystander's.
+// This half is reachable TODAY for email-only accounts — it does not need the
+// phone-only delete this PR enables.
+func TestDeleteUserDoesNotTouchOtherAccountsRows(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableMobileBasicAuthentication = true
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+	h, err := newAdminSessionToken(ts)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
+
+	mkEmailUser := func(t *testing.T) *schemas.User {
+		t.Helper()
+		email := "cross_delete_" + uuid.NewString() + "@authorizer.dev"
+		u, err := ts.StorageProvider.AddUser(ctx, &schemas.User{
+			Email:         &email,
+			SignupMethods: constants.AuthRecipeMethodBasicAuth,
+		})
+		require.NoError(t, err)
+		return u
+	}
+
+	// The bystander holds a live OTP. Its phone_number column is "" because the
+	// account has no phone — that empty value is the collision key.
+	bystander := mkEmailUser(t)
+	_, err = ts.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
+		Email:       refs.StringValue(bystander.Email),
+		PhoneNumber: refs.StringValue(bystander.PhoneNumber),
+		Otp:         "123456",
+		ExpiresAt:   time.Now().Add(5 * time.Minute).Unix(),
+	})
+	require.NoError(t, err)
+
+	// The account actually being deleted has NO OTP, so an empty-phone lookup
+	// cannot match its own row — only the bystander's.
+	doomed := mkEmailUser(t)
+
+	_, err = ts.GraphQLProvider.DeleteUser(ctx, &model.DeleteUserRequest{ID: doomed.ID})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		_, err := ts.StorageProvider.GetUserByID(ctx, doomed.ID)
+		return err != nil
+	}, 3*time.Second, 50*time.Millisecond, "the targeted account should be gone")
+	// The cleanup is asynchronous; give it room to do damage if it is going to.
+	time.Sleep(500 * time.Millisecond)
+
+	otp, err := ts.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(bystander.Email))
+	require.NoError(t, err,
+		"deleting an account with no phone number must not delete a DIFFERENT account's OTP via a `phone_number = \"\"` match")
+	assert.NotNil(t, otp)
+}
