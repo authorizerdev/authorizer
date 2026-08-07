@@ -297,7 +297,7 @@ Use these v2 **CLI flags** instead of v1 env or dashboard config. Flag names use
 | `JWT_SECRET`                        | `--jwt-secret`                          |
 | `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` | `--jwt-private-key`, `--jwt-public-key` |
 | `JWT_ROLE_CLAIM`                    | `--jwt-role-claim`                      |
-| _(new in 2.4.0)_                    | `--encryption-key`                      |
+| _(none — new in 2.4.0)_             | `--encryption-key`                      |
 | `CUSTOM_ACCESS_TOKEN_SCRIPT`        | `--custom-access-token-script`          |
 
 
