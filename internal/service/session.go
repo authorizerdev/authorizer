@@ -2,12 +2,12 @@ package service
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -79,23 +79,19 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	oidcNonce := ""
 	authorizeRedirectURI := ""
 	authorizeResource := ""
+	authorizeClientID := ""
 	if params != nil && params.State != nil {
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
 		if authorizeState != "" {
-			parts := strings.Split(authorizeState, "@@")
-			if len(parts) > 1 {
-				code = parts[0]
-				codeChallenge = parts[1]
-				if len(parts) > 2 {
-					oidcNonce = parts[2]
-				}
-				if len(parts) > 3 {
-					authorizeRedirectURI = parts[3]
-				}
-				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
-				if len(parts) > 4 {
-					authorizeResource = parts[4]
-				}
+			// One owner for this positional format — see internal/codestate.
+			if codestate.HasCode(authorizeState) {
+				as := codestate.DecodeAuthorize(authorizeState)
+				code = as.Code
+				codeChallenge = as.Challenge
+				oidcNonce = as.Nonce
+				authorizeRedirectURI = as.RedirectURI
+				authorizeResource = as.Resource
+				authorizeClientID = as.ClientID
 			}
 			_ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
@@ -120,7 +116,14 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	}
 
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+			Challenge:   codeChallenge,
+			Session:     authToken.FingerPrintHash,
+			Nonce:       oidcNonce,
+			RedirectURI: authorizeRedirectURI,
+			Resource:    authorizeResource,
+			ClientID:    authorizeClientID,
+		})); err != nil {
 			log.Debug().Err(err).Msg("Failed to set code state")
 			return nil, nil, err
 		}

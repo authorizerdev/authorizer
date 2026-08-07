@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/metrics"
@@ -364,18 +365,36 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			// [0] -> code_challenge (may contain "::method" suffix) or empty
-			// [1] -> session cookie
-			// [2] -> OIDC nonce from /authorize request (optional)
-			// [3] -> redirect_uri from /authorize request (optional, for RFC 6749 §4.1.3)
+			// One owner for this positional format — see internal/codestate.
+			// Blobs written by an older build decode with the trailing fields
+			// empty, so codes issued before a deploy stay redeemable across it.
+			storedCode := codestate.DecodeCode(sessionData)
 			sessionDataSplit := strings.Split(sessionData, "@@")
+
+			// RFC 6749 §4.1.3: "ensure that the authorization code was issued to
+			// the authenticated confidential client". Without this the code is
+			// bound to a redirect_uri but not to an identity, so two clients
+			// sharing a redirect origin can redeem each other's codes — the
+			// mix-up shape this clause exists to prevent. Constant-time because
+			// the comparison is against a value the caller supplies.
+			// Compared against the AUTHENTICATED client (the clientauth resolver's
+			// result), not the raw body field — the client may authenticate via
+			// HTTP Basic or a client assertion and send no body client_id at all.
+			if storedCode.ClientID != "" {
+				if subtle.ConstantTimeCompare([]byte(resolvedClient.ClientID), []byte(storedCode.ClientID)) != 1 {
+					metrics.RecordSecurityEvent("token_exchange_client_mismatch", "token_endpoint")
+					log.Warn().Str("client_id", resolvedClient.ClientID).Msg("rejected: authorization code was issued to a different client")
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_grant",
+						"error_description": "The authorization code was not issued to this client",
+					})
+					return
+				}
+			}
 
 			// RFC 6749 §4.1.3: If redirect_uri was included in the authorization
 			// request, the token request MUST include the identical redirect_uri.
-			storedRedirectURI := ""
-			if len(sessionDataSplit) > 3 {
-				storedRedirectURI, _ = url.QueryUnescape(sessionDataSplit[3])
-			}
+			storedRedirectURI := storedCode.RedirectURI
 			requestRedirectURI := strings.TrimSpace(reqBody.RedirectURI)
 			if storedRedirectURI != "" {
 				if requestRedirectURI == "" {

@@ -2,12 +2,12 @@ package http_handlers
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -20,6 +20,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/metrics"
@@ -81,6 +82,23 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
 			return
 		}
+		// Prove the browser finishing this flow is the one that started it.
+		// The state alone cannot: it is server-generated and stored globally, so
+		// its presence only shows SOME flow issued it. Without this an attacker
+		// harvests their own valid code+state and delivers it to a victim's
+		// browser, logging the victim into the ATTACKER's account (login CSRF,
+		// RFC 9700 §4.7). Checked before the state is consumed so a failed
+		// attempt cannot burn a legitimate one.
+		boundState := cookie.GetOAuthState(ctx)
+		if subtle.ConstantTimeCompare([]byte(boundState), []byte(state)) != 1 {
+			log.Debug().Bool("cookie_present", boundState != "").Msg("OAuth state is not bound to this browser")
+			metrics.RecordSecurityEvent("oauth_state_not_bound", provider)
+			cookie.DeleteOAuthState(ctx, h.Config.AppCookieSecure)
+			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
+			return
+		}
+		cookie.DeleteOAuthState(ctx, h.Config.AppCookieSecure)
+
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
@@ -428,7 +446,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		//
 		// In the standalone social login flow (`/oauth_login/:provider`), this entry will not exist and we
 		// simply generate a nonce and continue.
-		code, codeChallenge, nonce, authorizeRedirectURI, err := h.consumeAuthorizeState(stateValue)
+		code, codeChallenge, nonce, authorizeRedirectURI, authorizeClientID, err := h.consumeAuthorizeState(stateValue)
 		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Str("state", stateValue).Msg("Failed to get authorize state from store")
 		}
@@ -495,7 +513,13 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		// exploitable, but there's no reason to write it before we know the
 		// login actually proceeds.
 		if code != "" {
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
+			if err := h.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+				Challenge:   codeChallenge,
+				Session:     authToken.FingerPrintHash,
+				Nonce:       nonce,
+				RedirectURI: authorizeRedirectURI,
+				ClientID:    authorizeClientID,
+			})); err != nil {
 				log.Debug().Err(err).Msg("Failed to set state")
 				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 				return

@@ -76,6 +76,7 @@ test.describe('Social login — Apple', () => {
     await configureProviderProfile(request, 'apple', {
       sub: `apple-${crypto.randomUUID()}`,
       email,
+      email_verified: true,
       omit_user_field: true,
     });
     await page.getByRole('button', { name: /apple/i }).click();

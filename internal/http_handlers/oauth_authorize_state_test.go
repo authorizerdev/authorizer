@@ -28,7 +28,7 @@ func TestConsumeAuthorizeState_Nonce(t *testing.T) {
 	stateValue := "state-1"
 	require.NoError(t, ms.SetState(stateValue, "nonce-123"))
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState(stateValue)
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState(stateValue)
 	require.NoError(t, err)
 	require.Empty(t, code)
 	require.Empty(t, codeChallenge)
@@ -58,7 +58,7 @@ func TestConsumeAuthorizeState_CodeAndPKCE(t *testing.T) {
 	stateValue := "state-2"
 	require.NoError(t, ms.SetState(stateValue, "code-abc@@challenge-xyz"))
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState(stateValue)
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState(stateValue)
 	require.NoError(t, err)
 	require.Equal(t, "code-abc", code)
 	require.Equal(t, "challenge-xyz", codeChallenge)
@@ -88,7 +88,7 @@ func TestConsumeAuthorizeState_CodePKCEAndNonce(t *testing.T) {
 	stateValue := "state-3"
 	require.NoError(t, ms.SetState(stateValue, "code-abc@@challenge-xyz@@oidc-nonce-123"))
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState(stateValue)
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState(stateValue)
 	require.NoError(t, err)
 	require.Equal(t, "code-abc", code)
 	require.Equal(t, "challenge-xyz", codeChallenge)
@@ -119,7 +119,7 @@ func TestConsumeAuthorizeState_CodePKCENonceAndRedirectURI(t *testing.T) {
 	stateValue := "state-4"
 	require.NoError(t, ms.SetState(stateValue, "code-abc@@challenge-xyz@@oidc-nonce-123@@https%3A%2F%2Fexample.com%2Fcallback"))
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState(stateValue)
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState(stateValue)
 	require.NoError(t, err)
 	require.Equal(t, "code-abc", code)
 	require.Equal(t, "challenge-xyz", codeChallenge)
@@ -152,7 +152,7 @@ func TestConsumeAuthorizeState_RedirectURIWithDelimiter(t *testing.T) {
 	stateValue := "state-5"
 	require.NoError(t, ms.SetState(stateValue, "code-abc@@challenge-xyz@@nonce-123@@https%3A%2F%2Fevil.com%2F%40%40injected"))
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState(stateValue)
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState(stateValue)
 	require.NoError(t, err)
 	require.Equal(t, "code-abc", code)
 	require.Equal(t, "challenge-xyz", codeChallenge)
@@ -174,7 +174,7 @@ func TestConsumeAuthorizeState_MissingKey_ReturnsEmpty(t *testing.T) {
 		},
 	}
 
-	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState("does-not-exist")
+	code, codeChallenge, nonce, redirectURI, _, err := h.consumeAuthorizeState("does-not-exist")
 	// GetAndRemoveState returns an error for missing keys; consumeAuthorizeState propagates it.
 	// The caller (oauth_callback) handles this gracefully.
 	require.Error(t, err)
@@ -199,7 +199,7 @@ func TestConsumeAuthorizeState_RedisNil_Propagates(t *testing.T) {
 		},
 	}
 
-	_, _, _, _, err := h.consumeAuthorizeState("missing")
+	_, _, _, _, _, err := h.consumeAuthorizeState("missing")
 	require.ErrorIs(t, err, goredis.Nil)
 }
 
