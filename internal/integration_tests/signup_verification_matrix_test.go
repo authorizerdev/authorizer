@@ -3,6 +3,8 @@ package integration_tests
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -325,4 +327,76 @@ func TestMobileSignupVerificationIsIndependent(t *testing.T) {
 	assert.Contains(t, user.SignupMethods, constants.AuthRecipeMethodMobileBasicAuth)
 	// No email was ever supplied, so nothing should have marked one verified.
 	assert.Empty(t, refs.StringValue(user.Email))
+}
+
+// TestVerifyEmailRESTMarksVerifiedBeforeMFAGate is the REST twin of
+// TestVerifyEmailMarksVerifiedBeforeMFAGate, and the one that reproduces the
+// bug a user actually hit.
+//
+// GET /verify_email is what the button in the verification email literally
+// points to — a browser click never touches the GraphQL mutation. The two are
+// SEPARATE implementations (internal/http_handlers/verify_email.go vs
+// internal/service/verify_email.go), so fixing the service left the path every
+// real user takes still broken.
+//
+// The write sat after the MFA gate's withheld branch, which redirects to MFA
+// setup and returns. With MFA on by default, a fresh signup clicking its link
+// lands there and the address is never marked verified.
+//
+// It stayed hidden because only passkey login checks the column: password,
+// TOTP and email/SMS-OTP logins all succeed against an unverified account, so
+// the flow looks fine until someone enrolls a passkey and is told - with no way
+// to act on it - that their email is not verified.
+func TestVerifyEmailRESTMarksVerifiedBeforeMFAGate(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	// Left at the derived default (true). This is the configuration that
+	// triggers the bug — the MFA gate has to withhold for the early return to
+	// be reached at all.
+	cfg.EnableMFA = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "verify_rest_" + uuid.NewString() + "@authorizer.dev"
+	// The test config's AllowedOrigins is an explicit allowlist, and the handler
+	// re-validates the token's redirect_uri against it on the click. Anything
+	// else 400s on the redirect check before reaching the code under test.
+	redirectURI := "http://localhost:3000"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        "Password@123",
+		ConfirmPassword: "Password@123",
+		RedirectURI:     &redirectURI,
+	})
+	require.NoError(t, err)
+
+	before, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	require.Nil(t, before.EmailVerifiedAt)
+
+	vr, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	// Click the link as the browser does, but stop at the first response
+	// instead of chasing the redirect to the app origin (nothing is listening
+	// there in a test).
+	client := &http.Client{
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	resp, err := client.Get(testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vr.Token))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	// Confirm we actually exercised the branch that used to skip the write:
+	// the MFA gate withheld the token and redirected to setup.
+	require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+	require.Contains(t, resp.Header.Get("Location"), "mfa_gate=offer",
+		"this test is only meaningful if the MFA gate withheld — that is the early return the write used to sit behind")
+
+	after, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	assert.NotNil(t, after.EmailVerifiedAt,
+		"clicking the emailed link must record the address as verified even when the MFA gate withholds the token — otherwise passkey login rejects the user permanently, while password/TOTP/OTP logins hide it by never checking")
+	assert.Equal(t, before.ID, after.ID)
 }

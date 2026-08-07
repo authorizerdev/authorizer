@@ -118,6 +118,37 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
+		// Record the address as verified HERE, BEFORE the MFA gate below.
+		//
+		// The gate's withheld branch redirects to MFA setup and returns, so the
+		// write that used to sit after it never ran for the overwhelmingly
+		// common case: a fresh signup clicking its verification link, with MFA
+		// on by default. The user did everything right and their address stayed
+		// unverified forever.
+		//
+		// Only passkey login surfaces it — webauthn.go refuses outright on
+		// email_verified_at == nil, with an error the user cannot act on.
+		// Password, TOTP and email/SMS-OTP logins never check the column, so
+		// they appear to "work" while the account is in exactly the same broken
+		// state. That asymmetry is why this hid.
+		//
+		// Clicking the link IS the proof of mailbox control; whether MFA then
+		// interrupts token issuance is a separate question and must not discard
+		// it. Mirrors service.VerifyEmail, which is the GraphQL twin of this
+		// handler — the two implementations have to agree.
+		emailJustVerified := user.EmailVerifiedAt == nil
+		if emailJustVerified {
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
+			user, err = h.StorageProvider.UpdateUser(c, user)
+			if err != nil {
+				log.Debug().Err(err).Msg("Error updating user")
+				errorRes["error"] = err.Error()
+				utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+				return
+			}
+		}
+
 		// MFA gate: this REST endpoint is what the emailed verification/magic
 		// link literally points to, so it must enforce the same gate every
 		// other login entry point does (login.go/signup.go/oauth_callback.go).
@@ -146,20 +177,8 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		isSignUp := false
-		// update email_verified_at in users table
-		if user.EmailVerifiedAt == nil {
-			now := time.Now().Unix()
-			user.EmailVerifiedAt = &now
-			isSignUp = true
-			user, err = h.StorageProvider.UpdateUser(c, user)
-			if err != nil {
-				log.Debug().Err(err).Msg("Error updating user")
-				errorRes["error"] = err.Error()
-				utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
-				return
-			}
-		}
+		// Set above, before the MFA gate — see the comment there.
+		isSignUp := emailJustVerified
 		// delete from verification table
 		if err := h.StorageProvider.DeleteVerificationRequest(c, verificationRequest); err != nil {
 			log.Debug().Err(err).Msg("Error deleting verification request")
