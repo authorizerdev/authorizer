@@ -60,7 +60,6 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 // 	return EncryptB64(string(encryptedConfig)), nil
 // }
 
-// EncryptPassword is used for encrypting password
 // PasswordHashCost is the bcrypt cost for newly written password hashes.
 //
 // Raised from bcrypt.DefaultCost (10), which is below current guidance. This is
@@ -79,6 +78,7 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 // make us pay it.
 const PasswordHashCost = 12
 
+// EncryptPassword is used for encrypting password
 func EncryptPassword(password string) (string, error) {
 	pw, err := bcrypt.GenerateFromPassword([]byte(password), PasswordHashCost)
 	if err != nil {
