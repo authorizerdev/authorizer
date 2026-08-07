@@ -29,50 +29,21 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 	log := p.Log.With().Str("func", "VerifyEmail").Logger()
 	side := &ResponseSideEffects{}
 
-	verificationRequest, err := p.StorageProvider.GetVerificationRequestByToken(ctx, params.Token)
-	if err != nil {
-		log.Debug().Err(err).Msg("failed GetVerificationRequestByToken")
-		return nil, nil, InvalidArgument(`invalid verification token`)
-	}
-
-	// verify if token exists in db
+	// Decision logic lives in ConsumeEmailVerificationToken so the REST handler
+	// behind GET /verify_email runs exactly the same checks — see
+	// verify_email_core.go for the two drifts that motivated sharing it. Only
+	// the shared PREFIX moved: every MFA branch below stays here, because the
+	// two callers diverge from this point on (this one returns AuthResponse
+	// screens, the handler redirects).
 	hostname := meta.HostURL
-	claim, err := p.TokenProvider.ParseJWTToken(params.Token)
+	verified, err := p.ConsumeEmailVerificationToken(ctx, hostname, params.Token)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to parse jwt token")
-		return nil, nil, InvalidArgument(`invalid verification token`)
-	}
-
-	if ok, err := p.TokenProvider.ValidateJWTClaims(claim, &token.AuthTokenConfig{
-		HostName: hostname,
-		Nonce:    verificationRequest.Nonce,
-		User: &schemas.User{
-			Email: &verificationRequest.Email,
-		},
-	}); !ok || err != nil {
-		log.Debug().Err(err).Msg("Failed to validate jwt claims")
-		return nil, nil, InvalidArgument(`invalid verification token`)
-	}
-
-	// Purpose binding: only the email-verification family may complete here. A
-	// forgot-password token must not be redeemable for a session.
-	if !IsVerifyEmailPurpose(verificationRequest, claim) {
-		log.Debug().Str("identifier", verificationRequest.Identifier).Msg("Verification token used for the wrong purpose")
-		return nil, nil, InvalidArgument(`invalid verification token`)
-	}
-
-	email := claim["sub"].(string)
-	log.Debug().Str("email", email).Msg("Email verified successfully")
-	user, err := p.StorageProvider.GetUserByEmail(ctx, email)
-	if err != nil {
-		log.Debug().Err(err).Msg("failed GetUserByEmail")
 		return nil, nil, err
 	}
-
-	if user.RevokedTimestamp != nil {
-		log.Debug().Msg("User access has been revoked")
-		return nil, nil, FailedPrecondition("user access has been revoked")
-	}
+	user := verified.User
+	verificationRequest := verified.Request
+	loginMethod := verified.LoginMethod
+	emailJustVerified := verified.IsSignUp
 
 	// A single check protecting every MFA branch below, mirroring login.go —
 	// lockout is set only by explicit user action (lock_mfa), never inferred
@@ -81,11 +52,6 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 	if user.MFALockedAt != nil {
 		log.Debug().Msg("User's MFA is locked, refusing login")
 		return nil, nil, FailedPrecondition("your account's multi-factor authentication is locked; contact your administrator to regain access")
-	}
-
-	loginMethod := constants.AuthRecipeMethodBasicAuth
-	if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
-		loginMethod = constants.AuthRecipeMethodMagicLinkLogin
 	}
 
 	isTOTPLoginEnabled := p.Config.EnableTOTPLogin
@@ -154,31 +120,9 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 		}, side, nil
 	}
 
-	// Record the email as verified HERE, before the MFA gate below, because
-	// every branch of that gate can return early — and MFA is on by default
-	// (TOTP needs no external provider, so config.Finalize derives
-	// EnableMFA=true). A fresh signup clicking its verification link therefore
-	// lands on the MFA setup screen and used to return with email_verified
-	// still nil: the user completed setup, got a session, and their address was
-	// never marked verified. Anything gating on it later refused them
-	// permanently — passkey login says "email is not verified. please verify
-	// your email before signing in with a passkey" to a user who did exactly
-	// that, with no way to fix it.
-	//
-	// Clicking the link IS the proof of mailbox control. Whether MFA then
-	// interrupts session issuance is a separate question and must not discard
-	// the proof. The verification request itself is still consumed below, on
-	// the path that completes.
-	emailJustVerified := user.EmailVerifiedAt == nil
-	if emailJustVerified {
-		now := time.Now().Unix()
-		user.EmailVerifiedAt = &now
-		user, err = p.StorageProvider.UpdateUser(ctx, user)
-		if err != nil {
-			log.Debug().Err(err).Msg("failed UpdateUser")
-			return nil, nil, err
-		}
-	}
+	// The address was already marked verified by ConsumeEmailVerificationToken,
+	// before any of the MFA branches above could return early — see the
+	// ORDER IS LOAD-BEARING note there.
 
 	// Gate runs whenever MFA applies at all, exactly like login.go/signup.go —
 	// this used to be an ad-hoc TOTP-only check (refs.BoolValue(user.IsMultiFactorAuthEnabled)
