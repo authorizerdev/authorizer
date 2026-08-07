@@ -50,7 +50,7 @@ test.describe('Social login — Discord', () => {
     // correctly with no synthetic-email machinery needed (unlike Twitter,
     // which never gets a real email at all).
     const email = `discord-repeat-${crypto.randomUUID()}@example.com`;
-    const profile = { id: `discord-stable-${crypto.randomUUID()}`, username: 'gracehopper', avatar: 'def456', email };
+    const profile = { id: `discord-stable-${crypto.randomUUID()}`, username: 'gracehopper', avatar: 'def456', email, verified: true };
 
     // First login (fresh browser context = `page`/`request` from the test
     // fixture): creates the account.

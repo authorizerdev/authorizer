@@ -15,13 +15,3 @@ func DecodeB64(s string) (string, error) {
 	}
 	return string(data), nil
 }
-
-// EncryptB64 is a deprecated alias for EncodeB64.
-func EncryptB64(text string) string {
-	return EncodeB64(text)
-}
-
-// DecryptB64 is a deprecated alias for DecodeB64.
-func DecryptB64(s string) (string, error) {
-	return DecodeB64(s)
-}

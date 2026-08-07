@@ -82,7 +82,11 @@ var (
 			rootArgs.config.Finalize()
 			// Fail closed rather than silently encrypting TOTP seeds with a
 			// publicly computable key derived from an empty secret.
-			return rootArgs.config.ValidateEncryptionKey()
+			if err := rootArgs.config.ValidateEncryptionKey(); err != nil {
+				return err
+			}
+			// A mistyped SameSite silently becomes lax — see the doc comment.
+			return rootArgs.config.ValidateAppCookieSameSite()
 		},
 		Run: runRoot,
 	}
@@ -204,7 +208,12 @@ func init() {
 
 	// Cookies flags
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
-	f.StringVar(&rootArgs.config.AppCookieSameSite, "app-cookie-same-site", "none", "SameSite attribute for session cookies (lax, strict, none)")
+	// Default "none" is deliberate and audit-reviewed, not an oversight: the
+	// product targets an auth server on a subdomain serving apps on other
+	// sites, and Lax withholds the session cookie on exactly those cross-site
+	// requests. Same position Auth0 takes. See cookie.BuildSessionCookies for
+	// the full reasoning before changing it.
+	f.StringVar(&rootArgs.config.AppCookieSameSite, "app-cookie-same-site", "none", "SameSite attribute for session cookies (lax, strict, none). Default none supports apps on other domains; set lax if every app shares this host")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
 
@@ -249,6 +258,7 @@ func init() {
 	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", defaultMicrosoftTenantID, "Tenant ID for Microsoft")
 	f.StringSliceVar(&rootArgs.config.MicrosoftScopes, "microsoft-scopes", defaultMicrosoftScopes, "Scopes for Microsoft")
 	f.StringSliceVar(&rootArgs.config.MicrosoftAllowedTenants, "microsoft-allowed-tenants", nil, "Entra tenant IDs allowed to sign in when --microsoft-tenant-id is a multi-tenant alias (common/organizations/consumers). Empty allows any tenant, but an untrusted tenant's email will not link to an existing account")
+	f.BoolVar(&rootArgs.config.FgaAllowUnconstrainedAgents, "fga-allow-unconstrained-agents", false, "When a delegated (agent-acting-for-user) FGA check runs against an authorization model with no `type agent`, authorize as the delegating user alone instead of denying. Discards the agent half of the permission intersection; add `type agent` to your model instead")
 	f.BoolVar(&rootArgs.config.OAuthAllowUnverifiedProviderEmail, "oauth-allow-unverified-provider-email", false, "Compatibility escape hatch: let a social login whose provider did not attest the email address sign up or return to an account that same provider already owns. It still cannot cross into an account another credential owns. Prefer pinning --microsoft-tenant-id or enabling the xms_edov claim; see docs/email-verification-contract.md")
 	f.StringVar(&rootArgs.config.TwitchClientID, "twitch-client-id", "", "Client ID for Twitch")
 	f.StringVar(&rootArgs.config.TwitchClientSecret, "twitch-client-secret", "", "Client secret for Twitch")

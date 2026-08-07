@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
@@ -21,36 +22,35 @@ func delegatedCount(op, outcome string) float64 {
 //
 // When the active model declares no `agent` type the intersection cannot be
 // evaluated, so a delegated caller is authorized as the delegating user ALONE —
-// with the agent unconstrained. That is the documented compatibility path (see
-// agentSubjectsEnabled), but it is silent: the request succeeds and nothing in
-// the response says the agent carried the user's full authority. The counter is
-// the only way an operator can see it, so it is worth a test of its own.
+// with the agent constraint unevaluable. The request is now DENIED, but the
+// counter still fires — it is what tells an operator that delegated traffic is
+// arriving against a model that cannot express agent grants, whether that ends
+// in a denial (default) or in unconstrained authority (the explicit opt-out).
 func TestNotEnforcedIsCounted(t *testing.T) {
-	p := &provider{}
+	p := &provider{Config: &config.Config{}}
 	p.AuthzEngine = &advStubEngine{modelID: "m-no-agent", typeNames: []string{"user", "document"}}
 	caller := advDelegatedCaller("alice", "bot")
 
 	before := delegatedCount(metrics.FgaOpCheckPermissions, metrics.FgaDelegatedNotEnforced)
-	got, err := p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
-	require.NoError(t, err)
-	require.Equal(t, []string{"user:alice"}, got)
+	_, err := p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
+	require.Error(t, err, "the default is to deny when the agent half cannot be evaluated")
 
 	assert.Equal(t, before+1, delegatedCount(metrics.FgaOpCheckPermissions, metrics.FgaDelegatedNotEnforced),
-		"a delegated caller arriving at a model with no agent type must be counted, or the "+
-			"unenforced state is invisible until an incident")
+		"a delegated caller arriving at a model with no agent type must be counted either way, or "+
+			"the misconfiguration is invisible until someone reports a broken integration")
 }
 
 // TestNotEnforcedIsLabelledPerOperation pins that the operation label is the
 // CALLER's operation and not a hardcoded one — enumeration and yes/no checks
 // must be distinguishable, since only one of them leaks resource names.
 func TestNotEnforcedIsLabelledPerOperation(t *testing.T) {
-	p := &provider{}
+	p := &provider{Config: &config.Config{}}
 	p.AuthzEngine = &advStubEngine{modelID: "m-no-agent-2", typeNames: []string{"user"}}
 	caller := advDelegatedCaller("alice", "bot")
 
 	before := delegatedCount(metrics.FgaOpListPermissions, metrics.FgaDelegatedNotEnforced)
 	_, err := p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpListPermissions)
-	require.NoError(t, err)
+	require.Error(t, err)
 
 	assert.Equal(t, before+1, delegatedCount(metrics.FgaOpListPermissions, metrics.FgaDelegatedNotEnforced))
 }

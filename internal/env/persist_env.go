@@ -49,14 +49,14 @@ package env
 // 	}
 
 // 	encryptionKey := env.Hash
-// 	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
+// 	decryptedEncryptionKey, err := crypto.DecodeB64(encryptionKey)
 // 	if err != nil {
 // 		log.Debug("Error while decrypting encryption key: ", err)
 // 		return result, err
 // 	}
 
 // 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-// 	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+// 	b64DecryptedConfig, err := crypto.DecodeB64(env.EnvData)
 // 	if err != nil {
 // 		log.Debug("Error while decrypting env data from B64: ", err)
 // 		return result, err
@@ -101,7 +101,7 @@ package env
 // 			log.Debug("Error while updating encryption env variable: ", err)
 // 			return err
 // 		}
-// 		encodedHash := crypto.EncryptB64(hash)
+// 		encodedHash := crypto.EncodeB64(hash)
 // 		res, err := memorystore.Provider.GetEnvStore()
 // 		if err != nil {
 // 			log.Debug("Error while getting env store: ", err)
@@ -125,7 +125,7 @@ package env
 // 		// decrypt the config data from db
 // 		// decryption can be done using the hash stored in db
 // 		encryptionKey := env.Hash
-// 		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
+// 		decryptedEncryptionKey, err := crypto.DecodeB64(encryptionKey)
 // 		if err != nil {
 // 			log.Debug("Error while decrypting encryption key: ", err)
 // 			return err
@@ -133,7 +133,7 @@ package env
 
 // 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 
-// 		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+// 		b64DecryptedConfig, err := crypto.DecodeB64(env.EnvData)
 // 		if err != nil {
 // 			log.Debug("Error while decrypting env data from B64: ", err)
 // 			return err

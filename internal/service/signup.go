@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -34,6 +35,12 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing
 // Transport-agnostic: takes a RequestMetadata (host, IP, UA) instead of
 // reaching into gin.Context, and returns cookie side-effects for the
 // transport to apply.
+// signupVerificationSentMessage is returned BOTH when a signup succeeds and
+// when the address is already taken. The two must stay byte-identical or the
+// account-existence oracle comes back; keeping the string in one place is what
+// stops them drifting.
+const signupVerificationSentMessage = `Verification email has been sent. Please check your inbox`
+
 func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *model.SignUpRequest) (*model.AuthResponse, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "SignUp").Logger()
 	side := &ResponseSideEffects{}
@@ -90,6 +97,22 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Email is already signed up.")
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
+			// Timing was already equalised above, but the RESPONSE still
+			// differed — a distinct error for a taken address versus
+			// "check your inbox" for a free one is a plain account-existence
+			// oracle, usable to build a targeted phishing or
+			// credential-stuffing list. Return the success wording verbatim
+			// instead. This mirrors what ForgotPassword, ResendVerifyEmail and
+			// MagicLinkLogin already do, and the anti-enumeration intent
+			// AGENTS.md documents for VerifyEmail.
+			//
+			// Only possible when verification is enabled: with it off, a real
+			// signup answers with tokens, so a collision is distinguishable by
+			// shape no matter what the message says. That case keeps the
+			// explicit error, since hiding it would be theatre.
+			if p.Config.EnableEmailVerification {
+				return &model.AuthResponse{Message: signupVerificationSentMessage}, nil, nil
+			}
 			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	} else {
@@ -286,7 +309,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		})
 
 		return &model.AuthResponse{
-			Message: `Verification email has been sent. Please check your inbox`,
+			Message: signupVerificationSentMessage,
 		}, side, nil
 	} else if isPhoneVerificationEnabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")
@@ -340,24 +363,20 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	oidcNonce := ""
 	authorizeRedirectURI := ""
 	authorizeResource := ""
+	authorizeClientID := ""
 	if params.State != nil {
 		// Get state from store
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
 		if authorizeState != "" {
-			authorizeStateSplit := strings.Split(authorizeState, "@@")
-			if len(authorizeStateSplit) > 1 {
-				code = authorizeStateSplit[0]
-				codeChallenge = authorizeStateSplit[1]
-				if len(authorizeStateSplit) > 2 {
-					oidcNonce = authorizeStateSplit[2]
-				}
-				if len(authorizeStateSplit) > 3 {
-					authorizeRedirectURI = authorizeStateSplit[3]
-				}
-				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
-				if len(authorizeStateSplit) > 4 {
-					authorizeResource = authorizeStateSplit[4]
-				}
+			// One owner for this positional format — see internal/codestate.
+			if codestate.HasCode(authorizeState) {
+				as := codestate.DecodeAuthorize(authorizeState)
+				code = as.Code
+				codeChallenge = as.Challenge
+				oidcNonce = as.Nonce
+				authorizeRedirectURI = as.RedirectURI
+				authorizeResource = as.Resource
+				authorizeClientID = as.ClientID
 			} else {
 				nonce = authorizeState
 			}
@@ -436,7 +455,14 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 
 	// Code challenge could be optional if PKCE flow is not used
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+			Challenge:   codeChallenge,
+			Session:     authToken.FingerPrintHash,
+			Nonce:       oidcNonce,
+			RedirectURI: authorizeRedirectURI,
+			Resource:    authorizeResource,
+			ClientID:    authorizeClientID,
+		})); err != nil {
 			log.Debug().Err(err).Msg("SetState failed")
 			return nil, nil, err
 		}
@@ -458,12 +484,12 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	for _, c := range cookie.BuildSessionCookies(hostname, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt)
 	}
 
 	ipAddress := meta.IPAddress

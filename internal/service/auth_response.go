@@ -9,8 +9,10 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -44,23 +46,19 @@ func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, 
 	oidcNonce := ""
 	authorizeRedirectURI := ""
 	authorizeResource := ""
+	authorizeClientID := ""
 	if state != nil {
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(state))
 		if authorizeState != "" {
-			authorizeStateSplit := strings.Split(authorizeState, "@@")
-			if len(authorizeStateSplit) > 1 {
-				code = authorizeStateSplit[0]
-				codeChallenge = authorizeStateSplit[1]
-				if len(authorizeStateSplit) > 2 {
-					oidcNonce = authorizeStateSplit[2]
-				}
-				if len(authorizeStateSplit) > 3 {
-					authorizeRedirectURI = authorizeStateSplit[3]
-				}
-				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
-				if len(authorizeStateSplit) > 4 {
-					authorizeResource = authorizeStateSplit[4]
-				}
+			// One owner for this positional format — see internal/codestate.
+			if codestate.HasCode(authorizeState) {
+				as := codestate.DecodeAuthorize(authorizeState)
+				code = as.Code
+				codeChallenge = as.Challenge
+				oidcNonce = as.Nonce
+				authorizeRedirectURI = as.RedirectURI
+				authorizeResource = as.Resource
+				authorizeClientID = as.ClientID
 			} else {
 				nonce = authorizeState
 			}
@@ -88,7 +86,14 @@ func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, 
 
 	// Code challenge could be optional if PKCE flow is not used
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+			Challenge:   codeChallenge,
+			Session:     authToken.FingerPrintHash,
+			Nonce:       oidcNonce,
+			RedirectURI: authorizeRedirectURI,
+			Resource:    authorizeResource,
+			ClientID:    authorizeClientID,
+		})); err != nil {
 			log.Debug().Err(err).Msg("Failed to set state")
 			return nil, err
 		}
@@ -130,12 +135,12 @@ func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, 
 	for _, c := range cookie.BuildSessionCookies(hostname, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt)
 	}
 	return res, nil
 }

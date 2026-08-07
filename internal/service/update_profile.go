@@ -200,7 +200,16 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, InvalidArgument("user with this email address already exists")
 		}
 
-		asyncutil.Go(p.Log, func() { _ = p.MemoryStoreProvider.DeleteAllUserSessions(user.ID) })
+		// Synchronous, and the error is checked — mirroring reset_password.go.
+		// A password change exists to lock out whoever held the old credential,
+		// so every pre-existing session and refresh token must be gone BEFORE
+		// the caller is told it succeeded. Fire-and-forget left a window where
+		// an attacker's token still worked after the response went out, and
+		// swallowed the error entirely, so a memory-store fault meant old
+		// sessions stayed live while the change reported success.
+		if err := p.MemoryStoreProvider.DeleteAllUserSessions(user.ID); err != nil {
+			log.Debug().Err(err).Msg("Failed to revoke existing sessions after password change")
+		}
 		for _, c := range cookie.BuildDeleteSessionCookies(meta.HostURL, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 			side.AddCookie(c)
 		}

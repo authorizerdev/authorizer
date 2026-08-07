@@ -47,6 +47,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -401,7 +402,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// [4] carries the RFC 8707 resource (url-escaped, empty when absent)
 			// so the login/signup/session/auth_response services can rebind it
 			// to the code state they persist after a fresh login.
-			if err := h.MemoryStoreProvider.SetState(state, code+"@@"+challengeData+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)+"@@"+url.QueryEscape(resource)); err != nil {
+			if err := h.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
+				Code:        code,
+				Challenge:   challengeData,
+				Nonce:       nonce,
+				RedirectURI: redirectURI,
+				Resource:    resource,
+				ClientID:    clientID,
+			})); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
@@ -625,17 +633,23 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if codeChallenge != "" {
 				hybridChallengeData = codeChallenge + "::" + codeChallengeMethod
 			}
-			if err := h.MemoryStoreProvider.SetState(code, hybridChallengeData+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)); err != nil {
+			if err := h.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+				Challenge:   hybridChallengeData,
+				Session:     authToken.FingerPrintHash,
+				Nonce:       nonce,
+				RedirectURI: redirectURI,
+				ClientID:    clientID,
+			})); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting session for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting access token for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -711,12 +725,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting session for id_token token")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting access token for id_token token")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -787,7 +801,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// [4] binds the RFC 8707 resource to the code (url-escaped, empty
 			// when absent); the token endpoint enforces the echoed resource
 			// matches this and sets the access token `aud` to it.
-			if err := h.MemoryStoreProvider.SetState(code, codeChallengeData+"@@"+newSessionToken+"@@"+nonce+"@@"+url.QueryEscape(redirectURI)+"@@"+url.QueryEscape(resource)); err != nil {
+			if err := h.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+				Challenge:   codeChallengeData,
+				Session:     newSessionToken,
+				Nonce:       nonce,
+				RedirectURI: redirectURI,
+				Resource:    resource,
+				ClientID:    clientID,
+			})); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return

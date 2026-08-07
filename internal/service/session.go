@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -79,23 +80,19 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	oidcNonce := ""
 	authorizeRedirectURI := ""
 	authorizeResource := ""
+	authorizeClientID := ""
 	if params != nil && params.State != nil {
 		authorizeState, _ := p.MemoryStoreProvider.GetState(refs.StringValue(params.State))
 		if authorizeState != "" {
-			parts := strings.Split(authorizeState, "@@")
-			if len(parts) > 1 {
-				code = parts[0]
-				codeChallenge = parts[1]
-				if len(parts) > 2 {
-					oidcNonce = parts[2]
-				}
-				if len(parts) > 3 {
-					authorizeRedirectURI = parts[3]
-				}
-				// RFC 8707 resource (url-escaped) bound at /authorize, rebound to the code below.
-				if len(parts) > 4 {
-					authorizeResource = parts[4]
-				}
+			// One owner for this positional format — see internal/codestate.
+			if codestate.HasCode(authorizeState) {
+				as := codestate.DecodeAuthorize(authorizeState)
+				code = as.Code
+				codeChallenge = as.Challenge
+				oidcNonce = as.Nonce
+				authorizeRedirectURI = as.RedirectURI
+				authorizeResource = as.Resource
+				authorizeClientID = as.ClientID
 			}
 			_ = p.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
@@ -120,7 +117,14 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	}
 
 	if code != "" {
-		if err := p.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI+"@@"+authorizeResource); err != nil {
+		if err := p.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+			Challenge:   codeChallenge,
+			Session:     authToken.FingerPrintHash,
+			Nonce:       oidcNonce,
+			RedirectURI: authorizeRedirectURI,
+			Resource:    authorizeResource,
+			ClientID:    authorizeClientID,
+		})); err != nil {
 			log.Debug().Err(err).Msg("Failed to set code state")
 			return nil, nil, err
 		}
@@ -152,12 +156,12 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	for _, c := range cookie.BuildSessionCookies(meta.HostURL, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt)
 	}
 
 	if err := p.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {

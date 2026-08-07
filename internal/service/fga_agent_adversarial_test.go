@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
@@ -98,14 +99,34 @@ func TestAdvAgentDetectionFailsClosed(t *testing.T) {
 			"the agent must come first so a denied agent short-circuits the user check")
 	})
 
-	t.Run("model without an agent type authorizes the user alone", func(t *testing.T) {
-		p := &provider{}
+	t.Run("model without an agent type denies", func(t *testing.T) {
+		p := &provider{Config: &config.Config{}}
+		p.AuthzEngine = &advStubEngine{modelID: "model-1", typeNames: []string{"user", "document"}}
+		_, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.Error(t, err,
+			"the agent half of perms(agent) ∩ perms(user) cannot be evaluated against a model "+
+				"with no agent type, so the request must be denied — authorizing as the user alone "+
+				"hands the agent the user's full authority, which is the Confused Deputy this exists "+
+				"to prevent")
+	})
+
+	t.Run("opt-out restores user-only authority", func(t *testing.T) {
+		// The migration escape hatch. Explicit, logged on every use, and still
+		// counted as FgaDelegatedNotEnforced so it shows up on a dashboard.
+		p := &provider{Config: &config.Config{FgaAllowUnconstrainedAgents: true}}
 		p.AuthzEngine = &advStubEngine{modelID: "model-1", typeNames: []string{"user", "document"}}
 		got, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
-		require.NoError(t, err,
-			"a model with no agent type is the documented compatibility path, not an error — "+
-				"checking agent:bot against it would ERROR and deny every delegated request")
+		require.NoError(t, err)
 		assert.Equal(t, []string{"user:alice"}, got)
+	})
+
+	t.Run("a nil config is not an opt-out", func(t *testing.T) {
+		// An unconfigured provider must fail closed, not read as "the operator
+		// opted out" — and must not nil-panic inside an authorization decision.
+		p := &provider{}
+		p.AuthzEngine = &advStubEngine{modelID: "model-1", typeNames: []string{"user", "document"}}
+		_, err := p.delegationSubjects(context.Background(), advDelegatedCaller("alice", "bot"), "user:alice", metrics.FgaOpCheckPermissions)
+		require.Error(t, err)
 	})
 }
 
@@ -137,11 +158,13 @@ func TestAdvAgentDetectionIsCachedPerModel(t *testing.T) {
 	assert.Equal(t, 1, stub.typeNamesCalls, "a repeat check on the same model must not re-read it")
 
 	// A model WRITE mints a new id, which must invalidate without any TTL wait.
+	// The new model drops `type agent`, so re-detection is observable as the
+	// delegated check now being DENIED rather than served the stale "enabled"
+	// answer.
 	stub.modelID = "model-2"
 	stub.typeNames = []string{"user"}
-	got, err = p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"user:alice"}, got, "a new model id must re-detect, not serve the stale answer")
+	_, err = p.delegationSubjects(context.Background(), caller, "user:alice", metrics.FgaOpCheckPermissions)
+	require.Error(t, err, "a new model id must re-detect, not serve the stale answer")
 	assert.Equal(t, 2, stub.typeNamesCalls)
 }
 

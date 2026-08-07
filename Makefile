@@ -111,46 +111,101 @@ smoke:
 
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
-	sleep 3
-	go clean --testcache && TEST_DBS="postgres" $(GO_TEST_ALL)
-	docker rm -vf authorizer_postgres
+	@# Wait for readiness, then ALWAYS tear the container down — including when
+	@# the tests fail — and exit with the TESTS' status, not the teardown's.
+	@# Previously `sleep N` guessed at readiness and `docker rm` sat on its own
+	@# recipe line, so a failing test aborted the recipe before teardown and left
+	@# the port bound, breaking the NEXT run for an unrelated reason.
+	sh scripts/wait-for-test-dbs.sh postgres && \
+	{ go clean --testcache; TEST_DBS="postgres" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_postgres; \
+	exit $$status
 
 test-sqlite:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
 test-mongodb: test-cleanup-mongodb
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
-	sleep 3
-	go clean --testcache && TEST_DBS="mongodb" $(GO_TEST_ALL)
-	docker rm -vf authorizer_mongodb_db
+	@# Wait for readiness, then ALWAYS tear the container down — including when
+	@# the tests fail — and exit with the TESTS' status, not the teardown's.
+	@# Previously `sleep N` guessed at readiness and `docker rm` sat on its own
+	@# recipe line, so a failing test aborted the recipe before teardown and left
+	@# the port bound, breaking the NEXT run for an unrelated reason.
+	sh scripts/wait-for-test-dbs.sh mongodb && \
+	{ go clean --testcache; TEST_DBS="mongodb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_mongodb_db; \
+	exit $$status
 
 test-scylladb: test-cleanup-scylladb
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
-	sleep 15
-	go clean --testcache && TEST_DBS="scylladb" $(GO_TEST_ALL)
-	docker rm -vf authorizer_scylla_db
+	@# Wait for readiness, then ALWAYS tear the container down — including when
+	@# the tests fail — and exit with the TESTS' status, not the teardown's.
+	@# Previously `sleep N` guessed at readiness and `docker rm` sat on its own
+	@# recipe line, so a failing test aborted the recipe before teardown and left
+	@# the port bound, breaking the NEXT run for an unrelated reason.
+	sh scripts/wait-for-test-dbs.sh scylladb && \
+	{ go clean --testcache; TEST_DBS="scylladb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_scylla_db; \
+	exit $$status
 
 test-arangodb: test-cleanup-arangodb
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
-	sleep 5
-	go clean --testcache && TEST_DBS="arangodb" $(GO_TEST_ALL)
-	docker rm -vf authorizer_arangodb
+	@# Wait for readiness, then ALWAYS tear the container down — including when
+	@# the tests fail — and exit with the TESTS' status, not the teardown's.
+	@# Previously `sleep N` guessed at readiness and `docker rm` sat on its own
+	@# recipe line, so a failing test aborted the recipe before teardown and left
+	@# the port bound, breaking the NEXT run for an unrelated reason.
+	sh scripts/wait-for-test-dbs.sh arangodb && \
+	{ go clean --testcache; TEST_DBS="arangodb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_arangodb; \
+	exit $$status
 
 test-dynamodb: test-cleanup-dynamodb
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
-	sleep 3
-	go clean --testcache && TEST_DBS="dynamodb" $(GO_TEST_ALL)
-	docker rm -vf authorizer_dynamodb
+	@# Wait for readiness, then ALWAYS tear the container down — including when
+	@# the tests fail — and exit with the TESTS' status, not the teardown's.
+	@# Previously `sleep N` guessed at readiness and `docker rm` sat on its own
+	@# recipe line, so a failing test aborted the recipe before teardown and left
+	@# the port bound, breaking the NEXT run for an unrelated reason.
+	sh scripts/wait-for-test-dbs.sh dynamodb && \
+	{ go clean --testcache; TEST_DBS="dynamodb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_dynamodb; \
+	exit $$status
 
 test-couchbase: test-cleanup-couchbase
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
-	sh scripts/couchbase-test.sh
-	go clean --testcache && TEST_DBS="couchbase" $(GO_TEST_ALL)
-	docker rm -vf authorizer_couchbase
+	@# couchbase-test.sh already provisions and waits, so no readiness poll
+	@# here — but the teardown still has to survive a failing test run.
+	sh scripts/couchbase-test.sh && \
+	{ go clean --testcache; TEST_DBS="couchbase" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_couchbase; \
+	exit $$status
 
-test-all-db: test-cleanup test-docker-up test-cleanup
-	go clean --testcache && TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL)
-	$(MAKE) test-cleanup
+# Prerequisites are `test-cleanup test-docker-up`, NOT
+# `test-cleanup test-docker-up test-cleanup`. The trailing duplicate looked like
+# "tear down afterwards" but never did anything: make deduplicates prerequisites,
+# so it silently collapsed into the leading one. Teardown belongs in the recipe,
+# below, where it can also run when the tests FAIL.
+test-all-db: test-cleanup test-docker-up
+	@# Always tear the containers down, including on failure, and exit with the
+	@# TESTS' status rather than the teardown's.
+	@#
+	@# `go test ... ; make test-cleanup` (two recipe lines) aborted the recipe on
+	@# a failing test and never reached cleanup, leaking seven containers and
+	@# leaving ports 5434/27017/9042/8529/8000/8091 bound — so the NEXT run
+	@# failed to start them and produced a second, misleading failure. Same
+	@# capture-status-then-clean shape the e2e-playground target already uses.
+	go clean --testcache; \
+	TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
+	status=$$?; \
+	$(MAKE) test-cleanup; \
+	exit $$status
 
 # Start all test database containers
 test-docker-up:
@@ -162,7 +217,7 @@ test-docker-up:
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
-	sleep 5
+	sh scripts/wait-for-test-dbs.sh
 
 # Remove all test database containers
 test-cleanup:

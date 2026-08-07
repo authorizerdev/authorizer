@@ -71,17 +71,17 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	dbCACert := cfg.DatabaseCACert
 	dbCertKey := cfg.DatabaseCertKey
 	if dbCert != "" && dbCACert != "" && dbCertKey != "" {
-		certString, err := crypto.DecryptB64(dbCert)
+		certString, err := crypto.DecodeB64(dbCert)
 		if err != nil {
 			return nil, err
 		}
 
-		keyString, err := crypto.DecryptB64(dbCertKey)
+		keyString, err := crypto.DecodeB64(dbCertKey)
 		if err != nil {
 			return nil, err
 		}
 
-		caString, err := crypto.DecryptB64(dbCACert)
+		caString, err := crypto.DecodeB64(dbCACert)
 		if err != nil {
 			return nil, err
 		}

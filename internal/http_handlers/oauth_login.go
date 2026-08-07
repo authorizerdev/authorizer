@@ -10,6 +10,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -94,6 +95,10 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// Bind this flow to the browser that started it (RFC 9700 §4.7). Set
+		// before the state is stored so a store failure cannot leave a usable
+		// cookie behind.
+		cookie.SetOAuthState(c, oauthStateString, h.Config.AppCookieSecure)
 		if err := h.MemoryStoreProvider.SetState(oauthStateString, provider); err != nil {
 			log.Debug().Err(err).Msg("Error setting state")
 			c.JSON(500, gin.H{

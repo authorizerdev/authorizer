@@ -60,9 +60,27 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 // 	return EncryptB64(string(encryptedConfig)), nil
 // }
 
+// PasswordHashCost is the bcrypt cost for newly written password hashes.
+//
+// Raised from bcrypt.DefaultCost (10), which is below current guidance. This is
+// write-side ONLY and needs no migration: bcrypt stores the cost inside the
+// hash string, and CompareHashAndPassword reads it from there rather than from
+// this constant. Existing cost-10 hashes therefore keep verifying at cost 10 —
+// nobody is locked out — and only new signups and password resets get 12.
+//
+// The corollary is that raising this alone never upgrades anyone: a
+// rehash-on-successful-login would be needed for that, and is deliberately not
+// added here (it writes to the users table on every login, which wants its own
+// change and its own load testing).
+//
+// Cost 12 is ~4x the CPU of cost 10 per verification. That is fine at login
+// volume, and the per-account login lockout bounds how often an attacker can
+// make us pay it.
+const PasswordHashCost = 12
+
 // EncryptPassword is used for encrypting password
 func EncryptPassword(password string) (string, error) {
-	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	pw, err := bcrypt.GenerateFromPassword([]byte(password), PasswordHashCost)
 	if err != nil {
 		return "", err
 	}

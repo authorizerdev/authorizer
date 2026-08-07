@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -49,7 +50,10 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 		log.Debug().Msg("Token not found")
 		return nil, nil, NotFound("token not found")
 	}
-	if existing != tok {
+	// Dual-read against the stored digest (crypto.VerifySessionValue), which
+	// also makes this comparison constant-time — it was a plain != against a
+	// live refresh token.
+	if !crypto.VerifySessionValue(tok, existing) {
 		log.Debug().Msg("Token does not match")
 		return nil, nil, InvalidArgument("token does not match")
 	}
