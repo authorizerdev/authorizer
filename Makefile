@@ -148,9 +148,25 @@ test-couchbase: test-cleanup-couchbase
 	go clean --testcache && TEST_DBS="couchbase" $(GO_TEST_ALL)
 	docker rm -vf authorizer_couchbase
 
-test-all-db: test-cleanup test-docker-up test-cleanup
-	go clean --testcache && TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL)
-	$(MAKE) test-cleanup
+# Prerequisites are `test-cleanup test-docker-up`, NOT
+# `test-cleanup test-docker-up test-cleanup`. The trailing duplicate looked like
+# "tear down afterwards" but never did anything: make deduplicates prerequisites,
+# so it silently collapsed into the leading one. Teardown belongs in the recipe,
+# below, where it can also run when the tests FAIL.
+test-all-db: test-cleanup test-docker-up
+	@# Always tear the containers down, including on failure, and exit with the
+	@# TESTS' status rather than the teardown's.
+	@#
+	@# `go test ... ; make test-cleanup` (two recipe lines) aborted the recipe on
+	@# a failing test and never reached cleanup, leaking seven containers and
+	@# leaving ports 5434/27017/9042/8529/8000/8091 bound — so the NEXT run
+	@# failed to start them and produced a second, misleading failure. Same
+	@# capture-status-then-clean shape the e2e-playground target already uses.
+	go clean --testcache; \
+	TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
+	status=$$?; \
+	$(MAKE) test-cleanup; \
+	exit $$status
 
 # Start all test database containers
 test-docker-up:
@@ -162,7 +178,7 @@ test-docker-up:
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
-	sleep 5
+	sh scripts/wait-for-test-dbs.sh
 
 # Remove all test database containers
 test-cleanup:

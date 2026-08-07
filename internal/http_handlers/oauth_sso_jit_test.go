@@ -219,3 +219,90 @@ func TestSSOJIT_RevokedReturningUserRejected(t *testing.T) {
 	assert.False(t, isSignUp)
 	assert.Contains(t, err.Error(), "revoked")
 }
+
+// --- Federated principal-class matrix ---------------------------------------
+//
+// jitProvisionFederatedUser is the shared core for BOTH the per-org OIDC broker
+// (SSO) and the SAML SP, so its invariants have to hold for both. They are NOT
+// the same invariants the social (OAuth RP) path has, and conflating the two
+// classes is exactly what produced the nOAuth takeover: social resolved an
+// account by email, while this path — correctly — never does.
+//
+// Per class:
+//
+//	SSO / SAML  identity is (org, issuer, subject). Email NEVER selects an
+//	            account, verified or not. A collision is refused outright.
+//	Social      identity is the email, so the provider must attest it
+//	            (oauth_noauth_test.go / the per-provider e2e specs).
+//	Database    identity is the email, verified by clicking a mailed link.
+//
+// These pin the SSO/SAML column against drift toward the social one.
+
+// TestFederatedMatrix_EmailNeverSelectsAnAccount is the column's defining
+// property, asserted for every combination of attested and unattested email.
+// Neither is allowed to link, because linking by email is not a thing this path
+// does at all — the attestation is irrelevant here, unlike on the social path.
+func TestFederatedMatrix_EmailNeverSelectsAnAccount(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		emailVerified bool
+	}{
+		{"attested upstream email", true},
+		{"unattested upstream email", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := newJITStore()
+			// An account already holds the address, by some other credential.
+			existing := &schemas.User{ID: "existing-1", Email: refs.NewStringRef("clash@corp.example.com")}
+			store.usersByID[existing.ID] = existing
+			store.usersByEmail["clash@corp.example.com"] = existing
+
+			h := newJITProvider(store, true)
+			claims := jwt.MapClaims{"sub": "upstream-clash", "email": "clash@corp.example.com", "email_verified": tc.emailVerified}
+
+			_, _, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), claims)
+			require.Error(t, err,
+				"a federated principal must never be merged into an account it did not prove it owns — "+
+					"this path is keyed on (org, issuer, subject), so an email match is not evidence of anything")
+			assert.Equal(t, 0, store.addUserCalls, "and nothing may be provisioned on the refusal path")
+		})
+	}
+}
+
+// TestFederatedMatrix_SubjectIsTheIdentity pins the flip side: the SAME email
+// arriving under a DIFFERENT upstream subject is a different principal, and the
+// same subject is the same principal regardless of what the email does.
+func TestFederatedMatrix_SubjectIsTheIdentity(t *testing.T) {
+	store := newJITStore()
+	h := newJITProvider(store, true)
+
+	first, isSignUp, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), jitClaims("subject-a", "a@corp.example.com"))
+	require.NoError(t, err)
+	require.True(t, isSignUp)
+
+	// Same subject, email changed upstream (a rename, or a mutable directory
+	// attribute): still the same local account, resolved without touching email.
+	again, isSignUp, err := h.jitProvisionSSOUser(context.Background(), jitFlow(), jitClaims("subject-a", "renamed@corp.example.com"))
+	require.NoError(t, err)
+	assert.False(t, isSignUp, "a returning subject must not be re-provisioned")
+	assert.Equal(t, first.ID, again.ID, "the subject is the identity, not the email")
+	assert.Equal(t, 1, store.addUserCalls)
+}
+
+// TestFederatedMatrix_OrgScopesTheIdentity pins tenant isolation: the same
+// upstream subject under a DIFFERENT org is a different principal. Without this
+// one tenant's IdP could mint principals inside another tenant.
+func TestFederatedMatrix_OrgScopesTheIdentity(t *testing.T) {
+	store := newJITStore()
+	h := newJITProvider(store, true)
+
+	_, _, err := h.jitProvisionSSOUser(context.Background(), &ssoFlowState{OrgID: "org-1", ExpectedIssuer: ssoTestIssuer},
+		jitClaims("shared-subject", "user@corp.example.com"))
+	require.NoError(t, err)
+
+	// Same subject and issuer, different org. The email collides, so the
+	// fail-closed guard fires rather than silently handing org-2 org-1's user.
+	_, _, err = h.jitProvisionSSOUser(context.Background(), &ssoFlowState{OrgID: "org-2", ExpectedIssuer: ssoTestIssuer},
+		jitClaims("shared-subject", "user@corp.example.com"))
+	require.Error(t, err, "an identity is scoped to its org; org-2 must not resolve org-1's principal")
+}
