@@ -82,7 +82,11 @@ var (
 			rootArgs.config.Finalize()
 			// Fail closed rather than silently encrypting TOTP seeds with a
 			// publicly computable key derived from an empty secret.
-			return rootArgs.config.ValidateEncryptionKey()
+			if err := rootArgs.config.ValidateEncryptionKey(); err != nil {
+				return err
+			}
+			// A mistyped SameSite silently becomes lax — see the doc comment.
+			return rootArgs.config.ValidateAppCookieSameSite()
 		},
 		Run: runRoot,
 	}

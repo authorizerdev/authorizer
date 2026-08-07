@@ -166,3 +166,31 @@ func TestSessionCookieSameSiteIsCallerControlled(t *testing.T) {
 		}
 	}
 }
+
+// TestOAuthStateCookieIsNeverStrict guards a booby trap rather than a bug.
+//
+// BuildOAuthStateCookie intentionally ignores --app-cookie-same-site. The
+// obvious "consistency" refactor — thread the operator's setting through, like
+// the session cookie does — silently breaks every social login on any
+// deployment configured strict: the provider's callback is a cross-site
+// redirect (a cross-site form_post for Apple), and Strict withholds the cookie
+// on exactly those, so the callback sees no binding and answers
+// "invalid oauth state".
+//
+// Nothing about the call site suggests that, which is why it is asserted here.
+func TestOAuthStateCookieIsNeverStrict(t *testing.T) {
+	t.Parallel()
+	for _, secure := range []bool{false, true} {
+		c := BuildOAuthStateCookie("auth.example.com", "state-value", secure)
+		assert.NotEqual(t, http.SameSiteStrictMode, c.SameSite,
+			"Strict withholds this cookie on the provider callback; social login would break entirely (secure=%v)", secure)
+		assert.True(t, c.HttpOnly, "the binding must not be script-readable")
+		assert.Empty(t, c.Domain, "host-only: the callback runs on the host that set it")
+		if secure {
+			assert.Equal(t, http.SameSiteNoneMode, c.SameSite, "Apple's callback is a cross-site form_post, which Lax would block")
+			assert.True(t, c.Secure, "SameSite=None requires Secure or browsers drop the cookie")
+		} else {
+			assert.Equal(t, http.SameSiteLaxMode, c.SameSite)
+		}
+	}
+}

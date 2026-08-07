@@ -537,3 +537,33 @@ func (c *Config) ValidateEncryptionKey() error {
 	}
 	return nil
 }
+
+// ValidAppCookieSameSiteValues are the accepted --app-cookie-same-site values.
+var ValidAppCookieSameSiteValues = []string{"lax", "strict", "none"}
+
+// ValidateAppCookieSameSite rejects an unrecognised --app-cookie-same-site.
+//
+// cookie.ParseSameSite falls back to Lax for anything it does not recognise,
+// which is a safe default but a silent one. An operator who sets `strict` and
+// mistypes it gets Lax — a real security downgrade from what they asked for,
+// with nothing anywhere to say so. In the other direction a mistyped `none`
+// silently withholds the session cookie from cross-site apps, which presents as
+// "login randomly doesn't stick" with the cause three layers away.
+//
+// A typo in a startup flag should stop the process, not quietly pick a policy
+// the operator did not choose.
+func (c *Config) ValidateAppCookieSameSite() error {
+	value := strings.ToLower(strings.TrimSpace(c.AppCookieSameSite))
+	if value == "" {
+		// Unset is fine: the flag default applies.
+		return nil
+	}
+	for _, valid := range ValidAppCookieSameSiteValues {
+		if value == valid {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"invalid --app-cookie-same-site %q: must be one of %s. ParseSameSite would silently fall back to lax, downgrading a requested strict policy without telling you",
+		c.AppCookieSameSite, strings.Join(ValidAppCookieSameSiteValues, ", "))
+}

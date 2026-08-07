@@ -39,6 +39,13 @@ func SetOAuthState(gc *gin.Context, state string, appCookieSecure bool) {
 // BuildOAuthStateCookie returns the state-binding cookie. Host-scoped
 // deliberately: the callback runs on this exact host, so there is no reason to
 // widen the cookie to sibling subdomains.
+// It deliberately does NOT take the operator's --app-cookie-same-site setting.
+// SameSite=Strict would withhold this cookie on the provider's callback, which
+// arrives as a cross-site redirect (or, for Apple, a cross-site form_post) —
+// every social login would fail with "invalid oauth state" on any deployment
+// configured strict. Lax/None is a correctness requirement here, not a
+// preference, so wiring the session-cookie setting through would be a silent
+// outage. TestOAuthStateCookieIsNeverStrict guards that.
 func BuildOAuthStateCookie(_ string, state string, appCookieSecure bool) *http.Cookie {
 	sameSite := http.SameSiteLaxMode
 	if appCookieSecure {
