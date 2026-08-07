@@ -2,6 +2,7 @@ package cookie
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -111,5 +112,57 @@ func TestParseSameSite(t *testing.T) {
 		t.Run(tt.in, func(t *testing.T) {
 			assert.Equal(t, tt.want, ParseSameSite(tt.in))
 		})
+	}
+}
+
+// TestSessionCookieTopologyIsDeliberate is a decision guard, not a behaviour
+// test. Both properties it pins were raised as findings in the 2.4.0
+// pre-release security audit (default SameSite=Lax, drop the domain-scoped
+// cookie) and both were consciously declined — see BuildSessionCookies for the
+// reasoning and the Auth0 precedent.
+//
+// If a future change flips either one, this fails and points at that comment
+// rather than letting subdomain SSO or cross-site apps break silently in the
+// field, where the symptom is "login randomly doesn't stick" and the cause is
+// three layers away.
+func TestSessionCookieTopologyIsDeliberate(t *testing.T) {
+	t.Parallel()
+
+	cookies := BuildSessionCookies("auth.example.com", "session-value", true, http.SameSiteNoneMode)
+
+	require.Len(t, cookies, 2,
+		"a host-scoped AND a domain-scoped cookie are both required: the domain-scoped one is what lets app.example.com see a session established at auth.example.com")
+
+	var host, domain *http.Cookie
+	for _, c := range cookies {
+		if strings.HasSuffix(c.Name, "_session_domain") {
+			domain = c
+		} else {
+			host = c
+		}
+	}
+	require.NotNil(t, host)
+	require.NotNil(t, domain)
+
+	assert.Equal(t, "auth.example.com", host.Domain, "host-scoped cookie stays on the exact host")
+	assert.Equal(t, ".example.com", domain.Domain,
+		"domain-scoped cookie must be dotted so sibling subdomains receive it — this is Authorizer's subdomain-SSO mechanism")
+
+	for _, c := range []*http.Cookie{host, domain} {
+		assert.True(t, c.HttpOnly, "session cookies are never script-readable")
+		assert.Equal(t, http.SameSiteNoneMode, c.SameSite,
+			"SameSite is passed through from config, not overridden here; the default is None so apps on other sites can complete a credentialed /session call")
+	}
+}
+
+// TestSessionCookieSameSiteIsCallerControlled documents that hardening is
+// available to operators who do not need cross-site apps — the knob exists,
+// the default is simply chosen for the topology the product targets.
+func TestSessionCookieSameSiteIsCallerControlled(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []http.SameSite{http.SameSiteLaxMode, http.SameSiteStrictMode, http.SameSiteNoneMode} {
+		for _, c := range BuildSessionCookies("auth.example.com", "v", true, mode) {
+			assert.Equal(t, mode, c.SameSite)
+		}
 	}
 }

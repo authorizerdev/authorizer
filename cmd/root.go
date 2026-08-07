@@ -204,7 +204,12 @@ func init() {
 
 	// Cookies flags
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
-	f.StringVar(&rootArgs.config.AppCookieSameSite, "app-cookie-same-site", "none", "SameSite attribute for session cookies (lax, strict, none)")
+	// Default "none" is deliberate and audit-reviewed, not an oversight: the
+	// product targets an auth server on a subdomain serving apps on other
+	// sites, and Lax withholds the session cookie on exactly those cross-site
+	// requests. Same position Auth0 takes. See cookie.BuildSessionCookies for
+	// the full reasoning before changing it.
+	f.StringVar(&rootArgs.config.AppCookieSameSite, "app-cookie-same-site", "none", "SameSite attribute for session cookies (lax, strict, none). Default none supports apps on other domains; set lax if every app shares this host")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
 

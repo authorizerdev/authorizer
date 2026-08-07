@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -153,6 +154,32 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 		}, side, nil
 	}
 
+	// Record the email as verified HERE, before the MFA gate below, because
+	// every branch of that gate can return early — and MFA is on by default
+	// (TOTP needs no external provider, so config.Finalize derives
+	// EnableMFA=true). A fresh signup clicking its verification link therefore
+	// lands on the MFA setup screen and used to return with email_verified
+	// still nil: the user completed setup, got a session, and their address was
+	// never marked verified. Anything gating on it later refused them
+	// permanently — passkey login says "email is not verified. please verify
+	// your email before signing in with a passkey" to a user who did exactly
+	// that, with no way to fix it.
+	//
+	// Clicking the link IS the proof of mailbox control. Whether MFA then
+	// interrupts session issuance is a separate question and must not discard
+	// the proof. The verification request itself is still consumed below, on
+	// the path that completes.
+	emailJustVerified := user.EmailVerifiedAt == nil
+	if emailJustVerified {
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
+		user, err = p.StorageProvider.UpdateUser(ctx, user)
+		if err != nil {
+			log.Debug().Err(err).Msg("failed UpdateUser")
+			return nil, nil, err
+		}
+	}
+
 	// Gate runs whenever MFA applies at all, exactly like login.go/signup.go —
 	// this used to be an ad-hoc TOTP-only check (refs.BoolValue(user.IsMultiFactorAuthEnabled)
 	// && isMFAEnabled && isTOTPLoginEnabled) that silently skipped WebAuthn,
@@ -221,18 +248,8 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 		}
 	}
 
-	isSignUp := false
-	if user.EmailVerifiedAt == nil {
-		isSignUp = true
-		// update email_verified_at in users table
-		now := time.Now().Unix()
-		user.EmailVerifiedAt = &now
-		user, err = p.StorageProvider.UpdateUser(ctx, user)
-		if err != nil {
-			log.Debug().Err(err).Msg("failed UpdateUser")
-			return nil, nil, err
-		}
-	}
+	// Set above, before the MFA gate — see the comment there.
+	isSignUp := emailJustVerified
 	// delete from verification table
 	err = p.StorageProvider.DeleteVerificationRequest(ctx, verificationRequest)
 	if err != nil {
@@ -335,12 +352,12 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 	for _, c := range cookie.BuildSessionCookies(hostname, authToken.FingerPrintHash, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
 		side.AddCookie(c)
 	}
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt)
+	_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		_ = p.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt)
 	}
 	return res, side, nil
 }

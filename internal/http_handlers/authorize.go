@@ -644,12 +644,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting session for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting access token for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -725,12 +725,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting session for id_token token")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting access token for id_token token")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return

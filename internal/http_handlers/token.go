@@ -18,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -856,7 +857,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// For refresh_token grant the caller IS the user's browser (or an app
 		// holding the refresh token), so we do a full session rollover.
 		if isRefreshTokenGrant {
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.FingerPrintHash), authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting session token")
 				gc.JSON(http.StatusServiceUnavailable, gin.H{
 					"error":             "temporarily_unavailable",
@@ -867,7 +868,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		}
 
-		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt); err != nil {
 			log.Debug().Err(err).Msg("Error persisting access token")
 			gc.JSON(http.StatusServiceUnavailable, gin.H{
 				"error":             "temporarily_unavailable",
@@ -891,7 +892,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt); err != nil {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt); err != nil {
 				log.Debug().Err(err).Msg("Error persisting refresh token")
 				gc.JSON(http.StatusServiceUnavailable, gin.H{
 					"error":             "temporarily_unavailable",

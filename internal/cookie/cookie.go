@@ -36,6 +36,44 @@ func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool, sameSit
 // BuildSessionCookies returns the pair of session cookies (host-scoped and
 // domain-scoped) to set on the response. Transport-agnostic so non-gin
 // callers (the service layer, gRPC handlers) can produce them as side-effects.
+//
+// # Why there are two cookies, and why SameSite defaults to None
+//
+// DELIBERATE, and reviewed. The 2.4.0 pre-release security audit flagged both
+// as hardening opportunities — default SameSite=Lax, drop the domain-scoped
+// twin — and both were consciously declined. Please do not "fix" them without
+// re-reading this.
+//
+// Authorizer's intended deployment is an auth server on a subdomain
+// (auth.example.com) serving several apps, some on sibling subdomains and some
+// on entirely different domains. Both properties exist to serve that:
+//
+//   - the domain-scoped (".example.com") twin is what lets app.example.com see
+//     a session established at auth.example.com. Dropping it breaks subdomain
+//     SSO outright.
+//   - SameSite=None is what lets an app on a DIFFERENT site complete a
+//     credentialed /session call at all. Lax withholds the cookie on exactly
+//     those cross-site requests, so the browser-session half of the SDK stops
+//     working.
+//
+// Auth0 lands in the same place: it recommends SameSite=None for cross-origin
+// authentication (it is required when response_mode=form_post), and ships
+// fallback cookies — auth0_compat and friends — for browsers that cannot do
+// SameSite=None at all. Its documented answer to third-party-cookie blocking is
+// Custom Domains: put the auth server on the customer's own subdomain so its
+// cookies are first-party. That is precisely the topology above, and precisely
+// what the domain-scoped cookie here provides.
+//
+// The security cost is understood and covered elsewhere: CSRF middleware
+// (internal/http_handlers/csrf.go) is the primary defense for state-changing
+// requests, the cookie is HttpOnly, the authenticated API reads its token from
+// the Authorization header rather than this cookie, and the admin cookie is
+// independently SameSite=Strict. SameSite here is defense-in-depth, not the
+// control being relied upon.
+//
+// Operators who do NOT need cross-site apps should set
+// --app-cookie-same-site=lax. That is the knob; the default is chosen for the
+// topology the product targets.
 func BuildSessionCookies(hostname, sessionID string, appCookieSecure bool, sameSite http.SameSite) []*http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)

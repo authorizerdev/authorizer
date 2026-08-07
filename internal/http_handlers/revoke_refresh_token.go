@@ -1,12 +1,12 @@
 package http_handlers
 
 import (
-	"crypto/subtle"
 	"net/http"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -145,7 +145,8 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 
 		existingToken, err := h.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+nonce)
 		// RFC 7009 §2.1: use constant-time comparison to prevent timing attacks
-		if err != nil || existingToken == "" || subtle.ConstantTimeCompare([]byte(existingToken), []byte(tokenValue)) != 1 {
+		// Dual-read against the stored digest — see crypto.VerifySessionValue.
+		if err != nil || !crypto.VerifySessionValue(tokenValue, existingToken) {
 			// RFC 7009 §2.2: Token not found or mismatch - return 200
 			log.Debug().Msg("Token not found or mismatch, returning 200 per RFC 7009")
 			gc.JSON(http.StatusOK, gin.H{})

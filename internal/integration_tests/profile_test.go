@@ -2,7 +2,6 @@ package integration_tests
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -68,15 +67,17 @@ func TestProfile(t *testing.T) {
 		})
 
 		t.Run("should return profile with authorization header", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
+			// Uses the token the API actually returned, not one scraped out of
+			// the session store. The store holds a SHA-256 digest now precisely
+			// so that reading it yields nothing presentable — scraping it back
+			// out was only ever possible because the token sat there in clear.
+			loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+				Email:    &email,
+				Password: password,
+			})
 			require.NoError(t, err)
-			accessToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeAccessToken) {
-					accessToken = v
-					break
-				}
-			}
+			require.NotNil(t, loginRes.AccessToken)
+			accessToken := *loginRes.AccessToken
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 			defer func() {
 				req.Header.Del("Authorization")

@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -71,15 +70,16 @@ func TestValidateJWTToken(t *testing.T) {
 		})
 
 		t.Run("should pass with valid input", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
+			// Uses the token the API returned rather than scraping the session
+			// store: the store holds a SHA-256 digest now, precisely so that
+			// reading it yields nothing presentable.
+			loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+				Email:    &email,
+				Password: password,
+			})
 			require.NoError(t, err)
-			accessToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeAccessToken) {
-					accessToken = v
-					break
-				}
-			}
+			require.NotNil(t, loginRes.AccessToken)
+			accessToken := *loginRes.AccessToken
 			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
 				Token:     accessToken,
 				TokenType: constants.TokenTypeAccessToken,

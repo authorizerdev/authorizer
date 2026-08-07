@@ -382,3 +382,53 @@ func TestResendVerifyEmailIsNotAnOpenMailer(t *testing.T) {
 	_, err = ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	assert.Error(t, err, "no verification request may be minted for an already-verified address")
 }
+
+// TestVerifyEmailMarksVerifiedBeforeMFAGate is the regression guard for a user
+// who clicks their verification link, is sent to the MFA setup screen, and is
+// then told forever that their email is not verified.
+//
+// MFA is on by default (TOTP needs no external provider, so config.Finalize
+// derives EnableMFA=true), so a fresh signup's verification click lands on
+// resolveMFAGate's offer/enroll branch — which returns EARLY. The
+// email_verified_at write used to sit after that return, so it never happened.
+// The account then failed every later check that gates on it; passkey login in
+// particular refuses with "email is not verified. please verify your email
+// before signing in with a passkey", which the user cannot resolve by verifying
+// again.
+func TestVerifyEmailMarksVerifiedBeforeMFAGate(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	// Left at the default (derived true) on purpose — this is the configuration
+	// that triggers the bug.
+	cfg.EnableMFA = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "verify_before_mfa_" + uuid.NewString() + "@authorizer.dev"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        "Password@123",
+		ConfirmPassword: "Password@123",
+	})
+	require.NoError(t, err)
+
+	before, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	require.Nil(t, before.EmailVerifiedAt)
+
+	vr, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	// The response may be a session OR an MFA setup screen depending on the
+	// gate — this test deliberately does not care which. What matters is that
+	// the address is recorded as verified either way.
+	_, err = ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{Token: vr.Token})
+	require.NoError(t, err)
+
+	after, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+	assert.NotNil(t, after.EmailVerifiedAt,
+		"clicking the verification link must record the address as verified even when MFA interrupts the login")
+	assert.Equal(t, before.ID, after.ID)
+}

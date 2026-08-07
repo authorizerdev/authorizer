@@ -2,7 +2,7 @@ package token
 
 import (
 	"crypto/sha256"
-	"crypto/subtle"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -208,20 +208,10 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 		return nil, err
 	}
 
-	atHash := sha256.New()
-	atHash.Write([]byte(accessToken))
-	atHashBytes := atHash.Sum(nil)
-	// hashedToken := string(bs)
-	atHashDigest := atHashBytes[0 : len(atHashBytes)/2]
-	atHashString := base64.RawURLEncoding.EncodeToString(atHashDigest)
-	cfg.AtHash = atHashString
+	cfg.AtHash = leftMostHalfHash(accessToken, p.config.JWTType)
 	codeHashString := ""
 	if cfg.Code != "" {
-		codeHash := sha256.New()
-		codeHash.Write([]byte(cfg.Code))
-		codeHashBytes := codeHash.Sum(nil)
-		codeHashDigest := codeHashBytes[0 : len(codeHashBytes)/2]
-		codeHashString = base64.RawURLEncoding.EncodeToString(codeHashDigest)
+		codeHashString = leftMostHalfHash(cfg.Code, p.config.JWTType)
 	}
 	cfg.CodeHash = codeHashString
 	idToken, idTokenExpiresAt, err := p.CreateIDToken(cfg)
@@ -499,7 +489,9 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if subtle.ConstantTimeCompare([]byte(token), []byte(accessToken)) != 1 {
+	// Dual-read: the store now holds a digest, but a session issued before the
+	// upgrade still holds the raw token. See crypto.VerifySessionValue.
+	if !crypto.VerifySessionValue(accessToken, token) {
 		p.dependencies.Log.Debug().Msgf("invalid access token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeAccessToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -601,7 +593,7 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string, ex
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if subtle.ConstantTimeCompare([]byte(token), []byte(refreshToken)) != 1 {
+	if !crypto.VerifySessionValue(refreshToken, token) {
 		p.dependencies.Log.Debug().Msgf("invalid refresh token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -649,7 +641,7 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	if subtle.ConstantTimeCompare([]byte(encryptedSession), []byte(token)) != 1 {
+	if !crypto.VerifySessionValue(encryptedSession, token) {
 		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 
@@ -990,4 +982,36 @@ func (p *provider) runCustomAccessTokenScript(userBytes []byte, customClaims jwt
 			}
 		}
 	}
+}
+
+// leftMostHalfHash computes the OIDC `at_hash` / `c_hash` value for a token or
+// authorization code: hash it, take the left-most half of the digest,
+// base64url-encode without padding.
+//
+// The digest MUST match the ID token's signing algorithm. OIDC Core §3.1.3.6
+// (at_hash) and §3.3.2.11 (c_hash) both say "the hash algorithm used is the
+// hash algorithm used in the `alg` Header Parameter … For instance, if the
+// `alg` is RS256, hash the `access_token` value with SHA-256, then take the
+// left-most 128 bits."
+//
+// This was hard-coded to SHA-256 regardless of alg, so an instance signing
+// RS384/RS512/ES384/ES512 emitted a digest no spec-conformant relying party can
+// reproduce. Such an RP either fails the token-substitution check outright or
+// gives up and skips it — and skipping it is the whole point of the claim: it
+// is what binds the access token and the code to THIS id_token.
+func leftMostHalfHash(value, jwtType string) string {
+	var digest []byte
+	switch {
+	case strings.HasSuffix(jwtType, "384"):
+		sum := sha512.Sum384([]byte(value))
+		digest = sum[:]
+	case strings.HasSuffix(jwtType, "512"):
+		sum := sha512.Sum512([]byte(value))
+		digest = sum[:]
+	default:
+		// Every remaining supported alg (HS256/RS256/ES256) pairs with SHA-256.
+		sum := sha256.Sum256([]byte(value))
+		digest = sum[:]
+	}
+	return base64.RawURLEncoding.EncodeToString(digest[:len(digest)/2])
 }
