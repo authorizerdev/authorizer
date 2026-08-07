@@ -236,6 +236,44 @@ Two fixes make the table above actually hold:
   applied further down, so a call setting only `email_verified` was rejected
   unless padded with an unrelated field.
 
+### How long a verification link is valid
+
+**30 minutes.** `CreateVerificationToken` mints the JWT with `exp` 30 minutes out
+(`internal/token/verification_token.go`), and the stored row carries a matching
+`expires_at`.
+
+Expiry is enforced by **JWT validation**, not by the row: redemption parses and
+validates the token before anything else, so an expired link is refused even if
+the row is still present. The `expires_at` column is used elsewhere — the login
+path reads it to decide whether a *pending* verification should block a sign-in
+or be cleared and replaced.
+
+A link also stops working **before** its 30 minutes if a newer one is issued:
+each request rotates the nonce, and redemption checks the token's nonce against
+the stored row. So the most recent link is always the only valid one — requesting
+a fresh link invalidates the previous one immediately.
+
+### The link expired — what now
+
+Nothing here needs an administrator.
+
+1. **Request a new link.** `resend_verify_email` with the same `identifier`
+   (`basic_auth_signup` for a normal signup) mints a fresh request and mails it.
+   This works whether or not a pending request still exists — it will create one
+   if the old row is gone.
+2. **Or just log in with your password.** An unverified account's password login
+   emails a one-time code instead of a session; entering that code verifies the
+   address (`verify_otp.go`). This is why an expired link is rarely noticed by
+   password users.
+3. **Operator fallback.** An admin can force-verify from the dashboard
+   (**Mark Email Verified**) or via `_update_user { email_verified: true }`.
+   Prefer **Resend Verification Email** where possible — it has the user prove
+   control rather than asserting it on their behalf.
+
+The response to a resend is deliberately generic ("if a verification is pending
+…") and identical whether or not the address exists, so the endpoint cannot be
+used to test which addresses are registered.
+
 ### Hard requirement: email verification needs a working email service
 
 `--enable-email-verification=true` with no SMTP configured is now a **fatal
