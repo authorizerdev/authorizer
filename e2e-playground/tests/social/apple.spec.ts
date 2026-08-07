@@ -85,3 +85,40 @@ test.describe('Social login — Apple', () => {
     await expect(page.locator(`a[href="mailto:${email}"]`)).toBeVisible();
   });
 });
+
+// --- Email-attestation contract (nOAuth defence, AUDIT-01/AUDIT-02) ---------
+//
+// These live in this provider's own spec file on purpose. mock-oauth stores ONE
+// profile per provider globally, so two spec FILES driving the same provider
+// race under parallel workers. One provider per file is the convention that
+// keeps the suite order-independent; see docs/email-verification-contract.md
+// for what the contract itself says.
+
+test.describe('Social login — Apple — email-attestation contract', () => {
+  test('the string form of email_verified is honoured, not silently dropped', async ({
+    page,
+    request,
+  }) => {
+    // Apple documents email_verified as "a string or Boolean value". Decoding
+    // it into a plain Go bool fails the whole claim set, which would downgrade
+    // a genuinely verified address to unverified and lock the user out — so the
+    // quoted form has to work end to end.
+    const email = `evc-apple-${crypto.randomUUID()}@example.com`;
+    await runSocialLoginHappyPath(page, request, {
+      provider: 'apple',
+      buttonName: /apple/i,
+      profile: {
+        sub: `apple-${crypto.randomUUID()}`,
+        email,
+        email_verified: 'true',
+        given_name: 'Alan',
+        family_name: 'Turing',
+      },
+      expectedEmail: email,
+    });
+
+    const user = await getUserByEmail(email);
+    expect(user.signup_methods).toContain('apple');
+    expect(user.email_verified).toBe(true);
+  });
+});
