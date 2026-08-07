@@ -75,14 +75,26 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	// Children first, user row last: Couchbase runs these as separate statements,
+	// so a partial failure must leave the user row intact and retryable rather
+	// than stranding orphans that point at a dead id (see
+	// schemas.UserOwnedCollections). Sessions were not cleaned up here at all
+	// before — every other backend did it, this one did not.
+	for _, collection := range schemas.UserOwnedCollections {
+		query := fmt.Sprintf("DELETE FROM %s.%s WHERE user_id = $1", p.scopeName, collection)
+		if _, err := p.db.Query(query, &gocb.QueryOptions{
+			ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+			Context:              ctx,
+			PositionalParameters: []interface{}{user.ID},
+		}); err != nil {
+			return err
+		}
+	}
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
 	_, err := p.db.Collection(schemas.Collections.User).Remove(user.ID, &removeOpt)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // ListUsers to get list of users from database

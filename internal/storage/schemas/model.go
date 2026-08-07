@@ -60,4 +60,26 @@ var (
 		SAMLServiceProvider:    Prefix + "saml_service_providers",
 		SAMLIDPKey:             Prefix + "saml_idp_keys",
 	}
+
+	// UserOwnedCollections are every collection keyed on `user_id` that a hard
+	// delete of a user (StorageProvider.DeleteUser) MUST cascade to. This is the
+	// single source of truth: all six backends iterate it, so a new user-keyed
+	// table is covered everywhere by adding one line here.
+	//
+	// A missed entry is not cosmetic. An orphaned authorizer_federated_identities
+	// row keeps pointing at a dead user id, jitProvisionFederatedUser fails
+	// closed on it, and the (org_id, issuer, subject) uniqueness prevents
+	// re-provisioning — a permanent SSO lockout for that principal.
+	//
+	// Soft deletes (DeactivateAccount, revoke access) only stamp the user row and
+	// must NOT cascade — the account is meant to come back.
+	UserOwnedCollections = []string{
+		Collections.Session,
+		Collections.FederatedIdentity,
+		Collections.OrgMembership,
+		Collections.Authenticators,
+		Collections.WebauthnCredential,
+		Collections.SessionToken,
+		Collections.MFASession,
+	}
 )

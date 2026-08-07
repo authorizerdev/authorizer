@@ -68,17 +68,18 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	// Children first, user row last: MongoDB has no transaction here, so a
+	// partial failure must leave the user row intact and retryable rather than
+	// stranding orphans that point at a dead id (see
+	// schemas.UserOwnedCollections).
+	for _, collection := range schemas.UserOwnedCollections {
+		if _, err := p.db.Collection(collection, options.Collection()).DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete()); err != nil {
+			return err
+		}
+	}
 	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	_, err := userCollection.DeleteOne(ctx, bson.M{"_id": user.ID}, options.Delete())
-	if err != nil {
-		return err
-	}
-	sessionCollection := p.db.Collection(schemas.Collections.Session, options.Collection())
-	_, err = sessionCollection.DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete())
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // ListUsers to get list of users from database

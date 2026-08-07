@@ -73,13 +73,30 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	return user, nil
 }
 
+// userOwnedModels are the GORM models behind schemas.UserOwnedCollections, in
+// the same order. TestUserOwnedModelsMatchCollections asserts the two lists
+// resolve to the same table names, so adding a collection there without a model
+// here fails the build's tests rather than silently skipping a table.
+var userOwnedModels = []interface{}{
+	&schemas.Session{},
+	&schemas.FederatedIdentity{},
+	&schemas.OrgMembership{},
+	&schemas.Authenticator{},
+	&schemas.WebauthnCredential{},
+	&schemas.SessionToken{},
+	&schemas.MFASession{},
+}
+
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
-	// Delete the user and their sessions atomically so a failure cannot leave
-	// orphaned session rows behind.
+	// Hard delete: the user row and every row keyed on their id go together, in
+	// one transaction, so a failure cannot leave orphans behind. See
+	// schemas.UserOwnedCollections for why an orphan here is a lockout.
 	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("user_id = ?", user.ID).Delete(&schemas.Session{}).Error; err != nil {
-			return err
+		for _, m := range userOwnedModels {
+			if err := tx.Where("user_id = ?", user.ID).Delete(m).Error; err != nil {
+				return err
+			}
 		}
 		return tx.Delete(&user).Error
 	})
