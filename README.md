@@ -82,18 +82,18 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 **Shipped**
 
 - ✅ [Go SDK](https://github.com/authorizerdev/authorizer-go) — user + admin client, protocol selection (gRPC / REST / GraphQL)
-- ✅ [JavaScript / TypeScript SDK](https://github.com/authorizerdev/authorizer-js) — v3.2.1; user + admin client, GraphQL + REST
-- ✅ [Python SDK](https://github.com/authorizerdev/authorizer-python) — v0.2.0; sync + async clients, admin API
-- ✅ [React SDK](https://github.com/authorizerdev/authorizer-react) — v2.1.0; `protocol` prop, pre-built login/signup components
-- ✅ [Vue SDK](https://github.com/authorizerdev/authorizer-vue)
-- ✅ [Svelte SDK](https://github.com/authorizerdev/authorizer-svelte)
-- ✅ [Flutter SDK](https://github.com/nickolasgomez/authorizer-flutter-sdk) (community)
-- ✅ Kubernetes Helm Chart (v2.2.0, appVersion 2.3.0)
+- ✅ [JavaScript / TypeScript SDK](https://github.com/authorizerdev/authorizer-js) — v3.3.0; user + admin client, GraphQL + REST
+- ✅ [Python SDK](https://github.com/authorizerdev/authorizer-py) — `authorizer-py` v0.2.0 (v0.3.0 in pre-release: `pip install --pre authorizer-py`); sync + async clients, admin API
+- ✅ [React SDK](https://github.com/authorizerdev/authorizer-react) — v2.0.7 (v2.2.0 on the `rc` tag); `protocol` prop, pre-built login/signup components
+- ✅ [Vue SDK](https://github.com/authorizerdev/authorizer-vue) — beta; no admin client or protocol selection yet
+- ✅ [Svelte SDK](https://github.com/authorizerdev/authorizer-svelte) — beta; no admin client or protocol selection yet
+- ✅ Kubernetes Helm Chart (v2.2.1, appVersion 2.3.0)
 - ✅ Render one-click deploy
 - ✅ Edge deployment via Fly.io
 
 **Planned**
 
+- [Flutter SDK](https://github.com/authorizerdev/authorizer-flutter-sdk) — repository exists; not yet published to pub.dev
 - Migration guides for SSO/SAML/SCIM setup (coming soon)
 - React Native SDK
 - Android Native SDK

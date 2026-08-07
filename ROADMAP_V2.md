@@ -27,10 +27,10 @@
 | gRPC API | Done | All 20 public ops + 32 admin ops on port 9091; separate `AuthorizerAdminService` |
 | Admin API | Done | 32 admin operations (users, webhooks, email templates, audit logs, FGA model/tuples) over all three transports |
 | Go SDK | Done | `authorizer-go`; user + admin client; protocol selection (gRPC / REST / GraphQL) |
-| JavaScript / TypeScript SDK | Done | `authorizer-js` v3.2.1; user + admin client; GraphQL + REST protocols |
-| Python SDK | Done | `authorizer-python` v0.2.0; sync + async; admin client |
-| React SDK | Done | `authorizer-react` v2.1.0; `protocol` prop; pre-built login/signup/MFA components |
-| Kubernetes Helm Chart | Done | v2.2.0 / appVersion 2.3.0; all env vars wired |
+| JavaScript / TypeScript SDK | Done | `authorizer-js` v3.3.0; user + admin client; GraphQL + REST protocols |
+| Python SDK | Done | `authorizer-py` v0.2.0; sync + async; admin client |
+| React SDK | Done | `authorizer-react` v2.0.7; `protocol` prop; pre-built login/signup/MFA components |
+| Kubernetes Helm Chart | Done | v2.2.1 / appVersion 2.3.0; all env vars wired |
 | M2M / Client Credentials | Missing | No service accounts or API keys |
 | SAML | Missing | Zero support |
 | SCIM / Directory Sync | Missing | No provisioning |
@@ -455,9 +455,9 @@ Human approval and safe third-party access.
 ### 6.1 SDKs & Libraries
 
 - [x] **Go SDK** -- `authorizer-go`; typed user + admin client; protocol selection (gRPC / REST / GraphQL); FGA check/list helpers
-- [x] **Node.js/TypeScript SDK** -- `authorizer-js` v3.2.1; user + admin client; GraphQL + REST (gRPC not supported in browsers)
-- [x] **Python SDK** -- `authorizer-python` v0.2.0; sync + async clients; admin API
-- [x] **React SDK** -- `authorizer-react` v2.1.0; `protocol` prop; pre-built login, signup, MFA, magic-link, social login components
+- [x] **Node.js/TypeScript SDK** -- `authorizer-js` v3.3.0; user + admin client; GraphQL + REST (gRPC not supported in browsers)
+- [x] **Python SDK** -- `authorizer-py` v0.2.0; sync + async clients; admin API
+- [x] **React SDK** -- `authorizer-react` v2.0.7; `protocol` prop; pre-built login, signup, MFA, magic-link, social login components
 - [ ] **Vue / Svelte SDKs** -- admin client and protocol selection parity with authorizer-js
 - [ ] **Permission check middleware** for popular frameworks (Gin, Express, FastAPI, Next.js)
 - [ ] **Org switcher, API key manager, session manager** React components
