@@ -65,7 +65,7 @@ def _case(provider: str) -> Case:
     email = f"{provider}-{uid}@example.com"
     p: dict[str, Any]
     if provider == "google":
-        p = {"sub": f"google-{uid}", "email": email, "given_name": "Ada", "family_name": "Lovelace"}
+        p = {"sub": f"google-{uid}", "email": email, "email_verified": True, "given_name": "Ada", "family_name": "Lovelace"}
         return Case(provider, p, "email", email, "Ada", "Lovelace", email)
     if provider == "github":
         p = {"name": "Grace Hopper", "email": email, "avatar_url": "https://example.com/a.png"}
@@ -79,24 +79,25 @@ def _case(provider: str) -> Case:
         }
         return Case(provider, p, "email", email, "Katherine", "Johnson", email)
     if provider == "linkedin":
-        p = {"localizedFirstName": "Margaret", "localizedLastName": "Hamilton", "email": email}
+        p = {"localizedFirstName": "Margaret", "localizedLastName": "Hamilton", "email": email, "email_verified": True}
         return Case(provider, p, "email", email, "Margaret", "Hamilton", email)
     if provider == "apple":
-        p = {"sub": f"apple-{uid}", "email": email, "given_name": "Alan", "family_name": "Turing"}
+        p = {"sub": f"apple-{uid}", "email": email, "email_verified": True, "given_name": "Alan", "family_name": "Turing"}
         return Case(provider, p, "email", email, "Alan", "Turing", email)
     if provider == "discord":
-        p = {"id": f"discord-{uid}", "username": "gracehopper", "avatar": "abc", "email": email}
+        p = {"id": f"discord-{uid}", "username": "gracehopper", "avatar": "abc", "email": email, "verified": True}
         return Case(provider, p, "email", email, "gracehopper", None, email)
     if provider == "microsoft":
         p = {
             "sub": f"microsoft-{uid}",
             "email": email,
+            "email_verified": True,
             "given_name": "Katherine",
             "family_name": "Johnson",
         }
         return Case(provider, p, "email", email, "Katherine", "Johnson", email)
     if provider == "twitch":
-        p = {"sub": f"twitch-{uid}", "email": email, "given_name": "Sally", "family_name": "Ride"}
+        p = {"sub": f"twitch-{uid}", "email": email, "email_verified": True, "given_name": "Sally", "family_name": "Ride"}
         return Case(provider, p, "email", email, "Sally", "Ride", email)
     if provider == "roblox":
         p = {
@@ -104,6 +105,7 @@ def _case(provider: str) -> Case:
             "nickname": "ada",
             "picture": "https://example.com/a.png",
             "email": email,
+            "email_verified": True,
         }
         return Case(provider, p, "email", email, "Ada ", "Lovelace", email)
     if provider == "twitter":

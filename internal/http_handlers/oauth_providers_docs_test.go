@@ -143,7 +143,7 @@ func TestProcessFacebookUserInfo_RealProfile(t *testing.T) {
 		c.FacebookClientSecret = "test-secret"
 	})
 
-	user, err := h.processFacebookUserInfo(testGinContext(), "code")
+	user, _, err := h.processFacebookUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	assert.Equal(t, "ada@example.com", refs.StringValue(user.Email))
@@ -163,7 +163,7 @@ func TestProcessFacebookUserInfo_MissingEmailIsAnError(t *testing.T) {
 		c.FacebookClientSecret = "test-secret"
 	})
 
-	user, err := h.processFacebookUserInfo(testGinContext(), "code")
+	user, _, err := h.processFacebookUserInfo(testGinContext(), "code")
 	require.Error(t, err)
 	assert.Nil(t, user)
 	assert.NotContains(t, err.Error(), "<nil>")
@@ -194,7 +194,7 @@ func TestProcessLinkedInUserInfo_OIDCUserinfo(t *testing.T) {
 		c.LinkedinClientSecret = "test-secret"
 	})
 
-	user, err := h.processLinkedInUserInfo(testGinContext(), "code")
+	user, _, err := h.processLinkedInUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	assert.Equal(t, "doe@email.com", refs.StringValue(user.Email))
@@ -218,7 +218,7 @@ func TestProcessLinkedInUserInfo_OptionalEmailAbsent(t *testing.T) {
 		c.LinkedinClientSecret = "test-secret"
 	})
 
-	user, err := h.processLinkedInUserInfo(testGinContext(), "code")
+	user, _, err := h.processLinkedInUserInfo(testGinContext(), "code")
 	require.Error(t, err)
 	assert.Nil(t, user)
 }
@@ -236,7 +236,7 @@ func TestProcessGithubUserInfo_UnverifiedEmailsRejected(t *testing.T) {
 	})
 	h := newGithubTestHTTPProvider(t, server.URL)
 
-	user, err := h.processGithubUserInfo(testGinContext(), "code")
+	user, _, err := h.processGithubUserInfo(testGinContext(), "code")
 	require.Error(t, err)
 	assert.Nil(t, user)
 }
@@ -250,7 +250,7 @@ func TestProcessGithubUserInfo_PrefersVerifiedPrimary(t *testing.T) {
 	})
 	h := newGithubTestHTTPProvider(t, server.URL)
 
-	user, err := h.processGithubUserInfo(testGinContext(), "code")
+	user, _, err := h.processGithubUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 	assert.Equal(t, "primary@example.com", refs.StringValue(user.Email))
 }
@@ -275,7 +275,7 @@ func TestProcessDiscordUserInfo_NullAvatar(t *testing.T) {
 		c.DiscordClientSecret = "test-secret"
 	})
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	assert.Equal(t, "ada@example.com", refs.StringValue(user.Email))
@@ -296,7 +296,7 @@ func TestProcessDiscordUserInfo_WithAvatar(t *testing.T) {
 		c.DiscordClientSecret = "test-secret"
 	})
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 	assert.Equal(t,
 		"https://cdn.discordapp.com/avatars/80351110224678912/8342729096ea3675442027381ff50dfe.png",

@@ -221,7 +221,7 @@ func TestProcessAppleUserInfo_ReturningUserNoUserField_Succeeds(t *testing.T) {
 	userField, perr := parseAppleUserField("")
 	require.NoError(t, perr)
 
-	user, err := h.processAppleUserInfo(c, "fake-oauth-code", userField)
+	user, _, err := h.processAppleUserInfo(c, "fake-oauth-code", userField)
 	require.NoError(t, err, "a returning Apple user (no `user` field) must not be rejected")
 	require.NotNil(t, user)
 	require.NotNil(t, user.Email)
@@ -252,7 +252,7 @@ func TestProcessAppleUserInfo_FirstTimeSignupWithUserField_Succeeds(t *testing.T
 	userField, perr := parseAppleUserField(`{"email":"first-time@example.com","name":{"firstName":"Ada","lastName":"Lovelace"}}`)
 	require.NoError(t, perr)
 
-	user, err := h.processAppleUserInfo(c, "fake-oauth-code", userField)
+	user, _, err := h.processAppleUserInfo(c, "fake-oauth-code", userField)
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.NotNil(t, user.Email)

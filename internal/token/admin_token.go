@@ -1,12 +1,11 @@
 package token
 
 import (
-	"crypto/subtle"
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // TODO remove if not used
@@ -19,18 +18,23 @@ import (
 // 	return crypto.EncryptPassword(adminSecret)
 // }
 
-// GetAdminAuthToken helps in getting the admin token from the request cookie
+// GetAdminAuthToken helps in getting the admin token from the request cookie.
+//
+// The cookie carries an opaque server-side session handle, validated by store
+// lookup. It used to carry bcrypt(AdminSecret) and be validated by comparing
+// against the secret — which made it a stateless bearer credential with no
+// expiry and no revocation path: a captured cookie stayed valid forever, and
+// logout could only ask the browser to forget its own copy. See
+// admin_session.go.
 func (p *provider) GetAdminAuthToken(gc *gin.Context) (string, error) {
-	token, err := cookie.GetAdminCookie(gc)
-	if err != nil || token == "" {
+	sessionID, err := cookie.GetAdminCookie(gc)
+	if err != nil || sessionID == "" {
 		return "", fmt.Errorf("unauthorized")
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(p.config.AdminSecret))
-	if err != nil {
+	if err := p.ValidateAdminSession(sessionID); err != nil {
 		return "", fmt.Errorf(`unauthorized`)
 	}
-
-	return token, nil
+	return sessionID, nil
 }
 
 // IsSuperAdmin checks if user is super admin
@@ -50,7 +54,11 @@ func (p *provider) IsSuperAdmin(gc *gin.Context) bool {
 		if secret == "" {
 			return false
 		}
-		return subtle.ConstantTimeCompare([]byte(secret), []byte(p.config.AdminSecret)) == 1
+		// Throttled: this header is an unauthenticated guess at the single
+		// highest-privilege credential in the system, and the only limiter in
+		// front of it used to be the shared 30rps budget ordinary traffic gets.
+		valid, _ := p.VerifyAdminSecret(utils.GetIP(gc.Request), secret)
+		return valid
 	}
 
 	return token != ""

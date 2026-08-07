@@ -153,15 +153,15 @@ export async function getUserIdByEmail(email: string): Promise<string> {
 // just that a session was established.
 export async function getUserByEmail(
   email: string
-): Promise<{ id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string }> {
+): Promise<{ id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string; email_verified: boolean }> {
   const query = gql`
     query ($params: ListUsersRequest) {
-      _users(params: $params) { users { id email given_name family_name signup_methods } }
+      _users(params: $params) { users { id email given_name family_name signup_methods email_verified } }
     }
   `;
   const res = await client.request<{
     _users: {
-      users: { id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string }[];
+      users: { id: string; email: string | null; given_name: string | null; family_name: string | null; signup_methods: string; email_verified: boolean }[];
     };
   }>(query, { params: { query: email } });
   const user = res._users.users.find((u) => u.email === email);

@@ -14,7 +14,7 @@ test.describe('Social login — Google', () => {
       // profile is signed into a real id_token (server.ts), and
       // processGoogleUserInfo (internal/http_handlers/oauth_callback.go)
       // reads given_name/family_name/email/sub straight off its claims.
-      profile: { sub: `google-${crypto.randomUUID()}`, email, given_name: 'Ada', family_name: 'Lovelace' },
+      profile: { sub: `google-${crypto.randomUUID()}`, email, email_verified: true, given_name: 'Ada', family_name: 'Lovelace' },
       expectedEmail: email,
     });
 

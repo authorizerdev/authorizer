@@ -109,6 +109,12 @@ const (
 	AuditOTPResentEvent = "user.otp_resent"
 	// AuditVerifyEmailResentEvent is logged when a verification email is resent.
 	AuditVerifyEmailResentEvent = "user.verify_email_resent"
+	// AuditOAuthUnverifiedAccountReplacedEvent is logged when a social login
+	// deletes an unverified pre-existing account holding the same email
+	// (account pre-hijacking defense) and provisions a fresh one for the
+	// principal who actually controls the address. The account is verified to
+	// be stateless first, but a row is still destroyed — record it.
+	AuditOAuthUnverifiedAccountReplacedEvent = "oauth.unverified_account_replaced"
 
 	// AuditAdminLoginSuccessEvent is logged when an admin successfully authenticates.
 	AuditAdminLoginSuccessEvent = "admin.login_success"

@@ -7,7 +7,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
@@ -26,7 +25,7 @@ func TestSignupStillFiresWebhookEndToEnd(t *testing.T) {
 	ts := initTestSetup(t, cfg)
 	req, ctx := createContext(ts)
 
-	h, err := crypto.EncryptPassword(cfg.AdminSecret)
+	h, err := newAdminSessionToken(ts)
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

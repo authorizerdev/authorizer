@@ -85,7 +85,7 @@ func TestProcessRobloxUserInfo_RealEmailUsed(t *testing.T) {
 	server := newRobloxTestServer(t, robloxProfile("42", "Ada Lovelace", "ada", "ada@example.com"))
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	user, _, err := h.processRobloxUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -104,7 +104,7 @@ func TestProcessRobloxUserInfo_AbsentEmailFallsBackToSynthetic(t *testing.T) {
 	server := newRobloxTestServer(t, robloxProfile("123456789", "Ada Lovelace", "ada", ""))
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	user, _, err := h.processRobloxUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -122,9 +122,9 @@ func TestProcessRobloxUserInfo_SameIDYieldsSameEmailAcrossLogins(t *testing.T) {
 	server := newRobloxTestServer(t, profile)
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user1, err := h.processRobloxUserInfo(testGinContext(), "code-1")
+	user1, _, err := h.processRobloxUserInfo(testGinContext(), "code-1")
 	require.NoError(t, err)
-	user2, err := h.processRobloxUserInfo(testGinContext(), "code-2")
+	user2, _, err := h.processRobloxUserInfo(testGinContext(), "code-2")
 	require.NoError(t, err)
 
 	require.NotNil(t, user1.Email)
@@ -148,7 +148,7 @@ func TestProcessRobloxUserInfo_MissingSubAndEmail_LeavesEmailEmpty(t *testing.T)
 	server := newRobloxTestServer(t, profile)
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	user, _, err := h.processRobloxUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -169,7 +169,7 @@ func TestProcessRobloxUserInfo_EmptySubAndAbsentEmail_LeavesEmailEmpty(t *testin
 	server := newRobloxTestServer(t, profile)
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	user, _, err := h.processRobloxUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -187,7 +187,7 @@ func TestProcessRobloxUserInfo_NameGivenFamilyNicknameMapping(t *testing.T) {
 	server := newRobloxTestServer(t, robloxProfile("99", "Ada Lovelace", "ada99", "ada@example.com"))
 	h := newRobloxTestHTTPProvider(t, server.URL)
 
-	user, err := h.processRobloxUserInfo(testGinContext(), "code")
+	user, _, err := h.processRobloxUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.GivenName)

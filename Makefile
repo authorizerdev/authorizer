@@ -323,7 +323,7 @@ e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/M
 	docker compose -f e2e-playground/docker-compose.yml build; \
 	status=$$?; \
 	if [ $$status -eq 0 ]; then \
-		docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso mock-oauth mock-saml-idp mailpit sms-sink; \
+		docker compose -f e2e-playground/docker-compose.yml up -d --wait authorizer authorizer-sso authorizer-email-verify mock-oauth mock-saml-idp mailpit sms-sink; \
 		status=$$?; \
 	fi; \
 	if [ $$status -eq 0 ]; then \

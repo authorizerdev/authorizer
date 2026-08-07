@@ -146,3 +146,51 @@ export async function runConsentDeniedNegativePath(
   const replayBody = await replayRes.json();
   expect(replayBody.error).toBe('invalid oauth state');
 }
+
+// runSocialLoginExpectingRejection drives the same real redirect chain as
+// runSocialLoginHappyPath, but over the API request context so the callback's
+// status code and error body are observable (a browser only ever sees the
+// rendered result). Returns the parsed callback response.
+//
+// Used by the email-verification-contract spec: when an IdP hands back an
+// address it has not attested, the callback must refuse BEFORE any local
+// account is looked up or created, so there is no session and no account
+// mutation to assert away afterwards.
+export async function runSocialLoginExpectingRejection(
+  request: APIRequestContext,
+  baseURL: string,
+  opts: { provider: string; profile: Record<string, unknown> }
+): Promise<{ status: number; body: { error?: string; error_description?: string } }> {
+  await configureProviderProfile(request, opts.provider, opts.profile);
+
+  // 1. Real login initiation — the same route the rendered social button hits.
+  const redirectUri = `${baseURL}/app`;
+  const loginRes = await request.get(
+    `/oauth_login/${opts.provider}?redirect_uri=${encodeURIComponent(redirectUri)}`,
+    { maxRedirects: 0 }
+  );
+  expect(loginRes.status()).toBe(307);
+  const authorizeLocation = loginRes.headers()['location'];
+  expect(authorizeLocation).toBeTruthy();
+
+  // 2. Mock provider's /authorize issues a real code and bounces to our callback.
+  const authorizeRes = await request.get(authorizeLocation!, { maxRedirects: 0 });
+  expect(authorizeRes.status()).toBe(302);
+  const callbackLocation = authorizeRes.headers()['location'];
+  expect(callbackLocation).toBeTruthy();
+
+  // 3. The callback: full token exchange + id_token verification happens here,
+  //    then the email-attestation gate.
+  const callbackURL = new URL(callbackLocation!);
+  const callbackRes = await request.get(`${callbackURL.pathname}${callbackURL.search}`, {
+    maxRedirects: 0,
+  });
+  let body: { error?: string; error_description?: string } = {};
+  try {
+    body = await callbackRes.json();
+  } catch {
+    // Non-JSON (a redirect body) means the login was NOT rejected; the caller's
+    // assertion on status/error will report that.
+  }
+  return { status: callbackRes.status(), body };
+}

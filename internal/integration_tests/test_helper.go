@@ -455,3 +455,19 @@ func latestMfaSessionCookie(s *testSetup) string {
 	}
 	return latest
 }
+
+// newAdminSessionToken mints a real server-side admin session and returns the
+// opaque handle to put in the admin cookie.
+//
+// Tests used to write newAdminSessionToken(ts) into the cookie
+// directly, because that IS what the cookie carried: a bcrypt of the admin
+// secret, re-derivable by anyone holding the secret and validated by comparing
+// against it. The admin cookie is now an opaque handle backed by a memory-store
+// entry, so that it can expire and be revoked — a captured cookie previously
+// worked forever and logout could not invalidate it.
+//
+// Signature deliberately mirrors the old crypto.EncryptPassword call so every
+// call site keeps its `h, err := ...` shape.
+func newAdminSessionToken(ts *testSetup) (string, error) {
+	return ts.TokenProvider.NewAdminSession()
+}

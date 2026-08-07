@@ -338,6 +338,20 @@ type Config struct {
 	MicrosoftClientSecret string
 	// MicrosoftTenantID is the tenant ID for Microsoft OAuth
 	MicrosoftTenantID string
+	// OAuthAllowUnverifiedProviderEmail is a temporary compatibility escape
+	// hatch for deployments upgrading from 2.3.x whose social provider does not
+	// attest email addresses (in practice: Microsoft Entra on a multi-tenant
+	// alias without xms_edov). It does NOT disable the check — an unattested
+	// address still may not cross into an account owned by another credential.
+	// See allowUnverifiedProviderEmail and docs/email-verification-contract.md.
+	OAuthAllowUnverifiedProviderEmail bool
+
+	// MicrosoftAllowedTenants restricts which Entra tenants may sign in when
+	// MicrosoftTenantID is a multi-tenant alias ("common", "organizations",
+	// "consumers"). Empty means no restriction — in that mode the tenant is
+	// untrusted and the email it asserts will not link to an existing account.
+	// See validateMicrosoftTenant.
+	MicrosoftAllowedTenants []string
 	// MicrosoftScopes is the list of scopes for Microsoft OAuth
 	MicrosoftScopes []string
 

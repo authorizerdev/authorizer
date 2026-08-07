@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -78,7 +77,7 @@ func TestAdminResetMFA(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, creds, 1)
 
-	h, err := crypto.EncryptPassword(cfg.AdminSecret)
+	h, err := newAdminSessionToken(ts)
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

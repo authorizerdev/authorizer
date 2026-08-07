@@ -98,9 +98,9 @@ func TestProcessTwitterUserInfo_SameIDYieldsSameSyntheticEmail(t *testing.T) {
 	server := newTwitterTestServer(t, twitterProfile("42", "Ada Lovelace", "ada"))
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user1, err := h.processTwitterUserInfo(testGinContext(), "code-1", "verifier-1")
+	user1, _, err := h.processTwitterUserInfo(testGinContext(), "code-1", "verifier-1")
 	require.NoError(t, err)
-	user2, err := h.processTwitterUserInfo(testGinContext(), "code-2", "verifier-2")
+	user2, _, err := h.processTwitterUserInfo(testGinContext(), "code-2", "verifier-2")
 	require.NoError(t, err)
 
 	require.NotNil(t, user1.Email)
@@ -117,9 +117,9 @@ func TestProcessTwitterUserInfo_DifferentIDsYieldDifferentEmails(t *testing.T) {
 	serverA := newTwitterTestServer(t, twitterProfile("1", "Alice", "alice"))
 	serverB := newTwitterTestServer(t, twitterProfile("2", "Bob", "bob"))
 
-	userA, err := newTwitterTestHTTPProvider(t, serverA.URL).processTwitterUserInfo(testGinContext(), "code-a", "verifier-a")
+	userA, _, err := newTwitterTestHTTPProvider(t, serverA.URL).processTwitterUserInfo(testGinContext(), "code-a", "verifier-a")
 	require.NoError(t, err)
-	userB, err := newTwitterTestHTTPProvider(t, serverB.URL).processTwitterUserInfo(testGinContext(), "code-b", "verifier-b")
+	userB, _, err := newTwitterTestHTTPProvider(t, serverB.URL).processTwitterUserInfo(testGinContext(), "code-b", "verifier-b")
 	require.NoError(t, err)
 
 	require.NotNil(t, userA.Email)
@@ -142,7 +142,7 @@ func TestProcessTwitterUserInfo_MissingID_ReturnsError(t *testing.T) {
 	server := newTwitterTestServer(t, profile)
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	user, _, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
 	assert.Error(t, err)
 	assert.Nil(t, user)
 }
@@ -156,7 +156,7 @@ func TestProcessTwitterUserInfo_NameGivenFamilyNicknameMapping(t *testing.T) {
 	server := newTwitterTestServer(t, twitterProfile("99", "Ada Lovelace", "ada99"))
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	user, _, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.GivenName)
@@ -186,7 +186,7 @@ func TestProcessTwitterUserInfo_ConfirmedEmailPreferredOverSynthetic(t *testing.
 	server := newTwitterTestServer(t, profile)
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	user, _, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -203,7 +203,7 @@ func TestProcessTwitterUserInfo_AbsentConfirmedEmailFallsBackToSynthetic(t *test
 	server := newTwitterTestServer(t, twitterProfile("42", "Ada Lovelace", "ada"))
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	user, _, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -219,7 +219,7 @@ func TestProcessTwitterUserInfo_EmptyConfirmedEmailFallsBackToSynthetic(t *testi
 	server := newTwitterTestServer(t, profile)
 	h := newTwitterTestHTTPProvider(t, server.URL)
 
-	user, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
+	user, _, err := h.processTwitterUserInfo(testGinContext(), "code", "verifier")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)

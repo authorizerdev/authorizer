@@ -57,7 +57,7 @@ test.describe('OIDC — SSO relying party (home-realm discovery)', () => {
 
       const employeeEmail = `employee@${domain}`;
       await request.post(`${MOCK_OAUTH_BASE}/${realm}/__configure`, {
-        data: { profile: { sub: 'employee-1', email: employeeEmail, given_name: 'Ada', family_name: 'Lovelace' } },
+        data: { profile: { sub: 'employee-1', email: employeeEmail, email_verified: true, given_name: 'Ada', family_name: 'Lovelace' } },
       });
 
       await page.goto('/app');

@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -88,7 +87,7 @@ func TestSignupEmitsEventsWhenTheAccountIsCreated(t *testing.T) {
 	// first (same pattern as add_email_template_test.go).
 	registerHooks := func(t *testing.T, ts *testSetup, ctx context.Context, endpoint string) {
 		t.Helper()
-		h, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		for _, ev := range []string{

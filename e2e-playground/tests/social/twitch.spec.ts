@@ -16,7 +16,7 @@ test.describe('Social login — Twitch', () => {
       // idToken.Claims(&user) directly off it - identical mechanism to
       // processMicrosoftUserInfo, so given_name/family_name map through the
       // same way despite real Twitch's OIDC token not normally carrying them.
-      profile: { sub: `twitch-${crypto.randomUUID()}`, email, given_name: 'Sally', family_name: 'Ride' },
+      profile: { sub: `twitch-${crypto.randomUUID()}`, email, email_verified: true, given_name: 'Sally', family_name: 'Ride' },
       expectedEmail: email,
     });
 

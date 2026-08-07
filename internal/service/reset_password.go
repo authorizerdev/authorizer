@@ -81,6 +81,13 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 			log.Debug().Err(err).Msg("Failed to validate jwt claims")
 			return nil, nil, InvalidArgument(`invalid token`)
 		}
+		// Purpose binding: a magic-link or signup token must not be redeemable
+		// here. Same generic error as every other failure so this is not an
+		// oracle for which flow a leaked token belongs to.
+		if !verificationPurposeAllowed(verificationRequest, claim, verificationPurposesResetPassword) {
+			log.Debug().Str("identifier", verificationRequest.Identifier).Msg("Verification token used for the wrong purpose")
+			return nil, nil, InvalidArgument(`invalid token`)
+		}
 		email = claim["sub"].(string)
 		user, err = p.StorageProvider.GetUserByEmail(ctx, email)
 		if err != nil {
@@ -144,11 +151,20 @@ func (p *provider) ResetPassword(ctx context.Context, meta RequestMetadata, para
 	signupMethod := user.SignupMethods
 	if !strings.Contains(signupMethod, constants.AuthRecipeMethodBasicAuth) && isTokenVerification {
 		signupMethod = signupMethod + "," + constants.AuthRecipeMethodBasicAuth
-		// helpful if user has not signed up with basic auth
-		if user.EmailVerifiedAt == nil {
-			now := time.Now().Unix()
-			user.EmailVerifiedAt = &now
-		}
+	}
+	// Completing a token reset proves control of the mailbox: the token was
+	// emailed to this address, is single-use, and is nonce-bound. So it verifies
+	// the address, whatever the account's existing signup methods are.
+	//
+	// This used to be nested inside the branch above, so it only ever fired for
+	// an account that did NOT already have basic_auth — meaning an unverified
+	// password account could complete a reset and still be left unverified, with
+	// no self-service way out. That matters now that an unverified account
+	// blocks a federated login for the same address: forgot-password is the one
+	// recovery path the rightful mailbox owner can drive alone.
+	if isTokenVerification && user.EmailVerifiedAt == nil {
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
 	}
 	if !strings.Contains(signupMethod, constants.AuthRecipeMethodMobileOTP) && isOtpVerification {
 		signupMethod = signupMethod + "," + constants.AuthRecipeMethodMobileOTP

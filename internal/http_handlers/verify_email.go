@@ -76,6 +76,21 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
+		// Purpose binding: only the email-verification family may complete here.
+		// Every flow's token lives in one `verification_requests` table keyed by
+		// the token string alone, so without this a forgot-password token — the
+		// one credential this endpoint was never meant to see — redeems for a
+		// full session AND marks the address verified. Same reason the GraphQL
+		// mutation gates it (service.VerifyEmail); this handler is a separate
+		// implementation of the same flow and needs the same gate. Generic error
+		// so it is not an oracle for which flow a leaked token belongs to.
+		if !service.IsVerifyEmailPurpose(verificationRequest, claim) {
+			log.Debug().Str("identifier", verificationRequest.Identifier).Msg("Verification token used for the wrong purpose")
+			errorRes["error"] = "invalid verification token"
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+			return
+		}
+
 		user, err := h.StorageProvider.GetUserByEmail(c, verificationRequest.Email)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error getting user by email")
