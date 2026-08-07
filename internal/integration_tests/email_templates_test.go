@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +24,7 @@ func TestEmailTemplates(t *testing.T) {
 	})
 
 	t.Run("should list email templates with admin auth", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
@@ -36,7 +35,7 @@ func TestEmailTemplates(t *testing.T) {
 	})
 
 	t.Run("should return no nil entries in email templates list", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

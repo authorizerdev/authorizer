@@ -103,6 +103,11 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		scopeString := sessionSplit[3]
 		scopes := parseScopes(scopeString)
 		var user *schemas.User
+		// providerEmailVerified is the provider's own assertion that the
+		// principal controls the email it returned. It gates every path that
+		// could attach this login to a pre-existing local account — see the
+		// linking branch below.
+		var providerEmailVerified bool
 		oauthCode := ctx.Request.FormValue("code")
 		if oauthCode == "" {
 			log.Debug().Err(err).Msg("Invalid oauth code")
@@ -111,13 +116,13 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		switch provider {
 		case constants.AuthRecipeMethodGoogle:
-			user, err = h.processGoogleUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processGoogleUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodGithub:
-			user, err = h.processGithubUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processGithubUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodFacebook:
-			user, err = h.processFacebookUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processFacebookUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodLinkedIn:
-			user, err = h.processLinkedInUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
 			var appleUser *AppleUserInfo
 			appleUser, err = parseAppleUserField(ctx.Request.FormValue("user"))
@@ -126,9 +131,9 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				ctx.JSON(400, gin.H{"error": "invalid apple user info"})
 				return
 			}
-			user, err = h.processAppleUserInfo(ctx, oauthCode, appleUser)
+			user, providerEmailVerified, err = h.processAppleUserInfo(ctx, oauthCode, appleUser)
 		case constants.AuthRecipeMethodDiscord:
-			user, err = h.processDiscordUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
 			// Twitter/X uses PKCE: retrieve the verifier stored at login keyed by state.
 			verifier, verr := h.MemoryStoreProvider.GetAndRemoveState(pkceVerifierKeyPrefix + state)
@@ -137,13 +142,13 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				ctx.JSON(400, gin.H{"error": "invalid oauth state"})
 				return
 			}
-			user, err = h.processTwitterUserInfo(ctx, oauthCode, verifier)
+			user, providerEmailVerified, err = h.processTwitterUserInfo(ctx, oauthCode, verifier)
 		case constants.AuthRecipeMethodMicrosoft:
-			user, err = h.processMicrosoftUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processMicrosoftUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitch:
-			user, err = h.processTwitchUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processTwitchUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodRoblox:
-			user, err = h.processRobloxUserInfo(ctx, oauthCode)
+			user, providerEmailVerified, err = h.processRobloxUserInfo(ctx, oauthCode)
 		default:
 			log.Debug().Err(err).Msg("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -179,6 +184,38 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		log := log.With().Str("email", refs.StringValue(user.Email)).Logger()
 		isSignUp := false
 
+		// An email the identity provider has not attested is attacker-controlled
+		// input, and every branch below keys the local account off it — the
+		// lookup above decides signup vs. login, and the login branch merges
+		// this federated identity into whatever account already holds the
+		// address. That is the nOAuth account-takeover class: register a free
+		// Entra tenant, set a user's mutable `email` attribute to the victim's
+		// address, sign in, and land in the victim's session. The pre-hijack
+		// guard further down does not help — it only removes *unverified* local
+		// accounts, and verified accounts are exactly what gets stolen.
+		//
+		// OAuth itself proves nothing about email; that is precisely why OIDC
+		// carries a separate `email_verified` claim (Core §5.1), and why Auth0
+		// documents checking it before linking accounts.
+		if !providerEmailVerified && !h.allowUnverifiedProviderEmail(provider, existingUser, err == nil) {
+			log.Debug().Str("provider", provider).Msg("Provider did not attest the email address; refusing to resolve a local account")
+			metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+			metrics.RecordSecurityEvent("oauth_email_unverified", provider)
+			h.AuditProvider.LogEvent(audit.Event{
+				Action:       constants.AuditOAuthCallbackFailedEvent,
+				ActorType:    constants.AuditActorTypeUser,
+				ResourceType: constants.AuditResourceTypeSession,
+				Metadata:     provider,
+				IPAddress:    utils.GetIP(ctx.Request),
+				UserAgent:    utils.GetUserAgent(ctx.Request),
+			})
+			ctx.JSON(400, gin.H{
+				"error":             "email_not_verified",
+				"error_description": "The identity provider did not confirm that you own this email address.",
+			})
+			return
+		}
+
 		if err != nil {
 			isSignupEnabled := h.Config.EnableSignup
 			if !isSignupEnabled {
@@ -204,8 +241,16 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}
 
 			user.Roles = strings.Join(inputRoles, ",")
-			now := time.Now().Unix()
-			user.EmailVerifiedAt = &now
+			// Only record the address as verified when the provider actually
+			// attested it. This used to be unconditional, which meant a
+			// compatibility-mode signup from an unattested address wrote
+			// email_verified=true into our own database — a claim we cannot
+			// back, and one that downstream consumers trust (SAML IdP issuance
+			// refuses to assert an unverified email as the Subject NameID).
+			if providerEmailVerified {
+				now := time.Now().Unix()
+				user.EmailVerifiedAt = &now
+			}
 			user, err = h.StorageProvider.AddUser(ctx, user)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to add user")
@@ -236,8 +281,61 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			// was never verified, do not link the OAuth identity to it.
 			// Instead, delete the unverified account and treat as a new signup
 			// for the OAuth user who actually controls the email address.
-			if existingUser.EmailVerifiedAt == nil {
-				log.Info().Msg("Removing unverified pre-existing account before OAuth signup")
+			//
+			// Scoped to accounts some OTHER credential created. An unverified
+			// account this same provider already owns is not a squatter — it is
+			// this same principal's own account, created on a previous pass
+			// through the signup branch above (which, correctly, no longer marks
+			// an unattested address verified). Deleting it would recreate the
+			// account on every single login, silently dropping its id, roles and
+			// org memberships each time.
+			if existingUser.EmailVerifiedAt == nil && !signupMethodsContain(existingUser.SignupMethods, provider) {
+				// Deleting is only safe for an account that is actually a
+				// squatter — created to intercept this address and never used.
+				// The cascade is clean (#749) but total: an account carrying
+				// real state would lose its org memberships, enrolled
+				// authenticators and federated identities outright, and its FGA
+				// grants would be orphaned, since the tuple purge lives in the
+				// service layer and this is a direct StorageProvider call. All
+				// of that on the say-so of an unauthenticated callback.
+				// Refusing is recoverable; deleting is not.
+				if hasState, what := h.accountHasState(ctx, existingUser); hasState {
+					log.Warn().
+						Str("reason", what).
+						Str("existing_user_id", existingUser.ID).
+						Msg("Refusing OAuth login: an unverified account with this email holds state and must not be replaced")
+					metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+					metrics.RecordSecurityEvent("oauth_email_collision_stateful_account", provider)
+					h.AuditProvider.LogEvent(audit.Event{
+						Action:       constants.AuditOAuthCallbackFailedEvent,
+						ActorID:      existingUser.ID,
+						ActorType:    constants.AuditActorTypeUser,
+						ActorEmail:   refs.StringValue(existingUser.Email),
+						ResourceType: constants.AuditResourceTypeSession,
+						Metadata:     provider,
+						IPAddress:    utils.GetIP(ctx.Request),
+						UserAgent:    utils.GetUserAgent(ctx.Request),
+					})
+					ctx.JSON(400, gin.H{
+						"error":             "email_already_registered",
+						"error_description": "An unverified account already exists for this email address. Verify it first — request a new verification email for this address, or sign in with the method that created the account.",
+					})
+					return
+				}
+				log.Info().Str("existing_user_id", existingUser.ID).Msg("Removing unverified pre-existing account before OAuth signup")
+				// Audited: this destroys an account row, which is
+				// security-material even when the account was empty.
+				h.AuditProvider.LogEvent(audit.Event{
+					Action:       constants.AuditOAuthUnverifiedAccountReplacedEvent,
+					ActorID:      existingUser.ID,
+					ActorType:    constants.AuditActorTypeUser,
+					ActorEmail:   refs.StringValue(existingUser.Email),
+					ResourceType: constants.AuditResourceTypeUser,
+					ResourceID:   existingUser.ID,
+					Metadata:     provider,
+					IPAddress:    utils.GetIP(ctx.Request),
+					UserAgent:    utils.GetUserAgent(ctx.Request),
+				})
 				if err := h.StorageProvider.DeleteUser(ctx, existingUser); err != nil {
 					log.Debug().Err(err).Msg("Failed to delete unverified user")
 					ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
@@ -456,6 +554,92 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
+// allowUnverifiedProviderEmail decides whether a federated login whose provider
+// did NOT attest the email address may still resolve a local account.
+//
+// Default (--oauth-allow-unverified-provider-email=false): never. The address is
+// attacker-controlled and it is what selects the account.
+//
+// Compatibility mode (=true) exists so a deployment upgrading from 2.3.x is not
+// locked out the moment it restarts, but it is deliberately NOT a plain "turn
+// the check off" switch — that would restore the CVE verbatim. Even in this
+// mode, an unattested address may only:
+//
+//   - create a brand-new account (it selects nobody, so it harms nobody), or
+//   - return to an account THIS SAME PROVIDER already owns — a returning user.
+//
+// It may never merge into an account some other credential owns. That single
+// restriction removes the entire cross-credential takeover: an Entra tenant
+// cannot reach a password account, a Google account, or any other provider's
+// account, which is every practical form of the attack.
+//
+// The residual risk it does not cover, and the reason this mode is documented
+// as temporary: two principals of the SAME unattested provider (two Entra
+// tenants both asserting one address) can still collide. Pinning
+// --microsoft-tenant-id or setting --microsoft-allowed-tenants closes that, and
+// is the actual fix.
+func (h *httpProvider) allowUnverifiedProviderEmail(provider string, existingUser *schemas.User, found bool) bool {
+	if !h.Config.OAuthAllowUnverifiedProviderEmail {
+		return false
+	}
+	if !found {
+		// First-time signup: no account is being selected away from anyone.
+		return true
+	}
+	if existingUser == nil {
+		// "Found" with no row is an inconsistent storage result. Fail closed
+		// rather than guess which case it was.
+		return false
+	}
+	// Returning user of this same provider, or an attempt to cross into an
+	// account another credential owns.
+	return signupMethodsContain(existingUser.SignupMethods, provider)
+}
+
+// signupMethodsContain reports whether a stored comma-separated signup-methods
+// list contains an exact method. Deliberately not strings.Contains: the
+// provider names include the near-miss pair twitch/twitter, and a substring
+// match on a security decision would let one provider inherit the other's
+// accounts.
+func signupMethodsContain(signupMethods, provider string) bool {
+	for _, m := range strings.Split(signupMethods, ",") {
+		if strings.TrimSpace(m) == provider {
+			return true
+		}
+	}
+	return false
+}
+
+// flexBool decodes a JSON boolean that some IdPs send quoted. Apple documents
+// `email_verified` as "a string or Boolean value", and LinkedIn's userinfo has
+// shipped both shapes; decoding either into a plain bool fails the whole claim
+// set, which would silently turn a verified email into an unverified one.
+type flexBool bool
+
+// UnmarshalJSON accepts true/false, "true"/"false", or anything else (which
+// decodes to false — unrecognised is never "verified").
+func (b *flexBool) UnmarshalJSON(data []byte) error {
+	var raw any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*b = flexBool(claimTruthy(raw))
+	return nil
+}
+
+// claimTruthy reads a boolean claim out of an untyped JSON value, tolerating
+// the quoted-string form some IdPs emit. Used by the providers whose payloads
+// are decoded into a map rather than oidcClaims (Apple, Discord, Roblox).
+func claimTruthy(v any) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case string:
+		return strings.EqualFold(t, "true")
+	}
+	return false
+}
+
 // oidcClaims is the allow-list of OpenID Connect standard claims Authorizer
 // maps onto a user. ID tokens are decoded into this and never straight into
 // schemas.User, for two reasons:
@@ -469,6 +653,25 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 //     signup_methods, is_active, created_at ...) merely by sharing its json
 //     tag.
 type oidcClaims struct {
+	// Subject is the provider-asserted stable identifier for the principal.
+	// Unlike `email` it is not user-mutable, so it is the only claim safe to
+	// treat as an identity key.
+	Subject string `json:"sub"`
+	// Issuer and TenantID back the Microsoft tenant checks; see
+	// processMicrosoftUserInfo. Ignored for every other provider.
+	Issuer   string `json:"iss"`
+	TenantID string `json:"tid"`
+	// EmailVerified is the provider's assertion that the principal actually
+	// controls `Email`. Absent decodes to false — an IdP that does not say
+	// "verified" has not verified anything, and this claim is what stops a
+	// federated login from linking to somebody else's account.
+	EmailVerified flexBool `json:"email_verified"`
+	// XmsEdov ("email domain owner verified") is Microsoft Entra's equivalent.
+	// Entra v2 ID tokens carry no `email_verified` claim at all, and their
+	// `email` is a mutable, unverified profile attribute — the distinction
+	// that makes the nOAuth attack work.
+	XmsEdov flexBool `json:"xms_edov"`
+
 	Email       string `json:"email"`
 	GivenName   string `json:"given_name"`
 	FamilyName  string `json:"family_name"`
@@ -505,17 +708,17 @@ func (c *oidcClaims) toUser() *schemas.User {
 	return user
 }
 
-func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processGoogleUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodGoogle)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid google exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 
 	issuer := "https://accounts.google.com"
@@ -524,29 +727,30 @@ func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*sc
 	}
 	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
 	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.GoogleClientID})
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
-		return nil, fmt.Errorf("unable to extract id_token")
+		return nil, false, fmt.Errorf("unable to extract id_token")
 	}
 
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to verify ID Token")
-		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return nil, false, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 	claims := &oidcClaims{}
 	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
-		return nil, fmt.Errorf("unable to extract claims")
+		return nil, false, fmt.Errorf("unable to extract claims")
 	}
 
-	return claims.toUser(), nil
+	// Google asserts control of the address via `email_verified`.
+	return claims.toUser(), bool(claims.EmailVerified), nil
 }
 
 // setGithubHeaders applies the headers GitHub's REST API docs ask every
@@ -559,18 +763,18 @@ func setGithubHeaders(req *http.Request, accessToken string) {
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 }
 
-func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processGithubUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodGithub)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid github exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
 	userInfoURL := constants.GithubUserInfoURL
 	emailsURL := constants.GithubUserEmails
@@ -582,25 +786,25 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create github user info request")
-		return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
 	setGithubHeaders(req, oauth2Token.AccessToken)
 
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to request github user info")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read github user info response body")
-		return nil, fmt.Errorf("failed to read github response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request github user info")
-		return nil, fmt.Errorf("failed to request github user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request github user info: %s", string(body))
 	}
 
 	// Only the three fields below are used. A typed struct (rather than a
@@ -614,7 +818,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal github user info")
-		return nil, fmt.Errorf("failed to parse github user info: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to parse github user info: %s", err.Error())
 	}
 
 	name := strings.Split(userRawData.Name, " ")
@@ -641,32 +845,32 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		req, err := http.NewRequest(http.MethodGet, emailsURL, nil)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create github emails request")
-			return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
+			return nil, false, fmt.Errorf("error creating github user info request: %s", err.Error())
 		}
 		setGithubHeaders(req, oauth2Token.AccessToken)
 
 		response, err := client.Do(req)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to request github user email")
-			return nil, err
+			return nil, false, err
 		}
 
 		defer func() { _ = response.Body.Close() }()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to read github user email response body")
-			return nil, fmt.Errorf("failed to read github response body: %s", err.Error())
+			return nil, false, fmt.Errorf("failed to read github response body: %s", err.Error())
 		}
 		if response.StatusCode >= 400 {
 			log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request github user email")
-			return nil, fmt.Errorf("failed to request github user info: %s", string(body))
+			return nil, false, fmt.Errorf("failed to request github user info: %s", string(body))
 		}
 
 		emailData := []GithubUserEmails{}
 		err = json.Unmarshal(body, &emailData)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to parse github user email")
-			return nil, fmt.Errorf("failed to parse github user email: %s", err.Error())
+			return nil, false, fmt.Errorf("failed to parse github user email: %s", err.Error())
 		}
 
 		// GET /user/emails lists every address on the account, verified or
@@ -686,7 +890,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		}
 		if email == "" {
 			log.Debug().Msg("No verified email on github account")
-			return nil, fmt.Errorf("failed to get a verified email address from github")
+			return nil, false, fmt.Errorf("failed to get a verified email address from github")
 		}
 	}
 
@@ -697,20 +901,20 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		Email:      &email,
 	}
 
-	return user, nil
+	return user, true, nil
 }
 
-func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processFacebookUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodFacebook)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Invalid facebook exchange code")
-		return nil, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
 	userInfoURL := constants.FacebookUserInfoURL
 	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodFacebook); mockBase != "" {
@@ -720,24 +924,24 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 	req, err := http.NewRequest("GET", userInfoURL+oauth2Token.AccessToken, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error creating facebook user info request")
-		return nil, fmt.Errorf("error creating facebook user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating facebook user info request: %s", err.Error())
 	}
 
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to process facebook user")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read facebook response")
-		return nil, fmt.Errorf("failed to read facebook response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request facebook user info")
-		return nil, fmt.Errorf("failed to request facebook user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request facebook user info: %s", string(body))
 	}
 	// Typed decode, not fmt.Sprintf over a map: Graph API omits `email`
 	// entirely when "no valid email address is available" (user/reference/user),
@@ -755,13 +959,13 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal facebook user info")
-		return nil, fmt.Errorf("failed to parse facebook user info: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to parse facebook user info: %s", err.Error())
 	}
 
 	email := userRawData.Email
 	if email == "" {
 		log.Debug().Msg("Facebook user info has no email")
-		return nil, fmt.Errorf("failed to get email from facebook user info: the account has no available email address")
+		return nil, false, fmt.Errorf("failed to get email from facebook user info: the account has no available email address")
 	}
 
 	picture := userRawData.Picture.Data.URL
@@ -775,21 +979,21 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 		Email:      &email,
 	}
 
-	return user, nil
+	return user, true, nil
 }
 
-func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processLinkedInUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodLinkedIn)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
 	}
 
 	userInfoURL := constants.LinkedInUserInfoURL
@@ -800,7 +1004,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create linkedin user info request")
-		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -809,32 +1013,33 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to request linkedin user info")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read linkedin user info response body")
-		return nil, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request linkedin user info")
-		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request linkedin user info: %s", string(body))
 	}
 
 	// OIDC userinfo shape (sub/name/given_name/family_name/picture/locale/
 	// email/email_verified) - one call, no separate /v2/emailAddress hop.
 	var userRawData struct {
-		GivenName  string `json:"given_name"`
-		FamilyName string `json:"family_name"`
-		Picture    string `json:"picture"`
-		Email      string `json:"email"`
+		GivenName     string   `json:"given_name"`
+		FamilyName    string   `json:"family_name"`
+		Picture       string   `json:"picture"`
+		Email         string   `json:"email"`
+		EmailVerified flexBool `json:"email_verified"`
 	}
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal linkedin user info")
-		return nil, fmt.Errorf("failed to parse linkedin user info: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to parse linkedin user info: %s", err.Error())
 	}
 
 	// `email` is documented as optional - it is only present when the member
@@ -843,7 +1048,7 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	// than a synthetic-email fallback.
 	if userRawData.Email == "" {
 		log.Debug().Msg("LinkedIn user info has no email")
-		return nil, fmt.Errorf("failed to extract email from linkedin response")
+		return nil, false, fmt.Errorf("failed to extract email from linkedin response")
 	}
 
 	user := &schemas.User{
@@ -853,29 +1058,29 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		Email:      &userRawData.Email,
 	}
 
-	return user, nil
+	return user, bool(userRawData.EmailVerified), nil
 }
 
-func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, appleUser *AppleUserInfo) (*schemas.User, error) {
+func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, appleUser *AppleUserInfo) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processAppleUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodApple)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
 	var user = &schemas.User{}
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
+		return user, false, fmt.Errorf("invalid apple exchange code: %s", err.Error())
 	}
 
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
-		return user, fmt.Errorf("unable to extract id_token")
+		return user, false, fmt.Errorf("unable to extract id_token")
 	}
 
 	// Verify the Apple ID token signature, issuer, and audience using OIDC discovery
@@ -886,33 +1091,38 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, apple
 	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Apple OIDC provider")
-		return user, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+		return user, false, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
 	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.AppleClientID})
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to verify Apple ID Token")
-		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return user, false, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
 	claims := make(map[string]interface{})
 	if err := idToken.Claims(&claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse Apple ID Token claims")
-		return user, fmt.Errorf("failed to parse claims: %s", err.Error())
+		return user, false, fmt.Errorf("failed to parse claims: %s", err.Error())
 	}
 
 	if val, ok := claims["email"]; !ok || val == nil {
 		log.Debug().Msg("Failed to extract email from claims.")
-		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
+		return user, false, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
 	} else {
 		email, _ := val.(string)
 		user.Email = &email
 	}
 
+	// Apple documents `email_verified` as "a string or Boolean value", so it
+	// arrives as either true or "true" — claimTruthy accepts both. Absent means
+	// unverified.
+	emailVerified := claimTruthy(claims["email_verified"])
+
 	user.GivenName = &appleUser.Name.FirstName
 	user.FamilyName = &appleUser.Name.LastName
 
-	return user, nil
+	return user, emailVerified, nil
 }
 
 // processDiscordUserInfo exchanges the Discord OAuth code for the user's
@@ -929,17 +1139,17 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, apple
 // creating a duplicate account - the same fallback discipline
 // processTwitterUserInfo uses above for X, which never returns a real email
 // at all.
-func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processDiscordUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodDiscord)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid discord exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid discord exchange code: %s", err.Error())
 	}
 
 	userInfoURL := constants.DiscordUserInfoURL
@@ -950,7 +1160,7 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Discord user info request")
-		return nil, fmt.Errorf("error creating Discord user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating Discord user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -959,19 +1169,19 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to request Discord user info")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read Discord user info response body")
-		return nil, fmt.Errorf("failed to read Discord response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read Discord response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Msg("Failed to request Discord user info")
-		return nil, fmt.Errorf("failed to request Discord user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request Discord user info: %s", string(body))
 	}
 
 	// Unmarshal the response body into a map. GET /users/@me returns a flat
@@ -980,19 +1190,19 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	userRawData := make(map[string]interface{})
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal Discord response")
-		return nil, fmt.Errorf("failed to unmarshal Discord response: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to unmarshal Discord response: %s", err.Error())
 	}
 
 	// Extract the username
 	firstName, ok := userRawData["username"].(string)
 	if !ok {
 		log.Debug().Err(err).Msg("Username is not in expected format or missing in user data")
-		return nil, fmt.Errorf("username is not in expected format or missing in user data")
+		return nil, false, fmt.Errorf("username is not in expected format or missing in user data")
 	}
 	discordID, ok := userRawData["id"].(string)
 	if !ok || discordID == "" {
 		log.Debug().Msg("Discord user info missing id")
-		return nil, fmt.Errorf("discord response missing id field")
+		return nil, false, fmt.Errorf("discord response missing id field")
 	}
 	// `avatar` is nullable (?string in Discord's user object) for accounts on
 	// the default avatar - building the CDN URL from an empty hash yields a
@@ -1003,6 +1213,14 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 	}
 
 	email := resolveDiscordEmail(discordID, userRawData)
+	// GET /users/@me carries a `verified` flag for the account's email. The
+	// synthetic fallback is trusted by construction: it lives on a reserved
+	// non-routable domain keyed by Discord's permanent id, so it can never
+	// collide with an address a real person could prove they own.
+	emailVerified := claimTruthy(userRawData["verified"])
+	if email == discordSyntheticEmail(discordID) {
+		emailVerified = true
+	}
 
 	user := &schemas.User{
 		GivenName: &firstName,
@@ -1010,7 +1228,7 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		Email:     &email,
 	}
 
-	return user, nil
+	return user, emailVerified, nil
 }
 
 // resolveDiscordEmail prefers the real email Discord returns; falls back to
@@ -1040,18 +1258,18 @@ func discordSyntheticEmail(discordID string) string {
 // returning Twitter user instead of creating a duplicate account on every
 // login. Operators who opt into X's `users.email` scope + app permission get
 // a real confirmed_email instead (see TwitterUserInfoURL's doc comment).
-func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
+func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processTwitterUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitter)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
 	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
 	}
 
 	userInfoURL := constants.TwitterUserInfoURL
@@ -1062,7 +1280,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create Twitter user info request")
-		return nil, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -1071,30 +1289,30 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to request Twitter user info")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read Twitter user info response body")
-		return nil, fmt.Errorf("failed to read Twitter response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read Twitter response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request Twitter user info")
-		return nil, fmt.Errorf("failed to request Twitter user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request Twitter user info: %s", string(body))
 	}
 
 	responseRawData := make(map[string]interface{})
 	if err := json.Unmarshal(body, &responseRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal twitter user info")
-		return nil, fmt.Errorf("failed to parse twitter user info: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to parse twitter user info: %s", err.Error())
 	}
 
 	userRawData, ok := responseRawData["data"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("twitter response missing data field")
+		return nil, false, fmt.Errorf("twitter response missing data field")
 	}
 
 	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
@@ -1113,7 +1331,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	twitterID, ok := userRawData["id"].(string)
 	if !ok || twitterID == "" {
 		log.Debug().Msg("Twitter user info missing id")
-		return nil, fmt.Errorf("twitter response missing id field")
+		return nil, false, fmt.Errorf("twitter response missing id field")
 	}
 
 	// Currently Twitter API only provides the full name of a user. To fill givenName and familyName
@@ -1131,6 +1349,12 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	profilePicture, _ := userRawData["profile_image_url"].(string)
 
 	email := resolveTwitterEmail(twitterID, userRawData)
+	// X only returns `confirmed_email` to apps granted the `users.email` scope
+	// plus the app-dashboard permission, and the name says it: X has confirmed
+	// it. The synthetic fallback is trusted by construction — a reserved
+	// non-routable domain keyed by X's permanent numeric id, which no real
+	// mailbox can occupy.
+	emailVerified := true
 
 	user := &schemas.User{
 		Email:      &email,
@@ -1140,7 +1364,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 		Nickname:   &nickname,
 	}
 
-	return user, nil
+	return user, emailVerified, nil
 }
 
 // twitterSyntheticEmail derives a stable, non-routable synthetic email from
@@ -1165,17 +1389,17 @@ func resolveTwitterEmail(twitterID string, userRawData map[string]interface{}) s
 }
 
 // process microsoft user information
-func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processMicrosoftUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodMicrosoft)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
 	issuer := fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID)
 	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodMicrosoft); mockBase != "" {
@@ -1183,9 +1407,14 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 	}
 	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
-	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
+	// The multi-tenant discovery documents ("common"/"organizations"/
+	// "consumers") advertise a templated issuer containing {tenantid}, which
+	// never literally equals the `iss` of a real token, so go-oidc's built-in
+	// comparison cannot be used. Skipping it is not the same as not checking:
+	// validateMicrosoftTenant below reconstructs the expected issuer from the
+	// token's own `tid` and enforces it, plus the operator's tenant policy.
 	verifier := oidcProvider.Verifier(&oidc.Config{
 		ClientID:        h.MicrosoftClientID,
 		SkipIssuerCheck: true,
@@ -1194,43 +1423,123 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
-		return nil, fmt.Errorf("unable to extract id_token")
+		return nil, false, fmt.Errorf("unable to extract id_token")
 	}
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to verify ID Token")
-		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return nil, false, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 	claims := &oidcClaims{}
 	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
-		return nil, fmt.Errorf("unable to extract claims")
+		return nil, false, fmt.Errorf("unable to extract claims")
 	}
 
-	return claims.toUser(), nil
+	// The test double issues tokens from a stand-in issuer with no tenant
+	// model at all; tenant policy is meaningless there.
+	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodMicrosoft); mockBase != "" {
+		return claims.toUser(), bool(claims.EmailVerified), nil
+	}
+
+	tenantPinned, err := validateMicrosoftTenant(claims, h.MicrosoftTenantID, h.Config.MicrosoftAllowedTenants)
+	if err != nil {
+		log.Debug().Err(err).Str("tid", claims.TenantID).Msg("Microsoft tenant validation failed")
+		return nil, false, err
+	}
+
+	// Entra v2 ID tokens have no `email_verified` claim, and `email` is a
+	// mutable, unverified profile attribute any tenant admin can set to any
+	// string — including somebody else's address. Two signals make it
+	// trustworthy, and nothing else does:
+	//
+	//   - xms_edov ("email domain owner verified"), Microsoft's own attestation
+	//     that the token's tenant owns the email's domain. It is an optional
+	//     claim; operators enable it in the app registration.
+	//   - the tenant being pinned or allowlisted, which means the address can
+	//     only have come from a directory the operator already trusts.
+	//
+	// Without either, this is the nOAuth setup: an attacker registers a free
+	// Entra tenant, sets a user's `email` to the victim's address, and signs in.
+	return claims.toUser(), tenantPinned || bool(claims.XmsEdov), nil
+}
+
+// microsoftMultiTenantAliases are the Entra endpoint aliases that accept tokens
+// from tenants the operator has never heard of. Any other configured value is a
+// specific tenant (a GUID or a verified domain name) and is therefore pinned.
+var microsoftMultiTenantAliases = map[string]bool{
+	"common":        true,
+	"organizations": true,
+	"consumers":     true,
+}
+
+// validateMicrosoftTenant enforces the operator's tenant policy on a verified
+// Entra ID token and reports whether the originating tenant is one the operator
+// explicitly trusts.
+//
+// go-oidc has already checked the signature and that `aud` equals our client id
+// — neither of which constrains WHICH tenant minted the token, because the
+// multi-tenant endpoints sign with Microsoft's global keys. The tenant is the
+// only thing that does, so it is checked here:
+//
+//   - `iss` must be the issuer the token's own `tid` implies, so a token cannot
+//     claim one tenant in `iss` and another in `tid`;
+//   - a pinned `--microsoft-tenant-id` must match `tid` exactly;
+//   - a non-empty `--microsoft-allowed-tenants` must contain `tid`.
+//
+// Returns true when the tenant was pinned or allowlisted.
+func validateMicrosoftTenant(claims *oidcClaims, configuredTenant string, allowedTenants []string) (bool, error) {
+	tid := strings.TrimSpace(claims.TenantID)
+	if tid == "" {
+		return false, fmt.Errorf("microsoft id_token is missing the tid claim")
+	}
+	if expected := fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", tid); claims.Issuer != expected {
+		return false, fmt.Errorf("microsoft id_token issuer does not match its tenant")
+	}
+
+	if len(allowedTenants) > 0 {
+		if !utils.StringSliceContains(allowedTenants, tid) {
+			return false, fmt.Errorf("microsoft tenant is not allowed")
+		}
+		return true, nil
+	}
+
+	configuredTenant = strings.TrimSpace(configuredTenant)
+	if !microsoftMultiTenantAliases[strings.ToLower(configuredTenant)] {
+		// A specific tenant was configured: only that directory may sign in.
+		if !strings.EqualFold(configuredTenant, tid) {
+			return false, fmt.Errorf("microsoft id_token was issued by an unexpected tenant")
+		}
+		return true, nil
+	}
+
+	// Multi-tenant with no allowlist. The login is still permitted — this is a
+	// documented deployment mode — but the tenant is not trusted, so the caller
+	// must not treat the email as proof of anything.
+	return false, nil
 }
 
 // process twitch user information
-func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processTwitchUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitch)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid twitch exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid twitch exchange code: %s", err.Error())
 	}
 
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
-		return nil, fmt.Errorf("unable to extract id_token")
+		return nil, false, fmt.Errorf("unable to extract id_token")
 	}
 	issuer := "https://id.twitch.tv/oauth2"
 	if mockBase := h.TestOAuthBaseURL(constants.AuthRecipeMethodTwitch); mockBase != "" {
@@ -1239,7 +1548,7 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 	oidcProvider, err := getOIDCProvider(ctx, issuer)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create OIDC provider")
-		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to create oidc provider: %s", err.Error())
 	}
 	verifier := oidcProvider.Verifier(&oidc.Config{
 		ClientID:        h.TwitchClientID,
@@ -1250,32 +1559,35 @@ func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*sc
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to verify ID Token")
-		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return nil, false, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
 	claims := &oidcClaims{}
 	if err := idToken.Claims(claims); err != nil {
 		log.Debug().Err(err).Msg("Failed to parse ID Token claims")
-		return nil, fmt.Errorf("unable to extract claims")
+		return nil, false, fmt.Errorf("unable to extract claims")
 	}
 
-	return claims.toUser(), nil
+	// Twitch is single-issuer (SkipIssuerCheck above is harmless — signature
+	// and `aud` already pin the token to Twitch), and its ID token carries the
+	// standard `email_verified`.
+	return claims.toUser(), bool(claims.EmailVerified), nil
 }
 
 // process roblox user information
-func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*schemas.User, bool, error) {
 	log := h.Log.With().Str("func", "processRobloxUserInfo").Logger()
 	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodRoblox)
 	if err != nil {
 		log.Debug().Err(err).Msg("Error getting oauth config")
-		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+		return nil, false, fmt.Errorf("error getting oauth config: %s", err.Error())
 	}
 	// Roblox is a confidential client (client_secret set); PKCE is optional and
 	// no code_challenge is sent at login, so no code_verifier is replayed here.
 	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
-		return nil, fmt.Errorf("invalid roblox exchange code: %s", err.Error())
+		return nil, false, fmt.Errorf("invalid roblox exchange code: %s", err.Error())
 	}
 
 	userInfoURL := constants.RobloxUserInfoURL
@@ -1286,7 +1598,7 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create roblox user info request")
-		return nil, fmt.Errorf("error creating roblox user info request: %s", err.Error())
+		return nil, false, fmt.Errorf("error creating roblox user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -1295,25 +1607,25 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to request roblox user info")
-		return nil, err
+		return nil, false, err
 	}
 
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read roblox user info response body")
-		return nil, fmt.Errorf("failed to read roblox response body: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to read roblox response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to request roblox user info")
-		return nil, fmt.Errorf("failed to request roblox user info: %s", string(body))
+		return nil, false, fmt.Errorf("failed to request roblox user info: %s", string(body))
 	}
 
 	userRawData := make(map[string]interface{})
 	if err := json.Unmarshal(body, &userRawData); err != nil {
 		log.Debug().Err(err).Msg("Failed to unmarshal roblox user info")
-		return nil, fmt.Errorf("failed to parse roblox user info: %s", err.Error())
+		return nil, false, fmt.Errorf("failed to parse roblox user info: %s", err.Error())
 	}
 
 	firstName := ""
@@ -1329,6 +1641,14 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 	profilePicture, _ := userRawData["picture"].(string)
 	sub, _ := userRawData["sub"].(string)
 	email := resolveRobloxEmail(sub, userRawData)
+	// Roblox's userinfo is OIDC-standard, so a real address comes with
+	// `email_verified`. The synthetic fallback (the default config, which does
+	// not request the `email` scope) is trusted by construction: reserved
+	// non-routable domain keyed by the permanent `sub`.
+	emailVerified := claimTruthy(userRawData["email_verified"])
+	if sub != "" && email == robloxSyntheticEmail(sub) {
+		emailVerified = true
+	}
 	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
@@ -1337,7 +1657,7 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code string) (*sc
 		Email:      &email,
 	}
 
-	return user, nil
+	return user, emailVerified, nil
 }
 
 // resolveRobloxEmail prefers the real email Roblox returns; falls back to a

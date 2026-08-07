@@ -21,6 +21,8 @@ export default defineConfig({
         /sso-discovery\.spec\.ts/,
         /webauthn\.spec\.ts/,
         /magic-link\.spec\.ts/,
+        /email-verification-database\.spec\.ts/,
+        /email-verification-ui\.spec\.ts/,
         // Drives authorizer-replica-a/-b directly by absolute URL rather than
         // this project's baseURL; see the `replica` project below.
         /replica-shared-state\.spec\.ts/,
@@ -79,10 +81,25 @@ export default defineConfig({
       // docker-compose.yml for why those can't live on the shared
       // `authorizer` service.
       name: 'magic-link',
-      testMatch: /magic-link\.spec\.ts/,
+      // email-verification-database.spec.ts rides along here because this is
+      // the only instance with --enable-email-verification=true, which is what
+      // makes the pre-click "email_verified: false" state observable at all.
+      testMatch: [/magic-link\.spec\.ts/, /email-verification-database\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_MAGIC_LINK_BASE_URL || 'http://localhost:8083',
+      },
+    },
+    {
+      // Runs against authorizer-email-verify (docker-compose.yml) — the only
+      // instance combining basic-auth signup with --enable-email-verification,
+      // which is what makes the rendered "signup -> check your inbox -> click
+      // link" journey reachable at all. See that service's comment.
+      name: 'email-verify',
+      testMatch: /email-verification-ui\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.AUTHORIZER_EMAIL_VERIFY_BASE_URL || 'http://localhost:8086',
       },
     },
     {

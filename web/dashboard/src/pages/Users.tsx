@@ -13,7 +13,12 @@ import {
 	Search,
 } from 'lucide-react';
 import { UserDetailsQuery, AdminRolesQuery } from '../graphql/queries';
-import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
+import {
+	EnableAccess,
+	RevokeAccess,
+	UpdateUser,
+	ResendVerifyEmail,
+} from '../graphql/mutation';
 import { copyTextToClipboard, getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
@@ -178,16 +183,17 @@ export default function Users() {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
 
-	const userVerificationHandler = async (user: User) => {
-		const { id, email, phone_number } = user;
-		let params: Record<string, unknown> = {};
-		if (email) {
-			params = { id, email, email_verified: true };
-		}
-		if (phone_number) {
-			params = { id, phone_number, phone_number_verified: true };
-		}
-		const res = await client.mutation(UpdateUser, { params }).toPromise();
+	// Force-verify without touching the address itself. Deliberately does NOT
+	// send `email`/`phone_number`: those params drive the change-address flow in
+	// _update_user (which clears verification and mails a new link), and there is
+	// nothing to change here.
+	const markVerifiedHandler = async (
+		user: User,
+		field: 'email_verified' | 'phone_number_verified',
+	) => {
+		const res = await client
+			.mutation(UpdateUser, { params: { id: user.id, [field]: true } })
+			.toPromise();
 		if (res.error) {
 			toast.error(
 				getGraphQLErrorMessage(res.error, 'User verification failed'),
@@ -196,6 +202,27 @@ export default function Users() {
 			toast.success('User verification successful');
 		}
 		updateUserList();
+	};
+
+	// The other half of the operator toolkit: rather than asserting the address
+	// is good, mail the user a fresh link so they prove it themselves. Preferred
+	// when the admin has no independent reason to trust the address.
+	const resendVerificationHandler = async (user: User) => {
+		if (!user.email) {
+			return;
+		}
+		const res = await client
+			.mutation(ResendVerifyEmail, {
+				params: { email: user.email, identifier: 'basic_auth_signup' },
+			})
+			.toPromise();
+		if (res.error) {
+			toast.error(
+				getGraphQLErrorMessage(res.error, 'Failed to send verification email'),
+			);
+		} else {
+			toast.success('Verification email sent');
+		}
 	};
 
 	const updateAccessHandler = async (
@@ -415,14 +442,40 @@ export default function Users() {
 													</Button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
-													{!user.email_verified &&
-														!user.phone_number_verified && (
+													{/* Split per identifier: the combined item only
+													    appeared when BOTH were unverified, so a user with a
+													    verified phone but an unverified email had no way to
+													    get their email verified at all — and an unverified
+													    email now also blocks a federated login for that
+													    address. */}
+													{user.email && !user.email_verified && (
+														<>
 															<DropdownMenuItem
-																onClick={() => userVerificationHandler(user)}
+																onClick={() =>
+																	markVerifiedHandler(user, 'email_verified')
+																}
 															>
-																Verify User
+																Mark Email Verified
 															</DropdownMenuItem>
-														)}
+															<DropdownMenuItem
+																onClick={() => resendVerificationHandler(user)}
+															>
+																Resend Verification Email
+															</DropdownMenuItem>
+														</>
+													)}
+													{user.phone_number && !user.phone_number_verified && (
+														<DropdownMenuItem
+															onClick={() =>
+																markVerifiedHandler(
+																	user,
+																	'phone_number_verified',
+																)
+															}
+														>
+															Mark Phone Verified
+														</DropdownMenuItem>
+													)}
 													<EditUserModal
 														user={
 															rest as unknown as {

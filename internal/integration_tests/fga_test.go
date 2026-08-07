@@ -20,7 +20,6 @@ import (
 	fgaengine "github.com/authorizerdev/authorizer/internal/authorization/engine/openfga"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -168,7 +167,7 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 
 // setAdminCookie authenticates the current gin request as super admin.
 func setAdminCookie(t *testing.T, ts *testSetup) {
-	h, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	h, err := newAdminSessionToken(ts)
 	require.NoError(t, err)
 	ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 }

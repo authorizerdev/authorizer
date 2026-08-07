@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
@@ -48,7 +47,7 @@ func TestAddWebhookTest(t *testing.T) {
 	})
 
 	t.Run("should fail with blank event name", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -66,7 +65,7 @@ func TestAddWebhookTest(t *testing.T) {
 	})
 
 	t.Run("should fail with blank endpoint", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -84,7 +83,7 @@ func TestAddWebhookTest(t *testing.T) {
 	})
 
 	t.Run("should add webhook", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		// Use UserDeactivatedWebhookEvent to avoid data leakage from other tests

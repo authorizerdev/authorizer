@@ -248,6 +248,8 @@ func init() {
 	f.StringVar(&rootArgs.config.MicrosoftClientSecret, "microsoft-client-secret", "", "Client secret for Microsoft")
 	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", defaultMicrosoftTenantID, "Tenant ID for Microsoft")
 	f.StringSliceVar(&rootArgs.config.MicrosoftScopes, "microsoft-scopes", defaultMicrosoftScopes, "Scopes for Microsoft")
+	f.StringSliceVar(&rootArgs.config.MicrosoftAllowedTenants, "microsoft-allowed-tenants", nil, "Entra tenant IDs allowed to sign in when --microsoft-tenant-id is a multi-tenant alias (common/organizations/consumers). Empty allows any tenant, but an untrusted tenant's email will not link to an existing account")
+	f.BoolVar(&rootArgs.config.OAuthAllowUnverifiedProviderEmail, "oauth-allow-unverified-provider-email", false, "Compatibility escape hatch: let a social login whose provider did not attest the email address sign up or return to an account that same provider already owns. It still cannot cross into an account another credential owns. Prefer pinning --microsoft-tenant-id or enabling the xms_edov claim; see docs/email-verification-contract.md")
 	f.StringVar(&rootArgs.config.TwitchClientID, "twitch-client-id", "", "Client ID for Twitch")
 	f.StringVar(&rootArgs.config.TwitchClientSecret, "twitch-client-secret", "", "Client secret for Twitch")
 	f.StringSliceVar(&rootArgs.config.TwitchScopes, "twitch-scopes", defaultTwitchScopes, "Scopes for Twitch")
@@ -453,6 +455,26 @@ func runRoot(c *cobra.Command, args []string) {
 	// decision before enrolments exist and make the fix expensive.
 	if rootArgs.config.EncryptionKey == rootArgs.config.JWTSecret {
 		log.Warn().Msg("--encryption-key is not set and has fallen back to --jwt-secret. Secrets at rest (TOTP seeds, OTP digests) are keyed by the same value that signs tokens, so rotating --jwt-secret will lock out every enrolled TOTP user — there is no re-encryption path. Set a distinct --encryption-key now; doing it after users enrol requires them to re-enrol.")
+	}
+
+	// Email verification with no way to send email is an unrecoverable trap, not
+	// a degraded mode: signup creates the account unverified, the verification
+	// mail never leaves, and every self-service route out of that state (the
+	// signup link, resend-verification, the login email-OTP fallback) is the
+	// same mailbox. The user is stranded permanently, and an unverified account
+	// also blocks a federated login for the same address. Fail at boot, where
+	// the operator can see it, rather than silently per-user.
+	if rootArgs.config.EnableEmailVerification && !rootArgs.config.IsEmailServiceEnabled {
+		log.Fatal().Msg("--enable-email-verification=true requires a working email service, but SMTP is not configured. Users would be created unverified with no way to ever verify. Set --smtp-host, --smtp-port and --smtp-sender-email, or disable email verification.")
+	}
+
+	// The compatibility escape hatch for unattested federated emails. It is
+	// narrowed (an unattested address still cannot cross into an account another
+	// credential owns), but it leaves same-provider collisions open — two Entra
+	// tenants asserting one address. Warn every boot so it does not quietly
+	// become permanent.
+	if rootArgs.config.OAuthAllowUnverifiedProviderEmail {
+		log.Warn().Msg("--oauth-allow-unverified-provider-email is set: a social login whose provider does not attest the email address may still sign up or return to an account that same provider owns. Cross-credential takeover is still blocked, but two principals of the SAME provider (e.g. two Entra tenants) can collide on one address. Pin --microsoft-tenant-id, set --microsoft-allowed-tenants, or enable the xms_edov optional claim, then remove this flag. See docs/email-verification-contract.md.")
 	}
 
 	// Initialize prometheus metrics

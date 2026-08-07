@@ -53,6 +53,13 @@ func (p *provider) VerifyEmail(ctx context.Context, meta RequestMetadata, params
 		return nil, nil, InvalidArgument(`invalid verification token`)
 	}
 
+	// Purpose binding: only the email-verification family may complete here. A
+	// forgot-password token must not be redeemable for a session.
+	if !IsVerifyEmailPurpose(verificationRequest, claim) {
+		log.Debug().Str("identifier", verificationRequest.Identifier).Msg("Verification token used for the wrong purpose")
+		return nil, nil, InvalidArgument(`invalid verification token`)
+	}
+
 	email := claim["sub"].(string)
 	log.Debug().Str("email", email).Msg("Email verified successfully")
 	user, err := p.StorageProvider.GetUserByEmail(ctx, email)

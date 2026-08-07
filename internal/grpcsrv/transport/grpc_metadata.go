@@ -16,6 +16,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/service"
@@ -48,6 +49,19 @@ func MetaFromGRPC(ctx context.Context) service.RequestMetadata {
 	if meta.HostURL == "" {
 		if authority := firstHeader(md, ":authority"); authority != "" {
 			meta.HostURL = "http://" + authority
+		}
+	}
+	// Same story for the client address: a pure-gRPC caller sends no forwarded
+	// headers, which used to leave IPAddress empty. That is not merely a blank
+	// audit-log field — anything keyed on the client address (the admin-secret
+	// lockout in token/admin_lockout.go) collapses to ONE bucket shared by every
+	// gRPC caller, so a handful of wrong guesses locks out every admin client at
+	// once. peer.Addr is the connection's real remote address, which is both
+	// always present and, unlike the forwarded headers above, not something the
+	// caller can set.
+	if meta.IPAddress == "" {
+		if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
+			meta.IPAddress = pr.Addr.String()
 		}
 	}
 

@@ -174,14 +174,25 @@ func TestTOTPAtRest(t *testing.T) {
 		user := mkUser(t)
 		authConfig, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
 		require.NoError(t, err)
+		// Two validations from DIFFERENT time-steps: passcodes are single-use
+		// now (RFC 6238 §5.2), so replaying one is refused by design. Skew 1
+		// accepts t and t+1, so both of these are valid codes.
 		code, err := totp.GenerateCode(authConfig.Secret, time.Now())
 		require.NoError(t, err)
 		ok1, err := ts.AuthenticatorProvider.Validate(ctx, code, user.ID)
 		require.NoError(t, err)
 		require.True(t, ok1)
-		ok2, err := ts.AuthenticatorProvider.Validate(ctx, code, user.ID)
+		nextCode, err := totp.GenerateCode(authConfig.Secret, time.Now().Add(30*time.Second))
+		require.NoError(t, err)
+		ok2, err := ts.AuthenticatorProvider.Validate(ctx, nextCode, user.ID)
 		require.NoError(t, err)
 		require.True(t, ok2)
+
+		// And the replay itself is refused — the property the single-use
+		// reservation exists for.
+		replayed, err := ts.AuthenticatorProvider.Validate(ctx, code, user.ID)
+		require.NoError(t, err)
+		require.False(t, replayed, "a TOTP passcode must not validate twice")
 	})
 
 	t.Run("Validate is idempotent on already-encrypted rows", func(t *testing.T) {

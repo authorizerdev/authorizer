@@ -27,7 +27,7 @@ test.describe('Social login — Apple', () => {
       // Authorizer's ctx.Request.FormValue("user") resolves identically to a
       // POST body. Email still comes off the id_token, matching Apple's real
       // private relay pattern.
-      profile: { sub: `apple-${crypto.randomUUID()}`, email, given_name: 'Alan', family_name: 'Turing' },
+      profile: { sub: `apple-${crypto.randomUUID()}`, email, email_verified: true, given_name: 'Alan', family_name: 'Turing' },
       expectedEmail: email,
     });
 
@@ -66,7 +66,7 @@ test.describe('Social login — Apple', () => {
     await runSocialLoginHappyPath(page, request, {
       provider: 'apple',
       buttonName: /apple/i,
-      profile: { sub: `apple-${crypto.randomUUID()}`, email, given_name: 'Grace', family_name: 'Hopper' },
+      profile: { sub: `apple-${crypto.randomUUID()}`, email, email_verified: true, given_name: 'Grace', family_name: 'Hopper' },
       expectedEmail: email,
     });
 

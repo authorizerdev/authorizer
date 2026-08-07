@@ -3,6 +3,8 @@ package totp
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"image/png"
@@ -28,6 +30,13 @@ const (
 	// totpPendingSecretTTLSeconds bounds how long a generated-but-unconfirmed
 	// secret lingers before the user must restart the re-setup.
 	totpPendingSecretTTLSeconds = 10 * 60
+	// totpUsedPasscodePrefix namespaces the single-use claim on an already
+	// redeemed TOTP passcode. See reserveTOTPPasscode.
+	totpUsedPasscodePrefix = "totp_used:"
+	// totpPasscodeReuseWindowSeconds must cover every time-step totp.Validate
+	// will accept — Period 30 with Skew 1 spans three steps — so a redeemed
+	// code stays claimed for as long as it would otherwise still validate.
+	totpPasscodeReuseWindowSeconds = 90
 )
 
 // pendingTOTPSecret is the memory-store payload for a re-enrollment awaiting
@@ -41,6 +50,33 @@ type pendingTOTPSecret struct {
 
 func totpPendingSecretKey(userID string) string {
 	return totpPendingSecretPrefix + userID
+}
+
+// reserveTOTPPasscode atomically claims a (user, passcode) pair for one use and
+// reports whether this caller won the claim. A second redemption of the same
+// code inside its acceptance window loses and must be rejected.
+//
+// Keyed on the passcode rather than the matched time-step because
+// totp.Validate does not report which step matched, and a step derived from
+// the wall clock at redemption time would let the same code be replayed under a
+// different step number a few seconds later — the exact replay this closes. The
+// key is a digest, not the code itself, so a store dump yields nothing
+// redeemable. TTL covers the full window Validate will accept (Period 30,
+// Skew 1 → three steps).
+//
+// Fails open on a store fault or an unconfigured store: an outage must not
+// lock every enrolled user out of their account.
+func (p *provider) reserveTOTPPasscode(userID, passcode string) bool {
+	if p.deps.MemoryStoreProvider == nil {
+		return true
+	}
+	sum := sha256.Sum256([]byte(userID + ":" + passcode))
+	key := totpUsedPasscodePrefix + hex.EncodeToString(sum[:])
+	claimed, err := p.deps.MemoryStoreProvider.SetCacheNX(key, "1", totpPasscodeReuseWindowSeconds)
+	if err != nil {
+		return true
+	}
+	return claimed
 }
 
 // promotePendingSecret checks whether a pending (unconfirmed) re-enrollment
@@ -276,6 +312,17 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	if !status {
 		// Wrong code. Don't bother with VerifiedAt or migration —
 		// nothing about the row should change on a failed login.
+		return false, nil
+	}
+
+	// RFC 6238 §5.2: "the verifier MUST NOT accept the second attempt of the
+	// same OTP". pquerna/otp is stateless — totp.Validate runs ValidateCustom
+	// with Period 30 / Skew 1, matching against three time-steps and keeping no
+	// record of what it accepted — so a code captured by a phishing proxy or a
+	// single intercepted submission stays replayable for the whole ~90s window.
+	// Email/SMS OTP is already single-use; TOTP was the outlier.
+	if !p.reserveTOTPPasscode(userID, passcode) {
+		log.Debug().Msg("totp passcode replayed within its validity window")
 		return false, nil
 	}
 

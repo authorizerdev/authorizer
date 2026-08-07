@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +39,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("should list users with admin auth", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
@@ -52,7 +51,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("should support pagination", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
@@ -70,7 +69,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("should filter users by case-insensitive search query", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

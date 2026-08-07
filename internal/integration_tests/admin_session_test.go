@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +30,7 @@ func TestAdminSession(t *testing.T) {
 		_, err := ts.GraphQLProvider.AdminLogin(ctx, adminLoginReq)
 		require.NoError(t, err)
 
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

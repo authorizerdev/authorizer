@@ -38,13 +38,17 @@ function defaultProfile(provider: string): Record<string, unknown> {
       // (processDiscordUserInfo, internal/http_handlers/oauth_callback.go,
       // reads id/username/avatar/email directly - no "user" wrapper, that
       // was /oauth2/@me's shape, which never includes email).
-      return { id: '123', username: 'mockuser', avatar: 'abc', email };
+      // `verified` is Discord's email-confirmation flag; Authorizer refuses to
+      // resolve a local account from an address the provider hasn't attested.
+      return { id: '123', username: 'mockuser', avatar: 'abc', email, verified: true };
     case 'twitter':
       return { data: { id: '123', name: 'Mock User', username: 'mockuser', profile_image_url: 'https://example.com/a.png' } };
     case 'roblox':
-      return { name: 'Mock User', nickname: 'mockuser', picture: 'https://example.com/a.png', email };
+      return { name: 'Mock User', nickname: 'mockuser', picture: 'https://example.com/a.png', email, email_verified: true };
     default:
-      return { sub: `mock-${provider}-sub`, email, given_name: 'Mock', family_name: 'User' };
+      // OIDC `email_verified` (Core §5.1). Google/Apple/Twitch/Microsoft all
+      // route through here, and the callback rejects an unattested address.
+      return { sub: `mock-${provider}-sub`, email, email_verified: true, given_name: 'Mock', family_name: 'User' };
   }
 }
 

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestEnableAccessUser(t *testing.T) {
 	})
 
 	t.Run("should fail with blank userid", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -52,7 +51,7 @@ func TestEnableAccessUser(t *testing.T) {
 	})
 
 	t.Run("should fail with unknown userid", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -63,7 +62,7 @@ func TestEnableAccessUser(t *testing.T) {
 	})
 
 	t.Run("should enable access user", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))

@@ -32,6 +32,35 @@ import (
 // ops visibility.
 const loginGenericErrMsg = "invalid credentials"
 
+const (
+	// loginMaxFailedAttempts / loginLockoutWindowSeconds bound how many wrong
+	// passwords a single account will accept before the password compare stops
+	// running at all. The global per-IP rate limiter does not help here: an
+	// attacker guessing one victim's password rotates source IPs (an IPv6 /64,
+	// a botnet, open proxies) and faces no per-account cap at all. Values match
+	// the TOTP/OTP lockout (verify_otp.go) so a user sees one consistent policy
+	// across every credential.
+	//
+	// The trade-off this makes, stated plainly rather than wished away: ANY
+	// per-account lockout is a denial of service against that account, and this
+	// one is keyed on user id but reachable by anyone who knows the email. Six
+	// wrong guesses lock the account, and because IncrementCache refreshes the
+	// TTL on every attempt the window slides — an attacker spending one request
+	// every few minutes keeps a victim locked out indefinitely. The window is
+	// kept short so a real user recovers quickly on their own, and it is the
+	// same policy verify_otp.go applies, so a user sees one consistent rule
+	// across every credential. Removing the DoS entirely needs something this
+	// lockout is not (progressive delay, or throttling the source rather than
+	// the account); until then, blocking the password brute force is judged the
+	// better of the two exposures.
+	loginMaxFailedAttempts    = 5
+	loginLockoutWindowSeconds = 15 * 60
+	// loginLockoutCachePrefix namespaces the per-user counter, keyed by user
+	// id (never by email) so the counter itself cannot be used to probe which
+	// addresses are registered.
+	loginLockoutCachePrefix = "login_failed_attempts:"
+)
+
 // mfaScopeKey namespaces the requested scope carried across an MFA
 // interruption, keyed by the MFA session id so it expires with it.
 func mfaScopeKey(mfaSession string) string {
@@ -315,6 +344,25 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			}
 		}
 	}
+	// Per-account lockout: atomically reserve this attempt's slot BEFORE the
+	// password compare, then check whether it exceeded the budget. Deliberately
+	// increment-then-check, exactly as verify_otp.go documents: IncrementCache
+	// hands out strictly increasing unique counts under concurrency, so at most
+	// loginMaxFailedAttempts requests can ever reach the compare in a window no
+	// matter how many arrive at once. Check-then-increment would let arbitrarily
+	// many parallel requests read the same pre-increment count and all pass,
+	// parallelizing the brute force this exists to stop.
+	loginLockKey := loginLockoutCachePrefix + user.ID
+	if attempts, incErr := p.MemoryStoreProvider.IncrementCache(loginLockKey, loginLockoutWindowSeconds); incErr != nil {
+		// A memory-store fault must not be counted as a user failure or lock a
+		// legitimate user out during an outage — same fail-open stance as the
+		// OTP path.
+		log.Debug().Err(incErr).Msg("Failed to increment login failed-attempt counter")
+	} else if attempts > loginMaxFailedAttempts {
+		metrics.RecordSecurityEvent("login_locked", "login")
+		log.Warn().Int64("attempts", attempts).Str("ip", meta.IPAddress).Msg("Login locked: too many failed attempts")
+		return nil, nil, TooManyRequests(`too many failed attempts, please try again later`)
+	}
 	if user.Password == nil {
 		// A basic_auth user with no stored hash (e.g. a pre-fix Couchbase
 		// record that never persisted one) must fail the same way as a
@@ -339,6 +387,12 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			UserAgent:    meta.UserAgent,
 		})
 		return nil, nil, Unauthenticated(loginGenericErrMsg)
+	}
+	// The password is proved: clear the counter so a legitimate user who
+	// mistyped a few times starts fresh. Any MFA factor below carries its own
+	// independent lockout.
+	if cErr := p.MemoryStoreProvider.DeleteCacheByPrefix(loginLockKey); cErr != nil {
+		log.Debug().Err(cErr).Msg("Failed to reset login failed-attempt counter")
 	}
 	roles := p.Config.DefaultRoles
 	currentRoles := strings.Split(user.Roles, ",")

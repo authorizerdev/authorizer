@@ -17,7 +17,7 @@ test.describe('Social login — Discord', () => {
     await runSocialLoginHappyPath(page, request, {
       provider: 'discord',
       buttonName: /discord/i,
-      profile: { id: discordId, username: 'gracehopper', avatar: 'abc123', email },
+      profile: { id: discordId, username: 'gracehopper', avatar: 'abc123', email, verified: true },
       expectedEmail: email,
     });
 

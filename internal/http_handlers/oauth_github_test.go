@@ -93,7 +93,7 @@ func TestProcessGithubUserInfo_MixedTypePayload(t *testing.T) {
 	server := newGithubTestServer(t, githubProfile("ada@example.com"), nil)
 	h := newGithubTestHTTPProvider(t, server.URL)
 
-	user, err := h.processGithubUserInfo(testGinContext(), "code")
+	user, _, err := h.processGithubUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -116,7 +116,7 @@ func TestProcessGithubUserInfo_NullEmailFallsBackToEmailsEndpoint(t *testing.T) 
 	})
 	h := newGithubTestHTTPProvider(t, server.URL)
 
-	user, err := h.processGithubUserInfo(testGinContext(), "code")
+	user, _, err := h.processGithubUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)

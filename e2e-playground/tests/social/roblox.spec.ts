@@ -14,7 +14,7 @@ test.describe('Social login — Roblox', () => {
     await runSocialLoginHappyPath(page, request, {
       provider: 'roblox',
       buttonName: /roblox/i,
-      profile: { name: 'Ada Lovelace', nickname: 'ada', picture: 'https://example.com/a.png', email },
+      profile: { name: 'Ada Lovelace', nickname: 'ada', picture: 'https://example.com/a.png', email, email_verified: true },
       expectedEmail: email,
     });
 

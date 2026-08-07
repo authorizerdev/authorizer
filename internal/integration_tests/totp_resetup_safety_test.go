@@ -46,7 +46,11 @@ func TestTOTPResetupDoesNotDesyncUntilConfirmed(t *testing.T) {
 	// Initial enrollment + confirmation → row is verified with secret #1.
 	enroll1, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
 	require.NoError(t, err)
-	code1, err := totp.GenerateCode(enroll1.Secret, time.Now())
+	// Each passcode is single-use now (RFC 6238 §5.2), so every Validate below
+	// draws from a DIFFERENT time-step. totp.Validate accepts t-1, t and t+1
+	// (Period 30, Skew 1), which is exactly three distinct codes per secret.
+	stepBack, stepNow, stepFwd := time.Now().Add(-30*time.Second), time.Now(), time.Now().Add(30*time.Second)
+	code1, err := totp.GenerateCode(enroll1.Secret, stepBack)
 	require.NoError(t, err)
 	ok, err := ts.AuthenticatorProvider.Validate(ctx, code1, user.ID)
 	require.NoError(t, err)
@@ -62,7 +66,7 @@ func TestTOTPResetupDoesNotDesyncUntilConfirmed(t *testing.T) {
 	assert.Equal(t, liveSecret, getRow().Secret, "re-setup must NOT overwrite the live secret before confirmation")
 
 	// The previously-working authenticator must keep validating.
-	oldCode, err := totp.GenerateCode(enroll1.Secret, time.Now())
+	oldCode, err := totp.GenerateCode(enroll1.Secret, stepNow)
 	require.NoError(t, err)
 	ok, err = ts.AuthenticatorProvider.Validate(ctx, oldCode, user.ID)
 	require.NoError(t, err)
@@ -70,7 +74,7 @@ func TestTOTPResetupDoesNotDesyncUntilConfirmed(t *testing.T) {
 	assert.Equal(t, liveSecret, getRow().Secret, "validating the old code must not promote the pending secret")
 
 	// Confirm the new code → the pending secret is promoted to the live row.
-	newCode, err := totp.GenerateCode(enroll2.Secret, time.Now())
+	newCode, err := totp.GenerateCode(enroll2.Secret, stepNow)
 	require.NoError(t, err)
 	ok, err = ts.AuthenticatorProvider.Validate(ctx, newCode, user.ID)
 	require.NoError(t, err)
@@ -78,12 +82,12 @@ func TestTOTPResetupDoesNotDesyncUntilConfirmed(t *testing.T) {
 	assert.NotEqual(t, liveSecret, getRow().Secret, "after confirmation the new secret must be live")
 
 	// The old secret must no longer validate; the new one must.
-	oldCodeAfter, err := totp.GenerateCode(enroll1.Secret, time.Now())
+	oldCodeAfter, err := totp.GenerateCode(enroll1.Secret, stepFwd)
 	require.NoError(t, err)
 	ok, _ = ts.AuthenticatorProvider.Validate(ctx, oldCodeAfter, user.ID)
 	assert.False(t, ok, "after promotion the old secret must no longer validate")
 
-	newCodeAfter, err := totp.GenerateCode(enroll2.Secret, time.Now())
+	newCodeAfter, err := totp.GenerateCode(enroll2.Secret, stepFwd)
 	require.NoError(t, err)
 	ok, err = ts.AuthenticatorProvider.Validate(ctx, newCodeAfter, user.ID)
 	require.NoError(t, err)

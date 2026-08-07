@@ -30,6 +30,14 @@ export const UpdateUser = `
   }
 `;
 
+export const ResendVerifyEmail = `
+  mutation resendVerifyEmail($params: ResendVerifyEmailRequest!) {
+    resend_verify_email(params: $params) {
+      message
+    }
+  }
+`;
+
 export const DeleteUser = `
   mutation deleteUser($params: DeleteUserRequest!) {
     _delete_user(params: $params) {

@@ -84,7 +84,7 @@ func TestProcessDiscordUserInfo_RealEmailUsed(t *testing.T) {
 	server := newDiscordTestServer(t, discordProfile("42", "gracehopper", "abc123", "grace@example.com"))
 	h := newDiscordTestHTTPProvider(t, server.URL)
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -104,7 +104,7 @@ func TestProcessDiscordUserInfo_AbsentEmailFallsBackToSynthetic(t *testing.T) {
 	server := newDiscordTestServer(t, discordProfile("42", "gracehopper", "abc123", ""))
 	h := newDiscordTestHTTPProvider(t, server.URL)
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.Email)
@@ -121,9 +121,9 @@ func TestProcessDiscordUserInfo_SameIDYieldsSameEmailAcrossLogins(t *testing.T) 
 	server := newDiscordTestServer(t, profile)
 	h := newDiscordTestHTTPProvider(t, server.URL)
 
-	user1, err := h.processDiscordUserInfo(testGinContext(), "code-1")
+	user1, _, err := h.processDiscordUserInfo(testGinContext(), "code-1")
 	require.NoError(t, err)
-	user2, err := h.processDiscordUserInfo(testGinContext(), "code-2")
+	user2, _, err := h.processDiscordUserInfo(testGinContext(), "code-2")
 	require.NoError(t, err)
 
 	require.NotNil(t, user1.Email)
@@ -145,7 +145,7 @@ func TestProcessDiscordUserInfo_MissingID_ReturnsError(t *testing.T) {
 	server := newDiscordTestServer(t, profile)
 	h := newDiscordTestHTTPProvider(t, server.URL)
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	assert.Error(t, err)
 	assert.Nil(t, user)
 }
@@ -157,7 +157,7 @@ func TestProcessDiscordUserInfo_GivenNameAndPictureMapping(t *testing.T) {
 	server := newDiscordTestServer(t, discordProfile("99", "gracehopper", "xyz789", "grace@example.com"))
 	h := newDiscordTestHTTPProvider(t, server.URL)
 
-	user, err := h.processDiscordUserInfo(testGinContext(), "code")
+	user, _, err := h.processDiscordUserInfo(testGinContext(), "code")
 	require.NoError(t, err)
 
 	require.NotNil(t, user.GivenName)

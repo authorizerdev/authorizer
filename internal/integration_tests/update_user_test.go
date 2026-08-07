@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
@@ -45,7 +44,7 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("should update user", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -57,7 +56,7 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("should reject duplicate phone number", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		require.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 

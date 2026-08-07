@@ -254,6 +254,54 @@ services:
       timeout: 2s
       retries: 30
 
+  # authorizer-email-verify is the only instance combining basic-auth signup with
+  # --enable-email-verification=true. It exists because those two cannot coexist
+  # anywhere else: the shared `authorizer` service has verification OFF (dozens of
+  # specs rely on signup returning a session immediately), and both magic-link
+  # instances have it ON but also --enable-magic-link-login, which makes
+  # AuthorizerSignup hide the password form entirely (web/app renders no signup
+  # inputs at all). Without this service the rendered "signup -> check your inbox
+  # -> click link" journey — the user-facing half of the email-verification
+  # contract, see docs/email-verification-contract.md — is untestable through the UI.
+  authorizer-email-verify:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8080"
+    command:
+      - "--http-port=8080"
+      - "--url=http://authorizer-email-verify:8080"
+      - "--database-type=sqlite"
+      - "--database-url=/authorizer/e2e-test-email-verify.db"
+      - "--admin-secret=e2e-admin-secret"
+      - "--jwt-type=HS256"
+      - "--jwt-secret=e2e-jwt-secret-do-not-use-in-prod"
+      - "--client-id=e2e-client-id"
+      - "--client-secret=e2e-client-secret"
+      - "--enable-signup=true"
+      - "--enable-email-verification=true"
+      # Keeps the rendered signup form on the password path (magic link would
+      # replace it) and keeps a fresh signup off the MFA-offer screen, so the
+      # "check your inbox" assertion is not racing an interstitial.
+      - "--disable-mfa=true"
+      - "--app-cookie-secure=false"
+      - "--admin-cookie-secure=false"
+      - "--app-cookie-same-site=lax"
+      - "--allowed-origins=http://localhost:8086,http://authorizer-email-verify:8080"
+      - "--smtp-host=mailpit"
+      - "--smtp-port=1025"
+      - "--smtp-sender-email=e2e@authorizer.test"
+      - "--rate-limit-rps=1000"
+      - "--rate-limit-burst=1000"
+    depends_on:
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   # authorizer-mfa-enforced is a fifth instance solely for
   # tests/mfa-routing-matrix.spec.ts (the `mfa-on` project). EnforceMFA
   # turned out NOT to be a runtime-toggleable admin setting - Task 28
@@ -530,6 +578,7 @@ services:
       AUTHORIZER_SSO_BASE_URL: http://authorizer-sso:8080
       AUTHORIZER_WEBAUTHN_BASE_URL: http://webauthn.e2e-playground.test:8080
       AUTHORIZER_MAGIC_LINK_BASE_URL: http://authorizer-magic-link:8080
+      AUTHORIZER_EMAIL_VERIFY_BASE_URL: http://authorizer-email-verify:8080
       AUTHORIZER_MFA_ENFORCED_BASE_URL: http://authorizer-mfa-enforced:8080
       AUTHORIZER_MFA_MAGIC_LINK_BASE_URL: http://authorizer-mfa-magic-link:8080
       # Two replicas of ONE deployment over a shared Postgres — see the
@@ -553,6 +602,7 @@ services:
       authorizer-sso: { condition: service_healthy }
       authorizer-webauthn: { condition: service_healthy }
       authorizer-magic-link: { condition: service_healthy }
+      authorizer-email-verify: { condition: service_healthy }
       authorizer-mfa-enforced: { condition: service_healthy }
       authorizer-mfa-magic-link: { condition: service_healthy }
       authorizer-replica-a: { condition: service_healthy }

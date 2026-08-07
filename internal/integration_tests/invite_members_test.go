@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +43,7 @@ func TestInviteMembersUser(t *testing.T) {
 	})
 
 	t.Run("should fail to invite user as email sending is disabled", func(t *testing.T) {
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -59,7 +58,7 @@ func TestInviteMembersUser(t *testing.T) {
 		cfg.IsEmailServiceEnabled = true
 		cfg.EnableBasicAuthentication = true
 		cfg.EnableMagicLinkLogin = true
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
@@ -74,7 +73,7 @@ func TestInviteMembersUser(t *testing.T) {
 		cfg.IsEmailServiceEnabled = true
 		cfg.EnableBasicAuthentication = true
 		cfg.EnableMagicLinkLogin = true
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		h, err := newAdminSessionToken(ts)
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))

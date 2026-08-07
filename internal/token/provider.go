@@ -51,8 +51,22 @@ type Provider interface {
 	CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error)
 	// CreateVerificationToken creates a verification token
 	CreateVerificationToken(authTokenConfig *AuthTokenConfig, redirectURL string, tokenType string) (string, error)
-	// GetAd
+	// GetAdminAuthToken returns the caller's live admin session handle, or an
+	// error if the cookie is absent, unknown, expired, or revoked.
 	GetAdminAuthToken(gc *gin.Context) (string, error)
+	// NewAdminSession mints a server-side admin session and returns the opaque
+	// cookie handle. See admin_session.go for why the cookie is a handle rather
+	// than a hash of the admin secret.
+	NewAdminSession() (string, error)
+	// RefreshAdminSession extends a live admin session's absolute TTL.
+	RefreshAdminSession(sessionID string) error
+	// RevokeAdminSession invalidates an admin session server-side, so logout
+	// actually ends it even for a cookie copy someone else holds.
+	RevokeAdminSession(sessionID string) error
+	// VerifyAdminSecret is the single throttled gate for every admin-secret
+	// comparison. Returns (valid, locked); a locked caller never reaches the
+	// comparison.
+	VerifyAdminSecret(clientIP, candidate string) (valid bool, locked bool)
 	// GetAccessToken gets access token from request
 	GetAccessToken(gc *gin.Context) (string, error)
 	// GetIDToken gets id token from request

@@ -14,7 +14,7 @@ test.describe('Social login — Microsoft', () => {
       // profile is signed into a real id_token (server.ts), and
       // processMicrosoftUserInfo (internal/http_handlers/oauth_callback.go)
       // reads given_name/family_name/email/sub straight off its claims.
-      profile: { sub: `microsoft-${crypto.randomUUID()}`, email, given_name: 'Katherine', family_name: 'Johnson' },
+      profile: { sub: `microsoft-${crypto.randomUUID()}`, email, email_verified: true, given_name: 'Katherine', family_name: 'Johnson' },
       expectedEmail: email,
     });
 
