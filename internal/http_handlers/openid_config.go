@@ -6,6 +6,22 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
+// supportedScopes is the scope list this deployment honours, advertised by BOTH
+// discovery documents: OIDC/RFC 8414 authorization server metadata and RFC 9728
+// protected resource metadata.
+//
+// One list, because a client picks the scopes it requests from whichever
+// document it read. A protected-resource document that omitted `offline_access`
+// while the authorization server advertised it would send MCP clients into a
+// flow that returns no refresh token, and the agent's session would die at
+// access-token expiry with a 401 that looks like a broken integration.
+//
+// "phone" is advertised because phone_number/phone_number_verified are real,
+// populated claims (see claims_supported). "address" is deliberately omitted —
+// the User schema has no address fields, so claiming it would be false
+// advertising.
+var supportedScopes = []string{"openid", "email", "profile", "phone", "offline_access"}
+
 // OpenIDConfigurationHandler handler for open-id configurations
 // Implements OpenID Connect Discovery 1.0
 func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
@@ -53,14 +69,9 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":    issuer + "/oauth/token",
-			"userinfo_endpoint": issuer + "/userinfo",
-			// "phone" is advertised because phone_number/phone_number_verified
-			// are real, populated claims (see claims_supported below). "address"
-			// is deliberately omitted — the User schema has no address fields
-			// (street_address/locality/region/postal_code/country), so claiming
-			// support for it would be false advertising.
-			"scopes_supported":         []string{"openid", "email", "profile", "phone", "offline_access"},
+			"token_endpoint":           issuer + "/oauth/token",
+			"userinfo_endpoint":        issuer + "/userinfo",
+			"scopes_supported":         supportedScopes,
 			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
 			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
 			"grant_types_supported":    grantTypes,

@@ -99,6 +99,22 @@ func (s *server) NewRouter() *gin.Engine {
 	// so serve the same handler as a thin alias (cheap interop win).
 	router.GET("/.well-known/oauth-authorization-server", s.Dependencies.HTTPProvider.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", s.Dependencies.HTTPProvider.JWKsHandler())
+	// RFC 9728 OAuth 2.0 Protected Resource Metadata for the MCP surface.
+	// Registered only when MCP is enabled — advertising a protected resource that
+	// does not exist would send clients through a discovery chain ending in 404.
+	//
+	// ONE path, per RFC 9728 §3.1: the well-known segment is inserted between the
+	// host and the resource identifier's PATH, so this URL is the one that denotes
+	// "<url>/mcp". The bare /.well-known/oauth-protected-resource denotes the
+	// origin instead, and §3.3 has clients reject a document whose `resource` does
+	// not match the identifier they used — so serving it there as well would hand
+	// strict clients a mismatch. Discovery reaches this URL through the
+	// `WWW-Authenticate: Bearer resource_metadata="…"` header on /mcp's 401, which
+	// §5.1 defines as the primary mechanism.
+	if s.Dependencies.AppConfig != nil && s.Dependencies.AppConfig.MCPEnabled {
+		router.GET("/.well-known/oauth-protected-resource/mcp",
+			s.Dependencies.HTTPProvider.ProtectedResourceMetadataHandler())
+	}
 	// RFC 6749 §3.1 / OIDC Core §3.1.2.1: the authorization endpoint MUST
 	// support GET and MAY support POST.
 	router.GET("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())

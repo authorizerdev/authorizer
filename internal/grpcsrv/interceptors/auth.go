@@ -44,9 +44,46 @@ var infrastructureServices = map[string]struct{}{
 
 var methodDescCache sync.Map // map[string]protoreflect.MethodDescriptor
 
+// TokenResolver turns a request into the caller's identity, or an error when the
+// request carries no credential this surface accepts. It is the single point at
+// which a gRPC server decides WHICH tokens authenticate it.
+//
+// The default (GetUserIDFromSessionOrAccessToken) accepts a browser session
+// cookie or a first-party bearer token, and rejects every resource-bound
+// audience. The MCP surface overrides it with MCPTokenResolver, which does the
+// exact opposite on the audience and drops the cookie path entirely. Because the
+// override is per-server rather than per-request, no token can cross between the
+// two surfaces — see MCPTokenResolver.
+type TokenResolver func(gc *gin.Context) (*token.SessionOrAccessTokenData, error)
+
 // Auth returns a unary interceptor that enforces proto-declared auth policy.
 // log may be nil (rejections are then only counted, not logged).
-func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
+//
+// resolve may be nil, in which case the caller's identity is resolved with
+// tp.GetUserIDFromSessionOrAccessToken and the cookie-based paths below stay
+// active — the behaviour every TCP-listening server uses.
+//
+// A non-nil resolve is the SOLE authority for that server. It replaces both
+// identity-resolution sites (the admin fallback and the public path) AND
+// disables the two paths that authenticate without consulting a resolver at all:
+// the super-admin check (an admin cookie or the x-authorizer-admin-secret
+// header) and the Session RPC's cookie-only branch.
+//
+// Disabling those is the point, not a side effect. A surface that declares its
+// own token rule — MCP, whose rule is "the audience must name this MCP server" —
+// must not be reachable with a credential that rule never saw. Leaving them
+// active meant the boundary held only because no cookie-authenticated method
+// happened to be mcp_tool-exposed, and transport.MetaFromGRPC reconstructs
+// cookies from gRPC metadata, so a bridge that forwarded headers wholesale would
+// have made a browser session authenticate a tool call on an internet-facing,
+// CSRF-exempt endpoint.
+func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.UnaryServerInterceptor {
+	resolverIsSoleAuthority := resolve != nil
+	if resolve == nil {
+		resolve = func(gc *gin.Context) (*token.SessionOrAccessTokenData, error) {
+			return tp.GetUserIDFromSessionOrAccessToken(gc)
+		}
+	}
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		methodDesc, ok := methodDescriptor(info.FullMethod)
 		if !ok {
@@ -81,8 +118,10 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 
 		if serviceName == adminServiceName {
 			// Platform super-admin: unchanged, and still the only identity that
-			// reaches the platform-wide operations.
-			if tp.IsSuperAdmin(gc) {
+			// reaches the platform-wide operations — except on a server whose
+			// resolver is the sole authority, where an admin cookie or admin
+			// secret is not a credential this surface accepts at all.
+			if !resolverIsSoleAuthority && tp.IsSuperAdmin(gc) {
 				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
 				return handler(ctx, req)
 			}
@@ -103,7 +142,7 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 			// never inside a branch. A new admin method that forgets its gate would
 			// now be reachable by any authenticated user, which is what
 			// TestAdminMethodsAreGated exists to prevent.
-			tokenData, err := tp.GetUserIDFromSessionOrAccessToken(gc)
+			tokenData, err := resolve(gc)
 			if err != nil || tokenData == nil || tokenData.UserID == "" {
 				// No usable credential at all — reject before reaching a handler.
 				if isPublicMethod(methodDesc) {
@@ -139,8 +178,11 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 
 		// Session rotates the browser session cookie only; bearer tokens are ignored.
 		// Guard on publicServiceName to prevent a future method named "Session" on
-		// another service from inheriting cookie-only auth.
-		if serviceName == publicServiceName && string(methodDesc.Name()) == sessionMethodName {
+		// another service from inheriting cookie-only auth. Skipped entirely when a
+		// resolver is the sole authority: a cookie is not a credential such a
+		// surface accepts, so Session falls through to the resolver and is rejected
+		// like any other unauthenticated call.
+		if !resolverIsSoleAuthority && serviceName == publicServiceName && string(methodDesc.Name()) == sessionMethodName {
 			sessionToken, err := cookie.GetSession(gc)
 			if err != nil || sessionToken == "" {
 				return nil, status.Error(codes.Unauthenticated, "unauthorized")
@@ -157,7 +199,7 @@ func Auth(tp token.Provider, log *zerolog.Logger) grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
-		tokenData, err := tp.GetUserIDFromSessionOrAccessToken(gc)
+		tokenData, err := resolve(gc)
 		if err != nil || tokenData == nil || tokenData.UserID == "" {
 			return nil, status.Error(codes.Unauthenticated, "unauthorized")
 		}

@@ -460,6 +460,81 @@ func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 
 // Function to validate access token for authorizer apis (profile, update_profile)
 func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
+	return p.validateStatefulAccessToken(gc, accessToken, p.firstPartyAudienceOK, p.userIsNotRevoked)
+}
+
+// firstPartyAudienceOK is the audience rule for Authorizer's OWN protected
+// resources (/userinfo, GraphQL, gRPC, REST).
+//
+// RFC 8707 audience restriction. A token minted with a resource indicator
+// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
+// its `aud` so it is usable ONLY at that external resource server — which
+// validates it locally against the published JWKS, NOT here. (Not via
+// /oauth/introspect either: that endpoint only answers for a token whose aud
+// is the authenticated caller's own client_id, so a resource-bound token
+// always introspects as inactive — see token.DelegatedAccessTokenTTL.)
+// Accepting a resource-bound token here would defeat the audience restriction
+// the token was issued with, so reject any `aud` that is an absolute URI
+// (resource indicator form) other than the configured default audience.
+// Legitimate client-bound tokens carry an opaque client_id `aud` (not a URI)
+// and are unaffected. Introspection uses ParseJWTToken directly and is
+// untouched.
+//
+// The MCP surface is the deliberate counterpart: it accepts EXACTLY the
+// resource-bound audience this rule rejects, and nothing else. See
+// ValidateMCPAccessToken.
+func (p *provider) firstPartyAudienceOK(aud string) error {
+	if aud != "" && aud != p.config.ClientID {
+		if u, err := url.Parse(aud); err == nil && u.IsAbs() {
+			p.dependencies.Log.Debug().Str("aud", aud).Msg("access token rejected: resource-bound audience not valid at authorizer's own endpoints")
+			return fmt.Errorf(`unauthorized: token audience is a resource indicator`)
+		}
+	}
+	return nil
+}
+
+// userIsNotRevoked is the subject-liveness rule for first-party surfaces:
+// unchanged from the behaviour that shipped before the decision core was
+// extracted. It resolves the subject as a USER only, so a machine token's
+// service-account subject is not checked here — see subjectIsLive for the
+// stricter rule the MCP and delegated surfaces use.
+func (p *provider) userIsNotRevoked(gc *gin.Context, subject string) bool {
+	if p.userIsRevoked(gc, subject) {
+		p.dependencies.Log.Debug().Str("user_id", subject).Msg("access token rejected: user revoked")
+		return false
+	}
+	return true
+}
+
+// validateStatefulAccessToken is the single decision core behind every
+// STATEFUL access-token check: signature and expiry, a live memory-store
+// session entry whose stored digest matches the presented token, subject
+// liveness, audience, issuer/claims, and token type.
+//
+// Both human tokens and client_credentials machine tokens flow through here —
+// createMachineAccessToken stamps the same `nonce` and `login_method` shape, and
+// the token endpoint registers machine tokens in the memory store exactly as
+// human ones, so the session lookup below is uniform.
+//
+// Exactly two checks vary per surface, and they are the two parameters:
+//
+//   - audienceOK decides which `aud` values that surface accepts. This is what
+//     makes RFC 8707 audience binding real: a token is accepted only where its
+//     audience says it belongs.
+//   - subjectLive decides how the subject's liveness is confirmed. First-party
+//     surfaces resolve the subject as a user; surfaces whose callers are
+//     routinely service accounts resolve user-then-client and fail closed.
+//
+// Everything else is identical on purpose. A new surface adds a policy pair
+// here rather than a second copy of this function, so a fix to the session
+// digest comparison or the claims check cannot land on one surface and miss
+// another.
+func (p *provider) validateStatefulAccessToken(
+	gc *gin.Context,
+	accessToken string,
+	audienceOK func(aud string) error,
+	subjectLive func(gc *gin.Context, subject string) bool,
+) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if accessToken == "" {
@@ -496,9 +571,8 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if p.userIsRevoked(gc, userID) {
-		p.dependencies.Log.Debug().Str("user_id", userID).Msg("access token rejected: user revoked")
-		return res, fmt.Errorf(`unauthorized: user revoked`)
+	if !subjectLive(gc, userID) {
+		return res, fmt.Errorf(`unauthorized: subject is not active`)
 	}
 
 	// /userinfo and the generic session-or-access-token resolver present no
@@ -508,25 +582,8 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	// the JWT signature) as the expected value; the checks above already
 	// establish the token is a genuine, unexpired, unrevoked Authorizer token.
 	aud, _ := res["aud"].(string)
-
-	// RFC 8707 audience restriction. A token minted with a resource indicator
-	// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
-	// its `aud` so it is usable ONLY at that external resource server — which
-	// validates it locally against the published JWKS, NOT here. (Not via
-	// /oauth/introspect either: that endpoint only answers for a token whose aud
-	// is the authenticated caller's own client_id, so a resource-bound token
-	// always introspects as inactive — see token.DelegatedAccessTokenTTL.) This path guards
-	// Authorizer's OWN protected resources (/userinfo, GraphQL, gRPC). Accepting
-	// a resource-bound token here would defeat the audience restriction the token
-	// was issued with, so reject any `aud` that is an absolute URI (resource
-	// indicator form) other than the configured default audience. Legitimate
-	// client-bound tokens carry an opaque client_id `aud` (not a URI) and are
-	// unaffected. Introspection uses ParseJWTToken directly and is untouched.
-	if aud != "" && aud != p.config.ClientID {
-		if u, err := url.Parse(aud); err == nil && u.IsAbs() {
-			p.dependencies.Log.Debug().Str("aud", aud).Msg("access token rejected: resource-bound audience not valid at authorizer's own endpoints")
-			return res, fmt.Errorf(`unauthorized: token audience is a resource indicator`)
-		}
+	if err := audienceOK(aud); err != nil {
+		return res, err
 	}
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{

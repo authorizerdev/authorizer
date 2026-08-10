@@ -129,6 +129,9 @@ type Provider interface {
 	SAMLIDPInitiatedHandler() gin.HandlerFunc
 	// OpenIDConfigurationHandler is the main handler that handels all the openid configuration requests
 	OpenIDConfigurationHandler() gin.HandlerFunc
+	// ProtectedResourceMetadataHandler serves RFC 9728 OAuth 2.0 Protected
+	// Resource Metadata for the MCP surface. Registered only when MCP is enabled.
+	ProtectedResourceMetadataHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests
 	PlaygroundHandler() gin.HandlerFunc
 	// RevokeRefreshTokenHandler is the main handler that handels all the revoke refresh token requests

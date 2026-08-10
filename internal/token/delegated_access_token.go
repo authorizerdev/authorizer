@@ -119,7 +119,7 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 		return res, fmt.Errorf(`unauthorized: originating session is no longer valid`)
 	}
 
-	if !p.delegationSubjectIsLive(gc, userID) {
+	if !p.subjectIsLive(gc, userID) {
 		return res, fmt.Errorf(`unauthorized: delegation subject is not active`)
 	}
 
@@ -189,16 +189,18 @@ func sameAudience(aud, hostname string) bool {
 	return a != "" && h != "" && a == h
 }
 
-// delegationSubjectIsLive reports whether the subject a delegated token was
-// minted for is still active.
+// subjectIsLive reports whether the subject a token was minted for is still
+// active. Used by the surfaces whose callers are routinely service accounts
+// rather than humans: RFC 8693 delegation (here) and MCP
+// (ValidateMCPAccessToken).
 //
 // The subject is NOT always a user. RFC 8693 token exchange also accepts a
 // service account as the subject, which is how a multi-hop chain is expressed
-// (agent A delegates to agent B). userIsRevoked only ever looked the subject up
+// (agent A delegates to agent B), and a client_credentials token's `sub` is the
+// service account's surrogate id. userIsRevoked only ever looked the subject up
 // as a USER, so for a service-account subject it found nothing, reported "not
-// revoked", and the delegation kept working for the token's full lifetime after
-// the service account had been deactivated — deactivation did not stop the
-// chain it seeded.
+// revoked", and the token kept working for its full lifetime after the service
+// account had been deactivated — deactivation did not stop the chain it seeded.
 //
 // Resolution order mirrors how the token endpoint validates the subject at
 // mint time (see handleTokenExchangeGrant): try user, then client.
@@ -206,7 +208,7 @@ func sameAudience(aud, hostname string) bool {
 // Fails CLOSED when the subject resolves to neither. A subject we cannot
 // confirm is live must not authenticate — the same rule the exchange applies
 // before it will seed a delegation at all.
-func (p *provider) delegationSubjectIsLive(gc *gin.Context, subject string) bool {
+func (p *provider) subjectIsLive(gc *gin.Context, subject string) bool {
 	if p.dependencies.StorageProvider == nil || subject == "" {
 		return false
 	}
@@ -214,7 +216,7 @@ func (p *provider) delegationSubjectIsLive(gc *gin.Context, subject string) bool
 	if user, err := p.dependencies.StorageProvider.GetUserByID(gc, subject); err == nil && user != nil {
 		if user.RevokedTimestamp != nil {
 			p.dependencies.Log.Debug().Str("subject", subject).
-				Msg("delegated token rejected: subject user is revoked")
+				Msg("token rejected: subject user is revoked")
 			return false
 		}
 		return true
@@ -223,13 +225,13 @@ func (p *provider) delegationSubjectIsLive(gc *gin.Context, subject string) bool
 	if client, err := p.dependencies.StorageProvider.GetClientByID(gc, subject); err == nil && client != nil {
 		if !client.IsActive {
 			p.dependencies.Log.Debug().Str("subject", subject).
-				Msg("delegated token rejected: subject service account is deactivated")
+				Msg("token rejected: subject service account is deactivated")
 			return false
 		}
 		return true
 	}
 
 	p.dependencies.Log.Debug().Str("subject", subject).
-		Msg("delegated token rejected: subject resolves to neither an active user nor an active client")
+		Msg("token rejected: subject resolves to neither an active user nor an active client")
 	return false
 }

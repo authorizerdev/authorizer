@@ -86,6 +86,12 @@ type Provider interface {
 	// ValidateAccessToken by exactly one property (no session lookup) and
 	// stricter by one (audience must be this server) — see its doc comment.
 	ValidateDelegatedAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error)
+	// ValidateMCPAccessToken validates an access token presented at the MCP
+	// surface. Same stateful core as ValidateAccessToken, stricter on two
+	// checks: `aud` must equal the caller-supplied canonical MCP resource URI
+	// (RFC 8707 / MCP authorization), and subject liveness resolves
+	// user-then-client so a deactivated service account is rejected.
+	ValidateMCPAccessToken(gc *gin.Context, accessToken string, resource string) (map[string]interface{}, error)
 	// ValidateAdminToken validates session token
 	ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionData, error)
 	// ValidateJWTClaims validates jwt claims

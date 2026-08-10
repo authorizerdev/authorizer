@@ -135,6 +135,17 @@ func init() {
 	f.StringVar(&rootArgs.config.GRPCTLSKey, "grpc-tls-key", "", "Path to the TLS private key for the gRPC server")
 	f.BoolVar(&rootArgs.config.GRPCInsecure, "grpc-insecure", false, "Allow the gRPC server to run without TLS (dev only)")
 
+	// MCP transport. Served at POST /mcp on the main HTTP listener (not its own
+	// port): it is plain HTTP that must be publicly reachable on the same origin
+	// as the OAuth metadata clients discover it through, and mounting it on the
+	// main router gives it the existing CORS, security-header, rate-limit and
+	// logging middleware.
+	f.BoolVar(&rootArgs.config.MCPEnabled, "mcp-enabled", false,
+		"Serve the MCP tool surface over HTTP at POST <url>/mcp as an OAuth 2.1 resource server. "+
+			"Requires --url: tokens are accepted only when their audience equals <url>/mcp, and that "+
+			"comparison must not depend on a request header. Off by default — it is a new "+
+			"internet-facing authenticated surface")
+
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")
 	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", defaultOrganizationName, "Name of the organization")
@@ -398,6 +409,20 @@ func runRoot(c *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 		}
+	}
+
+	// MCP's entire security model is the audience check: a token is accepted at
+	// /mcp only if its `aud` equals this deployment's canonical <url>/mcp. Without
+	// --url that URL would be derived from request headers (parsers.GetHost falls
+	// back to X-Authorizer-URL / X-Forwarded-Host), which means the caller would
+	// get to state the audience their own token must match — no check at all.
+	// Refuse the combination rather than serve an endpoint that looks
+	// authenticated and is not.
+	if rootArgs.config.MCPEnabled && rootArgs.config.MCPResource() == "" {
+		fmt.Fprintln(os.Stderr, "--mcp-enabled requires a valid --url (e.g. https://auth.example.com): "+
+			"the MCP resource identifier that access tokens are bound to is derived from it, and "+
+			"deriving it from request headers instead would let a caller choose their own audience")
+		os.Exit(1)
 	}
 
 	// Refuse to start without an admin secret. The previous default of

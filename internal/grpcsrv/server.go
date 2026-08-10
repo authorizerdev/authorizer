@@ -29,6 +29,19 @@ type Dependencies struct {
 	Config          *config.Config
 	ServiceProvider service.Provider
 	TokenProvider   token.Provider
+	// TokenResolver overrides how the auth interceptor turns a request into
+	// the caller's identity. nil means the default: a browser session cookie or
+	// a first-party bearer token.
+	//
+	// Set only by the MCP transport, which serves over an in-process bufconn and
+	// accepts exactly the resource-bound audience the default rejects. Because
+	// the rule lives on the server rather than the request, a token minted for
+	// /mcp cannot authenticate the TCP-listening server and vice versa.
+	//
+	// A non-nil value also disables the interceptor's cookie and admin-secret
+	// paths, so the resolver is the only way into that server. See
+	// interceptors.Auth and interceptors.MCPTokenResolver.
+	TokenResolver interceptors.TokenResolver
 }
 
 // Server wraps a *grpc.Server plus its listener address.
@@ -54,7 +67,7 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 			// Records authorizer_api_operations_total{protocol,operation,status}
 			// for every RPC (covers both gRPC and REST-via-gateway).
 			interceptors.Metrics(),
-			interceptors.Auth(deps.TokenProvider, deps.Log),
+			interceptors.Auth(deps.TokenProvider, deps.Log, deps.TokenResolver),
 			validate,
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay
