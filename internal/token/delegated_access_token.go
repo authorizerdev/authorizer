@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -207,33 +208,89 @@ func sameAudience(aud, hostname string) bool {
 // Resolution order mirrors how the token endpoint validates the subject at
 // mint time (see handleTokenExchangeGrant): try user, then client.
 //
-// Fails CLOSED when the subject resolves to neither. A subject we cannot
-// confirm is live must not authenticate — the same rule the exchange applies
-// before it will seed a delegation at all.
+// Fails CLOSED when the subject resolves to neither, and also when the store
+// could not answer: a delegated token is stateless and short-lived, so a subject
+// we cannot confirm is live must not authenticate — the same rule the exchange
+// applies before it will seed a delegation at all. First-party callers make the
+// opposite choice about an unanswerable lookup; see subjectLiveness.
 func (p *provider) subjectIsLive(gc *gin.Context, subject string) bool {
-	if p.dependencies.StorageProvider == nil || subject == "" {
-		return false
+	live, _ := p.subjectLiveness(gc, subject)
+	return live
+}
+
+// subjectLiveness reports whether a token's subject is still active AND whether
+// that could be determined at all:
+//
+//	live=true               — confirmed active
+//	live=false, known=true  — confirmed absent, revoked, or deactivated
+//	known=false             — the store could not answer (outage, timeout)
+//
+// The three-way answer exists because "the row is not there" and "the query
+// failed" are different outcomes, and collapsing them is a mistake this codebase
+// has already paid for — see AGENTS.md's not-found contract, and the note this
+// function inherits from userIsRevoked, which it replaced: a lookup failure must
+// never block a request that otherwise validated, "so a transient storage blip
+// can't take down every authenticated request".
+//
+// That matters far more now than when only delegation consulted it. This is the
+// liveness rule for every stateful access token and browser session, so treating
+// an unreachable database as "subject not active" would 401 every authenticated
+// request on GraphQL, gRPC and REST at once — and a 401 tells the SDKs the
+// session expired, so a five-second failover becomes a fleet-wide forced logout
+// reported to operators as a bad credential rather than an outage.
+//
+// So callers decide what an unknown means. First-party traffic tolerates it and
+// lets the handler's own storage call surface the outage as a 500; the stateless
+// delegated path fails closed (subjectIsLive). What neither tolerates is a
+// CONFIRMED dead subject, which is the whole point: the subject is not always a
+// user — a client_credentials token's `sub` is the service account's surrogate
+// id, and RFC 8693 exchange accepts a service account as the subject too (agent A
+// delegating to agent B). Resolving as a user only, and reading "no such user" as
+// "not revoked", meant deactivating a service account did nothing to the tokens
+// already issued to it.
+//
+// Resolution order mirrors how the token endpoint validates the subject at mint
+// time (see handleTokenExchangeGrant): try user, then client.
+func (p *provider) subjectLiveness(gc *gin.Context, subject string) (live, known bool) {
+	if subject == "" {
+		return false, true
+	}
+	if p.dependencies.StorageProvider == nil {
+		// No store to consult is not evidence of anything.
+		return false, false
 	}
 
-	if user, err := p.dependencies.StorageProvider.GetUserByID(gc, subject); err == nil && user != nil {
+	user, err := p.dependencies.StorageProvider.GetUserByID(gc, subject)
+	switch {
+	case err == nil && user != nil:
 		if user.RevokedTimestamp != nil {
 			p.dependencies.Log.Debug().Str("subject", subject).
 				Msg("token rejected: subject user is revoked")
-			return false
+			return false, true
 		}
-		return true
+		return true, true
+	case !storage.IsNotFound(err):
+		p.dependencies.Log.Debug().Err(err).Str("subject", subject).
+			Msg("subject liveness undetermined: user lookup failed")
+		return false, false
 	}
 
-	if client, err := p.dependencies.StorageProvider.GetClientByID(gc, subject); err == nil && client != nil {
+	client, err := p.dependencies.StorageProvider.GetClientByID(gc, subject)
+	switch {
+	case err == nil && client != nil:
 		if !client.IsActive {
 			p.dependencies.Log.Debug().Str("subject", subject).
 				Msg("token rejected: subject service account is deactivated")
-			return false
+			return false, true
 		}
-		return true
+		return true, true
+	case !storage.IsNotFound(err):
+		p.dependencies.Log.Debug().Err(err).Str("subject", subject).
+			Msg("subject liveness undetermined: client lookup failed")
+		return false, false
 	}
 
 	p.dependencies.Log.Debug().Str("subject", subject).
 		Msg("token rejected: subject resolves to neither an active user nor an active client")
-	return false
+	return false, true
 }

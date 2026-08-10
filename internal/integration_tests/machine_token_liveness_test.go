@@ -2,14 +2,18 @@ package integration_tests
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/authctx"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -106,4 +110,70 @@ func TestSubjectLivenessFailsClosedForAnUnknownSubject(t *testing.T) {
 
 	_, vErr = ts.TokenProvider.ValidateAccessToken(gc, tok)
 	require.Error(t, vErr, "a subject that resolves to neither a user nor a client must not authenticate")
+}
+
+// adminSvc exposes the admin half of the service provider. The concrete value
+// implements both interfaces; service.Provider only declares the public one.
+func adminSvc(t *testing.T, ts *testSetup) service.AdminProvider {
+	t.Helper()
+	admin, ok := ts.ServiceProvider.(service.AdminProvider)
+	require.True(t, ok, "the service provider must also implement AdminProvider")
+	return admin
+}
+
+// TestDeactivationPurgesServiceAccountSessions pins the PRIMARY revocation
+// mechanism for machine identities, and it exists because of a gap the liveness
+// work exposed rather than created.
+//
+// Token validation's subject-liveness check is deliberately defense-in-depth: it
+// tolerates an unanswerable lookup, because it is the shared core for GraphQL,
+// gRPC and REST and turning a database outage into "subject not active" would
+// 401 every authenticated request at once. That tolerance is only safe when
+// something else is the primary revocation mechanism — for users it is the
+// memory-store session delete, which lives in a different system and survives a
+// database outage.
+//
+// Service accounts had no such mechanism. UpdateClient set IsActive=false and
+// returned; nothing touched the memory store. So the DB flag was not
+// defense-in-depth for machine tokens, it was the entire revocation story, and a
+// storage outage would have re-opened it.
+//
+// Asserting on the session store directly, not on validation: the point is that
+// the credential is destroyed at its source, so revocation no longer depends on
+// a lookup being reachable at request time.
+func TestDeactivationPurgesServiceAccountSessions(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	client, err := ts.StorageProvider.AddClient(ctx, &schemas.Client{
+		ClientID:      "svc-" + uuid.NewString(),
+		Kind:          constants.ClientKindServiceAccount,
+		Name:          "purge-me",
+		AllowedScopes: "openid",
+		IsActive:      true,
+	})
+	require.NoError(t, err)
+
+	nonce := uuid.NewString()
+	sessionKey := constants.AuthRecipeMethodServiceAccount + ":" + client.ID
+	require.NoError(t, ts.MemoryStoreProvider.SetUserSession(
+		sessionKey, constants.TokenTypeAccessToken+"_"+nonce, "live-machine-token", time.Now().Add(time.Hour).Unix()))
+
+	_, gErr := ts.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
+	require.NoError(t, gErr, "fixture must start with a live session, or the assertion below proves nothing")
+
+	active := false
+	// Super-admin via the principal, not via an admin cookie: requireSuperAdmin
+	// takes the principal branch first, and its fallback dereferences
+	// meta.Request without a nil guard.
+	adminCtx := authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
+	_, _, uErr := adminSvc(t, ts).UpdateClient(adminCtx, service.RequestMetadata{}, &model.UpdateClientRequest{
+		ID:       client.ID,
+		IsActive: &active,
+	})
+	require.NoError(t, uErr)
+
+	_, gErr = ts.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
+	require.Error(t, gErr, "deactivating a service account must destroy its live sessions, not merely set a flag a later lookup might not reach")
 }

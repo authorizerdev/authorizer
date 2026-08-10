@@ -553,8 +553,8 @@ func (p *provider) validateStatefulAccessToken(
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	// Subject liveness. Resolves the subject as a user, then as a client, and
-	// fails closed if it is neither — see subjectIsLive.
+	// Subject liveness. Rejects only a CONFIRMED dead subject — absent, revoked,
+	// or a deactivated service account.
 	//
 	// This used to look the subject up as a USER only and treat "not found" as
 	// "not revoked". A client_credentials token's `sub` is a service account's
@@ -563,7 +563,14 @@ func (p *provider) validateStatefulAccessToken(
 	// had already been issued. An operator revoking a compromised machine
 	// identity got a success response and a credential that kept working until
 	// it expired.
-	if !p.subjectIsLive(gc, userID) {
+	//
+	// `known` is deliberately honoured rather than ignored. An unreachable
+	// database must not become "subject not active" here: this is the shared core
+	// for GraphQL, gRPC and REST, so that would 401 every authenticated request
+	// at once, and a 401 tells the SDKs the session expired. A storage outage has
+	// to surface as a 500 from the handler that actually needs the data, not as a
+	// fleet-wide forced logout. See subjectLiveness.
+	if live, known := p.subjectLiveness(gc, userID); known && !live {
 		return res, fmt.Errorf(`unauthorized: subject is not active`)
 	}
 
@@ -698,33 +705,22 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
 
-	if p.userIsRevoked(gc, res.Subject) {
-		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: user revoked")
+	// Same subject-liveness rule the bearer path uses, for the same reason: an
+	// account that has been deleted or revoked must stop authenticating on BOTH
+	// credential types. Leaving the cookie path on the old user-only, fail-open
+	// check meant a deleted user whose session purge failed or raced (DeleteUser
+	// does it through asyncutil.Go, best effort) kept browsing with a cookie
+	// while the same account's bearer token was correctly rejected.
+	//
+	// A session subject is always a user, so the client lookup inside
+	// subjectLiveness is only ever reached when the user row is confirmed absent
+	// — which is precisely the case this now catches.
+	if live, known := p.subjectLiveness(gc, res.Subject); known && !live {
+		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: subject is not active")
 		return nil, fmt.Errorf(`unauthorized: user revoked`)
 	}
 
 	return &res, nil
-}
-
-// userIsRevoked re-checks the DB RevokedTimestamp for a user resolved from an
-// already-issued access token or browser session. This is defense-in-depth:
-// the session-store deletion SCIM deactivate() (and account deactivation)
-// perform is the primary revocation mechanism for these stateful tokens, but
-// if that delete was missed or failed on this instance, a held token would
-// otherwise keep authenticating requests until its natural exp. Mirrors the
-// same demote-only pattern used by introspect.go/token.go/login.go: a lookup
-// failure never blocks a request that otherwise validated (fail open on DB
-// errors so a transient storage blip can't take down every authenticated
-// request), only a confirmed RevokedTimestamp does.
-func (p *provider) userIsRevoked(gc *gin.Context, userID string) bool {
-	if p.dependencies.StorageProvider == nil || userID == "" {
-		return false
-	}
-	user, err := p.dependencies.StorageProvider.GetUserByID(gc, userID)
-	if err != nil || user == nil {
-		return false
-	}
-	return user.RevokedTimestamp != nil
 }
 
 // CreateIDToken util to create the OIDC ID token JWT, based on user

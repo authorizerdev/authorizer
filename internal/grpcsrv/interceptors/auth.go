@@ -63,20 +63,23 @@ type TokenResolver func(gc *gin.Context) (*token.SessionOrAccessTokenData, error
 // tp.GetUserIDFromSessionOrAccessToken and the cookie-based paths below stay
 // active — the behaviour every TCP-listening server uses.
 //
-// A non-nil resolve is the SOLE authority for that server. It replaces both
-// identity-resolution sites (the admin fallback and the public path) AND
-// disables the two paths that authenticate without consulting a resolver at all:
-// the super-admin check (an admin cookie or the x-authorizer-admin-secret
-// header) and the Session RPC's cookie-only branch.
+// A non-nil resolve is the SOLE authority for that server. It replaces the
+// identity-resolution site on the public path, refuses the AuthorizerAdminService
+// outright, and disables the Session RPC's cookie-only branch.
 //
-// Disabling those is the point, not a side effect. A surface that declares its
+// Narrowing that far is the point, not a side effect. A surface that declares its
 // own token rule — MCP, whose rule is "the audience must name this MCP server" —
-// must not be reachable with a credential that rule never saw. Leaving them
-// active meant the boundary held only because no cookie-authenticated method
-// happened to be mcp_tool-exposed, and transport.MetaFromGRPC reconstructs
-// cookies from gRPC metadata, so a bridge that forwarded headers wholesale would
-// have made a browser session authenticate a tool call on an internet-facing,
-// CSRF-exempt endpoint.
+// must not be reachable with a credential that rule never saw. Leaving the other
+// paths active meant the boundary held only because no cookie-authenticated
+// method happened to be mcp_tool-exposed, and transport.MetaFromGRPC
+// reconstructs cookies from gRPC metadata, so a bridge that forwarded headers
+// wholesale would have made a browser session authenticate a tool call on an
+// internet-facing, CSRF-exempt endpoint.
+//
+// The admin service is refused wholesale rather than merely skipping its
+// super-admin check, because service.requireSuperAdmin re-derives super-admin
+// from meta.Request on its own — skipping the check here would move it one layer
+// down, not remove it.
 func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.UnaryServerInterceptor {
 	resolverIsSoleAuthority := resolve != nil
 	if resolve == nil {
@@ -117,11 +120,25 @@ func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.Un
 		gc := &gin.Context{Request: meta.Request}
 
 		if serviceName == adminServiceName {
+			// A resolver-governed surface does not serve the admin API at all.
+			//
+			// Skipping the IsSuperAdmin check here is NOT enough on its own:
+			// service.requireSuperAdmin re-derives super-admin from meta.Request
+			// (admin_provider.go), reading the admin cookie or the
+			// x-authorizer-admin-secret header that transport.MetaFromGRPC
+			// reconstructs from gRPC metadata. Disabling the check at this layer
+			// would only move it one layer down, so a caller holding a valid
+			// MCP-audience token plus an admin credential would still reach
+			// platform-wide operations on an internet-facing, CSRF-exempt
+			// surface. Refusing the whole service is the only version of this
+			// guard that actually holds, and it costs nothing: no admin RPC is
+			// mcp_tool-exposed, so nothing legitimate is being turned off.
+			if resolverIsSoleAuthority {
+				return nil, status.Error(codes.Unauthenticated, "unauthorized")
+			}
 			// Platform super-admin: unchanged, and still the only identity that
-			// reaches the platform-wide operations — except on a server whose
-			// resolver is the sole authority, where an admin cookie or admin
-			// secret is not a credential this surface accepts at all.
-			if !resolverIsSoleAuthority && tp.IsSuperAdmin(gc) {
+			// reaches the platform-wide operations.
+			if tp.IsSuperAdmin(gc) {
 				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
 				return handler(ctx, req)
 			}

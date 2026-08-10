@@ -403,12 +403,14 @@ func TestAuth_SessionOnlyAcceptsPublicService(t *testing.T) {
 // at all, or a token rejected by the surface's own rule could still be accepted
 // by the default one.
 func TestAuth_TokenResolverOverrideAppliesToBothSites(t *testing.T) {
+	// Only the public service: a resolver-governed server refuses the admin
+	// service outright (see TestAuth_SoleAuthorityRefusesTheAdminService), so
+	// there is no admin identity-resolution site left to override.
 	cases := []struct {
 		name   string
 		method string
 	}{
 		{"public service", authorizerv1.AuthorizerService_Profile_FullMethodName},
-		{"admin service non-super-admin fallback", authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName},
 	}
 
 	for _, tc := range cases {
@@ -455,4 +457,51 @@ func TestAuth_TokenResolverOverrideAppliesToBothSites(t *testing.T) {
 			assert.Zero(t, stub.userChecks, "a rejection must not fall back to the default resolver")
 		})
 	}
+}
+
+// TestAuth_SoleAuthorityRefusesTheAdminService pins why skipping the interceptor's
+// super-admin check was not, on its own, enough.
+//
+// service.requireSuperAdmin re-derives super-admin from meta.Request when the
+// context carries no super-admin principal, reading the admin cookie or the
+// x-authorizer-admin-secret header that transport.MetaFromGRPC reconstructs from
+// gRPC metadata. Skipping the check here would therefore have moved it one layer
+// down rather than removing it: a caller holding a valid MCP-audience token plus
+// an admin credential would still have reached platform-wide operations on an
+// internet-facing, CSRF-exempt surface. Refusing the service is the only version
+// of the guard that holds, and it costs nothing — no admin RPC is
+// mcp_tool-exposed.
+func TestAuth_SoleAuthorityRefusesTheAdminService(t *testing.T) {
+	// The override would happily authenticate this caller; the service refusal
+	// must come first, before any identity is resolved at all.
+	stub := &stubTokenProvider{superAdmin: true, tokenData: &token.SessionOrAccessTokenData{UserID: "u1"}}
+	resolverCalls := 0
+	mw := Auth(stub, nil, func(_ *gin.Context) (*token.SessionOrAccessTokenData, error) {
+		resolverCalls++
+		return &token.SessionOrAccessTokenData{UserID: "mcp-user"}, nil
+	})
+
+	called := false
+	_, err := mw(context.Background(), nil, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName),
+		func(context.Context, any) (any, error) { called = true; return nil, nil })
+
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	assert.False(t, called, "no admin handler may run on a resolver-governed server")
+	assert.Zero(t, resolverCalls, "the admin service is refused outright, not authenticated and then rejected")
+	assert.Zero(t, stub.superAdminChecks)
+}
+
+// TestAuth_DefaultServerStillServesTheAdminService is the inverse guard: the
+// refusal above must not touch the TCP-listening server every deployment runs.
+func TestAuth_DefaultServerStillServesTheAdminService(t *testing.T) {
+	stub := &stubTokenProvider{superAdmin: true}
+	mw := Auth(stub, nil, nil)
+
+	called := false
+	_, err := mw(context.Background(), nil, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName),
+		func(context.Context, any) (any, error) { called = true; return nil, nil })
+
+	require.NoError(t, err)
+	assert.True(t, called)
 }
