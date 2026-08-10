@@ -414,17 +414,8 @@ func runRoot(c *cobra.Command, args []string) {
 		}
 	}
 
-	// MCP's entire security model is the audience check: a token is accepted at
-	// /mcp only if its `aud` equals this deployment's canonical <url>/mcp. Without
-	// --url that URL would be derived from request headers (parsers.GetHost falls
-	// back to X-Authorizer-URL / X-Forwarded-Host), which means the caller would
-	// get to state the audience their own token must match — no check at all.
-	// Refuse the combination rather than serve an endpoint that looks
-	// authenticated and is not.
-	if rootArgs.config.MCPEnabled && rootArgs.config.MCPResource() == "" {
-		fmt.Fprintln(os.Stderr, "--mcp-enabled requires a valid --url (e.g. https://auth.example.com): "+
-			"the MCP resource identifier that access tokens are bound to is derived from it, and "+
-			"deriving it from request headers instead would let a caller choose their own audience")
+	if err := validateMCPConfig(&rootArgs.config); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
@@ -838,4 +829,35 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Application failed")
 	}
 	log.Info().Msg("Application terminated")
+}
+
+// validateMCPConfig refuses a configuration that would enable MCP without a
+// usable canonical URL.
+//
+// This is the second lock on the audience door, and it is not optional. MCP's
+// entire security model is one comparison: a token is accepted at /mcp only if
+// its `aud` equals this deployment's canonical <url>/mcp. Without --url that
+// identifier would be derived from request headers — parsers.GetHost falls back
+// to X-Authorizer-URL, then X-Forwarded-Host, then Host — so the caller would be
+// supplying both sides of the comparison and there would be no check at all.
+//
+// It also rejects a --url that is merely unusable (no scheme, userinfo, a
+// non-http scheme), because MCPResource() returns empty for those too. Starting
+// anyway would produce a surface that is enabled, advertises nothing, and
+// rejects every token: broken in a way that reports success.
+//
+// Extracted from runRoot so it can be tested. The inline version behind
+// os.Exit(1) could be rewritten into something weaker — comparing AuthorizerURL
+// to "" instead of asking whether a resource can be derived from it — with the
+// whole suite staying green.
+func validateMCPConfig(cfg *config.Config) error {
+	if !cfg.MCPEnabled {
+		return nil
+	}
+	if cfg.MCPResource() == "" {
+		return fmt.Errorf("--mcp-enabled requires a valid --url (e.g. https://auth.example.com): " +
+			"the MCP resource identifier that access tokens are bound to is derived from it, and " +
+			"deriving it from request headers instead would let a caller choose their own audience")
+	}
+	return nil
 }

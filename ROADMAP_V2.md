@@ -366,7 +366,7 @@ Human approval and safe third-party access.
 - *Unlocks:* human-in-the-loop, agents calling Google/Slack/etc. on a user's behalf.
 
 ### Wave 4 — Enterprise hardening
-- [ ] **MCP authorization** (OAuth 2.1 + RFC 9728 + RFC 8707) (4.1) and **ID-JAG / Cross-App Access** for enterprise-managed MCP.
+- [x] **MCP authorization** (OAuth 2.1 + RFC 9728 + RFC 8707) (4.1) — delivered in 2.4.0 as `--mcp-enabled`: Authorizer is both the authorization server and the resource server for its own MCP surface. Still open: RFC 7591 dynamic client registration / CIMD for zero-touch client onboarding (and the `/authorize` consent screen CIMD requires), plus **ID-JAG / Cross-App Access** for enterprise-managed MCP.
 - [ ] **JIT / time-bound grants** (TTL tuples), **per-agent guardrails** (spend/rate limits), **consent management**.
 - *Unlocks:* enterprise-managed agent deployments at scale.
 
