@@ -67,6 +67,11 @@ var reservedClaims = map[string]bool{
 	// could set it would point the check at a session that is still alive and
 	// survive the logout that should have ended the delegation.
 	"sid": true,
+	// resource carries the RFC 8707 resource indicator across refresh so the
+	// rotated access token keeps the audience the grant was bound to. A script
+	// that could set it would rebind a token to a resource server the user never
+	// authorized, which is the audience restriction working in reverse.
+	"resource": true,
 }
 
 // AuthTokenConfig is the configuration for auth token
@@ -327,6 +332,26 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
 		"client_id":     cfg.ClientID,
 		"family_id":     familyID,
+	}
+
+	// RFC 8707 §2.2: a refreshed access token stays bound to the resource the
+	// original grant named. The refresh token is the only thing that survives
+	// between the authorization request and the rotation, so the binding has to
+	// travel on it — the authorization code is long gone by then.
+	//
+	// Without this the local `resource` in the token endpoint is empty on the
+	// refresh grant, accessTokenAudience falls back to the client id, and the
+	// rotated access token comes back UNBOUND: usable at Authorizer's own API,
+	// which is exactly what the resource restriction existed to prevent. It also
+	// broke every resource server silently, since the first token works and only
+	// the refreshed one does not.
+	//
+	// Emitted only when the grant was bound, so tokens from flows that never
+	// used a resource indicator keep their existing claim set byte for byte.
+	// Reserved (see reservedClaims) so CustomAccessTokenScript cannot rebind a
+	// token to a resource server the user never authorized.
+	if cfg.Resource != "" {
+		customClaims["resource"] = cfg.Resource
 	}
 
 	token, err := p.SignJWTToken(customClaims)
