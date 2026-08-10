@@ -42,12 +42,10 @@ import (
 // # Everything else is the ordinary stateful check
 //
 // Signature, expiry, a live memory-store session entry whose stored digest
-// matches the presented token, issuer/claims and token type all come from
-// validateStatefulAccessToken — the same core ValidateAccessToken uses. MCP is
-// NOT a weaker path: it differs from the first-party check in the audience rule
-// (stricter) and in resolving subject liveness as user-then-client (also
-// stricter — see subjectIsLive; a deactivated service account is rejected here
-// even though the first-party path would still accept its token).
+// matches the presented token, subject liveness, issuer/claims and token type
+// all come from validateStatefulAccessToken — the same core ValidateAccessToken
+// uses. MCP is NOT a weaker path: it differs from the first-party check in
+// exactly one rule, the audience, and there it is the stricter of the two.
 //
 // # What is deliberately NOT accepted
 //
@@ -65,15 +63,12 @@ func (p *provider) ValidateMCPAccessToken(gc *gin.Context, accessToken string, r
 		// subtle for an auth path: say no explicitly.
 		return map[string]interface{}{}, fmt.Errorf(`unauthorized: no mcp resource configured`)
 	}
-	return p.validateStatefulAccessToken(gc, accessToken,
-		func(aud string) error {
-			if !sameAudience(aud, resource) {
-				p.dependencies.Log.Debug().Str("aud", aud).Str("expected", resource).
-					Msg("access token rejected at mcp: audience names a different resource")
-				return fmt.Errorf(`unauthorized: token audience is not this mcp server`)
-			}
-			return nil
-		},
-		p.subjectIsLive,
-	)
+	return p.validateStatefulAccessToken(gc, accessToken, func(aud string) error {
+		if !sameAudience(aud, resource) {
+			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", resource).
+				Msg("access token rejected at mcp: audience names a different resource")
+			return fmt.Errorf(`unauthorized: token audience is not this mcp server`)
+		}
+		return nil
+	})
 }

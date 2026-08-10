@@ -460,7 +460,7 @@ func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 
 // Function to validate access token for authorizer apis (profile, update_profile)
 func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
-	return p.validateStatefulAccessToken(gc, accessToken, p.firstPartyAudienceOK, p.userIsNotRevoked)
+	return p.validateStatefulAccessToken(gc, accessToken, p.firstPartyAudienceOK)
 }
 
 // firstPartyAudienceOK is the audience rule for Authorizer's OWN protected
@@ -493,19 +493,6 @@ func (p *provider) firstPartyAudienceOK(aud string) error {
 	return nil
 }
 
-// userIsNotRevoked is the subject-liveness rule for first-party surfaces:
-// unchanged from the behaviour that shipped before the decision core was
-// extracted. It resolves the subject as a USER only, so a machine token's
-// service-account subject is not checked here — see subjectIsLive for the
-// stricter rule the MCP and delegated surfaces use.
-func (p *provider) userIsNotRevoked(gc *gin.Context, subject string) bool {
-	if p.userIsRevoked(gc, subject) {
-		p.dependencies.Log.Debug().Str("user_id", subject).Msg("access token rejected: user revoked")
-		return false
-	}
-	return true
-}
-
 // validateStatefulAccessToken is the single decision core behind every
 // STATEFUL access-token check: signature and expiry, a live memory-store
 // session entry whose stored digest matches the presented token, subject
@@ -516,24 +503,19 @@ func (p *provider) userIsNotRevoked(gc *gin.Context, subject string) bool {
 // the token endpoint registers machine tokens in the memory store exactly as
 // human ones, so the session lookup below is uniform.
 //
-// Exactly two checks vary per surface, and they are the two parameters:
+// Exactly ONE check varies per surface, and it is the parameter: audienceOK
+// decides which `aud` values that surface accepts. This is what makes RFC 8707
+// audience binding real — a token is accepted only where its audience says it
+// belongs.
 //
-//   - audienceOK decides which `aud` values that surface accepts. This is what
-//     makes RFC 8707 audience binding real: a token is accepted only where its
-//     audience says it belongs.
-//   - subjectLive decides how the subject's liveness is confirmed. First-party
-//     surfaces resolve the subject as a user; surfaces whose callers are
-//     routinely service accounts resolve user-then-client and fail closed.
-//
-// Everything else is identical on purpose. A new surface adds a policy pair
-// here rather than a second copy of this function, so a fix to the session
-// digest comparison or the claims check cannot land on one surface and miss
-// another.
+// Everything else is identical on purpose. A new surface adds an audience policy
+// here rather than a second copy of this function, so a fix to the session digest
+// comparison, the subject-liveness rule or the claims check cannot land on one
+// surface and miss another.
 func (p *provider) validateStatefulAccessToken(
 	gc *gin.Context,
 	accessToken string,
 	audienceOK func(aud string) error,
-	subjectLive func(gc *gin.Context, subject string) bool,
 ) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
@@ -571,7 +553,17 @@ func (p *provider) validateStatefulAccessToken(
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if !subjectLive(gc, userID) {
+	// Subject liveness. Resolves the subject as a user, then as a client, and
+	// fails closed if it is neither — see subjectIsLive.
+	//
+	// This used to look the subject up as a USER only and treat "not found" as
+	// "not revoked". A client_credentials token's `sub` is a service account's
+	// row id, never a user, so that lookup missed every time and reported the
+	// caller live: deactivating a service account did nothing to the tokens it
+	// had already been issued. An operator revoking a compromised machine
+	// identity got a success response and a credential that kept working until
+	// it expired.
+	if !p.subjectIsLive(gc, userID) {
 		return res, fmt.Errorf(`unauthorized: subject is not active`)
 	}
 

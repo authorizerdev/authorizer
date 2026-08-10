@@ -2,7 +2,6 @@ package integration_tests
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -16,6 +15,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
+
+// bearerGinContext builds a request carrying `tok` as a bearer token, addressed
+// to the test server's REAL host.
+//
+// The host is not incidental. ValidateJWTClaims compares the token's `iss`
+// against parsers.GetHost(gc), and httptest.NewRequest defaults the host to
+// "example.com" — so a context built that way rejects every token this suite
+// mints with an issuer mismatch. A negative assertion would then pass for a
+// reason unrelated to the rule under test, and would keep passing after that
+// rule was removed.
+func bearerGinContext(t *testing.T, ts *testSetup, tok string) *gin.Context {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, testAuthorizerHost(ts)+"/graphql", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	return &gin.Context{Request: req}
+}
 
 // mintStatefulAccessToken issues an access token bound to `resource` (RFC 8707)
 // and registers it in the memory store exactly as /oauth/token does, so it is a
@@ -128,9 +144,7 @@ func TestMCPAccessTokenAudienceBoundary(t *testing.T) {
 		// asserting only the inner call would let a future relaxation of either
 		// delegated rule reopen MCP-token-authenticates-GraphQL with this test
 		// still green — the exact failure this test exists to prevent.
-		req := httptest.NewRequest(http.MethodPost, "/graphql", nil)
-		req.Header.Set("Authorization", "Bearer "+tok)
-		_, vErr = ts.TokenProvider.GetUserIDFromSessionOrAccessToken(&gin.Context{Request: req})
+		_, vErr = ts.TokenProvider.GetUserIDFromSessionOrAccessToken(bearerGinContext(t, ts, tok))
 		require.Error(t, vErr, "an MCP-bound token must not resolve to an identity on the shared entry point")
 	})
 

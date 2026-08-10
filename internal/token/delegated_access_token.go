@@ -190,17 +190,19 @@ func sameAudience(aud, hostname string) bool {
 }
 
 // subjectIsLive reports whether the subject a token was minted for is still
-// active. Used by the surfaces whose callers are routinely service accounts
-// rather than humans: RFC 8693 delegation (here) and MCP
-// (ValidateMCPAccessToken).
+// active. It is the subject-liveness rule for EVERY stateful token check:
+// validateStatefulAccessToken (so GraphQL, gRPC, REST and MCP alike) and RFC
+// 8693 delegation.
 //
-// The subject is NOT always a user. RFC 8693 token exchange also accepts a
+// The subject is NOT always a user. A client_credentials token's `sub` is the
+// service account's surrogate id, and RFC 8693 token exchange also accepts a
 // service account as the subject, which is how a multi-hop chain is expressed
-// (agent A delegates to agent B), and a client_credentials token's `sub` is the
-// service account's surrogate id. userIsRevoked only ever looked the subject up
-// as a USER, so for a service-account subject it found nothing, reported "not
-// revoked", and the token kept working for its full lifetime after the service
-// account had been deactivated — deactivation did not stop the chain it seeded.
+// (agent A delegates to agent B). userIsRevoked only ever looked the subject up
+// as a USER and treated "not found" as "not revoked", so for a service-account
+// subject it reported the caller live and the token kept working for its full
+// lifetime after the account had been deactivated — deactivation stopped new
+// tokens being issued but not the ones already out, and stopped nothing at all
+// in a chain it had seeded.
 //
 // Resolution order mirrors how the token endpoint validates the subject at
 // mint time (see handleTokenExchangeGrant): try user, then client.
