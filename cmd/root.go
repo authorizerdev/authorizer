@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -23,8 +24,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv/interceptors"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	scimhttp "github.com/authorizerdev/authorizer/internal/http_handlers/scim"
+	"github.com/authorizerdev/authorizer/internal/mcp"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
@@ -741,6 +744,44 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	rootArgs.server.GRPCPort = rootArgs.config.GRPCPort
 
+	// MCP surface, served at POST /mcp on the main HTTP listener when enabled.
+	//
+	// It gets its OWN gRPC server rather than reusing grpcSrv above, and that is
+	// the security boundary, not an implementation detail. This one never binds a
+	// port — the MCP handler dials it over an in-process bufconn — and its auth
+	// interceptor accepts exactly one kind of credential: a bearer token whose
+	// audience is this deployment's canonical <url>/mcp. The port-listening server
+	// rejects that audience, and this one rejects everything the port-listening
+	// server accepts. Two objects, so a token minted for one surface cannot
+	// authenticate the other by construction rather than by a conditional.
+	//
+	// Every provider is shared with the main server. The `authorizer mcp`
+	// subcommand builds a second copy of the entire stack — storage, memory
+	// store, FGA engine and all — which is precisely what made it undeployable.
+	var mcpHandler http.Handler
+	if rootArgs.config.MCPEnabled {
+		mcpResource := rootArgs.config.MCPResource()
+		mcpGRPC, mErr := grpcsrv.New(":0", &grpcsrv.Dependencies{
+			Log:             &log,
+			Config:          &rootArgs.config,
+			ServiceProvider: serviceProvider,
+			TokenProvider:   tokenProvider,
+			TokenResolver:   interceptors.MCPTokenResolver(tokenProvider, mcpResource),
+		})
+		if mErr != nil {
+			log.Fatal().Err(mErr).Msg("failed to create mcp grpc server")
+		}
+		mcpSrv, mErr := mcp.New(&log, mcpGRPC.GRPCServer(), mcp.Options{
+			Name:    "authorizer",
+			Version: constants.VERSION,
+		})
+		if mErr != nil {
+			log.Fatal().Err(mErr).Msg("failed to create mcp server")
+		}
+		mcpHandler = mcpSrv.Handler()
+		log.Info().Str("resource", mcpResource).Msg("MCP enabled at POST /mcp")
+	}
+
 	// Inbound SCIM 2.0 server (per-org user provisioning). Transport-thin
 	// handler over the scim service; org resolved only from the bearer token.
 	scimService := scim.New(&scim.Dependencies{
@@ -761,6 +802,7 @@ func runRoot(c *cobra.Command, args []string) {
 		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
 		ScimHandler:  scimHandler,
+		MCPHandler:   mcpHandler,
 		GRPCServer:   grpcSrv,
 	}
 	// Create the server

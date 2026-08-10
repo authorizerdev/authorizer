@@ -78,3 +78,65 @@ func (h *httpProvider) ProtectedResourceMetadataHandler() gin.HandlerFunc {
 		})
 	}
 }
+
+// MCPAuthMiddleware authenticates a request to /mcp and, when it cannot, returns
+// the RFC 9728 §5.1 challenge that starts the discovery chain.
+//
+// The 401 is not merely an error, it is the protocol. A client with no
+// credential reads `resource_metadata` from WWW-Authenticate, fetches the
+// metadata document, finds the authorization server and begins OAuth; a client
+// whose token has expired reads the same 401 and refreshes. Anthropic's connector
+// documentation is explicit that Claude refreshes reactively on a 401 and does
+// not honour a WWW-Authenticate header on a 200 — so answering an expired token
+// with a JSON-RPC error inside a 200 would leave the client looping on a dead
+// token with no way to discover why.
+//
+// This authenticates a SECOND time: the in-process gRPC interceptor resolves the
+// identity that handlers actually run under (interceptors.MCPTokenResolver), and
+// context values do not survive the bufconn hop, so the check cannot be shared.
+// The duplication buys the correct HTTP status, which is what makes the surface
+// usable by a real client. It costs one extra token validation per request —
+// worth optimising later, not worth trading the protocol for.
+func (h *httpProvider) MCPAuthMiddleware() gin.HandlerFunc {
+	// Computed once: both derive from --url, which MCP requires, so neither can
+	// be influenced by the request.
+	resource := h.Config.MCPResource()
+	metadataURL := h.Config.CanonicalURL() + "/.well-known/oauth-protected-resource/mcp"
+
+	return func(c *gin.Context) {
+		log := h.Log.With().Str("func", "MCPAuthMiddleware").Logger()
+
+		// RFC 6750 §3: a request with NO credential gets a bare challenge. An
+		// `error` parameter is only correct once a credential was supplied and
+		// found wanting — reporting invalid_token to a client that sent nothing
+		// misdescribes a first contact as a failure.
+		accessToken, err := h.TokenProvider.GetAccessToken(c)
+		if err != nil || accessToken == "" {
+			c.Header("WWW-Authenticate",
+				`Bearer realm="authorizer", resource_metadata="`+metadataURL+`"`)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":             "invalid_request",
+				"error_description": "authorization required",
+			})
+			return
+		}
+
+		if _, vErr := h.TokenProvider.ValidateMCPAccessToken(c, accessToken, resource); vErr != nil {
+			// Debug, not warn: a wrong-audience or expired token at this endpoint
+			// is the ordinary steady state of a client that needs to refresh, not
+			// evidence of an attack.
+			log.Debug().Err(vErr).Msg("mcp request rejected")
+			c.Header("WWW-Authenticate",
+				`Bearer realm="authorizer", error="invalid_token", `+
+					`error_description="The access token is invalid, expired, or was not issued for this MCP server", `+
+					`resource_metadata="`+metadataURL+`"`)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":             "invalid_token",
+				"error_description": "The access token is invalid, expired, or was not issued for this MCP server",
+			})
+			return
+		}
+
+		c.Next()
+	}
+}

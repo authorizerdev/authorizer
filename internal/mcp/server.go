@@ -1,6 +1,6 @@
-// Package mcp serves a curated subset of Authorizer's gRPC methods to
-// LLM clients via the Model Context Protocol. Stdio is the ONLY supported
-// transport — see the deliberate design note on Server below.
+// Package mcp serves a curated subset of Authorizer's gRPC methods to LLM
+// clients via the Model Context Protocol, over Streamable HTTP (the deployable
+// transport) or stdio (development only). See the design note on Server.
 package mcp
 
 import (
@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -25,15 +26,25 @@ const bufSize = 1 << 20
 
 // Server wraps an MCP server that bridges to an in-process gRPC server.
 //
-// Design constraint: stdio is the ONLY supported transport. The MCP server
-// has no auth/rate-limit/audit interceptors of its own — it relies entirely
-// on the OS-level trust boundary of the subprocess (Claude Code spawns
-// `authorizer mcp` as a child; only that process can write to its stdin).
-// Exposing the MCP server over TCP / HTTP / SSE would invalidate that
-// assumption and is intentionally NOT implementable: there is no RunHTTP /
-// RunTCP / RunSSE method, and adding one without first implementing an
-// auth layer is a security regression. The stdio-only contract is also
-// enforced by TestServer_StdioOnly.
+// Two transports, with very different security models.
+//
+// Handler() serves Streamable HTTP and is the deployable one. It carries no
+// ambient authority: every tool call is authenticated by the caller's own bearer
+// token, whose audience must name this MCP server (token.ValidateMCPAccessToken),
+// and it runs on a gRPC server whose auth interceptor accepts nothing else — no
+// cookies, no admin secret, no admin service. The route wrapper rejects a bad
+// credential with a 401 so clients can start discovery or refresh.
+//
+// RunStdio has no auth of its own and relies entirely on the OS-level trust
+// boundary of the subprocess: an MCP host spawns `authorizer mcp` as a child, and
+// only that process can write to its stdin. Identity is the process-wide
+// --mcp-bearer, so one process serves exactly one user. That is why it is a
+// development transport and is deprecated for removal in 2.5.0.
+//
+// The earlier "stdio is the ONLY supported transport" constraint, and the
+// TestServer_StdioOnly guard that enforced it, named their own exit condition:
+// implement an auth interceptor for MCP first, then allow a network transport.
+// That is what interceptors.MCPTokenResolver and the sole-authority guard are.
 type Server struct {
 	log     *zerolog.Logger
 	mcpSrv  *mcp.Server
@@ -142,11 +153,31 @@ func (s *Server) cleanup() {
 	_ = s.lis.Close()
 }
 
-// stampAuth attaches the configured bearer and authorizer URL to the
-// outgoing gRPC call. A no-op when neither is set. This is the bridge that
-// lets gRPC handlers see "who is calling" (security audit H1) and which
-// host minted the token (issuer validation) when invoked from MCP.
-func (s *Server) stampAuth(ctx context.Context) context.Context {
+// stampAuth attaches the caller's credential to the outgoing in-process gRPC
+// call. This is the bridge that lets gRPC handlers see "who is calling".
+//
+// Over HTTP the credential is per REQUEST: reqHeader carries the Authorization
+// header of the HTTP request that produced this tool call, so one server serves
+// every caller under their own identity. Over stdio there is no HTTP request, so
+// it falls back to the process-wide --mcp-bearer — one process, one user, which
+// is exactly the limitation that makes stdio a development-only transport.
+//
+// ONLY the Authorization header crosses. Nothing else from the HTTP request is
+// forwarded, and that is deliberate: transport.MetaFromGRPC reconstructs cookies
+// and x-authorizer-url from gRPC metadata, so forwarding headers wholesale would
+// let a browser session cookie — or a host header — reach the auth path of a
+// surface whose whole security model is "the token's audience must name this MCP
+// server". The interceptor refuses those credentials too (see
+// interceptors.Auth's sole-authority guard), but the bridge should not be
+// offering them in the first place.
+//
+// x-authorizer-url is likewise NOT forwarded. MCP requires --url, so
+// parsers.GetHost short-circuits to the operator-configured value and a header
+// could only disagree with it.
+func (s *Server) stampAuth(ctx context.Context, reqHeader http.Header) context.Context {
+	if auth := reqHeader.Get("Authorization"); auth != "" {
+		return metadata.AppendToOutgoingContext(ctx, "authorization", auth)
+	}
 	if s.bearer != "" {
 		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+s.bearer)
 	}
@@ -154,6 +185,28 @@ func (s *Server) stampAuth(ctx context.Context) context.Context {
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-authorizer-url", s.authorizerURL)
 	}
 	return ctx
+}
+
+// Handler serves MCP over Streamable HTTP.
+//
+// Stateless + JSONResponse, for two independent reasons. The main HTTP listener
+// sets WriteTimeout: 60s, which would kill a long-lived SSE stream mid-flight;
+// and a stateless server needs no sticky sessions, so an Authorizer deployment
+// can scale horizontally without the MCP surface pinning a client to one
+// replica. In this mode the SDK answers GET with 405 + Allow, which is
+// spec-conformant — every exposed tool is request/response, so no server→client
+// stream is needed.
+//
+// Authentication is NOT done here. It happens twice, on purpose: the route
+// wrapper rejects a bad credential with a 401 so the client knows to refresh or
+// start discovery, and the in-process gRPC interceptor resolves the identity
+// that handlers actually run under. See the route registration in
+// internal/server.
+func (s *Server) Handler() http.Handler {
+	return mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return s.mcpSrv },
+		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true},
+	)
 }
 
 // registerTool wires one ToolBinding into the MCP server. The handler:
@@ -184,8 +237,15 @@ func (s *Server) registerTool(b ToolBinding) {
 			}
 		}
 
+		// Extra is nil on transports that carry no HTTP request (stdio), where
+		// stampAuth falls back to the process-wide bearer.
+		var reqHeader http.Header
+		if req.Extra != nil {
+			reqHeader = req.Extra.Header
+		}
+
 		respMsg := dynamicpb.NewMessage(b.OutputDescriptor)
-		if err := s.gwConn.Invoke(s.stampAuth(ctx), b.FullMethod, reqMsg, respMsg); err != nil {
+		if err := s.gwConn.Invoke(s.stampAuth(ctx, reqHeader), b.FullMethod, reqMsg, respMsg); err != nil {
 			s.log.Debug().Err(err).Str("tool", b.Name).Str("method", b.FullMethod).Msg("MCP tool invocation failed")
 			// gRPC errors (Unimplemented, PermissionDenied, NotFound, ...)
 			// become CallToolResult{IsError: true} with the gRPC status

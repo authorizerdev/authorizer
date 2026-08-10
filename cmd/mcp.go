@@ -64,6 +64,17 @@ var mcpCmd = &cobra.Command{
 }
 
 func init() {
+	// Cobra prints this above the command's output on every invocation.
+	//
+	// The stdio transport cannot be deployed: it runs a second copy of every
+	// provider (storage, memory store, FGA engine) and its identity is one
+	// process-wide --mcp-bearer, so a process serves exactly one user forever.
+	// `--mcp-enabled` replaces both properties — the MCP surface shares the
+	// running server's providers, and every request carries its own token.
+	mcpCmd.Deprecated = "the stdio MCP transport will be removed in 2.5.0. " +
+		"Run the server with --mcp-enabled and connect to POST <url>/mcp instead. " +
+		"See https://docs.authorizer.dev/core/mcp"
+
 	mcpCmd.Flags().StringVar(&mcpArgs.bearer, "mcp-bearer", "",
 		"Bearer token to attach to every outgoing gRPC call (carries the "+
 			"user identity for tools like Profile / Permissions / Session). "+
@@ -81,6 +92,11 @@ func runMCP(_ *cobra.Command, _ []string) {
 	// MCP stdio mode: stderr-only logging so it doesn't interleave with the
 	// JSON-RPC framing on stdout.
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
+	// Cobra's deprecation notice goes to the terminal; this puts it where an
+	// operator running under a supervisor will actually see it.
+	log.Warn().Msg("`authorizer mcp` (stdio) is deprecated and will be removed in 2.5.0 — " +
+		"run the server with --mcp-enabled and connect to POST <url>/mcp instead")
 
 	// Wire all subsystems an MCP-exposed tool might need. As more ops
 	// migrate into internal/service, this list stays the same — the

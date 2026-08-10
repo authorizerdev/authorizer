@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -46,7 +47,7 @@ func mintStatefulAccessToken(t *testing.T, ts *testSetup, user *schemas.User, re
 		Roles:       []string{"user"},
 		Scope:       []string{"openid"},
 		LoginMethod: constants.AuthRecipeMethodBasicAuth,
-		HostName:    testAuthorizerHost(ts),
+		HostName:    parsers.GetHost(ts.GinContext),
 		Resource:    resource,
 		ExpireTime:  "30m",
 	})
@@ -71,7 +72,7 @@ func mintMachineAccessToken(t *testing.T, ts *testSetup, clientRowID, resource s
 		Nonce:            nonce,
 		Scope:            []string{"openid"},
 		LoginMethod:      constants.AuthRecipeMethodServiceAccount,
-		HostName:         testAuthorizerHost(ts),
+		HostName:         parsers.GetHost(ts.GinContext),
 		Resource:         resource,
 		ExpireTime:       "30m",
 	})
@@ -186,7 +187,7 @@ func TestMCPAccessTokenAudienceBoundary(t *testing.T) {
 			Nonce:       uuid.NewString(),
 			Roles:       []string{"user"},
 			LoginMethod: constants.AuthRecipeMethodBasicAuth,
-			HostName:    testAuthorizerHost(ts),
+			HostName:    parsers.GetHost(ts.GinContext),
 			Resource:    resource,
 			ExpireTime:  "30m",
 		})
@@ -201,15 +202,14 @@ func TestMCPAccessTokenAudienceBoundary(t *testing.T) {
 	})
 }
 
-// TestMCPAccessTokenServiceAccountLiveness pins the one place the MCP validator
-// is deliberately STRICTER than the first-party path.
+// TestMCPAccessTokenServiceAccountLiveness pins that a deactivated service
+// account cannot reach the MCP surface.
 //
-// userIsRevoked resolves a token's subject as a user only, and returns "not
-// revoked" when it finds nothing — so a machine token, whose `sub` is a client
-// row id, survives deactivation of the service account until it expires. That is
-// inherited behaviour on existing surfaces. MCP's headline callers are agents and
-// service accounts, so shipping it there knowingly would be worse: the validator
-// uses subjectIsLive, which resolves user-then-client and fails closed.
+// Subject liveness is NOT an MCP-specific rule — the same check guards GraphQL,
+// gRPC, REST and the browser session, and TestDeactivatingAServiceAccountStopsItsLiveTokens
+// covers it there. It is asserted here as well because agents and service
+// accounts are the MCP surface's headline callers, so this is the path where a
+// regression would be felt first and noticed last.
 func TestMCPAccessTokenServiceAccountLiveness(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.AuthorizerURL = "https://auth.example.com"
