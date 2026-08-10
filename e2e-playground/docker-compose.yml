@@ -17,6 +17,10 @@ services:
       - "--client-id=e2e-client-id"
       - "--client-secret=e2e-client-secret"
       - "--enable-signup=true"
+      # Remote MCP surface. --url above is what makes it legal: every token
+      # presented at /mcp is checked against <url>/mcp, so the server refuses
+      # to start with --mcp-enabled and no --url.
+      - "--mcp-enabled"
       - "--app-cookie-secure=false"
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"

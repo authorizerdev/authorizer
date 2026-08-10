@@ -381,3 +381,63 @@ func TestOAuth21_AuthServerMetadata(t *testing.T) {
 
 	ts.Config.OAuth21Strict = false
 }
+
+// TestAuthorizeCarriesResourceThroughLogin pins that the RFC 8707 resource
+// indicator survives the login round-trip.
+//
+// When /authorize is reached WITHOUT a live session it does not issue a code —
+// it redirects to the login UI with the request's parameters encoded in the
+// query, and the SPA replays them on a second /authorize call once the user has
+// signed in. Every parameter that must reach the second call has to be in that
+// string; `resource` was not.
+//
+// The consequence was invisible in exactly the way that costs the most time. The
+// flow completed, a token came back, and only its `aud` was wrong — the client
+// id instead of the resource server — so the MCP endpoint rejected every call
+// with a 401 that read like a credential problem. And it only happened to users
+// who were not already signed in, so retrying after logging in elsewhere
+// "fixed" it.
+//
+// No integration test caught it because they all pre-establish a session cookie,
+// which skips this branch entirely. This one deliberately does not.
+func TestAuthorizeCarriesResourceThroughLogin(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	router := gin.New()
+	router.GET("/authorize", ts.HttpProvider.AuthorizeHandler())
+
+	const resource = "https://auth.example.com/mcp"
+	qs := url.Values{}
+	qs.Set("response_type", "code")
+	qs.Set("client_id", cfg.ClientID)
+	qs.Set("redirect_uri", "http://localhost:3000/callback")
+	qs.Set("state", "st")
+	qs.Set("response_mode", "query")
+	qs.Set("scope", "openid")
+	qs.Set("code_challenge", s256Challenge("a-verifier-long-enough-to-be-valid-0000000000"))
+	qs.Set("code_challenge_method", "S256")
+	qs.Set("resource", resource)
+
+	// No session cookie: this is a first-time connection, the case that broke.
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/authorize?"+qs.Encode(), nil)
+	require.NoError(t, err)
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusFound, w.Code, "an unauthenticated /authorize must redirect to the login UI: %s", w.Body.String())
+
+	loc, err := url.Parse(w.Header().Get("Location"))
+	require.NoError(t, err)
+	// The login UI receives the parameters as a query string it replays.
+	carried, err := url.ParseQuery(loc.RawQuery)
+	require.NoError(t, err)
+
+	assert.Equal(t, resource, carried.Get("resource"),
+		"the resource indicator must survive the login redirect, or the second /authorize mints an unbound token")
+	// Sanity that this assertion is reading the right string: parameters known
+	// to be forwarded are present too, so a future refactor that moved the
+	// payload elsewhere fails loudly instead of silently passing.
+	assert.Equal(t, cfg.ClientID, carried.Get("client_id"))
+	assert.NotEmpty(t, carried.Get("code_challenge"))
+}

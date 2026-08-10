@@ -390,6 +390,22 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			authState += "&code_challenge=" + url.QueryEscape(codeChallenge)
 			authState += "&code_challenge_method=" + url.QueryEscape(codeChallengeMethod)
 		}
+		// The RFC 8707 resource indicator has to survive this round-trip too,
+		// and its absence failed silently in the worst way: the flow completed,
+		// a token was issued, and only its `aud` was wrong — the client id
+		// instead of the resource the client asked for. The resource server then
+		// rejected every call with a 401 that looked like a credential problem.
+		//
+		// It only broke for users who were NOT already signed in, because a live
+		// session skips this branch entirely. So the first connection failed and
+		// a retry after logging in elsewhere succeeded, which is close to the
+		// worst possible symptom to debug.
+		//
+		// Already validated as an absolute URI without a fragment above; escaped
+		// here for the same reason every other value is.
+		if resource != "" {
+			authState += "&resource=" + url.QueryEscape(resource)
+		}
 
 		if hasCodeFlow {
 			authState += "&code=" + code
