@@ -52,7 +52,11 @@ func (p *provider) getItemByHash(ctx context.Context, table, hashKey, hashValue 
 		return err
 	}
 	if len(res.Item) == 0 {
-		return fmt.Errorf("no record found")
+		// Wrapped so storage.IsNotFound recognises it. A bare error here made
+		// "the row is absent" indistinguishable from "the query failed" for
+		// every caller of every getter built on this helper — the exact
+		// conflation AGENTS.md's not-found contract exists to prevent.
+		return fmt.Errorf("record not found: %w", ErrNotFound)
 	}
 	return unmarshalItem(res.Item, out)
 }

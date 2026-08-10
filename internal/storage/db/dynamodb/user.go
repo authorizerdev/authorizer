@@ -275,9 +275,11 @@ func (p *provider) GetUserByExternalID(ctx context.Context, orgID, externalID st
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
 	var user schemas.User
-	err := p.getItemByHash(ctx, schemas.Collections.User, "id", id, &user)
-	if err != nil {
-		return nil, errors.New("no documets found")
+	// Return the underlying error rather than replacing it: getItemByHash already
+	// distinguishes absence (wrapped ErrNotFound) from failure, and flattening
+	// both into one opaque error reported a DynamoDB outage as a missing user.
+	if err := p.getItemByHash(ctx, schemas.Collections.User, "id", id, &user); err != nil {
+		return nil, err
 	}
 	normalizeUserOptionalPtrs(&user)
 	return &user, nil
