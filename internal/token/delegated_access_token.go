@@ -260,37 +260,50 @@ func (p *provider) subjectLiveness(gc *gin.Context, subject string) (live, known
 		return false, false
 	}
 
-	user, err := p.dependencies.StorageProvider.GetUserByID(gc, subject)
-	switch {
-	case err == nil && user != nil:
+	user, userErr := p.dependencies.StorageProvider.GetUserByID(gc, subject)
+	if userErr == nil && user != nil {
 		if user.RevokedTimestamp != nil {
 			p.dependencies.Log.Debug().Str("subject", subject).
 				Msg("token rejected: subject user is revoked")
 			return false, true
 		}
 		return true, true
-	case !storage.IsNotFound(err):
-		p.dependencies.Log.Debug().Err(err).Str("subject", subject).
-			Msg("subject liveness undetermined: user lookup failed")
-		return false, false
 	}
 
-	client, err := p.dependencies.StorageProvider.GetClientByID(gc, subject)
-	switch {
-	case err == nil && client != nil:
+	// The client lookup is attempted whenever the user lookup did not POSITIVELY
+	// find a user — never gated on the user error being a recognisable
+	// not-found.
+	//
+	// That distinction is the whole correctness of this function across
+	// backends. A machine token's subject is a client row id, so the user lookup
+	// always misses; if a miss on some backend produced an unrecognised error
+	// and short-circuited here, the client lookup would never run. On DynamoDB
+	// GetUserByID returns a bare errors.New("no documets found") and on
+	// Couchbase a gocb.ErrNoResult from the query path — neither satisfies
+	// storage.IsNotFound. Gating on it therefore broke both directions at once
+	// on exactly those two backends: delegated tokens with service-account
+	// subjects were rejected outright, and deactivating a service account
+	// stopped revoking its live tokens. CI runs SQLite only, so nothing failed.
+	client, clientErr := p.dependencies.StorageProvider.GetClientByID(gc, subject)
+	if clientErr == nil && client != nil {
 		if !client.IsActive {
 			p.dependencies.Log.Debug().Str("subject", subject).
 				Msg("token rejected: subject service account is deactivated")
 			return false, true
 		}
 		return true, true
-	case !storage.IsNotFound(err):
-		p.dependencies.Log.Debug().Err(err).Str("subject", subject).
-			Msg("subject liveness undetermined: client lookup failed")
-		return false, false
 	}
 
-	p.dependencies.Log.Debug().Str("subject", subject).
-		Msg("token rejected: subject resolves to neither an active user nor an active client")
-	return false, true
+	// Neither table resolved the subject. Absence is only CONFIRMED when BOTH
+	// lookups said "no such row"; if either was merely inconclusive the honest
+	// answer is that we do not know, and callers choose what that means.
+	if storage.IsNotFound(userErr) && storage.IsNotFound(clientErr) {
+		p.dependencies.Log.Debug().Str("subject", subject).
+			Msg("token rejected: subject resolves to neither an active user nor an active client")
+		return false, true
+	}
+
+	p.dependencies.Log.Debug().AnErr("user_lookup", userErr).AnErr("client_lookup", clientErr).
+		Str("subject", subject).Msg("subject liveness undetermined")
+	return false, false
 }

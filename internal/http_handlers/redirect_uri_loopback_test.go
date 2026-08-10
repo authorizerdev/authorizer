@@ -39,6 +39,13 @@ func TestRedirectURIMatches(t *testing.T) {
 		{"query must still match", "http://127.0.0.1/cb?a=1", "http://127.0.0.1:9/cb?a=2", false},
 		{"localhost and 127.0.0.1 are different names", "http://localhost/cb", "http://127.0.0.1:9/cb", false},
 
+		// Fragment and userinfo are rejected, not compared. Comparing only
+		// scheme/host/path/query would make everything omitted a free field.
+		{"presented fragment is rejected", "http://127.0.0.1/callback", "http://127.0.0.1:9/callback#x", false},
+		{"registered fragment is rejected", "http://127.0.0.1/callback#x", "http://127.0.0.1:9/callback#x", false},
+		{"presented userinfo is rejected", "http://127.0.0.1/callback", "http://evil.com@127.0.0.1:9/callback", false},
+		{"registered userinfo is rejected", "http://evil.com@127.0.0.1/callback", "http://127.0.0.1:9/callback", false},
+
 		// A hostname that merely contains a loopback name is not loopback.
 		{"lookalike host is not loopback", "http://127.0.0.1/cb", "http://127.0.0.1.evil.com:9/cb", false},
 		{"localhost subdomain is not loopback", "http://localhost/cb", "http://localhost.evil.com:9/cb", false},

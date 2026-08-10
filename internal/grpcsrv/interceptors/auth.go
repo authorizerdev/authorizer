@@ -107,6 +107,15 @@ func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.Un
 		// must NOT skip admin auth — it falls through to the super-admin check
 		// below (mirroring the Session RPC's explicit service guard, closing the
 		// latent footgun where a future admin RPC is accidentally made public).
+		// A resolver-governed server does not serve the admin surface at all,
+		// and this has to be decided BEFORE the `public` bypass below. AdminLogin
+		// is both an admin RPC and `public`, so the bypass would hand it through
+		// untouched — leaving the one RPC that MINTS super-admin authority
+		// reachable on an internet-facing, CSRF-exempt surface, which is the
+		// opposite of what refusing the admin service is for.
+		if resolverIsSoleAuthority && serviceName == adminServiceName {
+			return nil, status.Error(codes.Unauthenticated, "unauthorized")
+		}
 		if isPublicMethod(methodDesc) &&
 			(serviceName == publicServiceName ||
 				(serviceName == adminServiceName && string(methodDesc.Name()) == adminLoginMethodName)) {
@@ -120,24 +129,12 @@ func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.Un
 		gc := &gin.Context{Request: meta.Request}
 
 		if serviceName == adminServiceName {
-			// A resolver-governed surface does not serve the admin API at all.
-			//
-			// Skipping the IsSuperAdmin check here is NOT enough on its own:
-			// service.requireSuperAdmin re-derives super-admin from meta.Request
-			// (admin_provider.go), reading the admin cookie or the
-			// x-authorizer-admin-secret header that transport.MetaFromGRPC
-			// reconstructs from gRPC metadata. Disabling the check at this layer
-			// would only move it one layer down, so a caller holding a valid
-			// MCP-audience token plus an admin credential would still reach
-			// platform-wide operations on an internet-facing, CSRF-exempt
-			// surface. Refusing the whole service is the only version of this
-			// guard that actually holds, and it costs nothing: no admin RPC is
-			// mcp_tool-exposed, so nothing legitimate is being turned off.
-			if resolverIsSoleAuthority {
-				return nil, status.Error(codes.Unauthenticated, "unauthorized")
-			}
 			// Platform super-admin: unchanged, and still the only identity that
-			// reaches the platform-wide operations.
+			// reaches the platform-wide operations. A resolver-governed server
+			// never gets here — the whole admin service is refused above, which
+			// is the only version of that guard that holds: merely skipping this
+			// check would move it one layer down, since service.requireSuperAdmin
+			// re-derives super-admin from meta.Request on its own.
 			if tp.IsSuperAdmin(gc) {
 				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
 				return handler(ctx, req)

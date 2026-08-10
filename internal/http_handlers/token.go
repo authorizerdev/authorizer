@@ -698,7 +698,17 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// PostFormArray, not PostForm: a repeated parameter must be rejected
 			// rather than silently resolved to the first value — same reasoning as
 			// the authorization_code branch above.
-			if requestResources := gc.PostFormArray("resource"); len(requestResources) > 0 {
+			//
+			// Enforced only when the grant WAS bound, mirroring the
+			// authorization_code branch above. A refresh token minted before this
+			// change carries no `resource` claim, and the MCP spec has clients
+			// send `resource` on every token request including refresh — so
+			// comparing against an empty binding would turn every pre-upgrade
+			// refresh into a permanent invalid_target the moment the deployment
+			// upgraded. An unbound grant stays unbound: the supplied value is
+			// ignored rather than honoured, because letting a refresh ADD a
+			// binding would let a client mint an audience nobody authorized.
+			if requestResources := gc.PostFormArray("resource"); len(requestResources) > 0 && boundResource != "" {
 				if len(requestResources) != 1 || strings.TrimSpace(requestResources[0]) != boundResource {
 					metrics.RecordSecurityEvent("refresh_resource_mismatch", "token_endpoint")
 					log.Warn().Msg("rejected: resource parameter does not match the resource bound to this grant")

@@ -1088,6 +1088,24 @@ func redirectURIMatches(registered, presented string) bool {
 	if !isLoopbackHost(r.Hostname()) || !isLoopbackHost(p.Hostname()) {
 		return false
 	}
+	// Fragment and userinfo are rejected outright rather than compared, because
+	// comparing only scheme/host/path/query would silently accept URIs the exact
+	// match rejected — everything the comparison omits becomes a free field.
+	//
+	// A fragment is the worse of the two. RFC 6749 §3.1.2 forbids one on the
+	// redirection endpoint, and the response is appended by string
+	// concatenation: a presented "http://127.0.0.1:9/cb#x" carries no "?", so
+	// the result is ".../cb#x?code=…&state=…" and the entire authorization
+	// response lands inside the fragment. The app's loopback listener then
+	// receives a request with no code, no state and no error, and the login
+	// hangs forever instead of failing cleanly.
+	//
+	// Userinfo is the phishing shape: "http://evil.com@127.0.0.1/callback" reads
+	// as evil.com to a human skimming a consent screen while resolving to
+	// loopback.
+	if r.Fragment != "" || p.Fragment != "" || r.User != nil || p.User != nil {
+		return false
+	}
 	return r.Scheme == p.Scheme &&
 		r.Hostname() == p.Hostname() &&
 		r.Path == p.Path &&
