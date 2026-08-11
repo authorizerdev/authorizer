@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Authorize {{.client_name}}</title>
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+				max-width: 32rem;
+				margin: 4rem auto;
+				padding: 0 1rem;
+				color: #222;
+				line-height: 1.5;
+			}
+			h1 {
+				font-size: 1.5rem;
+				margin-bottom: 0.5rem;
+			}
+			.client {
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				padding: 1rem;
+				margin: 1.5rem 0;
+			}
+			.client dt {
+				font-size: 0.8rem;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: #666;
+				margin-top: 0.75rem;
+			}
+			.client dt:first-child {
+				margin-top: 0;
+			}
+			.client dd {
+				margin: 0.15rem 0 0;
+				word-break: break-all;
+			}
+			.host {
+				font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+				font-weight: 600;
+			}
+			.warn {
+				border-left: 3px solid #b26a00;
+				background: #fff8e6;
+				padding: 0.75rem 1rem;
+				margin: 1.5rem 0;
+			}
+			.unverified {
+				color: #666;
+				font-size: 0.9rem;
+			}
+			.actions {
+				display: flex;
+				gap: 0.75rem;
+				margin-top: 1.5rem;
+			}
+			button {
+				font-size: 1rem;
+				padding: 0.6rem 1.2rem;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			button.approve {
+				border: 1px solid #444;
+				background: #222;
+				color: #fff;
+			}
+			button.approve:hover {
+				background: #000;
+			}
+			button.deny {
+				border: 1px solid #bbb;
+				background: #fff;
+				color: #222;
+			}
+			button.deny:hover {
+				background: #f3f3f3;
+			}
+			ul.scopes {
+				margin: 0.25rem 0 0;
+				padding-left: 1.25rem;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Authorize {{.client_name}}</h1>
+		<p>
+			<strong>{{.client_name}}</strong> wants to access your account as
+			<strong>{{.user_email}}</strong>.
+		</p>
+
+		<div class="client">
+			<dl>
+				<dt>Sends you back to</dt>
+				<dd><span class="host">{{.redirect_host}}</span></dd>
+
+				<dt>Identified by</dt>
+				<dd>{{.client_id}}</dd>
+
+				{{if .scopes}}
+				<dt>Requests permission to</dt>
+				<dd>
+					<ul class="scopes">
+						{{range .scopes}}
+						<li>{{.}}</li>
+						{{end}}
+					</ul>
+				</dd>
+				{{end}}
+			</dl>
+		</div>
+
+		{{if .loopback_only}}
+		<div class="warn">
+			<strong>This application runs on your own computer.</strong>
+			Any program on this machine could claim to be
+			<strong>{{.client_name}}</strong>. Only continue if you just started
+			it yourself.
+		</div>
+		{{end}}
+
+		<p class="unverified">
+			This application registered itself and its name has not been verified
+			by {{.organization_name}}. The address above is where your access will
+			actually be sent — check that you recognise it.
+		</p>
+
+		<form method="POST" action="/authorize/consent">
+			<input type="hidden" name="consent_id" value="{{.consent_id}}" />
+			<div class="actions">
+				<button class="approve" type="submit" name="action" value="approve">
+					Allow access
+				</button>
+				<button class="deny" type="submit" name="action" value="deny">
+					Cancel
+				</button>
+			</div>
+		</form>
+	</body>
+</html>
