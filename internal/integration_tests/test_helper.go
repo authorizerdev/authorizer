@@ -22,6 +22,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -343,7 +344,16 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 
 	// Create dependencies struct
 	httpDeps := &http_handlers.Dependencies{
-		Log:                   &logger,
+		Log: &logger,
+		// Built exactly as cmd/root.go does: nil unless the flag is on, so a
+		// test that does not opt in sees the feature switched off, and one that
+		// does gets the same wiring production has.
+		ClientMetadataProvider: func() *clientmetadata.Provider {
+			if !cfg.EnableClientIDMetadataDocument {
+				return nil
+			}
+			return clientmetadata.New(&logger, cfg.ClientIDMetadataAllowedDomains)
+		}(),
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
 		EmailProvider:         emailProvider,

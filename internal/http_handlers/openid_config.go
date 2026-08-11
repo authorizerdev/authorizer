@@ -85,6 +85,11 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			// RFC 8707 resource indicators are honored on the authorization_code
 			// flow (resource query param → access token aud) and token-exchange.
 			"resource_indicators_supported": true,
+			// Advertised only when enabled. Anthropic documents Claude selecting
+			// CIMD when this is true AND "none" appears in
+			// token_endpoint_auth_methods_supported (it authenticates as a public
+			// client); both hold here when the flag is on.
+			"client_id_metadata_document_supported": h.Config.EnableClientIDMetadataDocument,
 			// NO `registration_endpoint`, and that is deliberate — please do not
 			// "fix" it by adding RFC 7591 dynamic client registration.
 			//
@@ -108,12 +113,10 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			// deployment accumulates client rows without bound.
 			// https://claude.com/docs/connectors/building/authentication
 			//
-			// `client_id_metadata_document_supported` is NOT advertised yet either,
-			// because advertising a capability that is not implemented is worse
-			// than omitting it — a client would select CIMD and then fail. Adding
-			// CIMD is tracked as the follow-up to the MCP transport work; it needs
-			// the URL-form client_id resolver plus an /authorize consent screen,
-			// which the spec makes mandatory once client identity is self-asserted.
+			// `client_id_metadata_document_supported` IS advertised, but only when
+			// the feature is actually enabled (see below) — advertising a
+			// capability that is off would make a client select CIMD and then
+			// fail, which is worse than omitting it and letting them fall back.
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",

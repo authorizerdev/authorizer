@@ -67,6 +67,21 @@ type Config struct {
 	GRPCTLSCert string
 	GRPCTLSKey  string
 
+	// EnableClientIDMetadataDocument accepts HTTPS-URL client_ids that resolve to
+	// a Client ID Metadata Document (CIMD), letting a client with no prior
+	// relationship to this server authenticate. It is what makes the OAuth path
+	// to /mcp usable by clients that will not otherwise register.
+	//
+	// Off by default because it changes the authorization endpoint's trust model
+	// for EVERY client, not just MCP: identity becomes self-asserted, which is
+	// why enabling it also turns on a consent screen for those clients.
+	EnableClientIDMetadataDocument bool
+	// ClientIDMetadataAllowedDomains optionally restricts which hosts may serve a
+	// metadata document (the spec's domain trust policy). Empty accepts any HTTPS
+	// host, which is what a public MCP server wants; an allow-list is for
+	// locked-down deployments.
+	ClientIDMetadataAllowedDomains []string
+
 	// MCPEnabled serves Authorizer's MCP tool surface over HTTP at POST /mcp on
 	// the main listener, as an OAuth 2.1 resource server. Off by default: it is a
 	// new internet-facing authenticated surface, and an auth server should not

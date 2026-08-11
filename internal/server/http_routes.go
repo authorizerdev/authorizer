@@ -140,6 +140,11 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
+	// Consent decision for a self-asserted (CIMD) client. Registered
+	// unconditionally: the handler is only ever reached from a page this server
+	// rendered, and a 400 for an unknown consent_id is a better answer than a
+	// 404 that varies with configuration.
+	router.POST("/authorize/consent", s.Dependencies.HTTPProvider.ConsentHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 	router.POST("/oauth/introspect", s.Dependencies.HTTPProvider.IntrospectHandler())
 

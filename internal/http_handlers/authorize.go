@@ -47,12 +47,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
@@ -169,7 +171,33 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// which alone would let any path under an allowed host through
 			// (including a suffix appended to another client's callback);
 			// it remains the fallback for clients with no registered URIs.
-			if client, err := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID); err == nil && client != nil {
+			// A Client ID Metadata Document client carries its redirect_uris in
+			// a document at its own client_id URL rather than in the registry,
+			// so resolve it here and validate against that list. Same matcher as
+			// registered clients, so RFC 8252 loopback rules apply identically.
+			//
+			// A resolution failure is fatal to the request rather than a silent
+			// fall-through to the AllowedOrigins fallback: falling through would
+			// let an unresolvable client_id inherit a laxer check than a resolved
+			// one, which is backwards.
+			if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
+				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
+				if dErr != nil {
+					log.Debug().Err(dErr).Str("client_id", clientID).Msg("could not resolve client metadata document")
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_client",
+						"error_description": "could not resolve the client metadata document for this client_id",
+					})
+					return
+				}
+				validRedirect = false
+				for _, r := range doc.RedirectURIs {
+					if redirectURIMatches(r, redirectURI) {
+						validRedirect = true
+						break
+					}
+				}
+			} else if client, err := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID); err == nil && client != nil {
 				if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
 					validRedirect = false
 					for _, r := range registered {
@@ -607,6 +635,31 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				},
 			}, http.StatusOK)
 			return
+		}
+
+		// Consent gate for self-asserted (CIMD) clients. Placed here, after the
+		// session is validated and the user resolved, for two reasons: the page
+		// names the account being granted, and an unauthenticated visitor must
+		// reach the login UI first rather than being asked to approve something
+		// on behalf of nobody.
+		//
+		// Skipped once ConsentHandler has replayed the request — it sets the
+		// marker only after its own store lookup and session check pass, so this
+		// cannot be short-circuited by anything the client sends.
+		if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
+			if granted, ok := gc.Get(consentGrantedKey); !ok || granted != clientID {
+				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
+				if dErr != nil {
+					log.Debug().Err(dErr).Msg("could not resolve client metadata document for consent")
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_client",
+						"error_description": "could not resolve the client metadata document for this client_id",
+					})
+					return
+				}
+				h.renderConsent(gc, doc, redirectURI, user.ID, refs.StringValue(user.Email), scope)
+				return
+			}
 		}
 
 		sessionKey := user.ID
