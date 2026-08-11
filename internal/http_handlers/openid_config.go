@@ -6,6 +6,22 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
+// supportedScopes is the scope list this deployment honours, advertised by BOTH
+// discovery documents: OIDC/RFC 8414 authorization server metadata and RFC 9728
+// protected resource metadata.
+//
+// One list, because a client picks the scopes it requests from whichever
+// document it read. A protected-resource document that omitted `offline_access`
+// while the authorization server advertised it would send MCP clients into a
+// flow that returns no refresh token, and the agent's session would die at
+// access-token expiry with a 401 that looks like a broken integration.
+//
+// "phone" is advertised because phone_number/phone_number_verified are real,
+// populated claims (see claims_supported). "address" is deliberately omitted —
+// the User schema has no address fields, so claiming it would be false
+// advertising.
+var supportedScopes = []string{"openid", "email", "profile", "phone", "offline_access"}
+
 // OpenIDConfigurationHandler handler for open-id configurations
 // Implements OpenID Connect Discovery 1.0
 func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
@@ -53,14 +69,9 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":    issuer + "/oauth/token",
-			"userinfo_endpoint": issuer + "/userinfo",
-			// "phone" is advertised because phone_number/phone_number_verified
-			// are real, populated claims (see claims_supported below). "address"
-			// is deliberately omitted — the User schema has no address fields
-			// (street_address/locality/region/postal_code/country), so claiming
-			// support for it would be false advertising.
-			"scopes_supported":         []string{"openid", "email", "profile", "phone", "offline_access"},
+			"token_endpoint":           issuer + "/oauth/token",
+			"userinfo_endpoint":        issuer + "/userinfo",
+			"scopes_supported":         supportedScopes,
 			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
 			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
 			"grant_types_supported":    grantTypes,
@@ -73,7 +84,36 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"code_challenge_methods_supported":      codeChallengeMethods,
 			// RFC 8707 resource indicators are honored on the authorization_code
 			// flow (resource query param → access token aud) and token-exchange.
-			"resource_indicators_supported":                 true,
+			"resource_indicators_supported": true,
+			// NO `registration_endpoint`, and that is deliberate — please do not
+			// "fix" it by adding RFC 7591 dynamic client registration.
+			//
+			// The MCP authorization spec (2025-11-25) demoted DCR: authorization
+			// servers **SHOULD** support Client ID Metadata Documents and **MAY**
+			// support DCR, which it keeps only "for backwards compatibility with
+			// earlier versions of the MCP authorization spec". CIMD is the
+			// recommended path, and the client priority order is pre-registered →
+			// CIMD → DCR → prompt the user.
+			// https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
+			//
+			// DCR is also an open, unauthenticated write endpoint. Auth0 ships it
+			// Enterprise-only, disabled by default, and requires tenant ACLs or a
+			// reverse proxy in front, citing resource depletion, security probing,
+			// unvetted misconfigured clients and audit gaps — then recommends CIMD
+			// instead for production.
+			// https://auth0.com/ai/docs/mcp/guides/registering-your-mcp-client-application/dynamic-client-registration
+			//
+			// Anthropic's own connector guidance points the same way: DCR makes a
+			// client register afresh on every connection, so a self-hosted
+			// deployment accumulates client rows without bound.
+			// https://claude.com/docs/connectors/building/authentication
+			//
+			// `client_id_metadata_document_supported` is NOT advertised yet either,
+			// because advertising a capability that is not implemented is worse
+			// than omitting it — a client would select CIMD and then fail. Adding
+			// CIMD is tracked as the follow-up to the MCP transport work; it needs
+			// the URL-form client_id resolver plus an /authorize consent screen,
+			// which the spec makes mandatory once client identity is self-asserted.
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",

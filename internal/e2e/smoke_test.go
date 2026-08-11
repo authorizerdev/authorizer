@@ -80,6 +80,11 @@ func TestReleaseSmoke(t *testing.T) {
 		// withhold signup's token behind the MFA-setup gate instead of
 		// returning it directly.
 		"--disable-mfa",
+		// MCP over HTTP. --url is mandatory with it: the audience every MCP
+		// token is checked against is derived from --url alone, so the binary
+		// refuses to start without one.
+		"--mcp-enabled",
+		"--url=" + baseURL,
 	}
 	stopServer := startServer(t, bin, serverArgs, baseURL)
 
@@ -247,7 +252,55 @@ func TestReleaseSmoke(t *testing.T) {
 		assert.NotEmpty(t, res.AdminMeta.Roles)
 	})
 
-	// --- Surface 4: MCP (stdio subprocess) -------------------------------
+	// --- Surface 4: MCP over HTTP ----------------------------------------
+	// Runs against the REAL binary and the REAL route table, which is the only
+	// place the --mcp-enabled route registration is actually exercised: every
+	// other MCP test mounts the handler onto a router it builds itself, so a
+	// refactor that dropped the route (or the flag guard in front of it) would
+	// leave them all green.
+	t.Run("mcp http", func(t *testing.T) {
+		metadataURL := baseURL + "/.well-known/oauth-protected-resource/mcp"
+
+		// RFC 9728 §5.1: an unauthenticated call must point the client at the
+		// metadata document. This is the entry point of the whole discovery
+		// chain — without it a fresh client has no way to learn where to
+		// authenticate.
+		resp, err := http.Post(baseURL+"/mcp", "application/json", strings.NewReader(mcpInitializeRPC))
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+		assert.Contains(t, resp.Header.Get("WWW-Authenticate"), `resource_metadata="`+metadataURL+`"`)
+
+		// The metadata document the challenge points at must exist and name the
+		// same resource identifier clients will send as `resource`.
+		metaResp, err := http.Get(metadataURL)
+		require.NoError(t, err)
+		defer func() { _ = metaResp.Body.Close() }()
+		require.Equal(t, http.StatusOK, metaResp.StatusCode)
+		var prm struct {
+			Resource             string   `json:"resource"`
+			AuthorizationServers []string `json:"authorization_servers"`
+		}
+		require.NoError(t, json.NewDecoder(metaResp.Body).Decode(&prm))
+		assert.Equal(t, baseURL+"/mcp", prm.Resource)
+		assert.Equal(t, []string{baseURL}, prm.AuthorizationServers)
+
+		// A login token authenticates GraphQL, REST and gRPC in this same test —
+		// it must not authenticate MCP. That is the audience boundary, observed
+		// from outside the process.
+		req, err := http.NewRequest(http.MethodPost, baseURL+"/mcp", strings.NewReader(mcpInitializeRPC))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		req.Header.Set("Authorization", "Bearer "+token)
+		wrongAud, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = wrongAud.Body.Close() }()
+		assert.Equal(t, http.StatusUnauthorized, wrongAud.StatusCode,
+			"a token minted for the client, not for <url>/mcp, must be refused")
+	})
+
+	// --- Surface 5: MCP (stdio subprocess, deprecated) --------------------
 	// The MCP subcommand is a separate process sharing the sqlite store, so
 	// stop the server first to avoid two writers on one sqlite file.
 	stopServer()
@@ -306,6 +359,11 @@ func TestReleaseSmoke(t *testing.T) {
 		assert.Equal(t, smokeUserEmail, profOut.Email)
 	})
 }
+
+// mcpInitializeRPC is the MCP handshake a client sends first.
+const mcpInitializeRPC = `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{` +
+	`"protocolVersion":"2025-06-18","capabilities":{},` +
+	`"clientInfo":{"name":"release-smoke","version":"1.0"}}}`
 
 // buildBinary compiles the authorizer binary into a temp dir and returns its
 // path. Building from source guarantees the smoke run tests exactly the code

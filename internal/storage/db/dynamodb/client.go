@@ -2,7 +2,6 @@ package dynamodb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -90,7 +89,7 @@ func (p *provider) GetClientByID(ctx context.Context, id string) (*schemas.Clien
 		return nil, err
 	}
 	if sa.ID == "" {
-		return nil, errors.New("no document found")
+		return nil, fmt.Errorf("client not found: %w", ErrNotFound)
 	}
 	return &sa, nil
 }

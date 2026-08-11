@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -23,8 +24,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv/interceptors"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	scimhttp "github.com/authorizerdev/authorizer/internal/http_handlers/scim"
+	"github.com/authorizerdev/authorizer/internal/mcp"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
@@ -134,6 +137,17 @@ func init() {
 	f.StringVar(&rootArgs.config.GRPCTLSCert, "grpc-tls-cert", "", "Path to the TLS certificate for the gRPC server")
 	f.StringVar(&rootArgs.config.GRPCTLSKey, "grpc-tls-key", "", "Path to the TLS private key for the gRPC server")
 	f.BoolVar(&rootArgs.config.GRPCInsecure, "grpc-insecure", false, "Allow the gRPC server to run without TLS (dev only)")
+
+	// MCP transport. Served at POST /mcp on the main HTTP listener (not its own
+	// port): it is plain HTTP that must be publicly reachable on the same origin
+	// as the OAuth metadata clients discover it through, and mounting it on the
+	// main router gives it the existing CORS, security-header, rate-limit and
+	// logging middleware.
+	f.BoolVar(&rootArgs.config.MCPEnabled, "mcp-enabled", false,
+		"Serve the MCP tool surface over HTTP at POST <url>/mcp as an OAuth 2.1 resource server. "+
+			"Requires --url: tokens are accepted only when their audience equals <url>/mcp, and that "+
+			"comparison must not depend on a request header. Off by default — it is a new "+
+			"internet-facing authenticated surface")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")
@@ -398,6 +412,11 @@ func runRoot(c *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 		}
+	}
+
+	if err := validateMCPConfig(&rootArgs.config); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	// Refuse to start without an admin secret. The previous default of
@@ -716,6 +735,44 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	rootArgs.server.GRPCPort = rootArgs.config.GRPCPort
 
+	// MCP surface, served at POST /mcp on the main HTTP listener when enabled.
+	//
+	// It gets its OWN gRPC server rather than reusing grpcSrv above, and that is
+	// the security boundary, not an implementation detail. This one never binds a
+	// port — the MCP handler dials it over an in-process bufconn — and its auth
+	// interceptor accepts exactly one kind of credential: a bearer token whose
+	// audience is this deployment's canonical <url>/mcp. The port-listening server
+	// rejects that audience, and this one rejects everything the port-listening
+	// server accepts. Two objects, so a token minted for one surface cannot
+	// authenticate the other by construction rather than by a conditional.
+	//
+	// Every provider is shared with the main server. The `authorizer mcp`
+	// subcommand builds a second copy of the entire stack — storage, memory
+	// store, FGA engine and all — which is precisely what made it undeployable.
+	var mcpHandler http.Handler
+	if rootArgs.config.MCPEnabled {
+		mcpResource := rootArgs.config.MCPResource()
+		mcpGRPC, mErr := grpcsrv.New(":0", &grpcsrv.Dependencies{
+			Log:             &log,
+			Config:          &rootArgs.config,
+			ServiceProvider: serviceProvider,
+			TokenProvider:   tokenProvider,
+			TokenResolver:   interceptors.MCPTokenResolver(tokenProvider, mcpResource),
+		})
+		if mErr != nil {
+			log.Fatal().Err(mErr).Msg("failed to create mcp grpc server")
+		}
+		mcpSrv, mErr := mcp.New(&log, mcpGRPC.GRPCServer(), mcp.Options{
+			Name:    "authorizer",
+			Version: constants.VERSION,
+		})
+		if mErr != nil {
+			log.Fatal().Err(mErr).Msg("failed to create mcp server")
+		}
+		mcpHandler = mcpSrv.Handler()
+		log.Info().Str("resource", mcpResource).Msg("MCP enabled at POST /mcp")
+	}
+
 	// Inbound SCIM 2.0 server (per-org user provisioning). Transport-thin
 	// handler over the scim service; org resolved only from the bearer token.
 	scimService := scim.New(&scim.Dependencies{
@@ -736,6 +793,7 @@ func runRoot(c *cobra.Command, args []string) {
 		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
 		ScimHandler:  scimHandler,
+		MCPHandler:   mcpHandler,
 		GRPCServer:   grpcSrv,
 	}
 	// Create the server
@@ -771,4 +829,35 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Application failed")
 	}
 	log.Info().Msg("Application terminated")
+}
+
+// validateMCPConfig refuses a configuration that would enable MCP without a
+// usable canonical URL.
+//
+// This is the second lock on the audience door, and it is not optional. MCP's
+// entire security model is one comparison: a token is accepted at /mcp only if
+// its `aud` equals this deployment's canonical <url>/mcp. Without --url that
+// identifier would be derived from request headers — parsers.GetHost falls back
+// to X-Authorizer-URL, then X-Forwarded-Host, then Host — so the caller would be
+// supplying both sides of the comparison and there would be no check at all.
+//
+// It also rejects a --url that is merely unusable (no scheme, userinfo, a
+// non-http scheme), because MCPResource() returns empty for those too. Starting
+// anyway would produce a surface that is enabled, advertises nothing, and
+// rejects every token: broken in a way that reports success.
+//
+// Extracted from runRoot so it can be tested. The inline version behind
+// os.Exit(1) could be rewritten into something weaker — comparing AuthorizerURL
+// to "" instead of asking whether a resource can be derived from it — with the
+// whole suite staying green.
+func validateMCPConfig(cfg *config.Config) error {
+	if !cfg.MCPEnabled {
+		return nil
+	}
+	if cfg.MCPResource() == "" {
+		return fmt.Errorf("--mcp-enabled requires a valid --url (e.g. https://auth.example.com): " +
+			"the MCP resource identifier that access tokens are bound to is derived from it, and " +
+			"deriving it from request headers instead would let a caller choose their own audience")
+	}
+	return nil
 }

@@ -58,6 +58,19 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt the MCP surface. Same rationale, and it holds structurally
+		// rather than by convention: MCPAuthMiddleware authenticates only a
+		// bearer token whose audience names this MCP server, the interceptor
+		// behind it accepts nothing else (no cookie, no admin secret), and the
+		// bridge to that interceptor forwards only the Authorization header. A
+		// cookie riding along on a cross-site request therefore cannot
+		// authenticate anything here, which is exactly the condition CSRF
+		// protection exists to create.
+		if c.Request.URL.Path == "/mcp" {
+			c.Next()
+			return
+		}
+
 		// Exempt POST /userinfo (OIDC Core §5.3.1 requires the UserInfo
 		// endpoint to accept POST). Authenticated via a bearer access token,
 		// not cookies, so CSRF does not apply — same rationale as

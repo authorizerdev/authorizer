@@ -173,7 +173,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
 					validRedirect = false
 					for _, r := range registered {
-						if r == redirectURI {
+						if redirectURIMatches(r, redirectURI) {
 							validRedirect = true
 							break
 						}
@@ -389,6 +389,22 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		if codeChallenge != "" {
 			authState += "&code_challenge=" + url.QueryEscape(codeChallenge)
 			authState += "&code_challenge_method=" + url.QueryEscape(codeChallengeMethod)
+		}
+		// The RFC 8707 resource indicator has to survive this round-trip too,
+		// and its absence failed silently in the worst way: the flow completed,
+		// a token was issued, and only its `aud` was wrong — the client id
+		// instead of the resource the client asked for. The resource server then
+		// rejected every call with a 401 that looked like a credential problem.
+		//
+		// It only broke for users who were NOT already signed in, because a live
+		// session skips this branch entirely. So the first connection failed and
+		// a retry after logging in elsewhere succeeded, which is close to the
+		// worst possible symptom to debug.
+		//
+		// Already validated as an absolute URI without a fragment above; escaped
+		// here for the same reason every other value is.
+		if resource != "" {
+			authState += "&resource=" + url.QueryEscape(resource)
 		}
 
 		if hasCodeFlow {
@@ -1027,6 +1043,86 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 		return canonical, true
 	}
 	return "", false
+}
+
+// redirectURIMatches reports whether a presented redirect_uri satisfies a
+// registered one.
+//
+// Exact string comparison, with one carve-out: [RFC 8252 §7.3] requires an
+// authorization server to allow a native app to specify ANY port on a loopback
+// redirect, because the app binds an ephemeral port at run time and cannot know
+// it at registration. Exact matching alone makes loopback redirects unusable —
+// a client registering "http://127.0.0.1/callback" then arrives on
+// "http://127.0.0.1:53119/callback" and is refused every time.
+//
+// The carve-out is as narrow as it can be:
+//
+//   - It applies only when BOTH the registered and the presented URI are
+//     loopback. A registered https://app.example.com/cb never matches anything
+//     but itself, so nothing about third-party redirect validation changes.
+//   - Only the port is ignored. Scheme, host, path and query must still match
+//     exactly, so it cannot be used to reach a different path on the same host.
+//   - The host is compared literally: a registration for "localhost" does not
+//     match "127.0.0.1". They are different names and RFC 8252 §8.3 discourages
+//     the former; a client that wants both registers both.
+//
+// This only ever widens what is accepted, and only for redirects that terminate
+// on the user's own machine. The residual risk is the one RFC 8252 §8.3 and the
+// MCP authorization spec both name — a local process racing for the port — which
+// no server-side URI check can address and which is mitigated by displaying the
+// redirect host at consent.
+//
+// [RFC 8252 §7.3]: https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+func redirectURIMatches(registered, presented string) bool {
+	if registered == presented {
+		return true
+	}
+	r, err := url.Parse(registered)
+	if err != nil {
+		return false
+	}
+	p, err := url.Parse(presented)
+	if err != nil {
+		return false
+	}
+	if !isLoopbackHost(r.Hostname()) || !isLoopbackHost(p.Hostname()) {
+		return false
+	}
+	// Fragment and userinfo are rejected outright rather than compared, because
+	// comparing only scheme/host/path/query would silently accept URIs the exact
+	// match rejected — everything the comparison omits becomes a free field.
+	//
+	// A fragment is the worse of the two. RFC 6749 §3.1.2 forbids one on the
+	// redirection endpoint, and the response is appended by string
+	// concatenation: a presented "http://127.0.0.1:9/cb#x" carries no "?", so
+	// the result is ".../cb#x?code=…&state=…" and the entire authorization
+	// response lands inside the fragment. The app's loopback listener then
+	// receives a request with no code, no state and no error, and the login
+	// hangs forever instead of failing cleanly.
+	//
+	// Userinfo is the phishing shape: "http://evil.com@127.0.0.1/callback" reads
+	// as evil.com to a human skimming a consent screen while resolving to
+	// loopback.
+	if r.Fragment != "" || p.Fragment != "" || r.User != nil || p.User != nil {
+		return false
+	}
+	return r.Scheme == p.Scheme &&
+		r.Hostname() == p.Hostname() &&
+		r.Path == p.Path &&
+		r.RawQuery == p.RawQuery
+}
+
+// isLoopbackHost reports whether a hostname names the local machine. "localhost"
+// is included because RFC 8252 §7.3's port rule is written for the IP literals,
+// while real native clients — Claude Code among them — declare the name form and
+// expect the same treatment.
+func isLoopbackHost(host string) bool {
+	switch host {
+	case "127.0.0.1", "::1", "localhost":
+		return true
+	default:
+		return false
+	}
 }
 
 // isValidResourceIndicator enforces RFC 8707 §2 on a resource indicator: it

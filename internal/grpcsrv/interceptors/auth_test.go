@@ -60,7 +60,7 @@ func (s *stubTokenProvider) ValidateBrowserSession(_ *gin.Context, encryptedSess
 
 func TestAuth_PublicMethodPassesThrough(t *testing.T) {
 	stub := &stubTokenProvider{}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
@@ -79,7 +79,7 @@ func TestAuth_PublicMethodPassesThrough(t *testing.T) {
 func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 	t.Run("rejects missing admin auth", func(t *testing.T) {
 		stub := &stubTokenProvider{superAdmin: false}
-		mw := Auth(stub, nil)
+		mw := Auth(stub, nil, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.AdminMetaRequest{}, info(authorizerv1.AuthorizerAdminService_AdminMeta_FullMethodName), func(_ context.Context, _ any) (any, error) {
 			called = true
@@ -98,7 +98,7 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 
 	t.Run("attaches admin principal when authorized", func(t *testing.T) {
 		stub := &stubTokenProvider{superAdmin: true}
-		mw := Auth(stub, nil)
+		mw := Auth(stub, nil, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.AdminMetaRequest{}, info(authorizerv1.AuthorizerAdminService_AdminMeta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 			called = true
@@ -138,7 +138,7 @@ func TestAuth_AdminMethodAllowsAuthenticatedNonSuperAdmin(t *testing.T) {
 			Nonce:       "nonce-1",
 		},
 	}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.OrgMembersRequest{}, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 		called = true
@@ -169,7 +169,7 @@ func TestAuth_AdminMethodRejectsBadCredential(t *testing.T) {
 		"blank principal": {tokenData: &token.SessionOrAccessTokenData{LoginMethod: "basic_auth"}},
 	} {
 		t.Run(name, func(t *testing.T) {
-			mw := Auth(stub, nil)
+			mw := Auth(stub, nil, nil)
 			called := false
 			_, err := mw(context.Background(), &authorizerv1.OrgMembersRequest{}, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName), func(_ context.Context, _ any) (any, error) {
 				called = true
@@ -185,7 +185,7 @@ func TestAuth_AdminMethodRejectsBadCredential(t *testing.T) {
 func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 	t.Run("rejects unauthenticated user", func(t *testing.T) {
 		stub := &stubTokenProvider{tokenErr: status.Error(codes.Unauthenticated, "bad token")}
-		mw := Auth(stub, nil)
+		mw := Auth(stub, nil, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(_ context.Context, _ any) (any, error) {
 			called = true
@@ -206,7 +206,7 @@ func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 				Nonce:       "nonce-1",
 			},
 		}
-		mw := Auth(stub, nil)
+		mw := Auth(stub, nil, nil)
 		called := false
 		_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 			called = true
@@ -228,7 +228,7 @@ func TestAuth_PrivatePublicServiceMethodRequiresUser(t *testing.T) {
 
 func TestAuth_InfrastructureServiceSkipsAuth(t *testing.T) {
 	stub := &stubTokenProvider{}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	called := false
 	_, err := mw(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/grpc.health.v1.Health/Check"}, func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -244,7 +244,7 @@ func TestAuth_SessionRequiresCookieRejectsBearer(t *testing.T) {
 	stub := &stubTokenProvider{
 		tokenData: &token.SessionOrAccessTokenData{UserID: "user-1"},
 	}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer access-token",
 	))
@@ -268,7 +268,7 @@ func TestAuth_SessionAcceptsCookie(t *testing.T) {
 			Nonce:       "nonce-1",
 		},
 	}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	cookieName := constants.AppCookieName + "_session"
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"cookie", cookieName+"=sess-token",
@@ -289,7 +289,7 @@ func TestAuth_SessionAcceptsCookie(t *testing.T) {
 
 func TestAuth_LogoutRequiresAuth(t *testing.T) {
 	stub := &stubTokenProvider{tokenErr: status.Error(codes.Unauthenticated, "bad token")}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.LogoutRequest{}, info(authorizerv1.AuthorizerService_Logout_FullMethodName), func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -305,7 +305,7 @@ func TestAuth_LogoutRequiresAuth(t *testing.T) {
 // it. Regression guard that scoping the `public` bypass did not lock admins out.
 func TestAuth_AdminLoginRemainsPublic(t *testing.T) {
 	stub := &stubTokenProvider{superAdmin: false}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.AdminLoginRequest{}, info(authorizerv1.AuthorizerAdminService_AdminLogin_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 		called = true
@@ -352,7 +352,7 @@ func TestShouldRejectUnlistedService(t *testing.T) {
 // TestAuth_NilTokenProviderFailsClosed asserts the interceptor fails closed when
 // no TokenProvider is wired (e.g. during early startup).
 func TestAuth_NilTokenProviderFailsClosed(t *testing.T) {
-	mw := Auth(nil, nil)
+	mw := Auth(nil, nil, nil)
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.ProfileRequest{}, info(authorizerv1.AuthorizerService_Profile_FullMethodName), func(_ context.Context, _ any) (any, error) {
 		called = true
@@ -371,7 +371,7 @@ func TestAuth_SessionOnlyAcceptsPublicService(t *testing.T) {
 	stub := &stubTokenProvider{
 		sessionData: &token.SessionData{Subject: "user-1", LoginMethod: "basic_auth", Nonce: "n"},
 	}
-	mw := Auth(stub, nil)
+	mw := Auth(stub, nil, nil)
 	cookieName := constants.AppCookieName + "_session"
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("cookie", cookieName+"=tok"))
 	_, err := mw(ctx, &authorizerv1.SessionRequest{}, info(authorizerv1.AuthorizerService_Session_FullMethodName), func(ctx context.Context, _ any) (any, error) {
@@ -383,4 +383,125 @@ func TestAuth_SessionOnlyAcceptsPublicService(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, stub.sessionChecks)
 	assert.Equal(t, 0, stub.userChecks)
+}
+
+// TestAuth_TokenResolverOverrideAppliesToBothSites pins the contract Auth's doc
+// comment states: a non-nil TokenResolver replaces the default at EVERY
+// identity-resolution site, not just one of them.
+//
+// This is the regression test for a real bug. The override was first wired into
+// only the admin fallback, leaving the public path calling
+// GetUserIDFromSessionOrAccessToken directly. Nothing caught it — it compiles,
+// vets and lints clean, and the surface it breaks is the one that matters:
+// MCP tools live on the PUBLIC AuthorizerService, so the MCP transport would
+// have authenticated through the default resolver, which rejects the very
+// resource-bound audience every MCP token is required to carry. The whole
+// surface would have returned 401 with no failing test anywhere.
+//
+// The stub's counters are what make this airtight: asserting the custom resolver
+// ran is not enough, because both could run. The default MUST NOT be consulted
+// at all, or a token rejected by the surface's own rule could still be accepted
+// by the default one.
+func TestAuth_TokenResolverOverrideAppliesToBothSites(t *testing.T) {
+	// Only the public service: a resolver-governed server refuses the admin
+	// service outright (see TestAuth_SoleAuthorityRefusesTheAdminService), so
+	// there is no admin identity-resolution site left to override.
+	cases := []struct {
+		name   string
+		method string
+	}{
+		{"public service", authorizerv1.AuthorizerService_Profile_FullMethodName},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+" uses the override", func(t *testing.T) {
+			// Default resolver would succeed; the override decides instead.
+			stub := &stubTokenProvider{tokenData: &token.SessionOrAccessTokenData{UserID: "default-user"}}
+			resolverCalls := 0
+			mw := Auth(stub, nil, func(_ *gin.Context) (*token.SessionOrAccessTokenData, error) {
+				resolverCalls++
+				return &token.SessionOrAccessTokenData{UserID: "override-user"}, nil
+			})
+
+			var seen string
+			_, err := mw(context.Background(), nil, info(tc.method), func(ctx context.Context, _ any) (any, error) {
+				p, ok := authctx.FromContext(ctx)
+				require.True(t, ok, "an authenticated call must carry a principal")
+				seen = p.UserID
+				return nil, nil
+			})
+			require.NoError(t, err)
+			assert.Equal(t, "override-user", seen, "the principal must come from the override, not the default")
+			assert.Equal(t, 1, resolverCalls)
+			assert.Zero(t, stub.userChecks, "the default resolver must not be consulted when an override is set")
+		})
+
+		t.Run(tc.name+" rejects when the override rejects", func(t *testing.T) {
+			// The inverse, and the one that actually protects the audience
+			// boundary: the default would ACCEPT this caller. If the default
+			// were still reachable, a token the surface's own rule rejected
+			// would authenticate anyway.
+			stub := &stubTokenProvider{tokenData: &token.SessionOrAccessTokenData{UserID: "default-user"}}
+			mw := Auth(stub, nil, func(_ *gin.Context) (*token.SessionOrAccessTokenData, error) {
+				return nil, status.Error(codes.Unauthenticated, "wrong audience")
+			})
+
+			called := false
+			_, err := mw(context.Background(), nil, info(tc.method), func(context.Context, any) (any, error) {
+				called = true
+				return nil, nil
+			})
+			require.Error(t, err)
+			assert.Equal(t, codes.Unauthenticated, status.Code(err))
+			assert.False(t, called, "the handler must not run for a caller the surface's resolver rejected")
+			assert.Zero(t, stub.userChecks, "a rejection must not fall back to the default resolver")
+		})
+	}
+}
+
+// TestAuth_SoleAuthorityRefusesTheAdminService pins why skipping the interceptor's
+// super-admin check was not, on its own, enough.
+//
+// service.requireSuperAdmin re-derives super-admin from meta.Request when the
+// context carries no super-admin principal, reading the admin cookie or the
+// x-authorizer-admin-secret header that transport.MetaFromGRPC reconstructs from
+// gRPC metadata. Skipping the check here would therefore have moved it one layer
+// down rather than removing it: a caller holding a valid MCP-audience token plus
+// an admin credential would still have reached platform-wide operations on an
+// internet-facing, CSRF-exempt surface. Refusing the service is the only version
+// of the guard that holds, and it costs nothing — no admin RPC is
+// mcp_tool-exposed.
+func TestAuth_SoleAuthorityRefusesTheAdminService(t *testing.T) {
+	// The override would happily authenticate this caller; the service refusal
+	// must come first, before any identity is resolved at all.
+	stub := &stubTokenProvider{superAdmin: true, tokenData: &token.SessionOrAccessTokenData{UserID: "u1"}}
+	resolverCalls := 0
+	mw := Auth(stub, nil, func(_ *gin.Context) (*token.SessionOrAccessTokenData, error) {
+		resolverCalls++
+		return &token.SessionOrAccessTokenData{UserID: "mcp-user"}, nil
+	})
+
+	called := false
+	_, err := mw(context.Background(), nil, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName),
+		func(context.Context, any) (any, error) { called = true; return nil, nil })
+
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	assert.False(t, called, "no admin handler may run on a resolver-governed server")
+	assert.Zero(t, resolverCalls, "the admin service is refused outright, not authenticated and then rejected")
+	assert.Zero(t, stub.superAdminChecks)
+}
+
+// TestAuth_DefaultServerStillServesTheAdminService is the inverse guard: the
+// refusal above must not touch the TCP-listening server every deployment runs.
+func TestAuth_DefaultServerStillServesTheAdminService(t *testing.T) {
+	stub := &stubTokenProvider{superAdmin: true}
+	mw := Auth(stub, nil, nil)
+
+	called := false
+	_, err := mw(context.Background(), nil, info(authorizerv1.AuthorizerAdminService_OrgMembers_FullMethodName),
+		func(context.Context, any) (any, error) { called = true; return nil, nil })
+
+	require.NoError(t, err)
+	assert.True(t, called)
 }

@@ -675,6 +675,52 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				authTime = int64(at)
 			}
 
+			// RFC 8707 §2.2: the rotated access token stays bound to the resource
+			// the original grant named. The claim is stamped on the refresh token
+			// at mint time (CreateRefreshToken) because by now the authorization
+			// code that carried the binding is long gone.
+			//
+			// Carrying it is not a nicety. Without it `resource` stays empty on
+			// this branch, accessTokenAudience falls back to the client id, and a
+			// token the user deliberately scoped to one resource server comes back
+			// usable at Authorizer's own API — the audience restriction undone by
+			// the act of refreshing. It also failed silently in the direction that
+			// hides it: the FIRST token works, only the refreshed one is wrong.
+			boundResource, _ := claims["resource"].(string)
+
+			// A client that names a resource on refresh must name the one the
+			// grant was bound to. RFC 8707 §2.2 allows a refresh request to
+			// restrict the resource, never to switch to a different one, and
+			// silently ignoring a mismatch would hand back a token for a resource
+			// the caller did not ask for. Mirrors the same enforcement the
+			// authorization_code branch applies to the echoed resource.
+			//
+			// PostFormArray, not PostForm: a repeated parameter must be rejected
+			// rather than silently resolved to the first value — same reasoning as
+			// the authorization_code branch above.
+			//
+			// Enforced only when the grant WAS bound, mirroring the
+			// authorization_code branch above. A refresh token minted before this
+			// change carries no `resource` claim, and the MCP spec has clients
+			// send `resource` on every token request including refresh — so
+			// comparing against an empty binding would turn every pre-upgrade
+			// refresh into a permanent invalid_target the moment the deployment
+			// upgraded. An unbound grant stays unbound: the supplied value is
+			// ignored rather than honoured, because letting a refresh ADD a
+			// binding would let a client mint an audience nobody authorized.
+			if requestResources := gc.PostFormArray("resource"); len(requestResources) > 0 && boundResource != "" {
+				if len(requestResources) != 1 || strings.TrimSpace(requestResources[0]) != boundResource {
+					metrics.RecordSecurityEvent("refresh_resource_mismatch", "token_endpoint")
+					log.Warn().Msg("rejected: resource parameter does not match the resource bound to this grant")
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_target",
+						"error_description": "The resource parameter does not match the resource bound to this grant",
+					})
+					return
+				}
+			}
+			resource = boundResource
+
 			nonce, ok := claims["nonce"].(string)
 			if !ok || nonce == "" {
 				log.Debug().Msg("Invalid nonce in refresh token")

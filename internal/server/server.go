@@ -44,6 +44,14 @@ type Dependencies struct {
 	// GRPCServer is the configured (but not yet listening) gRPC server.
 	// nil disables both the gRPC listener and the REST `/v1/*` gateway.
 	GRPCServer *grpcsrv.Server
+	// MCPHandler serves Streamable HTTP at POST /mcp. nil leaves the route
+	// unregistered; it is built only when --mcp-enabled is set.
+	//
+	// Note this is NOT GRPCServer's handler: MCP dispatches through its own
+	// bufconn-only gRPC server whose auth interceptor accepts exactly the
+	// resource-bound audience the public server rejects. Two servers, so no token
+	// can cross between the surfaces. See interceptors.MCPTokenResolver.
+	MCPHandler http.Handler
 	// gatewayHandler / gatewayCleanup are built lazily inside Run when
 	// GRPCServer is non-nil. Stored on the struct only to satisfy the
 	// existing pattern of cleanup at Shutdown time.

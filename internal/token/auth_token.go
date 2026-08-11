@@ -67,6 +67,11 @@ var reservedClaims = map[string]bool{
 	// could set it would point the check at a session that is still alive and
 	// survive the logout that should have ended the delegation.
 	"sid": true,
+	// resource carries the RFC 8707 resource indicator across refresh so the
+	// rotated access token keeps the audience the grant was bound to. A script
+	// that could set it would rebind a token to a resource server the user never
+	// authorized, which is the audience restriction working in reverse.
+	"resource": true,
 }
 
 // AuthTokenConfig is the configuration for auth token
@@ -329,6 +334,26 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"family_id":     familyID,
 	}
 
+	// RFC 8707 §2.2: a refreshed access token stays bound to the resource the
+	// original grant named. The refresh token is the only thing that survives
+	// between the authorization request and the rotation, so the binding has to
+	// travel on it — the authorization code is long gone by then.
+	//
+	// Without this the local `resource` in the token endpoint is empty on the
+	// refresh grant, accessTokenAudience falls back to the client id, and the
+	// rotated access token comes back UNBOUND: usable at Authorizer's own API,
+	// which is exactly what the resource restriction existed to prevent. It also
+	// broke every resource server silently, since the first token works and only
+	// the refreshed one does not.
+	//
+	// Emitted only when the grant was bound, so tokens from flows that never
+	// used a resource indicator keep their existing claim set byte for byte.
+	// Reserved (see reservedClaims) so CustomAccessTokenScript cannot rebind a
+	// token to a resource server the user never authorized.
+	if cfg.Resource != "" {
+		customClaims["resource"] = cfg.Resource
+	}
+
 	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
@@ -460,6 +485,63 @@ func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 
 // Function to validate access token for authorizer apis (profile, update_profile)
 func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
+	return p.validateStatefulAccessToken(gc, accessToken, p.firstPartyAudienceOK)
+}
+
+// firstPartyAudienceOK is the audience rule for Authorizer's OWN protected
+// resources (/userinfo, GraphQL, gRPC, REST).
+//
+// RFC 8707 audience restriction. A token minted with a resource indicator
+// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
+// its `aud` so it is usable ONLY at that external resource server — which
+// validates it locally against the published JWKS, NOT here. (Not via
+// /oauth/introspect either: that endpoint only answers for a token whose aud
+// is the authenticated caller's own client_id, so a resource-bound token
+// always introspects as inactive — see token.DelegatedAccessTokenTTL.)
+// Accepting a resource-bound token here would defeat the audience restriction
+// the token was issued with, so reject any `aud` that is an absolute URI
+// (resource indicator form) other than the configured default audience.
+// Legitimate client-bound tokens carry an opaque client_id `aud` (not a URI)
+// and are unaffected. Introspection uses ParseJWTToken directly and is
+// untouched.
+//
+// The MCP surface is the deliberate counterpart: it accepts EXACTLY the
+// resource-bound audience this rule rejects, and nothing else. See
+// ValidateMCPAccessToken.
+func (p *provider) firstPartyAudienceOK(aud string) error {
+	if aud != "" && aud != p.config.ClientID {
+		if u, err := url.Parse(aud); err == nil && u.IsAbs() {
+			p.dependencies.Log.Debug().Str("aud", aud).Msg("access token rejected: resource-bound audience not valid at authorizer's own endpoints")
+			return fmt.Errorf(`unauthorized: token audience is a resource indicator`)
+		}
+	}
+	return nil
+}
+
+// validateStatefulAccessToken is the single decision core behind every
+// STATEFUL access-token check: signature and expiry, a live memory-store
+// session entry whose stored digest matches the presented token, subject
+// liveness, audience, issuer/claims, and token type.
+//
+// Both human tokens and client_credentials machine tokens flow through here —
+// createMachineAccessToken stamps the same `nonce` and `login_method` shape, and
+// the token endpoint registers machine tokens in the memory store exactly as
+// human ones, so the session lookup below is uniform.
+//
+// Exactly ONE check varies per surface, and it is the parameter: audienceOK
+// decides which `aud` values that surface accepts. This is what makes RFC 8707
+// audience binding real — a token is accepted only where its audience says it
+// belongs.
+//
+// Everything else is identical on purpose. A new surface adds an audience policy
+// here rather than a second copy of this function, so a fix to the session digest
+// comparison, the subject-liveness rule or the claims check cannot land on one
+// surface and miss another.
+func (p *provider) validateStatefulAccessToken(
+	gc *gin.Context,
+	accessToken string,
+	audienceOK func(aud string) error,
+) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if accessToken == "" {
@@ -496,9 +578,25 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if p.userIsRevoked(gc, userID) {
-		p.dependencies.Log.Debug().Str("user_id", userID).Msg("access token rejected: user revoked")
-		return res, fmt.Errorf(`unauthorized: user revoked`)
+	// Subject liveness. Rejects only a CONFIRMED dead subject — absent, revoked,
+	// or a deactivated service account.
+	//
+	// This used to look the subject up as a USER only and treat "not found" as
+	// "not revoked". A client_credentials token's `sub` is a service account's
+	// row id, never a user, so that lookup missed every time and reported the
+	// caller live: deactivating a service account did nothing to the tokens it
+	// had already been issued. An operator revoking a compromised machine
+	// identity got a success response and a credential that kept working until
+	// it expired.
+	//
+	// `known` is deliberately honoured rather than ignored. An unreachable
+	// database must not become "subject not active" here: this is the shared core
+	// for GraphQL, gRPC and REST, so that would 401 every authenticated request
+	// at once, and a 401 tells the SDKs the session expired. A storage outage has
+	// to surface as a 500 from the handler that actually needs the data, not as a
+	// fleet-wide forced logout. See subjectLiveness.
+	if live, known := p.subjectLiveness(gc, userID); known && !live {
+		return res, fmt.Errorf(`unauthorized: subject is not active`)
 	}
 
 	// /userinfo and the generic session-or-access-token resolver present no
@@ -508,25 +606,8 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	// the JWT signature) as the expected value; the checks above already
 	// establish the token is a genuine, unexpired, unrevoked Authorizer token.
 	aud, _ := res["aud"].(string)
-
-	// RFC 8707 audience restriction. A token minted with a resource indicator
-	// carries that resource (an absolute URI, e.g. "https://mcp.example.com") as
-	// its `aud` so it is usable ONLY at that external resource server — which
-	// validates it locally against the published JWKS, NOT here. (Not via
-	// /oauth/introspect either: that endpoint only answers for a token whose aud
-	// is the authenticated caller's own client_id, so a resource-bound token
-	// always introspects as inactive — see token.DelegatedAccessTokenTTL.) This path guards
-	// Authorizer's OWN protected resources (/userinfo, GraphQL, gRPC). Accepting
-	// a resource-bound token here would defeat the audience restriction the token
-	// was issued with, so reject any `aud` that is an absolute URI (resource
-	// indicator form) other than the configured default audience. Legitimate
-	// client-bound tokens carry an opaque client_id `aud` (not a URI) and are
-	// unaffected. Introspection uses ParseJWTToken directly and is untouched.
-	if aud != "" && aud != p.config.ClientID {
-		if u, err := url.Parse(aud); err == nil && u.IsAbs() {
-			p.dependencies.Log.Debug().Str("aud", aud).Msg("access token rejected: resource-bound audience not valid at authorizer's own endpoints")
-			return res, fmt.Errorf(`unauthorized: token audience is a resource indicator`)
-		}
+	if err := audienceOK(aud); err != nil {
+		return res, err
 	}
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
@@ -649,33 +730,22 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
 
-	if p.userIsRevoked(gc, res.Subject) {
-		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: user revoked")
+	// Same subject-liveness rule the bearer path uses, for the same reason: an
+	// account that has been deleted or revoked must stop authenticating on BOTH
+	// credential types. Leaving the cookie path on the old user-only, fail-open
+	// check meant a deleted user whose session purge failed or raced (DeleteUser
+	// does it through asyncutil.Go, best effort) kept browsing with a cookie
+	// while the same account's bearer token was correctly rejected.
+	//
+	// A session subject is always a user, so the client lookup inside
+	// subjectLiveness is only ever reached when the user row is confirmed absent
+	// — which is precisely the case this now catches.
+	if live, known := p.subjectLiveness(gc, res.Subject); known && !live {
+		p.dependencies.Log.Debug().Str("user_id", res.Subject).Msg("browser session rejected: subject is not active")
 		return nil, fmt.Errorf(`unauthorized: user revoked`)
 	}
 
 	return &res, nil
-}
-
-// userIsRevoked re-checks the DB RevokedTimestamp for a user resolved from an
-// already-issued access token or browser session. This is defense-in-depth:
-// the session-store deletion SCIM deactivate() (and account deactivation)
-// perform is the primary revocation mechanism for these stateful tokens, but
-// if that delete was missed or failed on this instance, a held token would
-// otherwise keep authenticating requests until its natural exp. Mirrors the
-// same demote-only pattern used by introspect.go/token.go/login.go: a lookup
-// failure never blocks a request that otherwise validated (fail open on DB
-// errors so a transient storage blip can't take down every authenticated
-// request), only a confirmed RevokedTimestamp does.
-func (p *provider) userIsRevoked(gc *gin.Context, userID string) bool {
-	if p.dependencies.StorageProvider == nil || userID == "" {
-		return false
-	}
-	user, err := p.dependencies.StorageProvider.GetUserByID(gc, userID)
-	if err != nil || user == nil {
-		return false
-	}
-	return user.RevokedTimestamp != nil
 }
 
 // CreateIDToken util to create the OIDC ID token JWT, based on user

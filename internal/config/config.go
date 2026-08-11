@@ -66,6 +66,15 @@ type Config struct {
 	// When unset and GRPCInsecure is false, the server refuses to start.
 	GRPCTLSCert string
 	GRPCTLSKey  string
+
+	// MCPEnabled serves Authorizer's MCP tool surface over HTTP at POST /mcp on
+	// the main listener, as an OAuth 2.1 resource server. Off by default: it is a
+	// new internet-facing authenticated surface, and an auth server should not
+	// grow one silently.
+	//
+	// Requires AuthorizerURL. Startup refuses the combination without it —
+	// see MCPResource for why.
+	MCPEnabled bool
 	// GRPCInsecure permits cleartext gRPC. For local dev only; production
 	// should always set TLS material.
 	GRPCInsecure bool

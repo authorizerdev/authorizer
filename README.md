@@ -73,6 +73,7 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 - ✅ SCIM 2.0 user and group provisioning with RFC 7644 compliance
 - ✅ Multi-tenant / org-scoped admin roles and isolation
 - ✅ GraphQL, REST, gRPC, and MCP APIs (all transports share the same service layer for public auth operations)
+- ✅ Remote MCP server for AI agents — OAuth 2.1 protected, RFC 9728 discovery, RFC 8707 audience-bound tokens
 - ✅ Admin API — user management, webhooks, email templates, audit logs, and FGA model/tuples over GraphQL, gRPC, and REST transports
 - ✅ Rate limiting and security hardening (CSRF, CORS, HSTS, CSP, trusted proxies)
 - ✅ Prometheus metrics and health/readiness endpoints

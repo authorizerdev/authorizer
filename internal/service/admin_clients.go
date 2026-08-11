@@ -157,6 +157,7 @@ func (p *provider) UpdateClient(ctx context.Context, meta RequestMetadata, param
 		}
 		sa.AllowedScopes = scopes
 	}
+	deactivating := params.IsActive != nil && !*params.IsActive && sa.IsActive
 	if params.IsActive != nil {
 		sa.IsActive = *params.IsActive
 	}
@@ -165,6 +166,32 @@ func (p *provider) UpdateClient(ctx context.Context, meta RequestMetadata, param
 	if err != nil {
 		log.Debug().Err(err).Msg("failed UpdateClient")
 		return nil, nil, err
+	}
+
+	// Deactivation must take effect on tokens ALREADY issued, not just block new
+	// ones. Machine tokens are registered in the memory store under
+	// "service_account:<client id>", exactly like a user's session, so the same
+	// purge that revokes a user revokes a service account.
+	//
+	// Without this the DB IsActive flag was the only thing standing between a
+	// deactivated service account and its live tokens — token validation's
+	// subject-liveness check. That check is deliberately defense-in-depth for
+	// users, because the session-store delete is the primary mechanism and it
+	// lives in a different system that survives a database outage; for service
+	// accounts there was no primary mechanism at all, so the secondary one was
+	// carrying the whole revocation story. Purging here restores the same
+	// primary/secondary structure users have, and makes deactivation instant
+	// rather than dependent on a lookup that may be unavailable.
+	//
+	// Synchronous and best-effort, matching DeleteUser's FGA tuple purge: a
+	// caller must not observe a successful deactivation while the account still
+	// holds live sessions, but a memory-store failure must not report an update
+	// that did happen as failed.
+	if deactivating {
+		if err := p.MemoryStoreProvider.DeleteAllUserSessions(updated.ID); err != nil {
+			log.Warn().Err(err).Str("client_id", updated.ID).
+				Msg("failed to purge sessions for deactivated service account; its live tokens remain valid until they expire")
+		}
 	}
 
 	p.AuditProvider.LogEvent(audit.Event{
