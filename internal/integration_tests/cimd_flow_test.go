@@ -181,6 +181,37 @@ func TestCIMDConsentEndToEnd(t *testing.T) {
 		assert.Empty(t, loc.Query().Get("code"), "a refused request must not mint a code")
 	})
 
+	t.Run("a grant does not authorize a different request", func(t *testing.T) {
+		// The grant marker is keyed to the exact parameter set that was shown.
+		//
+		// Keyed on (user, client) alone, a grant that was never redeemed — tab
+		// closed, browser back, network drop — would sit in the store for its
+		// whole TTL and then satisfy ANY later /authorize for that pair: a wider
+		// scope, a different redirect_uri from the document's list, a different
+		// PKCE challenge. The user approves one request and a materially
+		// different one executes, which is precisely what storing the full
+		// parameter set exists to prevent.
+		consentID := reachConsent(t)
+		resp := decide(t, consentID, "approve")
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusFound, resp.StatusCode)
+
+		// Deliberately do NOT follow the redirect: the grant is now outstanding,
+		// exactly as it would be if the user's browser never completed the hop.
+		// A benign parameter change: it alters the request the user would be
+		// consenting to without diverting the flow (prompt=login, for instance,
+		// would force re-authentication and never reach the gate).
+		widened := authorizeURL(clientID) + "&login_hint=someone-else%40example.com"
+		other, err := client.Get(widened)
+		require.NoError(t, err)
+		defer func() { _ = other.Body.Close() }()
+
+		require.Equal(t, http.StatusOK, other.StatusCode,
+			"a different request must be shown consent again, not silently approved")
+		assert.Contains(t, readAll(t, other), "consent_id",
+			"the outstanding grant must not authorize a request the user never saw")
+	})
+
 	t.Run("a document whose client_id does not match its URL is refused", func(t *testing.T) {
 		// Never reaches consent: the client cannot be established, so there is
 		// nothing honest to show the user.

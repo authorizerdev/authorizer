@@ -1,6 +1,8 @@
 package http_handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -30,12 +32,22 @@ import (
 // read back from the store, so a tampered form cannot widen scope, redirect
 // elsewhere, or swap the client.
 type pendingConsent struct {
-	ClientID    string   `json:"client_id"`
-	ClientName  string   `json:"client_name"`
-	RedirectURI string   `json:"redirect_uri"`
-	Scopes      []string `json:"scopes"`
-	// Query is the original /authorize query string, replayed verbatim on
-	// approval so the resumed request is byte-identical to the one consented to.
+	ClientID    string `json:"client_id"`
+	ClientName  string `json:"client_name"`
+	RedirectURI string `json:"redirect_uri"`
+	// Scopes is rendered on the page. It is NOT read back on submit — the
+	// resumed request carries scope in Query, which is the value actually
+	// enforced. Kept so the stored record fully describes what was shown.
+	Scopes []string `json:"scopes"`
+	// Query is the original /authorize parameter set, re-encoded and replayed on
+	// approval so the resumed request carries exactly what was consented to.
+	//
+	// Built from the parsed FORM, not from URL.RawQuery: /authorize is registered
+	// for POST as well as GET (RFC 6749 §3.1 / OIDC Core §3.1.2.1 permit it), and
+	// a POST carries its parameters in the body. Storing only the query string
+	// left Query empty for those, so approval replayed a parameterless request
+	// and the user was dropped on "response_type is required" after having
+	// approved — while the client waited on a callback that never came.
 	Query string `json:"query"`
 	// UserID pins the consent to the session that saw the page. A consent
 	// approved in one account must never mint a code for another.
@@ -64,7 +76,7 @@ func (h *httpProvider) renderConsent(gc *gin.Context, doc *clientmetadata.Docume
 		ClientName:  doc.ClientName,
 		RedirectURI: redirectURI,
 		Scopes:      scopes,
-		Query:       gc.Request.URL.RawQuery,
+		Query:       originalParams(gc).Encode(),
 		UserID:      userID,
 	})
 	if err != nil {
@@ -90,6 +102,12 @@ func (h *httpProvider) renderConsent(gc *gin.Context, doc *clientmetadata.Docume
 	}
 
 	metrics.RecordSecurityEvent("cimd_consent_shown", "authorize")
+	// The page carries a single-use consent_id and names the signed-in user, so
+	// it must not sit in a shared or back-button cache: a cached copy would show
+	// one user's email to the next person on the machine, and re-submitting a
+	// stale page is a guaranteed "expired or already used" dead end.
+	gc.Header("Cache-Control", "no-store, no-cache, must-revalidate")
+	gc.Header("Pragma", "no-cache")
 	gc.HTML(http.StatusOK, "consent.tmpl", gin.H{
 		"client_name": doc.ClientName,
 		"client_id":   doc.ClientID,
@@ -124,7 +142,11 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			return
 		}
 
-		raw, err := h.MemoryStoreProvider.GetState(consentKey(consentID))
+		// Atomic: a read-then-delete lets two concurrent submissions of the same
+		// consent_id both pass the single-use check, and this repo already ships
+		// GetAndRemoveState precisely because "returning state on the strength of
+		// the read alone would hand the same code to every racer".
+		raw, err := h.MemoryStoreProvider.GetAndRemoveState(consentKey(consentID))
 		if err != nil || raw == "" {
 			// Expired, already used, or never existed — all indistinguishable to
 			// the caller on purpose, so this is not an oracle for guessing ids.
@@ -135,10 +157,6 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		// Single-use, removed before the decision is acted on: a replayed
-		// approval must not mint a second authorization code.
-		_ = h.MemoryStoreProvider.RemoveState(consentKey(consentID))
-
 		var pending pendingConsent
 		if err := json.Unmarshal([]byte(raw), &pending); err != nil {
 			log.Debug().Err(err).Msg("consent rejected: corrupt pending state")
@@ -168,19 +186,15 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			// registered redirect_uri, not rendered here — the client is waiting
 			// on that callback and would otherwise hang.
 			metrics.RecordSecurityEvent("cimd_consent_denied", "authorize")
-			denied, err := url.Parse(pending.RedirectURI)
-			if err != nil {
-				gc.JSON(http.StatusBadRequest, gin.H{"error": "access_denied"})
-				return
-			}
-			q := denied.Query()
-			q.Set("error", "access_denied")
-			q.Set("error_description", "the user declined to authorize this application")
-			if st := originalParam(pending.Query, "state"); st != "" {
-				q.Set("state", st)
-			}
-			denied.RawQuery = q.Encode()
-			gc.Redirect(http.StatusFound, denied.String())
+			// redirectErrorToRP, not a hand-rolled query-string redirect: the
+			// original request may have asked for fragment, form_post or
+			// web_message, and delivering a query-string 302 to a client that
+			// asked for form_post leaves it waiting on a response it will never
+			// parse. The helper is what every other /authorize error path uses.
+			orig, _ := url.ParseQuery(pending.Query)
+			redirectErrorToRP(gc, orig.Get("response_mode"), pending.RedirectURI,
+				orig.Get("state"), "access_denied",
+				"the user declined to authorize this application")
 			return
 		}
 
@@ -199,7 +213,7 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 		// /authorize through the front door with every middleware applied.
 		metrics.RecordSecurityEvent("cimd_consent_approved", "authorize")
 		if err := h.MemoryStoreProvider.SetState(
-			consentGrantKey(pending.UserID, pending.ClientID), "1"); err != nil {
+			consentGrantKey(pending.UserID, pending.ClientID, pending.Query), "1"); err != nil {
 			log.Debug().Err(err).Msg("failed to record consent grant")
 			gc.JSON(http.StatusInternalServerError, gin.H{
 				"error":             "server_error",
@@ -212,24 +226,37 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 }
 
 // consentGrantKey names the single-use marker that tells the authorize handler
-// this exact user has just consented to this exact client.
+// this user has consented to this client FOR THIS EXACT REQUEST.
 //
-// Keyed on BOTH so a grant cannot be reused across clients or across accounts,
-// and consumed on read so it authorizes one authorization request rather than
-// standing open for the state store's whole TTL.
-func consentGrantKey(userID, clientID string) string {
-	return "cimd_consent_granted:" + userID + ":" + clientID
+// The request is part of the key, not just the user and client. Keying on
+// (user, client) alone meant a grant that was never redeemed — the tab closed,
+// the browser went back, the network dropped — sat in the store for its whole
+// TTL and would then satisfy ANY later /authorize for that pair: a different
+// scope, a different redirect_uri from the document's list, a different PKCE
+// challenge. The user would have been shown one request and a materially
+// different one would execute, which is exactly what storing the full parameter
+// set in pendingConsent exists to prevent. Hashing it in closes that.
+//
+// SHA-256 of the encoded parameters rather than the parameters themselves:
+// the key goes into a shared store, and a redirect_uri or login_hint in a key is
+// needless exposure.
+func consentGrantKey(userID, clientID, query string) string {
+	sum := sha256.Sum256([]byte(query))
+	return "cimd_consent_granted:" + userID + ":" + clientID + ":" + hex.EncodeToString(sum[:])
+}
+
+// originalParams returns the /authorize parameters as sent, from whichever place
+// they arrived — query string for GET, body for POST. Mirrors how the authorize
+// handler itself reads them (gc.Request.FormValue).
+func originalParams(gc *gin.Context) url.Values {
+	_ = gc.Request.ParseForm()
+	out := url.Values{}
+	for k, v := range gc.Request.Form {
+		if len(v) > 0 {
+			out.Set(k, v[0])
+		}
+	}
+	return out
 }
 
 func consentKey(id string) string { return "cimd_consent:" + id }
-
-// originalParam reads one parameter out of the stored query string. Values are
-// taken from the stored copy rather than the submitted form, so the redirect
-// carries the state the client actually sent.
-func originalParam(rawQuery, key string) string {
-	v, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return ""
-	}
-	return v.Get(key)
-}

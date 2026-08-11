@@ -325,6 +325,15 @@ func (p *Provider) fetchViaClient(ctx context.Context, clientID string, client *
 				return nil, 0, fmt.Errorf("client metadata document redirect_uri must be https or loopback")
 			}
 		}
+		// RFC 6749 §3.1.2 forbids a fragment on the redirection endpoint, and
+		// userinfo is the phishing shape ("https://evil.com@app.example.com/cb"
+		// reads as evil.com to a human skimming the consent screen). Rejected
+		// here as well as in redirectURIMatches so a document cannot register
+		// one at all — otherwise the consent page could display a host that is
+		// not where the code actually lands.
+		if ru.Fragment != "" || ru.User != nil {
+			return nil, 0, fmt.Errorf("client metadata document redirect_uri must not contain a fragment or userinfo")
+		}
 	}
 
 	return &doc, cacheTTL(resp.Header.Get("Cache-Control")), nil

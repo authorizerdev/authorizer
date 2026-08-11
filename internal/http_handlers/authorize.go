@@ -650,11 +650,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// Consume the grant recorded by ConsentHandler. Single-use and keyed
 			// to (user, client), so a consent authorizes one authorization
 			// request — not every subsequent one until the store expires it.
-			grantKey := consentGrantKey(user.ID, clientID)
-			granted, gErr := h.MemoryStoreProvider.GetState(grantKey)
-			if gErr == nil && granted != "" {
-				_ = h.MemoryStoreProvider.RemoveState(grantKey)
-			} else {
+			// Keyed to THIS request's parameters and consumed atomically, so a
+			// grant authorizes the one request it was given for and cannot be
+			// redeemed twice by concurrent callers.
+			grantKey := consentGrantKey(user.ID, clientID, originalParams(gc).Encode())
+			granted, gErr := h.MemoryStoreProvider.GetAndRemoveState(grantKey)
+			if gErr != nil || granted == "" {
 				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
 				if dErr != nil {
 					log.Debug().Err(dErr).Msg("could not resolve client metadata document for consent")

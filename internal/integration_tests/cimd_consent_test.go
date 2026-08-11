@@ -17,24 +17,26 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 )
 
-// TestCIMDConsentFlow covers the consent gate for self-asserted clients end to
-// end: the page is shown instead of a silent code, the decision is honoured, and
-// the two properties that make the split flow safe hold.
+// TestCIMDConsentFlow covers ONE property: that a client_id which cannot be
+// resolved is refused outright rather than falling through to the
+// AllowedOrigins check, which would give an unresolvable client a laxer
+// redirect_uri check than a resolved one.
 //
-// Consent exists here and not for registered clients because a Client ID
-// Metadata Document client chooses its own name — anyone who can host a JSON
-// file can claim any name. The only verified fact is the redirect host, so that
-// is what the page leads with and what these assertions check.
+// It is deliberately narrow. The end-to-end consent flow — page shown, decision
+// honoured, code issued or access_denied returned — is covered by
+// TestCIMDConsentEndToEnd in cimd_flow_test.go, which serves a real TLS document
+// host. An earlier version of this comment claimed that coverage while the test
+// only asserted the refusal, which is the kind of overstatement that makes a
+// suite look stronger than it is.
 func TestCIMDConsentFlow(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.AuthorizerURL = "https://auth.example.com"
 	cfg.EnableClientIDMetadataDocument = true
 	ts := initTestSetup(t, cfg)
 
-	// The provider is wired with a pre-seeded document rather than a live HTTP
-	// fetch: the fetch path (and its SSRF guard) is covered in
-	// internal/clientmetadata, and a real fetch here would need a public HTTPS
-	// host, which the SSRF guard correctly refuses to reach from a test.
+	// No document host is stood up: app.example.com does not resolve, so
+	// resolution fails and the refusal below is what is under test. The resolved
+	// path needs a real TLS host and lives in cimd_flow_test.go.
 	const clientID = "https://app.example.com/client.json"
 	const redirectURI = "http://localhost:3000/callback"
 
