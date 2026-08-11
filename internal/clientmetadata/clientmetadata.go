@@ -106,6 +106,35 @@ func (d *Document) IsLoopbackOnly() bool {
 	return true
 }
 
+// # Why this has no browser-level e2e test
+//
+// The e2e-playground stack cannot exercise the CIMD browser flow, and the reason
+// is structural rather than an oversight worth working around.
+//
+// The spec requires a CIMD client_id to be an https URL (IsMetadataClientID
+// enforces it), and the AUTHORIZER SERVER — not the test process — is what
+// fetches it. That means the document must be served over TLS, from a host the
+// server can reach, with a certificate the server trusts. The compose network is
+// http-only and its mocks are private addresses, so a mock client host is
+// rejected before CIMD engages at all.
+//
+// Two ways to "fix" that were rejected:
+//
+//   - Relaxing the https requirement under --env=e2e. That puts an
+//     environment-dependent branch inside a security check, so the thing under
+//     test is no longer the thing that runs in production.
+//   - Adding a private CA to the compose stack and serving the mock over TLS.
+//     Defensible, but it is real plumbing (cert generation, trust injection into
+//     the server image) that belongs in its own change rather than smuggled into
+//     this one.
+//
+// What IS covered: this package's tests cover resolution, validation, the SSRF
+// guard and caching; the integration tests cover the consent handler's rules and
+// the /authorize gate; and the flow was checked against a real Claude Code
+// client, which now engages with the server instead of refusing it. The
+// remaining gap is specifically "a human clicks Allow in a browser" — worth
+// closing when the TLS plumbing lands.
+
 // IsMetadataClientID reports whether a client_id is in URL form and should be
 // resolved as a metadata document rather than looked up in the registry.
 //
