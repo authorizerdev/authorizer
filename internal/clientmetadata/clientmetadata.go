@@ -113,6 +113,12 @@ func (d *Document) IsLoopbackOnly() bool {
 // (a UUID in this codebase), and the spec requires a CIMD client_id to be an
 // https URL WITH a path component. Requiring the path is not cosmetic — it is
 // what keeps a bare origin from being mistaken for a client identifier.
+// A registered client_id can never collide: the admin API does not accept one
+// (CreateClientRequest has no client_id field — it is server-generated), so the
+// only string an operator controls is --client-id. Callers pass that through
+// reservedClientID so a deployment whose --client-id happens to look like a
+// document URL keeps resolving from the registry rather than silently switching
+// to a fetch.
 func IsMetadataClientID(clientID string) bool {
 	if !strings.HasPrefix(clientID, "https://") {
 		return false
@@ -357,3 +363,18 @@ func cacheTTL(header string) time.Duration {
 //
 // It is not reachable from New, so no production path can call it.
 func (p *Provider) SetHTTPClientForTest(c *http.Client) { p.httpClient = c }
+
+// IsMetadataClientIDFor is IsMetadataClientID with the deployment's own reserved
+// client_id excluded.
+//
+// --client-id is free-form, so an operator could set it to something that parses
+// as a document URL. Without this, that deployment's reserved client would be
+// resolved by fetching a URL instead of from the registry — a silent change of
+// identity source triggered by configuration. Cheap to exclude, and it makes the
+// precedence explicit rather than accidental.
+func IsMetadataClientIDFor(clientID, reservedClientID string) bool {
+	if clientID != "" && clientID == strings.TrimSpace(reservedClientID) {
+		return false
+	}
+	return IsMetadataClientID(clientID)
+}

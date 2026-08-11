@@ -315,3 +315,29 @@ func TestFetchValidatesDocumentContent(t *testing.T) {
 		assert.Contains(t, err.Error(), "status 404")
 	})
 }
+
+// TestIsMetadataClientIDForExcludesTheReservedClient guards against a
+// configuration-triggered change of identity source.
+//
+// --client-id is free-form. If an operator set it to something that parses as a
+// document URL, the reserved client would stop being resolved from the registry
+// and start being resolved by FETCHING that URL — silently, and with whoever
+// controls that URL then describing the deployment's own primary client.
+//
+// No attacker path exists (the admin API does not accept a client_id; it is
+// server-generated), which is exactly why this is worth a cheap guard rather
+// than an argument about likelihood.
+func TestIsMetadataClientIDForExcludesTheReservedClient(t *testing.T) {
+	const url = "https://app.example.com/client.json"
+
+	assert.True(t, IsMetadataClientIDFor(url, "some-normal-client-id"),
+		"an ordinary deployment must still resolve URL client_ids as documents")
+
+	assert.False(t, IsMetadataClientIDFor(url, url),
+		"the deployment's own reserved client_id must never be resolved by fetching it")
+	assert.False(t, IsMetadataClientIDFor(url, "  "+url+"  "),
+		"whitespace in --client-id must not defeat the exclusion")
+
+	assert.False(t, IsMetadataClientIDFor("normal-client", "normal-client"),
+		"a non-URL reserved client_id was never a document anyway")
+}

@@ -180,7 +180,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// fall-through to the AllowedOrigins fallback: falling through would
 			// let an unresolvable client_id inherit a laxer check than a resolved
 			// one, which is backwards.
-			if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
+			if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, h.Config.ClientID) {
 				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
 				if dErr != nil {
 					log.Debug().Err(dErr).Str("client_id", clientID).Msg("could not resolve client metadata document")
@@ -646,7 +646,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// Skipped once ConsentHandler has replayed the request — it sets the
 		// marker only after its own store lookup and session check pass, so this
 		// cannot be short-circuited by anything the client sends.
-		if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
+		if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, h.Config.ClientID) {
 			// Consume the grant recorded by ConsentHandler. Single-use and keyed
 			// to (user, client), so a consent authorizes one authorization
 			// request — not every subsequent one until the store expires it.
@@ -662,6 +662,21 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 						"error":             "invalid_client",
 						"error_description": "could not resolve the client metadata document for this client_id",
 					})
+					return
+				}
+				// OIDC Core §3.1.2.1: with prompt=none the authorization server
+				// "MUST NOT display any authentication or consent user interface
+				// pages". A self-asserted client still requires consent, and the
+				// two cannot both be satisfied — so the request fails with
+				// consent_required and the client decides whether to retry
+				// interactively.
+				//
+				// The two prompt=none guards above only cover the UNAUTHENTICATED
+				// case. Without this, a caller with a live session would be shown
+				// a consent page in response to a request that forbids one.
+				if prompt == "none" {
+					redirectErrorToRP(gc, responseMode, redirectURI, state, "consent_required",
+						"prompt=none was requested but this client requires consent")
 					return
 				}
 				h.renderConsent(gc, doc, redirectURI, user.ID, refs.StringValue(user.Email), scope)

@@ -160,6 +160,27 @@ func TestCIMDConsentEndToEnd(t *testing.T) {
 		assert.Empty(t, loc.Query().Get("code"), "a refusal must not also mint a code")
 	})
 
+	t.Run("prompt=none returns consent_required instead of showing the page", func(t *testing.T) {
+		// OIDC Core §3.1.2.1: prompt=none forbids displaying any authentication
+		// OR CONSENT user interface. A self-asserted client requires consent, so
+		// the two cannot both be satisfied and the request must fail to the
+		// client rather than render a page it asked not to see.
+		//
+		// The pre-existing prompt=none guards only cover the unauthenticated
+		// case, so this is reachable with a perfectly valid session.
+		u := authorizeURL(clientID) + "&prompt=none"
+		resp, err := client.Get(u)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusFound, resp.StatusCode,
+			"the error belongs at the client's redirect_uri, body: %s", readAll(t, resp))
+		loc, pErr := url.Parse(resp.Header.Get("Location"))
+		require.NoError(t, pErr)
+		assert.Equal(t, "consent_required", loc.Query().Get("error"))
+		assert.Empty(t, loc.Query().Get("code"), "a refused request must not mint a code")
+	})
+
 	t.Run("a document whose client_id does not match its URL is refused", func(t *testing.T) {
 		// Never reaches consent: the client cannot be established, so there is
 		// nothing honest to show the user.

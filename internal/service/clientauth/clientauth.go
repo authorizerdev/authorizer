@@ -252,7 +252,7 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 	//
 	// PKCE still gates the authorization_code exchange, unchanged: that is what
 	// binds the code to the client instance that started the flow.
-	if p.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
+	if p.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, p.Config.ClientID) {
 		if params.RequireSecret || params.RequireServiceAccountKind {
 			log.Debug().Msg("metadata-document client is public; client_credentials is not available to it")
 			return nil, ErrUnauthorizedClient
