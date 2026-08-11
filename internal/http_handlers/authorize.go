@@ -647,7 +647,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// marker only after its own store lookup and session check pass, so this
 		// cannot be short-circuited by anything the client sends.
 		if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientID(clientID) {
-			if granted, ok := gc.Get(consentGrantedKey); !ok || granted != clientID {
+			// Consume the grant recorded by ConsentHandler. Single-use and keyed
+			// to (user, client), so a consent authorizes one authorization
+			// request — not every subsequent one until the store expires it.
+			grantKey := consentGrantKey(user.ID, clientID)
+			granted, gErr := h.MemoryStoreProvider.GetState(grantKey)
+			if gErr == nil && granted != "" {
+				_ = h.MemoryStoreProvider.RemoveState(grantKey)
+			} else {
 				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
 				if dErr != nil {
 					log.Debug().Err(dErr).Msg("could not resolve client metadata document for consent")

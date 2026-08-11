@@ -714,7 +714,8 @@ func runRoot(c *cobra.Command, args []string) {
 	// both treat a nil provider as "URL client_ids are not a thing here".
 	var clientMetadataProvider *clientmetadata.Provider
 	if rootArgs.config.EnableClientIDMetadataDocument {
-		clientMetadataProvider = clientmetadata.New(&log, rootArgs.config.ClientIDMetadataAllowedDomains)
+		clientMetadataProvider = clientmetadata.New(&log, rootArgs.config.ClientIDMetadataAllowedDomains,
+			rootArgs.config.Env == constants.E2EEnv)
 		log.Info().Strs("allowed_domains", rootArgs.config.ClientIDMetadataAllowedDomains).
 			Msg("Client ID Metadata Documents enabled")
 	}

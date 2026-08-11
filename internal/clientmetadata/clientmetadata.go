@@ -106,35 +106,6 @@ func (d *Document) IsLoopbackOnly() bool {
 	return true
 }
 
-// # Why this has no browser-level e2e test
-//
-// The e2e-playground stack cannot exercise the CIMD browser flow, and the reason
-// is structural rather than an oversight worth working around.
-//
-// The spec requires a CIMD client_id to be an https URL (IsMetadataClientID
-// enforces it), and the AUTHORIZER SERVER — not the test process — is what
-// fetches it. That means the document must be served over TLS, from a host the
-// server can reach, with a certificate the server trusts. The compose network is
-// http-only and its mocks are private addresses, so a mock client host is
-// rejected before CIMD engages at all.
-//
-// Two ways to "fix" that were rejected:
-//
-//   - Relaxing the https requirement under --env=e2e. That puts an
-//     environment-dependent branch inside a security check, so the thing under
-//     test is no longer the thing that runs in production.
-//   - Adding a private CA to the compose stack and serving the mock over TLS.
-//     Defensible, but it is real plumbing (cert generation, trust injection into
-//     the server image) that belongs in its own change rather than smuggled into
-//     this one.
-//
-// What IS covered: this package's tests cover resolution, validation, the SSRF
-// guard and caching; the integration tests cover the consent handler's rules and
-// the /authorize gate; and the flow was checked against a real Claude Code
-// client, which now engages with the server instead of refusing it. The
-// remaining gap is specifically "a human clicks Allow in a browser" — worth
-// closing when the TLS plumbing lands.
-
 // IsMetadataClientID reports whether a client_id is in URL form and should be
 // resolved as a metadata document rather than looked up in the registry.
 //
@@ -156,6 +127,25 @@ func IsMetadataClientID(clientID string) bool {
 // Provider resolves and caches client metadata documents.
 type Provider struct {
 	log *zerolog.Logger
+	// allowPrivate switches the outbound fetch to
+	// validators.SafeHTTPClientAllowPrivate. Set ONLY when
+	// Config.Env == constants.E2EEnv (--env=e2e, never true in production).
+	//
+	// That function's doc comment asks for careful review before adding a third
+	// caller, so here it is. CIMD is defined by the SERVER fetching a URL the
+	// client supplies, so any test of it needs a document host the server can
+	// reach — and every host on a docker-compose network is a private address
+	// the guard refuses unconditionally. The alternative was to leave the
+	// browser flow untested, or to relax the https requirement under e2e, which
+	// would put an environment-dependent branch inside a security check and mean
+	// the thing under test is no longer the thing that runs in production.
+	//
+	// What is NOT relaxed: the scheme allow-list, the one-shot DNS resolution
+	// and dial pinning that defeat rebinding, and TLS verification. The e2e mock
+	// serves real HTTPS with a certificate from a CA generated into the stack,
+	// so the certificate path is exercised rather than bypassed — this widens
+	// which ADDRESSES are reachable, nothing else.
+	allowPrivate bool
 	// allowedDomains, when non-empty, restricts which hosts may serve a metadata
 	// document (the spec's optional domain trust policy). Empty accepts any
 	// HTTPS host, which is what a public MCP server wants.
@@ -172,14 +162,14 @@ type cacheEntry struct {
 
 // New builds a Provider. allowedDomains is an optional host allow-list; an empty
 // slice accepts any HTTPS host.
-func New(log *zerolog.Logger, allowedDomains []string) *Provider {
+func New(log *zerolog.Logger, allowedDomains []string, allowPrivate bool) *Provider {
 	allowed := make(map[string]struct{}, len(allowedDomains))
 	for _, d := range allowedDomains {
 		if d = strings.ToLower(strings.TrimSpace(d)); d != "" {
 			allowed[d] = struct{}{}
 		}
 	}
-	return &Provider{log: log, allowedDomains: allowed, cache: map[string]cacheEntry{}}
+	return &Provider{log: log, allowedDomains: allowed, allowPrivate: allowPrivate, cache: map[string]cacheEntry{}}
 }
 
 // Resolve fetches and validates the metadata document named by clientID.
@@ -244,7 +234,11 @@ func (p *Provider) store(clientID string, doc *Document, ttl time.Duration) {
 // would hand any caller an SSRF primitive against everything the server can
 // reach — the risk the spec's security considerations lead with.
 func (p *Provider) fetch(ctx context.Context, clientID string) (*Document, time.Duration, error) {
-	client, err := validators.SafeHTTPClient(ctx, clientID, fetchTimeout)
+	newClient := validators.SafeHTTPClient
+	if p.allowPrivate {
+		newClient = validators.SafeHTTPClientAllowPrivate
+	}
+	client, err := newClient(ctx, clientID, fetchTimeout)
 	if err != nil {
 		return nil, 0, fmt.Errorf("client_id URL is not fetchable: %w", err)
 	}

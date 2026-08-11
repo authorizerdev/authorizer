@@ -18,7 +18,7 @@ import (
 func testProvider(t *testing.T, allowed ...string) *Provider {
 	t.Helper()
 	log := zerolog.Nop()
-	return New(&log, allowed)
+	return New(&log, allowed, false)
 }
 
 func TestIsMetadataClientID(t *testing.T) {

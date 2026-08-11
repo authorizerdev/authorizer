@@ -352,7 +352,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 			if !cfg.EnableClientIDMetadataDocument {
 				return nil
 			}
-			return clientmetadata.New(&logger, cfg.ClientIDMetadataAllowedDomains)
+			return clientmetadata.New(&logger, cfg.ClientIDMetadataAllowedDomains, cfg.Env == constants.E2EEnv)
 		}(),
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,

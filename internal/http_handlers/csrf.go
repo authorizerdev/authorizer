@@ -58,6 +58,30 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt the consent form POST.
+		//
+		// This is NOT a hole, because the flow already carries a stronger
+		// synchronizer token than the generic middleware would check. The form's
+		// consent_id is a random UUID that exists only inside a page this server
+		// rendered for one specific session; it is single-use, and
+		// ConsentHandler additionally verifies the submitting session is the one
+		// it was issued to. An attacker cannot forge a submission without first
+		// reading a value they have no way to obtain — which is precisely the
+		// property CSRF protection exists to create.
+		//
+		// The exemption is necessary rather than convenient: the generic check
+		// demands `Content-Type: application/json` or `X-Requested-With`, and a
+		// plain HTML form can send neither. The alternative would be to drive the
+		// form with JavaScript, which would make consent — the one screen a user
+		// must be able to read and trust — silently fail with JS disabled.
+		//
+		// Found by the e2e browser test; every unit-level test called the handler
+		// directly and so never saw the middleware.
+		if c.Request.URL.Path == "/authorize/consent" {
+			c.Next()
+			return
+		}
+
 		// Exempt the MCP surface. Same rationale, and it holds structurally
 		// rather than by convention: MCPAuthMiddleware authenticates only a
 		// bearer token whose audience names this MCP server, the interceptor

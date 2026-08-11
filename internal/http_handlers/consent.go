@@ -184,22 +184,42 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Approved. Replay the original request through the normal authorize
-		// path, which now sees a consented client and issues the code exactly as
-		// it would for a pre-registered one.
+		// Approved. Record the grant server-side and REDIRECT the browser back to
+		// /authorize with the original query, rather than invoking the handler
+		// in-process.
+		//
+		// Calling it directly does not work: gin caches parsed query parameters
+		// on the Context at first access, so rewriting Request.URL.RawQuery
+		// afterwards leaves the handler reading the POST's (empty) query and
+		// failing with "response_type is required". Rewriting gin's internals to
+		// force a re-parse would be a worse dependency than a redirect.
+		//
+		// A redirect is also the more honest shape: it is exactly what the client
+		// would see from any other authorization server, and it re-enters
+		// /authorize through the front door with every middleware applied.
 		metrics.RecordSecurityEvent("cimd_consent_approved", "authorize")
-		gc.Request.URL.RawQuery = pending.Query
-		gc.Request.Method = http.MethodGet
-		gc.Set(consentGrantedKey, pending.ClientID)
-		h.AuthorizeHandler()(gc)
+		if err := h.MemoryStoreProvider.SetState(
+			consentGrantKey(pending.UserID, pending.ClientID), "1"); err != nil {
+			log.Debug().Err(err).Msg("failed to record consent grant")
+			gc.JSON(http.StatusInternalServerError, gin.H{
+				"error":             "server_error",
+				"error_description": "could not record the consent decision",
+			})
+			return
+		}
+		gc.Redirect(http.StatusFound, "/authorize?"+pending.Query)
 	}
 }
 
-// consentGrantedKey marks a request as already consented, so the authorize
-// handler resumes instead of rendering the page a second time. It is set only by
-// ConsentHandler after the store lookup and session check succeed — never from
-// anything the client sends.
-const consentGrantedKey = "authorizer_cimd_consent_granted"
+// consentGrantKey names the single-use marker that tells the authorize handler
+// this exact user has just consented to this exact client.
+//
+// Keyed on BOTH so a grant cannot be reused across clients or across accounts,
+// and consumed on read so it authorizes one authorization request rather than
+// standing open for the state store's whole TTL.
+func consentGrantKey(userID, clientID string) string {
+	return "cimd_consent_granted:" + userID + ":" + clientID
+}
 
 func consentKey(id string) string { return "cimd_consent:" + id }
 
