@@ -44,10 +44,13 @@ import (
 type testSetup struct {
 	GraphQLProvider graphql.Provider
 	HttpProvider    http_handlers.Provider
-	HttpServer      *httptest.Server
-	Config          *config.Config
-	Logger          *zerolog.Logger
-	GinContext      *gin.Context
+	// ClientMetadataProvider is exposed so a CIMD test can point the resolver at
+	// an httptest TLS server; nil unless the config enabled the feature.
+	ClientMetadataProvider *clientmetadata.Provider
+	HttpServer             *httptest.Server
+	Config                 *config.Config
+	Logger                 *zerolog.Logger
+	GinContext             *gin.Context
 	// Used for specific tests where we need to access the storage
 	StorageProvider       storage.Provider
 	MemoryStoreProvider   memory_store.Provider
@@ -348,12 +351,8 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		// Built exactly as cmd/root.go does: nil unless the flag is on, so a
 		// test that does not opt in sees the feature switched off, and one that
 		// does gets the same wiring production has.
-		ClientMetadataProvider: func() *clientmetadata.Provider {
-			if !cfg.EnableClientIDMetadataDocument {
-				return nil
-			}
-			return clientmetadata.New(&logger, cfg.ClientIDMetadataAllowedDomains, cfg.Env == constants.E2EEnv)
-		}(),
+		ClientMetadataProvider: newTestClientMetadataProvider(cfg, &logger),
+
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
 		EmailProvider:         emailProvider,
@@ -401,19 +400,20 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 
 	return &testSetup{
-		GraphQLProvider:       gqlProvider,
-		HttpProvider:          httpProvider,
-		HttpServer:            server,
-		Config:                cfg,
-		Logger:                &logger,
-		GinContext:            ctx,
-		StorageProvider:       storageProvider,
-		MemoryStoreProvider:   memoryStoreProvider,
-		AuthenticatorProvider: authProvider,
-		WebAuthnProvider:      webAuthnProvider,
-		TokenProvider:         tokenProvider,
-		ServiceProvider:       serviceProvider,
-		DNSResolver:           dnsResolver,
+		GraphQLProvider:        gqlProvider,
+		HttpProvider:           httpProvider,
+		ClientMetadataProvider: httpDeps.ClientMetadataProvider,
+		HttpServer:             server,
+		Config:                 cfg,
+		Logger:                 &logger,
+		GinContext:             ctx,
+		StorageProvider:        storageProvider,
+		MemoryStoreProvider:    memoryStoreProvider,
+		AuthenticatorProvider:  authProvider,
+		WebAuthnProvider:       webAuthnProvider,
+		TokenProvider:          tokenProvider,
+		ServiceProvider:        serviceProvider,
+		DNSResolver:            dnsResolver,
 	}
 }
 
@@ -480,4 +480,13 @@ func latestMfaSessionCookie(s *testSetup) string {
 // call site keeps its `h, err := ...` shape.
 func newAdminSessionToken(ts *testSetup) (string, error) {
 	return ts.TokenProvider.NewAdminSession()
+}
+
+// newTestClientMetadataProvider mirrors cmd/root.go: nil unless the flag is on,
+// so a test that does not opt in sees the feature switched off.
+func newTestClientMetadataProvider(cfg *config.Config, logger *zerolog.Logger) *clientmetadata.Provider {
+	if !cfg.EnableClientIDMetadataDocument {
+		return nil
+	}
+	return clientmetadata.New(logger, cfg.ClientIDMetadataAllowedDomains, cfg.Env == constants.E2EEnv)
 }

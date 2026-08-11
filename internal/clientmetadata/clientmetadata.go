@@ -151,6 +151,13 @@ type Provider struct {
 	// HTTPS host, which is what a public MCP server wants.
 	allowedDomains map[string]struct{}
 
+	// httpClient, when set, replaces the SSRF-hardened client built per request.
+	// It is the same seam fetchViaClient exposes and exists for the same reason:
+	// the guard refuses loopback by design, so a test cannot point this at an
+	// httptest server without it. Never set outside tests — New does not accept
+	// one, so production always builds the hardened client.
+	httpClient *http.Client
+
 	mu    sync.RWMutex
 	cache map[string]cacheEntry
 }
@@ -234,6 +241,9 @@ func (p *Provider) store(clientID string, doc *Document, ttl time.Duration) {
 // would hand any caller an SSRF primitive against everything the server can
 // reach — the risk the spec's security considerations lead with.
 func (p *Provider) fetch(ctx context.Context, clientID string) (*Document, time.Duration, error) {
+	if p.httpClient != nil {
+		return p.fetchViaClient(ctx, clientID, p.httpClient)
+	}
 	newClient := validators.SafeHTTPClient
 	if p.allowPrivate {
 		newClient = validators.SafeHTTPClientAllowPrivate
@@ -337,3 +347,13 @@ func cacheTTL(header string) time.Duration {
 	}
 	return ttl
 }
+
+// SetHTTPClientForTest injects the client used to fetch metadata documents.
+//
+// Exported solely so integration tests can point the resolver at an
+// httptest.NewTLSServer: CIMD requires an https client_id, and the SSRF guard
+// refuses loopback, so there is otherwise no way to exercise the flow without
+// either weakening the guard or standing up public infrastructure.
+//
+// It is not reachable from New, so no production path can call it.
+func (p *Provider) SetHTTPClientForTest(c *http.Client) { p.httpClient = c }
