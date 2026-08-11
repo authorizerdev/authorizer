@@ -35,6 +35,20 @@ import (
 // is the easy case: `authorization_servers` names this same origin, so there is no
 // third party to be confused about and no token to pass through to one.
 //
+// # Which clients can actually complete this flow today
+//
+// Verified against Claude Code 2.1.226: the browser OAuth path does NOT work. It
+// refuses with "Incompatible auth server: does not support dynamic client
+// registration" and does not fall back to prompting for a client id. Everything
+// this document advertises is correct and the flow is spec-conformant — the gap
+// is client-side registration, not discovery.
+//
+// What IS verified working is a static bearer token bound to <url>/mcp, minted
+// via client_credentials with `resource`. That identifies a service account
+// rather than a human, which is the honest scope of the surface until Client ID
+// Metadata Documents land. See the note on `registration_endpoint` in
+// openid_config.go for why the answer is CIMD and not RFC 7591 DCR.
+//
 // Deliberately public and cacheable: RFC 9728 §3.1 defines this as public client
 // configuration. It carries no secret and no per-caller data — only where to
 // authenticate and what to ask for.
