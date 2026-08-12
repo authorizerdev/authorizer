@@ -2,7 +2,6 @@ package http_handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,9 +25,15 @@ type redirectURIClientStore struct {
 	client *schemas.Client
 }
 
+// GetClientByClientID follows the documented exception for this one method: an
+// absent row is (nil, nil), NOT an error. The stub used to return an error here,
+// which made it disagree with all six real providers — and that mattered as soon
+// as the handler started distinguishing "no such client" from "could not check",
+// because a stub reporting an outage for every unregistered client_id turned
+// ordinary requests into 503s in tests only.
 func (s *redirectURIClientStore) GetClientByClientID(_ context.Context, clientID string) (*schemas.Client, error) {
 	if s.client == nil || s.client.ClientID != clientID {
-		return nil, errors.New("not found")
+		return nil, nil
 	}
 	return s.client, nil
 }

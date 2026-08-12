@@ -145,6 +145,32 @@ func TestCIMDConsentEndToEnd(t *testing.T) {
 		assert.Equal(t, "st-1", loc.Query().Get("state"))
 	})
 
+	t.Run("PKCE is required for a metadata-document client", func(t *testing.T) {
+		// A CIMD client is a public client by construction — the spec's own
+		// example sets token_endpoint_auth_method "none" — so RFC 9700 §2.1.1
+		// ("Public clients MUST use PKCE") applies to it exactly as it does to a
+		// client that registered itself. Asserted here because every other case
+		// in this file supplies PKCE, which would leave the CIMD arm of the check
+		// passing for the wrong reason.
+		q := url.Values{}
+		q.Set("response_type", "code")
+		q.Set("client_id", clientID)
+		q.Set("redirect_uri", redirectURI)
+		q.Set("scope", "openid")
+		q.Set("state", "st-nopkce")
+		q.Set("response_mode", "query")
+
+		resp, err := client.Get(srv.URL + "/authorize?" + q.Encode())
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		body := readAll(t, resp)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode,
+			"a public client with no code_challenge must be refused at /authorize: %s", body)
+		assert.Contains(t, body, "code_challenge is required")
+		assert.NotContains(t, body, "consent_id",
+			"the refusal must come before the user is asked to approve anything")
+	})
+
 	t.Run("declining redirects with access_denied and no code", func(t *testing.T) {
 		consentID := reachConsent(t)
 

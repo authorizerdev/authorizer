@@ -150,6 +150,11 @@ func init() {
 			"Clients registered this way are self-asserted, so a consent screen is shown for them. Off by default")
 	f.StringSliceVar(&rootArgs.config.ClientIDMetadataAllowedDomains, "client-id-metadata-allowed-domains", nil,
 		"Restrict which hosts may serve a client metadata document (e.g. claude.ai). Empty accepts any HTTPS host")
+	f.BoolVar(&rootArgs.config.EnableDynamicClientRegistration, "enable-dynamic-client-registration", false,
+		"Serve the RFC 7591 dynamic client registration endpoint at POST <url>/oauth/register, for MCP "+
+			"clients that cannot use CIMD. This is an UNAUTHENTICATED write endpoint: prefer "+
+			"--enable-client-id-metadata-document where the client supports it. Clients registered this "+
+			"way are self-asserted, so a consent screen is shown for them. Off by default")
 
 	f.BoolVar(&rootArgs.config.MCPEnabled, "mcp-enabled", false,
 		"Serve the MCP tool surface over HTTP at POST <url>/mcp as an OAuth 2.1 resource server. "+

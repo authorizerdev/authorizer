@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
@@ -54,26 +53,71 @@ type pendingConsent struct {
 	UserID string `json:"user_id"`
 }
 
+// consentClient is the minimum a self-asserted client must supply to be
+// described on the consent page.
+//
+// It exists so the page does not depend on WHERE the client's claims came from.
+// The two sources — a Client ID Metadata Document fetched from the client's own
+// URL, and a row written by the RFC 7591 registration endpoint — differ in
+// plumbing and not in trust: in both cases the name is chosen by the client and
+// verified by nobody. Passing a *clientmetadata.Document here instead would have
+// forced the registration path to fabricate one, which would have read as if a
+// document had been fetched when none had.
+type consentClient struct {
+	ClientID   string
+	ClientName string
+	// RedirectURIs is the client's full registered list, used only to decide
+	// whether the loopback warning applies. The URI actually being authorized is
+	// passed separately and is what the page displays.
+	RedirectURIs []string
+}
+
+// isLoopbackOnly reports whether every registered redirect URI is a loopback
+// address.
+//
+// Such a client cannot be distinguished from a local impostor: any process on
+// the user's machine can bind a port and claim the same metadata document, or
+// register itself under the same name. Both specs call this out and say the
+// authorization server SHOULD warn about it, because it is not solvable
+// server-side. The consent screen uses this to say so out loud.
+//
+// Shares isLoopbackHost with the RFC 8252 redirect matcher and the registration
+// validator, so "is this loopback?" has exactly one answer in this codebase.
+func (c consentClient) isLoopbackOnly() bool {
+	if len(c.RedirectURIs) == 0 {
+		return false
+	}
+	for _, raw := range c.RedirectURIs {
+		u, err := url.Parse(raw)
+		if err != nil || !isLoopbackHost(u.Hostname()) {
+			return false
+		}
+	}
+	return true
+}
+
 // renderConsent stores the pending authorization and shows the consent page.
 //
-// Consent is required here and NOT for pre-registered clients, and the asymmetry
-// is the whole point. A registered client was vouched for by an operator who
-// entered its redirect URIs by hand. A Client ID Metadata Document client
-// asserted its own identity: it chose its `client_name`, and anyone who can host
-// a JSON file can claim any name. The only fact about it this server has
-// verified is the redirect host — which is precisely what the page leads with.
+// Consent is required for self-asserted clients and NOT for operator-registered
+// ones, and the asymmetry is the whole point. A registered client was vouched
+// for by an operator who entered its redirect URIs by hand. A self-asserted
+// client — one presenting a Client ID Metadata Document, or one that registered
+// itself through RFC 7591 — chose its own `client_name`, and anyone who can host
+// a JSON file or POST to /oauth/register can claim any name. The only fact about
+// it this server has verified is the redirect host, which is precisely what the
+// page leads with.
 //
 // The MCP authorization spec requires the authorization server to display the
 // redirect URI hostname and to warn about loopback-only clients, because a local
 // impostor can bind the same port and present the legitimate client's metadata.
-// See internal/clientmetadata for why CIMD is the registration mechanism.
-func (h *httpProvider) renderConsent(gc *gin.Context, doc *clientmetadata.Document, redirectURI, userID, userEmail string, scopes []string) {
+// RFC 7591 §5 asks for the same warning for dynamically registered clients.
+func (h *httpProvider) renderConsent(gc *gin.Context, client consentClient, redirectURI, userID, userEmail string, scopes []string) {
 	log := h.Log.With().Str("func", "renderConsent").Logger()
 
 	consentID := uuid.NewString()
 	payload, err := json.Marshal(pendingConsent{
-		ClientID:    doc.ClientID,
-		ClientName:  doc.ClientName,
+		ClientID:    client.ClientID,
+		ClientName:  client.ClientName,
 		RedirectURI: redirectURI,
 		Scopes:      scopes,
 		Query:       originalParams(gc).Encode(),
@@ -109,14 +153,14 @@ func (h *httpProvider) renderConsent(gc *gin.Context, doc *clientmetadata.Docume
 	gc.Header("Cache-Control", "no-store, no-cache, must-revalidate")
 	gc.Header("Pragma", "no-cache")
 	gc.HTML(http.StatusOK, "consent.tmpl", gin.H{
-		"client_name": doc.ClientName,
-		"client_id":   doc.ClientID,
+		"client_name": client.ClientName,
+		"client_id":   client.ClientID,
 		// The host, not the full URI: it is the part that decides where the
 		// authorization code actually lands, and the part a person can judge.
 		"redirect_host":     redirectHost,
 		"user_email":        userEmail,
 		"scopes":            scopes,
-		"loopback_only":     doc.IsLoopbackOnly(),
+		"loopback_only":     client.isLoopbackOnly(),
 		"consent_id":        consentID,
 		"organization_name": h.Config.OrganizationName,
 	})

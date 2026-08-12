@@ -147,6 +147,9 @@ type Provider interface {
 	MCPAuthMiddleware() gin.HandlerFunc
 	// ConsentHandler processes the approve/deny decision for a CIMD client.
 	ConsentHandler() gin.HandlerFunc
+	// RegisterClientHandler implements RFC 7591 dynamic client registration.
+	// Only routed when EnableDynamicClientRegistration is set.
+	RegisterClientHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests
 	PlaygroundHandler() gin.HandlerFunc
 	// RevokeRefreshTokenHandler is the main handler that handels all the revoke refresh token requests

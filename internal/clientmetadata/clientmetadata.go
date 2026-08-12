@@ -80,32 +80,6 @@ type Document struct {
 	Scope        string   `json:"scope"`
 }
 
-// IsLoopbackOnly reports whether every registered redirect URI is a loopback
-// address.
-//
-// Such a client cannot be distinguished from a local impostor: any process on
-// the user's machine can bind a port and claim the same metadata document. The
-// spec calls this out and says an authorization server SHOULD warn about it,
-// because it is not solvable server-side. The consent screen uses this to say so
-// out loud.
-func (d *Document) IsLoopbackOnly() bool {
-	if len(d.RedirectURIs) == 0 {
-		return false
-	}
-	for _, raw := range d.RedirectURIs {
-		u, err := url.Parse(raw)
-		if err != nil {
-			return false
-		}
-		switch u.Hostname() {
-		case "127.0.0.1", "::1", "localhost":
-		default:
-			return false
-		}
-	}
-	return true
-}
-
 // IsMetadataClientID reports whether a client_id is in URL form and should be
 // resolved as a metadata document rather than looked up in the registry.
 //

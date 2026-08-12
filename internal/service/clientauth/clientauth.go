@@ -328,6 +328,29 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 		return client, ErrUnauthorizedClient
 	}
 
+	// A registered PUBLIC client must not be authenticated by a secret, whatever
+	// it presented. Without this the request still fails — bcrypt compares the
+	// presented secret against an empty stored hash and errors — so this changes
+	// the REASON rather than the outcome: the refusal becomes a declared property
+	// of the client's registration instead of an accident of the stored hash
+	// being empty. It also stops a caller being told their credential "worked"
+	// if a secret ever gets written to a row registered as public.
+	//
+	// Mirrors what the CIMD branch above does explicitly, and matches how Ory
+	// Hydra drives behaviour from the registered token_endpoint_auth_method
+	// rather than from what the caller chose to send. No RFC compels this — RFC
+	// 9700 does not cover it and OAuth 2.1 §2.4 only forbids using more than one
+	// method per request — so it is hygiene, not a compliance fix.
+	//
+	// The dummy compare preserves the cost of the real one, so this branch does
+	// not become a timing oracle distinguishing a public client from a
+	// confidential one with a wrong secret.
+	if secretPresented && client.TokenEndpointAuthMethod == constants.TokenEndpointAuthMethodNone {
+		log.Debug().Str("client_id", clientID).Msg("public client presented a secret")
+		performDummyCompare(secret)
+		return client, ErrInvalidClient
+	}
+
 	// bcrypt.CompareHashAndPassword is itself constant-time with respect to the
 	// secret; running it before the IsActive check keeps a wrong-secret and an
 	// inactive-account rejection timing-indistinguishable.

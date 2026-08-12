@@ -82,6 +82,29 @@ type Config struct {
 	// locked-down deployments.
 	ClientIDMetadataAllowedDomains []string
 
+	// EnableDynamicClientRegistration serves the RFC 7591 registration endpoint
+	// at POST /oauth/register and advertises `registration_endpoint`.
+	//
+	// Off by default, and it should stay off wherever CIMD suffices. The MCP
+	// authorization spec (2025-11-25) has authorization servers SHOULD support
+	// Client ID Metadata Documents and MAY support DCR, which it keeps "for
+	// backwards compatibility with earlier versions". This flag exists because
+	// clients in the field have not caught up: they look for
+	// `registration_endpoint` and give up when it is absent, even where
+	// `client_id_metadata_document_supported` is advertised.
+	//
+	// Turning it on opens an UNAUTHENTICATED write endpoint — RFC 7591 §5 permits
+	// exactly that ("SHOULD allow registration requests with no authorization")
+	// but pairs it with rate limiting and with warning the user about
+	// dynamically registered clients. Both hold here: the endpoint sits behind
+	// the global per-IP limiter, the registry has a hard ceiling, and a
+	// self-registered client always goes through the consent screen.
+	//
+	// Enabling it does NOT downgrade CIMD-capable clients: the spec's client
+	// priority order is pre-registered → CIMD → DCR, so DCR only catches clients
+	// that cannot do CIMD.
+	EnableDynamicClientRegistration bool
+
 	// MCPEnabled serves Authorizer's MCP tool surface over HTTP at POST /mcp on
 	// the main listener, as an OAuth 2.1 resource server. Off by default: it is a
 	// new internet-facing authenticated surface, and an auth server should not

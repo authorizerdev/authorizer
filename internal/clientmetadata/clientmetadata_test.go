@@ -49,28 +49,10 @@ func TestIsMetadataClientID(t *testing.T) {
 	}
 }
 
-func TestIsLoopbackOnly(t *testing.T) {
-	// Drives a consent-screen warning the spec asks for, so a wrong answer is
-	// user-visible: a false negative hides a real risk, a false positive cries
-	// wolf on a normal web client.
-	cases := []struct {
-		name string
-		uris []string
-		want bool
-	}{
-		{"all loopback", []string{"http://127.0.0.1/cb", "http://localhost:1/cb"}, true},
-		{"ipv6 loopback", []string{"http://[::1]/cb"}, true},
-		{"mixed", []string{"http://127.0.0.1/cb", "https://app.example.com/cb"}, false},
-		{"public only", []string{"https://app.example.com/cb"}, false},
-		{"empty", nil, false},
-		{"lookalike host is not loopback", []string{"https://127.0.0.1.evil.com/cb"}, false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, (&Document{RedirectURIs: tc.uris}).IsLoopbackOnly())
-		})
-	}
-}
+// The loopback-only predicate that drives the consent warning moved to
+// internal/http_handlers with the consent screen itself, so that "is this
+// loopback?" has one implementation shared with the RFC 8252 redirect matcher.
+// Its table test moved with it: TestConsentClientIsLoopbackOnly.
 
 // docServer serves a metadata document whose client_id is its own URL, which is
 // what a well-behaved client hosts.
@@ -289,7 +271,10 @@ func TestFetchValidatesDocumentContent(t *testing.T) {
 		doc, ttl, err := testProvider(t).fetchViaClient(context.Background(), selfURL, srv.Client())
 		require.NoError(t, err)
 		assert.Equal(t, "Example Client", doc.ClientName)
-		assert.True(t, doc.IsLoopbackOnly(), "a loopback-only client must be flagged for the consent warning")
+		// The redirect list is what the consent screen's loopback warning is
+		// computed from (see TestConsentClientIsLoopbackOnly); assert it survives
+		// the fetch intact rather than re-testing the predicate here.
+		assert.Equal(t, []string{"http://127.0.0.1/callback"}, doc.RedirectURIs)
 		assert.Equal(t, minCacheTTL, ttl)
 	})
 

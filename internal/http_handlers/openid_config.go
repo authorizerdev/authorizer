@@ -90,33 +90,49 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			// token_endpoint_auth_methods_supported (it authenticates as a public
 			// client); both hold here when the flag is on.
 			"client_id_metadata_document_supported": h.Config.EnableClientIDMetadataDocument,
-			// NO `registration_endpoint`, and that is deliberate — please do not
-			// "fix" it by adding RFC 7591 dynamic client registration.
+			// `registration_endpoint` (RFC 7591) is advertised ONLY when the
+			// feature is switched on, and it ships off by default. Everything
+			// below is why it is opt-in rather than absent, and why it is opt-in
+			// rather than on.
 			//
-			// The MCP authorization spec (2025-11-25) demoted DCR: authorization
+			// The MCP authorization spec (2025-11-25) demotes DCR: authorization
 			// servers **SHOULD** support Client ID Metadata Documents and **MAY**
-			// support DCR, which it keeps only "for backwards compatibility with
+			// support DCR, which it keeps "for backwards compatibility with
 			// earlier versions of the MCP authorization spec". CIMD is the
-			// recommended path, and the client priority order is pre-registered →
-			// CIMD → DCR → prompt the user.
+			// recommended path and remains this server's preferred one.
 			// https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
 			//
-			// DCR is also an open, unauthenticated write endpoint. Auth0 ships it
-			// Enterprise-only, disabled by default, and requires tenant ACLs or a
-			// reverse proxy in front, citing resource depletion, security probing,
-			// unvetted misconfigured clients and audit gaps — then recommends CIMD
-			// instead for production.
-			// https://auth0.com/ai/docs/mcp/guides/registering-your-mcp-client-application/dynamic-client-registration
+			// This endpoint exists anyway because the spec's client priority
+			// order — pre-registered → CIMD → DCR → prompt the user — is only as
+			// good as client support for step 2, and shipping clients are still
+			// on step 3. Claude Code reads this document, finds
+			// `client_id_metadata_document_supported` true, and still refuses
+			// with "Incompatible auth server: does not support dynamic client
+			// registration" because its released version predates CIMD. Without
+			// `registration_endpoint` those clients cannot connect at all.
 			//
-			// Anthropic's own connector guidance points the same way: DCR makes a
-			// client register afresh on every connection, so a self-hosted
-			// deployment accumulates client rows without bound.
+			// That same priority order is what makes advertising it safe: a
+			// CIMD-capable client picks CIMD first and never reaches DCR, so
+			// enabling this cannot downgrade a client that could have done
+			// better.
+			//
+			// It stays OFF by default because it is an open, unauthenticated
+			// write endpoint. Auth0 ships DCR Enterprise-only and disabled,
+			// requiring tenant ACLs or a reverse proxy, citing resource
+			// depletion, security probing, unvetted clients and audit gaps —
+			// then recommends CIMD for production.
+			// https://auth0.com/ai/docs/mcp/guides/registering-your-mcp-client-application/dynamic-client-registration
+			// Keycloak disables anonymous registration by default and gates it
+			// behind registration policies; Ory Hydra hides it behind
+			// `oidc.dynamic_client_registration.enabled`. Anthropic's connector
+			// guidance notes DCR clients re-register on every connection, so rows
+			// accumulate — which is what maxRegisteredClients bounds.
 			// https://claude.com/docs/connectors/building/authentication
 			//
-			// `client_id_metadata_document_supported` IS advertised, but only when
-			// the feature is actually enabled (see below) — advertising a
-			// capability that is off would make a client select CIMD and then
-			// fail, which is worse than omitting it and letting them fall back.
+			// Both self-registration capabilities are advertised only when
+			// actually enabled: advertising one that is off would make a client
+			// select it and then fail, which is worse than omitting it and
+			// letting the client fall back.
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",
@@ -127,6 +143,14 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"claims_parameter_supported":                    false,
 			"request_parameter_supported":                   false,
 			"request_uri_parameter_supported":               false,
+		}
+
+		// Added rather than set to "" when disabled: a client that sees the key
+		// at all will POST to it, so an empty or absent-but-present value is
+		// worse than no key. RFC 8414 §2 treats an omitted metadata field as
+		// "not supported".
+		if h.Config.EnableDynamicClientRegistration {
+			resp["registration_endpoint"] = issuer + "/oauth/register"
 		}
 
 		// Discovery metadata changes infrequently; allow caching.

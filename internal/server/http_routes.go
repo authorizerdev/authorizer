@@ -148,6 +148,15 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 	router.POST("/oauth/introspect", s.Dependencies.HTTPProvider.IntrospectHandler())
 
+	// RFC 7591 dynamic client registration. Mounted ONLY when enabled, which
+	// matters more here than for a read-only endpoint: this one writes to the
+	// registry without authenticating the caller, so an unconfigured deployment
+	// must not have it reachable at all. `registration_endpoint` is advertised
+	// under the same condition, so discovery and reality cannot disagree.
+	if s.Dependencies.AppConfig != nil && s.Dependencies.AppConfig.EnableDynamicClientRegistration {
+		router.POST("/oauth/register", s.Dependencies.HTTPProvider.RegisterClientHandler())
+	}
+
 	// Inbound SCIM 2.0 (per-org user provisioning). Its own route group with a
 	// bearer-token auth middleware; the org is derived only from the token, so
 	// there is no org segment in the path (design §4.4 H6). CSRF is exempted for

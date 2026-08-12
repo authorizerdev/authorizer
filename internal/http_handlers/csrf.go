@@ -50,6 +50,20 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt RFC 7591 dynamic client registration. The endpoint is
+		// unauthenticated by design (RFC 7591 §5: the server "SHOULD allow
+		// registration requests with no authorization"), so there is no ambient
+		// credential for a cross-site request to abuse — which is the only thing
+		// CSRF protection defends. The caller is a CLI or SDK making a
+		// programmatic POST with no Origin or Referer, so the generic check
+		// would reject every legitimate request and none of the illegitimate
+		// ones. Abuse is bounded by the per-IP rate limiter and the registry
+		// ceiling instead; see RegisterClientHandler.
+		if c.Request.URL.Path == "/oauth/register" {
+			c.Next()
+			return
+		}
+
 		// Exempt the inbound SCIM 2.0 surface. SCIM requests are machine-to-
 		// machine, authenticated by a per-org bearer token (never cookies), so
 		// CSRF does not apply — same rationale as /oauth/token above.
