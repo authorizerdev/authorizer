@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -31,6 +32,9 @@ import (
 // also wants anonymous registration should pre-register instead.
 const maxRegisteredClients = 1000
 
+// maxRedirectURIs bounds the list an anonymous caller can store in one row.
+const maxRedirectURIs = 10
+
 // maxClientNameLength bounds the self-asserted name that the consent screen
 // renders. Templates escape it, so this is about layout and log volume, not
 // injection.
@@ -40,15 +44,18 @@ const maxClientNameLength = 200
 // accepts. Unknown members are ignored, which §3.1 requires ("the authorization
 // server MUST ignore any client metadata sent by the client that it does not
 // understand").
+// Fields the client may send that are deliberately absent here — client_uri,
+// logo_uri, scope, contacts — are not merely unstored but unrendered: the
+// consent screen shows a name and a redirect host and nothing else, because
+// every one of those values is self-asserted and a logo is the most effective
+// way to impersonate a known product. Adding a field here means deciding where
+// it is displayed and what it would let a rogue client claim.
 type clientRegistrationRequest struct {
 	RedirectURIs            []string `json:"redirect_uris"`
 	ClientName              string   `json:"client_name"`
-	ClientURI               string   `json:"client_uri"`
-	LogoURI                 string   `json:"logo_uri"`
 	GrantTypes              []string `json:"grant_types"`
 	ResponseTypes           []string `json:"response_types"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
-	Scope                   string   `json:"scope"`
 }
 
 // RegisterClientHandler implements OAuth 2.0 Dynamic Client Registration
@@ -157,17 +164,6 @@ func (h *httpProvider) RegisterClientHandler() gin.HandlerFunc {
 			normalized = append(normalized, u)
 		}
 
-		// Comma is the storage encoding for the list (Client.ParsedRedirectURIs),
-		// so a URI containing one would be silently split into two registered
-		// URIs — a redirect-target injection. Commas are legal in a URI query, so
-		// this is a real input, not a theoretical one.
-		for _, u := range normalized {
-			if strings.Contains(u, ",") {
-				registrationError(gc, "invalid_redirect_uri", "redirect_uri must not contain a comma")
-				return
-			}
-		}
-
 		// Stock ceiling. Checked before the write and deliberately not atomic
 		// with it: two racing registrations can both pass at the boundary, which
 		// overshoots by the number of concurrent requests and not by more. A
@@ -244,9 +240,6 @@ func (h *httpProvider) RegisterClientHandler() gin.HandlerFunc {
 	}
 }
 
-// maxRedirectURIs bounds the list an anonymous caller can store in one row.
-const maxRedirectURIs = 10
-
 // registrationError writes an RFC 7591 §3.2.2 registration error response.
 func registrationError(gc *gin.Context, code, description string) {
 	gc.Header("Cache-Control", "no-store")
@@ -265,40 +258,44 @@ func registrationError(gc *gin.Context, code, description string) {
 // that gets past here still cannot be widened later.
 func validateRegistrationRedirectURI(raw string) error {
 	if raw == "" {
-		return errInvalidRedirect("redirect_uri must not be empty")
+		return errors.New("redirect_uri must not be empty")
+	}
+	// Comma is the storage encoding for the list (Client.ParsedRedirectURIs), so
+	// a URI containing one would be silently split into two registered redirect
+	// targets — a redirect-target injection. Commas are legal in a URI query, so
+	// this is a real input rather than a theoretical one. Checked before parsing
+	// because it is a property of the stored string, not of the URL.
+	if strings.Contains(raw, ",") {
+		return errors.New("redirect_uri must not contain a comma")
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		return errInvalidRedirect("redirect_uri is not a valid URI")
+		return errors.New("redirect_uri is not a valid URI")
 	}
 	if !u.IsAbs() {
-		return errInvalidRedirect("redirect_uri must be absolute")
+		return errors.New("redirect_uri must be absolute")
 	}
 	// RFC 6749 §3.1.2: the endpoint URI "MUST NOT include a fragment component".
 	if u.Fragment != "" || strings.Contains(raw, "#") {
-		return errInvalidRedirect("redirect_uri must not contain a fragment")
+		return errors.New("redirect_uri must not contain a fragment")
 	}
 	switch strings.ToLower(u.Scheme) {
 	case "https":
 		if u.Hostname() == "" {
-			return errInvalidRedirect("redirect_uri must have a host")
+			return errors.New("redirect_uri must have a host")
 		}
 		return nil
 	case "http":
 		// Loopback only. http://evil.example.com would otherwise be registrable
 		// and every code issued to it would cross the network in the clear.
 		if !isLoopbackHost(u.Hostname()) {
-			return errInvalidRedirect("an http redirect_uri is only allowed for loopback addresses; use https")
+			return errors.New("an http redirect_uri is only allowed for loopback addresses; use https")
 		}
 		return nil
 	default:
 		// Custom schemes (myapp://) are refused: this server cannot tell which
 		// application the OS will hand the code to, and an MCP client has no
 		// need for one.
-		return errInvalidRedirect("redirect_uri must use https, or http on a loopback address")
+		return errors.New("redirect_uri must use https, or http on a loopback address")
 	}
 }
-
-type errInvalidRedirect string
-
-func (e errInvalidRedirect) Error() string { return string(e) }
