@@ -17,11 +17,15 @@ package e2e
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,14 +56,22 @@ const (
 	fgaModelDSL = "model\n  schema 1.1\ntype user\ntype document\n  relations\n    define viewer: [user]"
 )
 
-// TestReleaseSmoke is the release gate: one scenario, four surfaces.
+// TestReleaseSmoke is the release gate: one scenario across every public
+// surface.
 //
 //  1. Build the binary and boot it (sqlite storage; FGA auto-derives onto the
 //     same sqlite file so the MCP subprocess can share it later).
 //  2. Seed via GraphQL: admin login, FGA model + tuple, user signup.
 //  3. Assert the same check_permissions / list_permissions decision on
 //     GraphQL, REST, and gRPC, plus REST fail-closed and validation paths.
-//  4. Stop the server and drive the `authorizer mcp` stdio subcommand through
+//  4. Run the OAuth 2.1 authorization-code + PKCE round trip — /authorize to
+//     /oauth/token to /userinfo, including code single-use. Everything else
+//     here authenticates with a token minted directly by signup, so without
+//     this the authorization endpoint, the code store, the PKCE comparison and
+//     the token endpoint could all break without a single failure.
+//  5. Provision a user over inbound SCIM 2.0, the one surface authenticated by
+//     a per-org bearer token rather than a session or the admin secret.
+//  6. Stop the server and drive the `authorizer mcp` stdio subcommand through
 //     a real MCP handshake with the minted bearer token.
 func TestReleaseSmoke(t *testing.T) {
 	bin := buildBinary(t)
@@ -250,6 +262,176 @@ func TestReleaseSmoke(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, res.AdminMeta)
 		assert.NotEmpty(t, res.AdminMeta.Roles)
+	})
+
+	// --- Surface 6: the OAuth 2.1 authorization code + PKCE round trip ----
+	// The flow every browser-based integration depends on, driven end to end
+	// against the booted binary: /authorize issues a code, /oauth/token
+	// exchanges it with the PKCE verifier, and the resulting access token is
+	// accepted at /userinfo.
+	//
+	// Worth a release gate of its own because everything else here authenticates
+	// with a token minted directly by signup — none of it would notice
+	// /authorize, the code store, the PKCE comparison or the token endpoint
+	// breaking. This is also the only place the flow runs with the real route
+	// table, real middleware (CSRF, CORS, rate limiting) and real cookies.
+	t.Run("oauth authorization code + PKCE", func(t *testing.T) {
+		verifier := "smoke-code-verifier-0123456789abcdefghijklmnop"
+		sum := sha256.Sum256([]byte(verifier))
+		challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+		redirectURI := baseURL + "/smoke-callback"
+
+		// Its OWN user and cookie jar, deliberately. /authorize rolls the
+		// session over on success, which invalidates the token minted at signup
+		// — so running this against the shared user would silently break every
+		// later subtest that still holds that token. It did exactly that to the
+		// MCP stdio case before this was split out.
+		oauthGQL := newGraphQLClient(t, baseURL)
+		const oauthEmail = "smoke-oauth@test.dev"
+		oauthSignup := oauthGQL.mutate(t, `mutation { signup(params:{email:"`+oauthEmail+`", password:"`+smokeUserPassword+`", confirm_password:"`+smokeUserPassword+`"}) { user { id } } }`)
+		oauthUserID := oauthSignup["signup"].(map[string]any)["user"].(map[string]any)["id"].(string)
+		require.NotEmpty(t, oauthUserID)
+
+		// The session cookie from that signup is what makes /authorize issue a
+		// code without a login round trip; it rides on that client's jar.
+		q := url.Values{}
+		q.Set("response_type", "code")
+		q.Set("client_id", smokeClientID)
+		q.Set("redirect_uri", redirectURI)
+		q.Set("scope", "openid profile email")
+		q.Set("state", "smoke-state")
+		q.Set("response_mode", "query")
+		q.Set("code_challenge", challenge)
+		q.Set("code_challenge_method", "S256")
+
+		req, err := http.NewRequest(http.MethodGet, baseURL+"/authorize?"+q.Encode(), nil)
+		require.NoError(t, err)
+		// Do NOT follow the redirect: its Location IS the result under test.
+		noRedirect := &http.Client{
+			Jar:           oauthGQL.client.Jar,
+			Timeout:       15 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		}
+		resp, err := noRedirect.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		body, _ := io.ReadAll(resp.Body)
+		require.Equal(t, http.StatusFound, resp.StatusCode, "authorize must redirect with a code: %s", body)
+
+		loc, err := url.Parse(resp.Header.Get("Location"))
+		require.NoError(t, err)
+		code := loc.Query().Get("code")
+		require.NotEmpty(t, code, "authorize must mint an authorization code")
+		assert.Equal(t, "smoke-state", loc.Query().Get("state"), "state must round-trip unmodified")
+
+		// Exchange. The smoke client is confidential, so it authenticates with
+		// its secret AND supplies the PKCE verifier.
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("code", code)
+		form.Set("redirect_uri", redirectURI)
+		form.Set("client_id", smokeClientID)
+		form.Set("client_secret", smokeClientSecret)
+		form.Set("code_verifier", verifier)
+
+		tokenResp, err := http.Post(baseURL+"/oauth/token",
+			"application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+		require.NoError(t, err)
+		defer func() { _ = tokenResp.Body.Close() }()
+		tokenBody, _ := io.ReadAll(tokenResp.Body)
+		require.Equal(t, http.StatusOK, tokenResp.StatusCode, "token exchange failed: %s", tokenBody)
+
+		var tokens struct {
+			AccessToken string `json:"access_token"`
+			IDToken     string `json:"id_token"`
+			TokenType   string `json:"token_type"`
+		}
+		require.NoError(t, json.Unmarshal(tokenBody, &tokens))
+		require.NotEmpty(t, tokens.AccessToken)
+		require.NotEmpty(t, tokens.IDToken, "an openid scope must yield an id_token")
+		assert.Equal(t, "Bearer", tokens.TokenType)
+
+		// A second exchange of the same code must fail: authorization codes are
+		// single-use (RFC 6749 §4.1.2), and a replay is the classic attack.
+		replay, err := http.Post(baseURL+"/oauth/token",
+			"application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+		require.NoError(t, err)
+		defer func() { _ = replay.Body.Close() }()
+		assert.NotEqual(t, http.StatusOK, replay.StatusCode, "an authorization code must not be redeemable twice")
+
+		// The token works where a real client would use it.
+		uiReq, err := http.NewRequest(http.MethodGet, baseURL+"/userinfo", nil)
+		require.NoError(t, err)
+		uiReq.Header.Set("Authorization", "Bearer "+tokens.AccessToken)
+		ui, err := http.DefaultClient.Do(uiReq)
+		require.NoError(t, err)
+		defer func() { _ = ui.Body.Close() }()
+		uiBody, _ := io.ReadAll(ui.Body)
+		require.Equal(t, http.StatusOK, ui.StatusCode, "userinfo rejected the freshly issued token: %s", uiBody)
+		var claims map[string]any
+		require.NoError(t, json.Unmarshal(uiBody, &claims))
+		assert.Equal(t, oauthUserID, claims["sub"], "userinfo must describe the user who authorized")
+	})
+
+	// --- Surface 7: inbound SCIM 2.0 -------------------------------------
+	// Provisioning is how enterprise customers create users, and it is the one
+	// surface authenticated by a per-org bearer token rather than a session or
+	// the admin secret — a route-group or middleware change can break it
+	// without touching anything else in this file.
+	t.Run("scim provisioning", func(t *testing.T) {
+		org := gql.mutate(t, `mutation { _create_organization(params:{name:"smoke-org", display_name:"Smoke Org"}) { id } }`)
+		orgID := org["_create_organization"].(map[string]any)["id"].(string)
+		require.NotEmpty(t, orgID)
+
+		created := gql.mutate(t, `mutation { _create_scim_endpoint(params:{org_id:"`+orgID+`"}) { token scim_endpoint { id enabled } } }`)
+		scimToken := created["_create_scim_endpoint"].(map[string]any)["token"].(string)
+		require.NotEmpty(t, scimToken, "the token is returned once at creation and never again")
+
+		scimReq := func(t *testing.T, method, path, bearer, payload string) (int, []byte) {
+			t.Helper()
+			var rdr io.Reader
+			if payload != "" {
+				rdr = strings.NewReader(payload)
+			}
+			req, err := http.NewRequest(method, baseURL+path, rdr)
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/scim+json")
+			if bearer != "" {
+				req.Header.Set("Authorization", "Bearer "+bearer)
+			}
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			b, _ := io.ReadAll(resp.Body)
+			return resp.StatusCode, b
+		}
+
+		// Fail closed first: an unauthenticated call must never provision.
+		status, _ := scimReq(t, http.MethodGet, "/scim/v2/Users", "", "")
+		assert.Equal(t, http.StatusUnauthorized, status, "SCIM must refuse an unauthenticated caller")
+
+		// Provision a user the way an IdP does.
+		scimEmail := "scim-smoke@test.dev"
+		payload := `{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],` +
+			`"userName":"` + scimEmail + `","active":true,` +
+			`"emails":[{"value":"` + scimEmail + `","primary":true}]}`
+		status, body := scimReq(t, http.MethodPost, "/scim/v2/Users", scimToken, payload)
+		require.Equal(t, http.StatusCreated, status, "SCIM create failed: %s", body)
+
+		var createdUser struct {
+			ID       string `json:"id"`
+			UserName string `json:"userName"`
+			Active   bool   `json:"active"`
+		}
+		require.NoError(t, json.Unmarshal(body, &createdUser))
+		require.NotEmpty(t, createdUser.ID)
+		assert.Equal(t, scimEmail, createdUser.UserName)
+		assert.True(t, createdUser.Active)
+
+		// And read it back through the same surface.
+		status, body = scimReq(t, http.MethodGet, "/scim/v2/Users/"+createdUser.ID, scimToken, "")
+		require.Equal(t, http.StatusOK, status, "SCIM get failed: %s", body)
+		assert.Contains(t, string(body), scimEmail)
 	})
 
 	// --- Surface 4: MCP over HTTP ----------------------------------------
