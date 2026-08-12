@@ -190,6 +190,79 @@ func TestDynamicClientRegistrationEndToEnd(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "code_challenge is required")
 	})
 
+	t.Run("a public client can refresh with client_id alone", func(t *testing.T) {
+		// Not hypothetical: Claude Code registers grant_types
+		// ["authorization_code","refresh_token"], so this path runs on every
+		// long-lived connection. RFC 6749 §6 has a public client refresh with its
+		// client_id and no secret, and the resource binding must survive the
+		// rotation — an earlier bug in this area dropped the RFC 8707 resource on
+		// refresh, which killed MCP connections at the first token rotation
+		// rather than at connect time.
+		q := authorizeQuery()
+		q.Set("scope", "openid offline_access")
+		q.Set("resource", "http://localhost:8099/mcp")
+		q.Set("state", "dcr-refresh")
+
+		// Consent first — a self-registered client always passes through it.
+		page, gErr := client.Get(srv.URL + "/authorize?" + q.Encode())
+		require.NoError(t, gErr)
+		defer func() { _ = page.Body.Close() }()
+		m := consentIDRe.FindStringSubmatch(readAll(t, page))
+		require.Len(t, m, 2)
+
+		approved, pErr := client.PostForm(srv.URL+"/authorize/consent",
+			url.Values{"consent_id": {m[1]}, "action": {"approve"}})
+		require.NoError(t, pErr)
+		defer func() { _ = approved.Body.Close() }()
+		resumed, rErr := client.Get(srv.URL + approved.Header.Get("Location"))
+		require.NoError(t, rErr)
+		defer func() { _ = resumed.Body.Close() }()
+		loc, lErr := url.Parse(resumed.Header.Get("Location"))
+		require.NoError(t, lErr)
+		authCode := loc.Query().Get("code")
+		require.NotEmpty(t, authCode, "body: %s", readAll(t, resumed))
+
+		exchange := url.Values{
+			"grant_type":    {"authorization_code"},
+			"code":          {authCode},
+			"redirect_uri":  {redirectURI},
+			"client_id":     {clientID},
+			"code_verifier": {dcrVerifier},
+			"resource":      {"http://localhost:8099/mcp"},
+		}
+		tr, tErr := http.Post(srv.URL+"/oauth/token",
+			"application/x-www-form-urlencoded", strings.NewReader(exchange.Encode()))
+		require.NoError(t, tErr)
+		defer func() { _ = tr.Body.Close() }()
+		var tok map[string]any
+		require.NoError(t, json.Unmarshal([]byte(readAll(t, tr)), &tok))
+		require.Equal(t, http.StatusOK, tr.StatusCode, "body: %v", tok)
+		refreshToken, _ := tok["refresh_token"].(string)
+		require.NotEmpty(t, refreshToken, "offline_access must yield a refresh token, or this test proves nothing")
+
+		// The refresh itself: client_id only, no secret.
+		refresh := url.Values{
+			"grant_type":    {"refresh_token"},
+			"refresh_token": {refreshToken},
+			"client_id":     {clientID},
+		}
+		rr, rfErr := http.Post(srv.URL+"/oauth/token",
+			"application/x-www-form-urlencoded", strings.NewReader(refresh.Encode()))
+		require.NoError(t, rfErr)
+		defer func() { _ = rr.Body.Close() }()
+		var rotated map[string]any
+		require.NoError(t, json.Unmarshal([]byte(readAll(t, rr)), &rotated))
+		require.Equal(t, http.StatusOK, rr.StatusCode,
+			"a public client must refresh with client_id alone: %v", rotated)
+
+		access, _ := rotated["access_token"].(string)
+		require.NotEmpty(t, access)
+		claims, cErr := ts.TokenProvider.ParseJWTToken(access)
+		require.NoError(t, cErr)
+		assert.Equal(t, "http://localhost:8099/mcp", claims["aud"],
+			"the rotated token must stay bound to the resource the user consented to")
+	})
+
 	t.Run("an implicit response type is refused", func(t *testing.T) {
 		// OAuth 2.1 removes the implicit grant and MCP mandates OAuth 2.1.
 		// Independently: implicit delivers a bearer token into the URL fragment
