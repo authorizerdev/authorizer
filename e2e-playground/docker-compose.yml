@@ -24,6 +24,12 @@ services:
       # Accept https client_ids that resolve to a Client ID Metadata Document,
       # so a client with no pre-registration can authenticate.
       - "--enable-client-id-metadata-document"
+      # RFC 7591 self-registration, for clients that predate CIMD. Both are on
+      # here so tests/dcr.spec.ts can prove they coexist: a client that supports
+      # CIMD selects it first (the MCP priority order is pre-registered → CIMD →
+      # DCR), so advertising the registration endpoint cannot downgrade one.
+      # Off by default in the product — it is an unauthenticated write endpoint.
+      - "--enable-dynamic-client-registration"
       - "--app-cookie-secure=false"
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"

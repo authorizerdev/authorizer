@@ -56,7 +56,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
-	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
@@ -172,83 +171,35 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			redirectURI = "/app"
 		} else {
 			hostname := parsers.GetHost(gc)
-			validRedirect := validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname)
-			// RFC 6749 §3.1.2.3 / OAuth 2.0 Security BCP (RFC 9700): once a
-			// client has registered exact redirect URIs, the presented
-			// redirect_uri MUST exact-match one of them — never a prefix or
-			// origin match. IsValidRedirectURI above only checks
-			// scheme+host+port against the global AllowedOrigins allowlist,
-			// which alone would let any path under an allowed host through
-			// (including a suffix appended to another client's callback);
-			// it remains the fallback for clients with no registered URIs.
-			// A Client ID Metadata Document client carries its redirect_uris in
-			// a document at its own client_id URL rather than in the registry,
-			// so resolve it here and validate against that list. Same matcher as
-			// registered clients, so RFC 8252 loopback rules apply identically.
-			//
-			// A resolution failure is fatal to the request rather than a silent
-			// fall-through to the AllowedOrigins fallback: falling through would
-			// let an unresolvable client_id inherit a laxer check than a resolved
-			// one, which is backwards.
-			if h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, h.Config.ClientID) {
-				doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
-				if dErr != nil {
-					log.Debug().Err(dErr).Str("client_id", clientID).Msg("could not resolve client metadata document")
-					gc.JSON(http.StatusBadRequest, gin.H{
-						"error":             "invalid_client",
-						"error_description": "could not resolve the client metadata document for this client_id",
-					})
-					return
-				}
-				validRedirect = false
-				for _, r := range doc.RedirectURIs {
-					if redirectURIMatches(r, redirectURI) {
-						validRedirect = true
-						break
-					}
-				}
-			} else {
-				client, cErr := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID)
-				// A storage error is NOT "no such client". Treating the two the
-				// same — which this branch used to do by testing `err == nil` and
-				// falling through — means a database blip silently downgrades the
-				// request to the laxer AllowedOrigins check AND leaves the client
-				// looking operator-registered, so a self-asserted client would
-				// skip consent. GetClientByClientID is the documented
-				// (nil, nil)-on-absent exception precisely so absent and
-				// unavailable stay distinguishable here.
-				if cErr != nil {
-					log.Warn().Err(cErr).Str("client_id", clientID).
-						Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
-					gc.JSON(http.StatusServiceUnavailable, gin.H{
-						"error":             "temporarily_unavailable",
-						"error_description": "could not verify the client; please retry",
-					})
-					return
-				}
-				// client == nil is the legacy path: no registry row, so the
-				// global AllowedOrigins allow-list computed above stands. That is
-				// what the deployment's own reserved client relies on.
-				if client != nil {
-					if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
-						validRedirect = false
-						for _, r := range registered {
-							if redirectURIMatches(r, redirectURI) {
-								validRedirect = true
-								break
-							}
-						}
-					}
-					// A client that registered ITSELF through RFC 7591 is
-					// remembered here so the consent gate further down does not
-					// have to repeat the lookup. Operator-created clients are
-					// left false: they were vouched for by a human who entered
-					// their redirect URIs, which is the whole basis for not
-					// interrupting their users.
-					selfRegistered = constants.IsSelfRegistered(client.Kind)
-				}
+			// Shared with /app, which re-renders this same redirect_uri on the
+			// login page. Both must apply the identical rule; when they did not,
+			// a client whose registered redirect was outside AllowedOrigins
+			// passed here and was refused there.
+			check, cErr := h.checkClientRedirectURI(gc.Request.Context(), clientID, redirectURI, hostname)
+			switch {
+			case errors.Is(cErr, errClientUnresolvable):
+				log.Debug().Err(cErr).Str("client_id", clientID).Msg("could not resolve client metadata document")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_client",
+					"error_description": "could not resolve the client metadata document for this client_id",
+				})
+				return
+			case cErr != nil:
+				log.Warn().Err(cErr).Str("client_id", clientID).
+					Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "could not verify the client; please retry",
+				})
+				return
 			}
-			if !validRedirect {
+			// A client that registered ITSELF through RFC 7591 is remembered so
+			// the consent gate and PKCE check further down do not repeat the
+			// lookup. Operator-created clients are left false: they were vouched
+			// for by a human who entered their redirect URIs, which is the whole
+			// basis for not interrupting their users.
+			selfRegistered = check.SelfRegistered
+			if !check.Valid {
 				log.Debug().Msg("Invalid redirect URI")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_request",
