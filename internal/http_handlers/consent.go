@@ -365,7 +365,18 @@ func setConsentCSP(gc *gin.Context, redirectURI string) {
 	formAction := "'self'"
 	// A relative redirect (the "/app" default, reachable when a metadata-document
 	// client omits redirect_uri) has no origin to add and needs none.
-	if u, err := url.Parse(redirectURI); err == nil && u.Scheme != "" && u.Host != "" {
+	//
+	// The host is checked before it is embedded. url.Parse rejects spaces and
+	// control characters in a host, but it ACCEPTS ";" — and ";" separates CSP
+	// directives, so a client registering https://evil.com;x/cb would terminate
+	// this directive and start another. Nothing exploitable follows from it (a
+	// directive needs a space before its values, and form-action is last here),
+	// but a value the client chose does not belong in a security header
+	// unexamined. A host that fails this is not a real host; the origin is
+	// dropped rather than the request refused, because this function's job is to
+	// write a header, not to adjudicate the redirect — which redirectURIMatches
+	// already did.
+	if u, err := url.Parse(redirectURI); err == nil && u.Scheme != "" && isCSPSafeHost(u.Host) {
 		formAction += " " + u.Scheme + "://" + u.Host
 	}
 	gc.Writer.Header().Set("Content-Security-Policy",
@@ -382,4 +393,26 @@ func setConsentCSP(gc *gin.Context, redirectURI string) {
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
 			"form-action "+formAction+";")
+}
+
+// isCSPSafeHost reports whether host consists only of characters that can
+// legitimately appear in an authority and carry no meaning in a CSP policy.
+//
+// Deliberately an allow-list. A deny-list of ";" alone would pass whatever the
+// next CSP revision makes significant, and the set of legal host characters is
+// far smaller and far more stable than the set of dangerous ones. Brackets and
+// the colon are permitted for IPv6 literals and ports.
+func isCSPSafeHost(host string) bool {
+	if host == "" {
+		return false
+	}
+	for _, r := range host {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+		case r == '.', r == '-', r == ':', r == '[', r == ']':
+		default:
+			return false
+		}
+	}
+	return true
 }

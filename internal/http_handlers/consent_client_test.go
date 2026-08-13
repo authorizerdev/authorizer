@@ -65,3 +65,30 @@ func TestValidateRegistrationRedirectURI(t *testing.T) {
 		})
 	}
 }
+
+// TestIsCSPSafeHost guards the one place a client-chosen value reaches a
+// security header. url.Parse rejects spaces and control characters in a host
+// but accepts ";", which separates CSP directives — so a registered
+// https://evil.com;x/cb would otherwise terminate form-action and open a new
+// directive.
+func TestIsCSPSafeHost(t *testing.T) {
+	for _, tc := range []struct {
+		host string
+		ok   bool
+		why  string
+	}{
+		{"app.example.com", true, "ordinary host"},
+		{"127.0.0.1:5599", true, "loopback with a port"},
+		{"[::1]:3000", true, "IPv6 literal with a port"},
+		{"sub-domain.example.com", true, "hyphens are legal in hostnames"},
+		{"evil.com;x", false, "semicolon starts a new CSP directive"},
+		{"evil.com,other.com", false, "comma separates policies"},
+		{"evil.com'", false, "quote could close a source expression"},
+		{"evil.com *", false, "a space would let a value be injected"},
+		{"", false, "nothing to allow"},
+	} {
+		t.Run(tc.host, func(t *testing.T) {
+			assert.Equal(t, tc.ok, isCSPSafeHost(tc.host), tc.why)
+		})
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -117,8 +118,12 @@ func (h *httpProvider) RegisterClientHandler() gin.HandlerFunc {
 		if len(grantTypes) == 0 {
 			grantTypes = []string{constants.GrantTypeAuthorizationCode}
 		}
-		for _, gt := range grantTypes {
-			switch strings.TrimSpace(gt) {
+		// Normalised in place: the value that is VALIDATED must be the value that
+		// is STORED, or a padded " authorization_code" passes here and is
+		// persisted with the space, ready to fail a later exact comparison.
+		for i, gt := range grantTypes {
+			grantTypes[i] = strings.TrimSpace(gt)
+			switch grantTypes[i] {
 			case constants.GrantTypeAuthorizationCode, constants.GrantTypeRefreshToken:
 			default:
 				log.Debug().Str("grant_type", gt).Msg("registration refused: unsupported grant type")
@@ -190,8 +195,13 @@ func (h *httpProvider) RegisterClientHandler() gin.HandlerFunc {
 		if clientName == "" {
 			clientName = "Unnamed client"
 		}
-		if len(clientName) > maxClientNameLength {
-			clientName = clientName[:maxClientNameLength]
+		// Truncated on a RUNE boundary, not a byte one. Slicing bytes can split a
+		// multi-byte character and leave invalid UTF-8, which SQLite stores
+		// happily and Postgres rejects outright ("invalid byte sequence for
+		// encoding UTF8") — a registration that works on one backend and 500s on
+		// another, from a name an anonymous caller chose.
+		if utf8.RuneCountInString(clientName) > maxClientNameLength {
+			clientName = string([]rune(clientName)[:maxClientNameLength])
 		}
 
 		// The client_id is a server-generated opaque UUID, never anything the
