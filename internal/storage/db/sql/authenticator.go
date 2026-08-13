@@ -46,6 +46,23 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
+// row still holds oldCodes. The WHERE clause and the SET are one statement, so
+// the row lock the UPDATE takes decides the race: RowsAffected is 1 for the
+// caller that wrote and 0 for everyone whose expected blob was already stale.
+func (p *provider) ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error) {
+	res := p.db.WithContext(ctx).Model(&schemas.Authenticator{}).
+		Where("id = ?", id).Where("recovery_codes = ?", oldCodes).
+		Updates(map[string]any{
+			"recovery_codes": newCodes,
+			"updated_at":     time.Now().Unix(),
+		})
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected == 1, nil
+}
+
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators schemas.Authenticator
 	result := p.db.WithContext(ctx).Where("user_id = ?", userId).Where("method = ?", authenticatorType).First(&authenticators)

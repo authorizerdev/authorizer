@@ -28,6 +28,19 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
+// row still holds oldCodes, and reports whether THIS call performed the write.
+//
+// Implement it with ONE conditional statement — a WHERE/filter on the expected
+// blob combined with the write, or the backend's compare-and-swap. Never read
+// the row, compare in Go, and then write unconditionally: that is the bug this
+// method exists to remove, and it lets a single TOTP recovery code be redeemed
+// by any number of concurrent requests. A refused write is (false, nil), not an
+// error.
+func (p *provider) ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error) {
+	return false, nil
+}
+
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators *schemas.Authenticator
 	return authenticators, nil

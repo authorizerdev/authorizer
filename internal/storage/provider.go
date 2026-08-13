@@ -161,6 +161,32 @@ type Provider interface {
 	// UpdateAuthenticator updates an existing authenticator document in the database.
 	// The updated document is returned, or an error if the operation fails.
 	UpdateAuthenticator(ctx context.Context, totp *schemas.Authenticator) (*schemas.Authenticator, error)
+	// ConsumeAuthenticatorRecoveryCode replaces the recovery-code blob of the
+	// authenticator row with the given ID, but only while the row still holds
+	// oldCodes. The bool reports whether THIS call performed the write, and it
+	// MUST be decided by a single atomic database operation — never by a
+	// separate read followed by an unconditional update.
+	//
+	// This is the single-use primitive behind TOTP recovery codes. The caller
+	// reads the blob, marks one code consumed, and offers the before/after pair
+	// here; if anything changed the blob in between, the write is refused and
+	// the caller re-reads. A read-then-write implementation lets two concurrent
+	// redemptions of the SAME recovery code both observe it unconsumed and both
+	// succeed, so one code authenticates any number of times — which is the
+	// whole property a recovery code is supposed to have.
+	//
+	// oldCodes MUST be the exact string read from the row, byte for byte, never
+	// a re-marshalled map: re-encoding can reorder keys or change spacing and
+	// then the comparison matches nothing and every redemption fails.
+	//
+	// A refused write is not an error — it returns (false, nil), and that
+	// includes the case where the row no longer exists.
+	//
+	// FAULT TOLERANCE: on error the bool is always false. Callers MUST check the
+	// error first and treat it as "claim outcome unknown", never as "not
+	// consumed" — reporting a database outage as an invalid recovery code
+	// burns the user's credential for nothing.
+	ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error)
 	// GetAuthenticatorDetailsByUserId retrieves details of an authenticator document based on user ID and authenticator type.
 	// If found, the authenticator document is returned, or an error if not found or an error occurs during the retrieval.
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error)

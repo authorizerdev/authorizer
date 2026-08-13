@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
@@ -128,5 +130,98 @@ func TestTOTPRecoveryCodesAtRest(t *testing.T) {
 		ok, err = ts.AuthenticatorProvider.ValidateRecoveryCode(ctx, legacyCode, user.ID)
 		require.NoError(t, err)
 		assert.False(t, ok, "consumed legacy recovery code must not validate again")
+	})
+
+	// "Exactly once" has to hold under concurrency, not just in sequence. The
+	// original implementation read the blob, decided in Go, and wrote it back
+	// unconditionally, so racing redemptions of one code all saw it unconsumed
+	// and all returned true — measured here at 3 of 8 before the fix. That
+	// turns a single leaked recovery code into an unlimited supply of logins,
+	// which is the one thing a recovery code must not be.
+	t.Run("one recovery code redeemed concurrently succeeds exactly once", func(t *testing.T) {
+		const racers = 8
+		for round := 0; round < 25; round++ {
+			user := mkUser(t)
+			authConfig, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
+			require.NoError(t, err)
+			code := authConfig.RecoveryCodes[0]
+
+			var start sync.WaitGroup
+			var done sync.WaitGroup
+			var accepted atomic.Int32
+			start.Add(1)
+			for i := 0; i < racers; i++ {
+				done.Add(1)
+				go func() {
+					defer done.Done()
+					start.Wait()
+					ok, err := ts.AuthenticatorProvider.ValidateRecoveryCode(ctx, code, user.ID)
+					assert.NoError(t, err, "a lost race is a rejection, never a fault")
+					if ok {
+						accepted.Add(1)
+					}
+				}()
+			}
+			start.Done()
+			done.Wait()
+
+			require.Equal(t, int32(1), accepted.Load(),
+				"round %d: exactly one concurrent redemption of a single recovery code may succeed", round)
+		}
+	})
+
+	// Racing redemptions of DIFFERENT codes must both land. The blob is one
+	// column, so a compare-and-swap that simply gave up would silently drop the
+	// loser's code back to unconsumed — trading a double-spend for a lost
+	// write. The retry re-reads and re-applies instead.
+	t.Run("two different recovery codes redeemed concurrently both succeed", func(t *testing.T) {
+		for round := 0; round < 25; round++ {
+			user := mkUser(t)
+			authConfig, err := ts.AuthenticatorProvider.Generate(ctx, user.ID)
+			require.NoError(t, err)
+
+			var start sync.WaitGroup
+			var done sync.WaitGroup
+			var accepted atomic.Int32
+			start.Add(1)
+			for i := 0; i < 2; i++ {
+				code := authConfig.RecoveryCodes[i]
+				done.Add(1)
+				go func() {
+					defer done.Done()
+					start.Wait()
+					ok, err := ts.AuthenticatorProvider.ValidateRecoveryCode(ctx, code, user.ID)
+					assert.NoError(t, err)
+					if ok {
+						accepted.Add(1)
+					}
+				}()
+			}
+			start.Done()
+			done.Wait()
+
+			require.Equal(t, int32(2), accepted.Load(),
+				"round %d: distinct recovery codes must not invalidate each other", round)
+
+			// Both are spent, and the other eight are untouched.
+			row, err := ts.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+			require.NoError(t, err)
+			storedMap := map[string]bool{}
+			require.NoError(t, json.Unmarshal([]byte(refs.StringValue(row.RecoveryCodes)), &storedMap))
+			require.Len(t, storedMap, 10, "no code may be lost by a concurrent write")
+			spent := 0
+			for _, consumed := range storedMap {
+				if consumed {
+					spent++
+				}
+			}
+			assert.Equal(t, 2, spent, "round %d: exactly the two redeemed codes are marked consumed", round)
+
+			// And neither of the remaining codes was collaterally burned.
+			for _, code := range authConfig.RecoveryCodes[2:] {
+				assert.False(t, storedMap[crypto.HashRecoveryCode(code)],
+					"an unredeemed code must still be spendable")
+			}
+		}
 	})
 }
