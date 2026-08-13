@@ -46,6 +46,10 @@ func TestReleaseSmokeOrgAdmin(t *testing.T) {
 
 	startServer(t, bin, []string{
 		"--database-type=sqlite", "--database-url=" + dbPath,
+		// Required since 2.4.0-rc.20: the binary refuses to start without a
+		// canonical URL, because deriving it from request headers is what makes
+		// password-reset links forgeable (CWE-640).
+		"--url=" + baseURL,
 		"--jwt-type=HS256", "--jwt-secret=" + smokeJWTSecret,
 		"--admin-secret=" + smokeAdminSecret,
 		"--client-id=" + smokeClientID, "--client-secret=" + smokeClientSecret,

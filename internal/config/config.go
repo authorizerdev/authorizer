@@ -21,7 +21,30 @@ type Config struct {
 	OrganizationName string
 	// AdminSecret is the secret for the admin
 	AdminSecret string
-	// AllowedOrigins is the list of allowed origins
+	// AllowedOrigins is the list of origins this server is willing to send a
+	// user (and their tokens) BACK to, and which browser origins may call it
+	// cross-site. It gates redirect_uri on /authorize, password-reset and
+	// magic-link redirects, and CORS.
+	//
+	// Not to be confused with AuthorizerURL, which they are routinely mixed up
+	// with. The two answer different questions and neither substitutes for the
+	// other:
+	//
+	//	--url             what THIS server calls itself. One value, required.
+	//	                  Used for the links it emails, its `iss` claim and its
+	//	                  OIDC discovery document. Inbound identity.
+	//	--allowed-origins where it may send users and tokens. A list, wildcards
+	//	                  allowed. Outbound destinations.
+	//
+	// Typically --url is the Authorizer deployment (https://auth.example.com)
+	// and --allowed-origins are the applications (https://app.example.com).
+	// They usually differ; adding your app here does NOT satisfy --url, and
+	// setting --url does NOT let you omit this.
+	//
+	// One real interaction: when this list is empty or exactly ["*"],
+	// IsValidRedirectURI does not accept arbitrary destinations — it restricts
+	// redirects to the server's OWN host, which is derived from AuthorizerURL.
+	// So --url also decides where the wildcard default is allowed to redirect.
 	AllowedOrigins []string
 
 	// EnableLoginPage is the flag to enable login page
@@ -259,10 +282,17 @@ type Config struct {
 	// reset / magic-link email URLs, the JWT `iss` claim, and the OIDC
 	// discovery/JWKS document URLs — and ALL request headers
 	// (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored for that purpose.
-	// Leaving it empty preserves the legacy header-based derivation for
-	// reverse-proxy / multi-tenant setups, but that is exactly what exposes the
-	// host-header-injection account-takeover class (CWE-640); operators SHOULD
-	// set --url in production.
+	//
+	// REQUIRED. Startup refuses an empty or unusable value
+	// (cmd.validateAuthorizerURL). It was optional up to 2.4.0-rc.19, and
+	// leaving it empty fell back to header-based derivation — which is the
+	// host-header-injection account-takeover class (CWE-640): an attacker sends
+	// a forgot-password request with their own Host and the victim receives a
+	// genuine reset link pointing at the attacker's domain.
+	//
+	// The header-derived fallback in parsers.GetHostFromRequest still exists for
+	// library embedders and tests, so it must stay correct — but no configuration
+	// of the shipped binary can reach it.
 	AuthorizerURL string
 	// ResetPasswordURL is the URL for reset password
 	ResetPasswordURL string

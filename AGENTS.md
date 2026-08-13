@@ -195,6 +195,39 @@ Do **not** apply this mechanically to auth paths. Turning a lookup failure into 
 
 Detailed rules load via skills (see below) — don't restate them here.
 
+## Security Advisory Triage
+
+`SECURITY.md` promises a triage decision within 7 days. That promise was broken once,
+badly: twelve advisories sat in `triage` from April to August 2026, **four of which
+described live, exploitable vulnerabilities** — including token theft that had been
+reported twice and flagged as an incomplete fix of an already-published CVE. Nineteen
+release candidates shipped with it.
+
+The cost of triage is low; the cost of skipping it was that. Working the queue:
+
+```bash
+gh api --paginate /repos/authorizerdev/authorizer/security-advisories \
+  --jq '.[]|select(.state=="triage")|"\(.ghsa_id) \(.severity) \(.summary)"'
+```
+
+For each report, **write a probe before forming an opinion.** A ten-line `_test.go`
+against current `main` settles almost every one, and a reported vulnerability is not
+fixed until a test fails without the fix. Then:
+
+- **Confirmed** → fix it, ship the failing-test-turned-regression-test with the patch,
+  and only publish the advisory once a release actually contains the fix. An advisory
+  naming an unreleased commit tells people they are vulnerable with nowhere to go.
+- **Invalid** → close it with a written reason and keep the original report under a
+  `<details>` fold. Say what would change your mind.
+- Confirm the reporter's affected/patched range yourself with `git log -S <symbol>` and
+  `git tag --contains`. Submitted ranges are frequently wrong — three of the six
+  published on 2026-08-13 had a stale or missing patched version.
+
+**Fix a live, high-severity, unpatched issue in a private fork** (GitHub creates one
+from the draft advisory), not a public PR. A public fix PR discloses the bug the moment
+it is pushed, which is fine for already-public or low-severity issues and wrong for the
+rest.
+
 ## AI Agents
 
 | Agent | Model | Focus |

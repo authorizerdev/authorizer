@@ -427,6 +427,11 @@ func runRoot(c *cobra.Command, args []string) {
 		}
 	}
 
+	if err := validateAuthorizerURL(&rootArgs.config); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
 	if err := validateMCPConfig(&rootArgs.config); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -854,6 +859,52 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Application failed")
 	}
 	log.Info().Msg("Application terminated")
+}
+
+// validateAuthorizerURL refuses to start without a usable canonical base URL.
+//
+// Without --url, every self-referential URL this server emits — the password
+// reset link, the email verification link, the magic link, the JWT `iss` claim,
+// the OIDC discovery and JWKS URLs — is derived from REQUEST HEADERS
+// (X-Authorizer-URL, then X-Forwarded-Host, then Host). An unauthenticated
+// attacker can therefore send a forgot-password request carrying their own
+// Host, and the victim receives a genuine reset link pointing at the attacker's
+// domain. When the victim clicks it the token is handed over, and because the
+// token's `iss` is validated against that same header-derived host, the
+// attacker redeems it by replaying the same spoofed Host. Full account takeover,
+// no prior access, no mailbox compromise (CWE-640).
+//
+// Making --url mandatory is the only fix that closes the class. Validating the
+// derived host against the origin allowlist would help only deployments that
+// configured an explicit list, and would do nothing on the default "*" — which
+// is the configuration the attack targets.
+//
+// This costs no supported capability. Setting --url ALREADY collapses an
+// instance to a single canonical host (GetHostFromRequest returns it and ignores
+// every header), so multi-host operation only ever worked on the vulnerable
+// path. Verified org domains are email-domain-to-organization routing for home
+// realm discovery, not HTTP virtual hosting, and are unaffected.
+//
+// An unusable value is rejected, not just an empty one: SetTrustedURL treats
+// anything sanitizeAuthorizerURL cannot normalize as UNSET and falls back to
+// headers, so "--url=auth.example.com" or "--url=https://user:pw@host" would
+// otherwise start in the vulnerable configuration while looking configured.
+func validateAuthorizerURL(cfg *config.Config) error {
+	if strings.TrimSpace(cfg.AuthorizerURL) == "" {
+		return fmt.Errorf("--url is required (e.g. --url=https://auth.example.com)\n\n" +
+			"  Why: without it the password-reset, email-verification and magic-link URLs, and the\n" +
+			"  JWT `iss` claim, are derived from request headers — so an attacker can have a victim\n" +
+			"  emailed a genuine reset link pointing at a domain the attacker controls.\n\n" +
+			"  Note --url is NOT --allowed-origins; you need both:\n" +
+			"    --url             this server's own address, e.g. https://auth.example.com\n" +
+			"    --allowed-origins your apps this server may redirect to, e.g. https://app.example.com")
+	}
+	if parsers.SanitizeAuthorizerURL(cfg.AuthorizerURL) == "" {
+		return fmt.Errorf("--url=%q is not a usable canonical URL: it must be an absolute http(s) URL "+
+			"with a host and no user info (e.g. https://auth.example.com). An unusable value is "+
+			"treated as unset, which silently restores header-derived URLs", cfg.AuthorizerURL)
+	}
+	return nil
 }
 
 // validateMCPConfig refuses a configuration that would enable MCP without a

@@ -21,9 +21,13 @@ func GetHost(c *gin.Context) string {
 // accepts a connection, so no lock is needed: the write happens-before every
 // concurrent read. When set, ALL request headers are ignored for host
 // derivation, closing the host-header-injection account-takeover class
-// (CWE-640). When empty (default) the legacy header-based derivation below is
-// used, preserving reverse-proxy / multi-tenant deployments — operators SHOULD
-// set --url; omitting it is what leaves this attack surface open.
+// (CWE-640).
+//
+// As of 2.4.0-rc.20 the shipped binary REFUSES TO START without a usable --url
+// (cmd.validateAuthorizerURL), so this is always set in a real deployment. The
+// header-derived fallback below survives only for library embedders and tests,
+// which construct a Config directly instead of going through cobra — it must
+// stay correct, but no configuration of the binary can reach it.
 // ponytail: set-once-at-startup global; a mutex/atomic would only matter if we
 // ever reconfigured this at runtime, which we don't.
 var trustedURL string
@@ -85,8 +89,20 @@ func GetHostFromRequest(r *http.Request) string {
 	return scheme + "://" + host
 }
 
-// sanitizeAuthorizerURL validates and sanitizes the X-Authorizer-URL header.
-// Returns empty string if the URL is invalid or contains suspicious components.
+// SanitizeAuthorizerURL normalizes an operator-supplied canonical URL to
+// scheme+host, returning "" when the value is unusable.
+//
+// Exported so startup can refuse an unusable --url: SetTrustedURL treats an
+// unusable value as UNSET and silently falls back to header-derived hosts, so
+// "--url=auth.example.com" (no scheme) would look configured while leaving the
+// deployment on exactly the path --url exists to close.
+func SanitizeAuthorizerURL(raw string) string {
+	return sanitizeAuthorizerURL(strings.TrimSpace(raw))
+}
+
+// sanitizeAuthorizerURL validates and sanitizes a candidate authorizer URL
+// (the --url value, or the X-Authorizer-URL header). Returns empty string if the
+// URL is invalid or contains suspicious components.
 func sanitizeAuthorizerURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil {
