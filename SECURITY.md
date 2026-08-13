@@ -28,6 +28,15 @@ If GitHub Security Advisories is unavailable, email **lakhan.m.samani@gmail.com*
 | Fix released for accepted critical/high-severity issues | within **30 days** of triage |
 | Public disclosure | coordinated with reporter, typically **90 days** after report or sooner if fix is released |
 
+Every report reaches one of three outcomes, and none of them is silence:
+
+- **Confirmed** — we reproduce it with a failing test before writing a fix, and the test ships with the patch.
+- **Not accepted** — we close the advisory with a written explanation of *why*, and your original report is preserved in full. If our reasoning is wrong, reopen it or file a new advisory; we would rather re-examine a close than miss a real issue.
+- **Needs info** — we tell you exactly what would let us reproduce it.
+
+A report we cannot reproduce is not the same as a report we think is wrong, and we will say which one we mean.
+
+
 We follow [Coordinated Vulnerability Disclosure](https://en.wikipedia.org/wiki/Coordinated_vulnerability_disclosure). We will:
 
 - Confirm receipt of your report.
