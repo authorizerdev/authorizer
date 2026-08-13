@@ -132,6 +132,27 @@ func TestDynamicClientRegistrationEndToEnd(t *testing.T) {
 			"the page must show the redirect host — the only verified fact about a self-asserted client")
 		assert.Contains(t, page, "runs on your own computer",
 			"a loopback-only client must carry the impersonation warning")
+
+		// The page's CSP must permit the form submission to end at the client's
+		// redirect_uri. This is not a hardening nicety — it is what makes the
+		// button work at all.
+		//
+		// Approving POSTs to /authorize/consent, which redirects to /authorize,
+		// which redirects to the client's redirect_uri. A browser enforces
+		// form-action across that WHOLE redirect chain, so the default
+		// `form-action 'self'` aborts the navigation at the last hop: the user
+		// stays on the consent page, assumes the click missed, clicks again, and
+		// the second POST fails with "expired or already used" because the first
+		// one already consumed the consent. That is precisely what a real user
+		// hit, and no test caught it because every automated check either drove
+		// the redirects itself or asserted the Location header instead of
+		// letting a browser follow it.
+		csp := resp.Header.Get("Content-Security-Policy")
+		require.NotEmpty(t, csp, "the consent page must still carry a CSP")
+		assert.Contains(t, csp, "http://127.0.0.1:5599",
+			"form-action must allow the redirect_uri being approved, or the browser blocks the redirect after approval")
+		assert.NotContains(t, csp, "form-action 'self';",
+			"form-action 'self' alone silently breaks approval for any off-origin redirect_uri")
 	})
 
 	t.Run("approving issues a code redeemable with PKCE and no secret", func(t *testing.T) {

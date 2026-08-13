@@ -145,6 +145,29 @@ func (h *httpProvider) renderConsent(gc *gin.Context, client consentClient, redi
 		redirectHost = u.Host
 	}
 
+	// The consent form's submission legitimately ends at the client's
+	// redirect_uri, so the CSP must permit that destination — otherwise the
+	// button does nothing.
+	//
+	// A browser enforces `form-action` across the ENTIRE redirect chain of a
+	// form submission, not just its immediate target. Approving POSTs to
+	// /authorize/consent → 302 /authorize → 302 the client's redirect_uri, so
+	// the default `form-action 'self'` aborts the navigation at the last hop.
+	// The user is left staring at the consent page with no error, assumes the
+	// click missed, clicks again — and the second POST fails with "expired or
+	// already used", because the first one already consumed the consent.
+	//
+	// This server already hit the same rule twice: setFormPostCSP relaxes
+	// form-action for OIDC form_post, and samlIDPSSOCSP omits it because
+	// "form-action 'self' would silently break every SAML IdP login". The
+	// consent page is the third instance of the same shape.
+	//
+	// Scoped to the ONE origin being approved rather than the `form-action *`
+	// that form_post uses: the redirect_uri has already been validated against
+	// this client's registered list, so the exact destination is known here and
+	// nothing wider needs allowing.
+	setConsentCSP(gc, redirectURI)
+
 	metrics.RecordSecurityEvent("cimd_consent_shown", "authorize")
 	// The page carries a single-use consent_id and names the signed-in user, so
 	// it must not sit in a shared or back-button cache: a cached copy would show
@@ -304,3 +327,31 @@ func originalParams(gc *gin.Context) url.Values {
 }
 
 func consentKey(id string) string { return "cimd_consent:" + id }
+
+// setConsentCSP writes the consent page's Content-Security-Policy, widening
+// form-action to include the redirect_uri's origin and nothing else.
+//
+// It mirrors the default policy (internal/http_handlers/security_headers.go)
+// rather than deriving from it, for the same reason setFormPostCSP does: the
+// header is replaced wholesale, so it has to be complete. Keep the two in step.
+//
+// The origin is appended, never substituted — 'self' must stay, because the
+// form posts to /authorize/consent on this origin before it redirects anywhere.
+func setConsentCSP(gc *gin.Context, redirectURI string) {
+	formAction := "'self'"
+	// A relative redirect (the "/app" default, reachable when a metadata-document
+	// client omits redirect_uri) has no origin to add and needs none.
+	if u, err := url.Parse(redirectURI); err == nil && u.Scheme != "" && u.Host != "" {
+		formAction += " " + u.Scheme + "://" + u.Host
+	}
+	gc.Writer.Header().Set("Content-Security-Policy",
+		"default-src 'self'; "+
+			"script-src 'self'; "+
+			"style-src 'self' 'unsafe-inline'; "+
+			"img-src 'self' data:; "+
+			"font-src 'self' data:; "+
+			"connect-src 'self'; "+
+			"frame-ancestors 'none'; "+
+			"base-uri 'self'; "+
+			"form-action "+formAction+";")
+}
