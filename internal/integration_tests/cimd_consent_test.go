@@ -43,7 +43,13 @@ func TestCIMDConsentFlow(t *testing.T) {
 	router := gin.New()
 	// Only the consent template: LoadHTMLGlob would also parse app.tmpl, which
 	// uses the `json` FuncMap the real router registers and this one does not.
-	router.LoadHTMLFiles("../../web/templates/consent.tmpl")
+	router.LoadHTMLFiles(
+		"../../web/templates/consent.tmpl",
+		"../../web/templates/consent_error.tmpl",
+		// The shared shell defines au_styles/au_brand; without it the pages
+		// render EMPTY rather than failing loudly.
+		"../../web/templates/au_shell.tmpl",
+	)
 	router.GET("/authorize", ts.HttpProvider.AuthorizeHandler())
 	router.POST("/authorize/consent", ts.HttpProvider.ConsentHandler())
 
@@ -92,7 +98,13 @@ func TestConsentHandlerSecurityProperties(t *testing.T) {
 	ts := initTestSetup(t, cfg)
 
 	router := gin.New()
-	router.LoadHTMLFiles("../../web/templates/consent.tmpl")
+	router.LoadHTMLFiles(
+		"../../web/templates/consent.tmpl",
+		"../../web/templates/consent_error.tmpl",
+		// The shared shell defines au_styles/au_brand; without it the pages
+		// render EMPTY rather than failing loudly.
+		"../../web/templates/au_shell.tmpl",
+	)
 	router.POST("/authorize/consent", ts.HttpProvider.ConsentHandler())
 
 	post := func(form url.Values, sessionToken string) *httptest.ResponseRecorder {
@@ -116,7 +128,10 @@ func TestConsentHandlerSecurityProperties(t *testing.T) {
 		f := url.Values{"consent_id": {uuid.NewString()}, "action": {"approve"}}
 		w := post(f, "")
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "expired or was already used")
+		// Asserted on the text a PERSON sees: this endpoint is only ever reached
+		// by a browser submitting a form this server rendered, so the response is
+		// a page, not a machine-readable error body.
+		assert.Contains(t, w.Body.String(), "already been used")
 	})
 
 	t.Run("a consent is single-use", func(t *testing.T) {
@@ -134,7 +149,7 @@ func TestConsentHandlerSecurityProperties(t *testing.T) {
 
 		second := post(url.Values{"consent_id": {id}, "action": {"approve"}}, "")
 		require.Equal(t, http.StatusBadRequest, second.Code)
-		assert.Contains(t, second.Body.String(), "expired or was already used",
+		assert.Contains(t, second.Body.String(), "already been used",
 			"the pending consent must be consumed on first use, whatever the outcome")
 	})
 
@@ -149,6 +164,9 @@ func TestConsentHandlerSecurityProperties(t *testing.T) {
 
 		w := post(url.Values{"consent_id": {id}, "action": {"approve"}}, otherSession)
 		require.Equal(t, http.StatusUnauthorized, w.Code)
-		assert.Contains(t, w.Body.String(), "access_denied")
+		assert.Contains(t, w.Body.String(), "sign in again",
+			"the refusal must be legible to the person in front of the screen")
+		assert.NotContains(t, w.Body.String(), "a-different-user",
+			"the page must not disclose whose consent it was")
 	})
 }

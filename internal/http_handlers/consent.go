@@ -125,18 +125,18 @@ func (h *httpProvider) renderConsent(gc *gin.Context, client consentClient, redi
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to encode pending consent")
-		gc.JSON(http.StatusInternalServerError, gin.H{
-			"error":             "server_error",
-			"error_description": "could not start the consent flow",
-		})
+		h.consentError(gc, http.StatusInternalServerError,
+			"Something went wrong",
+			"We could not start the approval for this application.",
+			"Please return to the application and try connecting again.")
 		return
 	}
 	if err := h.MemoryStoreProvider.SetState(consentKey(consentID), string(payload)); err != nil {
 		log.Debug().Err(err).Msg("failed to store pending consent")
-		gc.JSON(http.StatusInternalServerError, gin.H{
-			"error":             "server_error",
-			"error_description": "could not start the consent flow",
-		})
+		h.consentError(gc, http.StatusInternalServerError,
+			"Something went wrong",
+			"We could not start the approval for this application.",
+			"Please return to the application and try connecting again.")
 		return
 	}
 
@@ -186,6 +186,30 @@ func (h *httpProvider) renderConsent(gc *gin.Context, client consentClient, redi
 		"loopback_only":     client.isLoopbackOnly(),
 		"consent_id":        consentID,
 		"organization_name": h.Config.OrganizationName,
+		"organization_logo": h.Config.OrganizationLogo,
+	})
+}
+
+// consentError renders a consent failure as a page rather than a JSON body.
+//
+// Everything that reaches this handler is a browser following a form the server
+// itself rendered, so the response is read by a person, not a program. It used
+// to return raw JSON — which is what a user actually saw after clicking
+// "Allow access" twice: `{"error":"invalid_request","error_description":"this
+// consent request has expired or was already used"}`, with no indication of
+// what to do next.
+//
+// The OAuth error code stays in the logs and metrics; it is not something the
+// person in front of the screen can act on. What they can act on is the hint.
+func (h *httpProvider) consentError(gc *gin.Context, status int, title, message, hint string) {
+	gc.Header("Cache-Control", "no-store, no-cache, must-revalidate")
+	gc.Header("Pragma", "no-cache")
+	gc.HTML(status, "consent_error.tmpl", gin.H{
+		"title":             title,
+		"message":           message,
+		"hint":              hint,
+		"organization_name": h.Config.OrganizationName,
+		"organization_logo": h.Config.OrganizationLogo,
 	})
 }
 
@@ -202,10 +226,10 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 
 		consentID := strings.TrimSpace(gc.PostForm("consent_id"))
 		if consentID == "" {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "missing consent_id",
-			})
+			h.consentError(gc, http.StatusBadRequest,
+				"This approval link is not valid",
+				"The request is missing the identifier that ties it to an approval.",
+				"Please return to the application and try connecting again.")
 			return
 		}
 
@@ -218,19 +242,19 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			// Expired, already used, or never existed — all indistinguishable to
 			// the caller on purpose, so this is not an oracle for guessing ids.
 			log.Debug().Msg("consent rejected: no pending request for this consent_id")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "this consent request has expired or was already used",
-			})
+			h.consentError(gc, http.StatusBadRequest,
+				"This approval has already been used",
+				"Approvals can only be used once, and they expire after a few minutes.",
+				"Nothing has been shared. Return to the application and connect again to get a fresh approval.")
 			return
 		}
 		var pending pendingConsent
 		if err := json.Unmarshal([]byte(raw), &pending); err != nil {
 			log.Debug().Err(err).Msg("consent rejected: corrupt pending state")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "this consent request is no longer valid",
-			})
+			h.consentError(gc, http.StatusBadRequest,
+				"This approval is no longer valid",
+				"The saved approval could not be read.",
+				"Please return to the application and try connecting again.")
 			return
 		}
 
@@ -241,10 +265,10 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 		if err != nil || tokenData == nil || tokenData.UserID != pending.UserID {
 			metrics.RecordSecurityEvent("cimd_consent_session_mismatch", "authorize")
 			log.Warn().Msg("consent rejected: submitted by a different session than it was issued to")
-			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error":             "access_denied",
-				"error_description": "please sign in and try again",
-			})
+			h.consentError(gc, http.StatusUnauthorized,
+				"Please sign in again",
+				"This approval was created for a different sign-in session, so it was not applied.",
+				"Return to the application and connect again to approve as the account you are signed in with.")
 			return
 		}
 
@@ -282,10 +306,10 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 		if err := h.MemoryStoreProvider.SetState(
 			consentGrantKey(pending.UserID, pending.ClientID, pending.Query), "1"); err != nil {
 			log.Debug().Err(err).Msg("failed to record consent grant")
-			gc.JSON(http.StatusInternalServerError, gin.H{
-				"error":             "server_error",
-				"error_description": "could not record the consent decision",
-			})
+			h.consentError(gc, http.StatusInternalServerError,
+				"Something went wrong",
+				"Your approval could not be recorded.",
+				"Please return to the application and try connecting again.")
 			return
 		}
 		gc.Redirect(http.StatusFound, "/authorize?"+pending.Query)
@@ -348,7 +372,11 @@ func setConsentCSP(gc *gin.Context, redirectURI string) {
 		"default-src 'self'; "+
 			"script-src 'self'; "+
 			"style-src 'self' 'unsafe-inline'; "+
-			"img-src 'self' data:; "+
+			// `https:` matches the default policy, and it is load-bearing here:
+			// --organization-logo is usually hosted somewhere else entirely, so
+			// restricting to 'self' renders the operator's own branding as a
+			// broken image on the one page where branding is the trust signal.
+			"img-src 'self' data: https:; "+
 			"font-src 'self' data:; "+
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+

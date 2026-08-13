@@ -22,7 +22,13 @@ const dcrVerifier = "a-verifier-long-enough-to-be-valid-00000000000"
 // dcrRouter mounts the routes a dynamically registered client actually uses.
 func dcrRouter(ts *testSetup) *gin.Engine {
 	router := gin.New()
-	router.LoadHTMLFiles("../../web/templates/consent.tmpl")
+	router.LoadHTMLFiles(
+		"../../web/templates/consent.tmpl",
+		"../../web/templates/consent_error.tmpl",
+		// The shared shell defines au_styles/au_brand; without it the pages
+		// render EMPTY rather than failing loudly.
+		"../../web/templates/au_shell.tmpl",
+	)
 	router.POST("/oauth/register", ts.HttpProvider.RegisterClientHandler())
 	router.GET("/authorize", ts.HttpProvider.AuthorizeHandler())
 	router.POST("/authorize/consent", ts.HttpProvider.ConsentHandler())
