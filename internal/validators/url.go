@@ -26,6 +26,41 @@ func normalizeOrigin(raw string) string {
 	return host + ":" + port
 }
 
+// originMatches reports whether candidate — an already-normalised host[:port] —
+// is permitted by one configured allowlist entry.
+//
+// An exact origin is compared as a STRING. It used to be spliced into a regex:
+// `https://login.acme.com` became `^login.acme.com$`, in which every "." matches
+// ANY character, so an attacker who registered a lookalike (`loginXacme.com`,
+// `login-acme.com`) passed the allowlist and received OAuth access tokens, ID
+// tokens and password-reset tokens. Only the wildcard branch escaped its dots;
+// the exact branch — the documented production hardening — did not.
+//
+// A wildcard origin is escaped in full and then has ONLY the "*" re-opened, so
+// the wildcard is the single metacharacter that survives from operator config.
+//
+// Both callers route through here on purpose. They previously carried
+// copy-pasted matching blocks, which is how one of them came to escape dots
+// while the other did not.
+func originMatches(configured, candidate string) bool {
+	pattern := normalizeOrigin(configured)
+	if !strings.Contains(pattern, "*") {
+		return pattern == candidate
+	}
+
+	quoted := regexp.QuoteMeta(pattern)
+	var expr string
+	if rest, ok := strings.CutPrefix(quoted, `\*\.`); ok {
+		// Subdomain wildcard: *.example.com must only match proper subdomains
+		// (sub.example.com), not evil-example.com and not the bare domain.
+		expr = `([^.]+\.)+` + rest
+	} else {
+		expr = strings.ReplaceAll(quoted, `\*`, `[^.]*`)
+	}
+	matched, err := regexp.MatchString("^"+expr+"$", candidate)
+	return err == nil && matched
+}
+
 // IsValidRedirectURI validates a redirect URI for security-critical flows (password reset,
 // magic link, OAuth, etc.). Unlike IsValidOrigin (used for CORS), this function never
 // accepts "*" as a blanket pass. When allowed_origins contains only "*" (the default),
@@ -55,23 +90,7 @@ func IsValidRedirectURI(redirectURI string, allowedOrigins []string, hostname st
 
 	// Validate against explicit allowed origins (same logic as IsValidOrigin)
 	for _, origin := range origins {
-		pattern := normalizeOrigin(origin)
-
-		if strings.Contains(origin, "*") {
-			pattern = strings.ReplaceAll(pattern, ".", "\\.")
-			// Subdomain wildcard: *.example.com must only match
-			// proper subdomains (sub.example.com), not evil-example.com
-			// or the bare domain (example.com).
-			if strings.HasPrefix(pattern, "*\\.") {
-				// Replace leading *\. with one or more dot-terminated DNS labels,
-				// ensuring a proper dot boundary before the base domain.
-				pattern = "([^.]+\\.)+" + pattern[3:]
-			} else {
-				pattern = strings.ReplaceAll(pattern, "*", "[^.]*")
-			}
-		}
-
-		if matched, _ := regexp.MatchString("^"+pattern+"$", redirectOrigin); matched {
+		if originMatches(origin, redirectOrigin) {
 			return true
 		}
 	}
@@ -92,25 +111,7 @@ func IsValidOrigin(inputURL string, allowedOriginsConfig []string) bool {
 	currentOrigin := normalizeOrigin(inputURL)
 
 	for _, origin := range allowedOrigins {
-		// Normalize the allowed origin the same way as the input URL
-		pattern := normalizeOrigin(origin)
-
-		// if has wildcard domains, convert to regex
-		if strings.Contains(origin, "*") {
-			pattern = strings.ReplaceAll(pattern, ".", "\\.")
-			// Subdomain wildcard: *.example.com must only match
-			// proper subdomains (sub.example.com), not evil-example.com
-			// or the bare domain (example.com).
-			if strings.HasPrefix(pattern, "*\\.") {
-				// Replace leading *\. with one or more dot-terminated DNS labels,
-				// ensuring a proper dot boundary before the base domain.
-				pattern = "([^.]+\\.)+" + pattern[3:]
-			} else {
-				pattern = strings.ReplaceAll(pattern, "*", "[^.]*")
-			}
-		}
-
-		if matched, _ := regexp.MatchString("^"+pattern+"$", currentOrigin); matched {
+		if originMatches(origin, currentOrigin) {
 			return true
 		}
 	}
