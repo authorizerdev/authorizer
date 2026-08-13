@@ -186,29 +186,93 @@ test.describe('MCP — remote server', () => {
     expect(userinfo.status()).toBe(401);
   });
 
-  test('an ordinary login token cannot authenticate MCP', async ({ request }) => {
+  test('an ordinary login token cannot authenticate MCP', async ({ page, request }) => {
     // The inverse direction, and the one a client is most likely to try by
     // accident: the token every SDK already holds must not open this surface.
+    //
+    // The token has to be a REAL one. This case used to skip when signup
+    // withheld its access_token behind the MFA-setup gate, because the
+    // alternative was sending `Bearer ` with an empty value — and /mcp answers
+    // 401 to that too, so the assertion would have passed while proving only
+    // that an empty string is rejected.
+    //
+    // Mocking has the same defect for the same reason. A fabricated token is
+    // indistinguishable from garbage, and "garbage is rejected" is not the
+    // property here: it is that a CURRENTLY VALID first-party credential is
+    // rejected, which can only be shown with one that is currently valid. So
+    // one is minted through the real flow instead — the same authorization-code
+    // exchange as above, MINUS the `resource` parameter. That single omission
+    // is what makes it an ordinary login token rather than an MCP one, which is
+    // exactly the distinction under test.
+    const clientId = 'e2e-client-id';
+    const redirectUri = `${BASE_URL}/e2e-ordinary-callback`;
     const email = randomEmail();
     const password = 'Str0ngPassw0rd!';
 
     const signup = gql`
       mutation ($params: SignUpRequest!) {
-        signup(params: $params) { message access_token }
+        signup(params: $params) { message }
       }
     `;
-    const res = await client.request<{ signup: { access_token: string | null } }>(signup, {
-      params: { email, password, confirm_password: password },
+    await client.request(signup, { params: { email, password, confirm_password: password } });
+
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
+    const authorizeUrl = new URL('/authorize', BASE_URL);
+    authorizeUrl.searchParams.set('response_type', 'code');
+    authorizeUrl.searchParams.set('client_id', clientId);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    authorizeUrl.searchParams.set('scope', 'openid profile email');
+    authorizeUrl.searchParams.set('state', crypto.randomUUID());
+    authorizeUrl.searchParams.set('code_challenge', codeChallenge);
+    authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+    // No `resource` — this omission is the whole point of the test.
+
+    await page.goto(authorizeUrl.toString());
+    await page.locator('#authorizer-login-email-or-phone-number').fill(email);
+    await page.locator('#authorizer-login-password').fill(password);
+    await page.locator('form[name="authorizer-login-form"] button[type="submit"]').click();
+    // The MFA-setup offer that withheld the token on the API path. Clicking
+    // through it is what makes a real token obtainable at all.
+    await page
+      .getByRole('button', { name: 'Skip for now' })
+      .click({ timeout: 10_000 })
+      .catch(() => {});
+
+    await page.waitForURL(
+      (url) =>
+        url.origin === BASE_URL &&
+        url.pathname === '/e2e-ordinary-callback' &&
+        url.searchParams.has('code'),
+    );
+    const code = new URL(page.url()).searchParams.get('code')!;
+
+    const tokenRes = await request.post('/oauth/token', {
+      form: {
+        grant_type: 'authorization_code',
+        code,
+        client_id: clientId,
+        client_secret: 'e2e-client-secret',
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+      },
     });
+    expect(tokenRes.status(), await tokenRes.text()).toBe(200);
+    const loginToken = (await tokenRes.json()).access_token as string;
+    expect(loginToken).toBeTruthy();
 
-    // MFA is on by default in this stack, which withholds signup's token. Skip
-    // rather than assert a weaker thing: the audience boundary is covered from
-    // the token side above, and a silently-empty bearer here would make this
-    // assertion pass for the wrong reason.
-    test.skip(!res.signup.access_token, 'signup token withheld behind MFA setup');
+    // Prove the token is genuinely USABLE before asserting where it is not.
+    // Without this the 401 below could just as well mean the token was junk —
+    // the failure mode the old skip existed to avoid.
+    const userinfo = await request.get('/userinfo', {
+      headers: { Authorization: `Bearer ${loginToken}` },
+    });
+    expect(userinfo.status(), await userinfo.text()).toBe(200);
 
+    // ...and yet it opens nothing on the MCP surface.
     const mcp = await request.post('/mcp', {
-      headers: { ...MCP_HEADERS, Authorization: `Bearer ${res.signup.access_token}` },
+      headers: { ...MCP_HEADERS, Authorization: `Bearer ${loginToken}` },
       data: INITIALIZE_RPC,
     });
     expect(mcp.status()).toBe(401);
