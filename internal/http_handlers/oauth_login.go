@@ -83,8 +83,6 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			roles = strings.Join(h.Config.DefaultRoles, ",")
 		}
 
-		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, " ")
-
 		provider := c.Param("oauth_provider")
 		log := log.With().Str("provider", provider).Logger()
 		cfg, err := h.OAuthProvider.GetOAuthConfig(c, provider)
@@ -95,11 +93,37 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// The value sent to the provider is an opaque handle, not the flow's
+		// parameters. Nothing the caller supplied travels off this server, so
+		// there is no format for a caller's `state` to collide with on the way
+		// back — see internal/http_handlers/oauth_state.go.
+		oauthStateString, err := newOAuthStateHandle()
+		if err != nil {
+			log.Debug().Err(err).Msg("Error generating oauth state handle")
+			c.JSON(500, gin.H{
+				"error": "internal server error",
+			})
+			return
+		}
+		statePayload, err := marshalOAuthState(oauthStatePayload{
+			Provider:    provider,
+			State:       state,
+			RedirectURI: redirectURI,
+			Roles:       roles,
+			Scope:       strings.Join(scope, " "),
+		})
+		if err != nil {
+			log.Debug().Err(err).Msg("Error encoding oauth state")
+			c.JSON(500, gin.H{
+				"error": "internal server error",
+			})
+			return
+		}
 		// Bind this flow to the browser that started it (RFC 9700 §4.7). Set
 		// before the state is stored so a store failure cannot leave a usable
 		// cookie behind.
 		cookie.SetOAuthState(c, oauthStateString, h.Config.AppCookieSecure)
-		if err := h.MemoryStoreProvider.SetState(oauthStateString, provider); err != nil {
+		if err := h.MemoryStoreProvider.SetState(oauthStateString, statePayload); err != nil {
 			log.Debug().Err(err).Msg("Error setting state")
 			c.JSON(500, gin.H{
 				"error": "internal server error",

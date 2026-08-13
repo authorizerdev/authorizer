@@ -73,11 +73,23 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
 			return
 		}
-		// `sessionState` is the oauth provider saved during `/oauth_login/:oauth_provider`.
-		// Ensure the callback route's provider matches what was originally requested.
-		if sessionState != provider {
+		// The flow's parameters are read from the store, NOT parsed out of the
+		// value the provider echoed back. They were validated by /oauth_login
+		// and never left this server, so nothing in transit can alter them.
+		// Fails closed on anything this server did not write — including an
+		// entry from a previous release, whose value was the bare provider name.
+		statePayload, err := unmarshalOAuthState(sessionState)
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to decode oauth state payload")
+			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
+			return
+		}
+		// Ensure the callback route's provider matches what was originally
+		// requested, so a code obtained at one provider cannot be redeemed at
+		// another.
+		if statePayload.Provider != provider {
 			log.Debug().
-				Str("expected_provider", sessionState).
+				Str("expected_provider", statePayload.Provider).
 				Str("callback_provider", provider).
 				Msg("OAuth provider mismatch for state")
 			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
@@ -100,26 +112,18 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		cookie.DeleteOAuthState(ctx, h.Config.AppCookieSecure)
 
-		// contains random token, redirect url, role
-		sessionSplit := strings.Split(state, "___")
-
-		if len(sessionSplit) < 4 {
-			log.Debug().Msg("Invalid state: expected at least 4 segments")
-			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
-			return
-		}
 		// remove state from store
 		_ = h.MemoryStoreProvider.RemoveState(state)
-		stateValue := sessionSplit[0]
-		redirectURL := sessionSplit[1]
+		stateValue := statePayload.State
+		redirectURL := statePayload.RedirectURI
 		hostname := parsers.GetHost(ctx)
 		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI in OAuth state")
 			ctx.JSON(400, gin.H{"error": "invalid redirect uri"})
 			return
 		}
-		inputRoles := strings.Split(sessionSplit[2], ",")
-		scopeString := sessionSplit[3]
+		inputRoles := strings.Split(statePayload.Roles, ",")
+		scopeString := statePayload.Scope
 		scopes := parseScopes(scopeString)
 		var user *schemas.User
 		// providerEmailVerified is the provider's own assertion that the
