@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image/png"
 	"time"
 
@@ -37,6 +38,10 @@ const (
 	// will accept — Period 30 with Skew 1 spans three steps — so a redeemed
 	// code stays claimed for as long as it would otherwise still validate.
 	totpPasscodeReuseWindowSeconds = 90
+	// totalRecoveryCodes is how many single-use recovery codes Generate issues
+	// per enrollment. It also bounds recoveryCodeConsumeAttempts: it is the most
+	// redemptions that can legitimately contend for the row.
+	totalRecoveryCodes = 10
 )
 
 // pendingTOTPSecret is the memory-store payload for a re-enrollment awaiting
@@ -161,7 +166,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 	encodedText := crypto.EncodeB64(buf.String())
 	secret := key.Secret()
 	recoveryCodes := []string{}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < totalRecoveryCodes; i++ {
 		recoveryCodes = append(recoveryCodes, uuid.NewString())
 	}
 	// recoverCodesMap is the plaintext map returned to the caller once (the
@@ -380,55 +385,94 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	return true, nil
 }
 
+// recoveryCodeConsumeAttempts bounds the compare-and-swap retry loop in
+// ValidateRecoveryCode.
+//
+// The value is not a generic "retry a few times" constant. A caller can only
+// lose the swap because another redemption committed to the same row, and each
+// of those spends one of the user's recovery codes — of which Generate issues
+// exactly totalRecoveryCodes. So that count IS the worst case for legitimate
+// contention: even if every code a user has is redeemed simultaneously, each
+// request gets through within this many attempts. Anything beyond it is a
+// database that is not making progress, and the loop stops rather than
+// hammering a login path.
+//
+// Erring high is close to free — the realistic case resolves in one or two
+// rounds, and the cost of the bound is only paid on the failure path — whereas
+// erring low turns ordinary contention into a spurious fault for a user who is
+// already locked out of their authenticator app.
+const recoveryCodeConsumeAttempts = totalRecoveryCodes
+
 // ValidateRecoveryCode validates a Time-Based One-Time Password (TOTP) recovery code against the stored TOTP recovery code for a user.
+//
+// Recovery codes are single-use, and the write that spends one has to be what
+// enforces that. Reading the blob, deciding in Go, and writing back
+// unconditionally let two concurrent redemptions of the SAME code both read it
+// unconsumed and both return true — measured at 3 of 8 concurrent attempts
+// succeeding before this loop existed — which hands an attacker holding one
+// leaked code an unlimited number of logins. So the write goes through
+// ConsumeAuthenticatorRecoveryCode, which only lands while the row still holds
+// the blob this call read; on a lost race we re-read and look again, and the
+// code is then marked consumed, so the loser returns false.
 func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error) {
-	// get totp details
-	totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
-	if err != nil {
-		return false, err
+	log := p.deps.Log.With().Str("func", "ValidateRecoveryCode").Str("user_id", userID).Logger()
+	for attempt := 0; attempt < recoveryCodeConsumeAttempts; attempt++ {
+		// get totp details
+		totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+		if err != nil {
+			return false, err
+		}
+		// See Validate: the DynamoDB provider signals "not enrolled" as (nil, nil)
+		// rather than an error, so guard before dereferencing.
+		if totpModel == nil {
+			return false, nil
+		}
+		// The blob is compared byte for byte by the storage layer, so keep the
+		// exact string that was read — re-marshalling the map would reorder
+		// keys and match nothing.
+		storedCodes := refs.StringValue(totpModel.RecoveryCodes)
+		// convert recoveryCodes to map
+		recoveryCodesMap := map[string]bool{}
+		if err := json.Unmarshal([]byte(storedCodes), &recoveryCodesMap); err != nil {
+			return false, err
+		}
+		// Recovery codes are stored as SHA-256 hashes. Look up the hash of the
+		// supplied code; if it isn't present, fall back to a direct plaintext
+		// lookup for rows written by a pre-hashing release (lazy backward
+		// compatibility, mirroring the TOTP secret migration in Validate). The
+		// matched key is marked consumed either way, preserving one-time use.
+		matchKey := crypto.HashRecoveryCode(recoveryCode)
+		val, ok := recoveryCodesMap[matchKey]
+		if !ok {
+			// Legacy plaintext row: the code itself is the stored key.
+			matchKey = recoveryCode
+			val, ok = recoveryCodesMap[matchKey]
+		}
+		if !ok || val {
+			// Not a known code, or one that has already been consumed: this is
+			// a verification failure, not a server fault. Return (false, nil) so
+			// the caller counts it as a failed attempt rather than an error.
+			return false, nil
+		}
+		// mark the matched recovery code consumed
+		recoveryCodesMap[matchKey] = true
+		// convert recoveryCodesMap to string
+		jsonData, err := json.Marshal(recoveryCodesMap)
+		if err != nil {
+			return false, err
+		}
+		consumed, err := p.deps.StorageProvider.ConsumeAuthenticatorRecoveryCode(ctx, totpModel.ID, storedCodes, string(jsonData))
+		if err != nil {
+			return false, err
+		}
+		if consumed {
+			return true, nil
+		}
+		log.Debug().Int("attempt", attempt+1).Msg("recovery code blob changed under us, re-reading")
 	}
-	// See Validate: the DynamoDB provider signals "not enrolled" as (nil, nil)
-	// rather than an error, so guard before dereferencing.
-	if totpModel == nil {
-		return false, nil
-	}
-	// convert recoveryCodes to map
-	recoveryCodesMap := map[string]bool{}
-	err = json.Unmarshal([]byte(refs.StringValue(totpModel.RecoveryCodes)), &recoveryCodesMap)
-	if err != nil {
-		return false, err
-	}
-	// Recovery codes are stored as SHA-256 hashes. Look up the hash of the
-	// supplied code; if it isn't present, fall back to a direct plaintext
-	// lookup for rows written by a pre-hashing release (lazy backward
-	// compatibility, mirroring the TOTP secret migration in Validate). The
-	// matched key is marked consumed either way, preserving one-time use.
-	matchKey := crypto.HashRecoveryCode(recoveryCode)
-	val, ok := recoveryCodesMap[matchKey]
-	if !ok {
-		// Legacy plaintext row: the code itself is the stored key.
-		matchKey = recoveryCode
-		val, ok = recoveryCodesMap[matchKey]
-	}
-	if !ok || val {
-		// Not a known code, or one that has already been consumed: this is
-		// a verification failure, not a server fault. Return (false, nil) so
-		// the caller counts it as a failed attempt rather than an error.
-		return false, nil
-	}
-	// mark the matched recovery code consumed
-	recoveryCodesMap[matchKey] = true
-	// convert recoveryCodesMap to string
-	jsonData, err := json.Marshal(recoveryCodesMap)
-	if err != nil {
-		return false, err
-	}
-	recoveryCodesString := string(jsonData)
-	totpModel.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
-	// update recovery code map in db
-	_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	// Never report exhaustion as a failed code. The code may well still be
+	// valid; what failed is the write, and answering "invalid" would spend the
+	// user's credential on a database problem. See the fault-tolerance note on
+	// ConsumeAuthenticatorRecoveryCode.
+	return false, fmt.Errorf("could not consume recovery code after %d attempts", recoveryCodeConsumeAttempts)
 }

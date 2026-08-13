@@ -97,6 +97,22 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
+// row still holds oldCodes. `id` is the partition key, so the IF clause makes
+// this a lightweight transaction — Cassandra serialises it through Paxos on
+// that partition and reports whether it applied, which is the one construct in
+// CQL that can decide this race. MapScanCAS is used rather than ScanCAS because
+// a rejected LWT returns the compared columns and the map absorbs them without
+// the destination arguments having to match.
+func (p *provider) ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error) {
+	query := fmt.Sprintf("UPDATE %s SET recovery_codes = ?, updated_at = ? WHERE id = ? IF recovery_codes = ?", KeySpace+"."+schemas.Collections.Authenticators)
+	applied, err := p.db.Query(query, newCodes, time.Now().Unix(), id, oldCodes).MapScanCAS(map[string]interface{}{})
+	if err != nil {
+		return false, err
+	}
+	return applied, nil
+}
+
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators schemas.Authenticator
 	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_codes, verified_at, created_at, updated_at FROM %s WHERE user_id = ? AND method = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.Authenticators)

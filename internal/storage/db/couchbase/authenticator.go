@@ -3,6 +3,7 @@ package couchbase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -70,6 +71,50 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 		return nil, err
 	}
 	return authenticators, nil
+}
+
+// ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
+// document still holds oldCodes.
+//
+// This goes through the KV API rather than N1QL on purpose. A N1QL `UPDATE ...
+// WHERE recovery_codes = $old` gives no dependable way to tell "matched nothing"
+// from "the statement was retried", whereas Get→Replace carries the document's
+// CAS: the Replace is rejected outright if anything mutated the document between
+// the two calls, which is precisely the race being closed. Both a stale blob and
+// a CAS mismatch mean the same thing — another caller got there first — and both
+// return (false, nil).
+func (p *provider) ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error) {
+	collection := p.db.Collection(schemas.Collections.Authenticators)
+	res, err := collection.Get(id, &gocb.GetOptions{Context: ctx})
+	if err != nil {
+		if errors.Is(err, gocb.ErrDocumentNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	var authenticator schemas.Authenticator
+	if err := res.Content(&authenticator); err != nil {
+		return false, err
+	}
+	// Decode into the schema rather than a bare map so the int64 timestamps keep
+	// their type on the way back out — a map round trip turns them into float64.
+	if authenticator.RecoveryCodes == nil || *authenticator.RecoveryCodes != oldCodes {
+		return false, nil
+	}
+	authenticator.RecoveryCodes = &newCodes
+	authenticator.UpdatedAt = time.Now().Unix()
+	doc, err := structToDocument(&authenticator)
+	if err != nil {
+		return false, err
+	}
+	_, err = collection.Replace(id, doc, &gocb.ReplaceOptions{Context: ctx, Cas: res.Cas()})
+	if err != nil {
+		if errors.Is(err, gocb.ErrCasMismatch) || errors.Is(err, gocb.ErrDocumentNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {

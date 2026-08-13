@@ -49,6 +49,22 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
+// row still holds oldCodes. The expected blob is part of the UpdateOne filter,
+// and a single-document update is atomic in MongoDB, so MatchedCount is 1 for
+// exactly one caller under concurrent redemption and 0 for the rest.
+func (p *provider) ConsumeAuthenticatorRecoveryCode(ctx context.Context, id, oldCodes, newCodes string) (bool, error) {
+	authenticatorsCollection := p.db.Collection(schemas.Collections.Authenticators, options.Collection())
+	res, err := authenticatorsCollection.UpdateOne(ctx,
+		bson.M{"_id": id, "recovery_codes": oldCodes},
+		bson.M{"$set": bson.M{"recovery_codes": newCodes, "updated_at": time.Now().Unix()}},
+	)
+	if err != nil {
+		return false, err
+	}
+	return res.MatchedCount == 1, nil
+}
+
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators *schemas.Authenticator
 	authenticatorsCollection := p.db.Collection(schemas.Collections.Authenticators, options.Collection())

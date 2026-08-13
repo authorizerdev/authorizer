@@ -932,6 +932,48 @@ func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Pro
 		require.NoError(t, err)
 		assert.Equal(t, "updated_secret", afterDup.Secret, "second enrollment must not create a divergent duplicate")
 	}
+
+	// ConsumeAuthenticatorRecoveryCode is the single-use primitive behind TOTP
+	// recovery codes, so every backend has to decide the same race the same
+	// way: the swap lands only while the row still holds the blob the caller
+	// read, a stale expectation is refused WITHOUT writing, and a refusal is
+	// (false, nil) rather than an error. Each backend implements this with a
+	// different construct — WHERE clause, LWT, ConditionExpression, document
+	// CAS — so a divergence here is a silent double-spend on one database
+	// only. Runs last: it rewrites recovery_codes.
+	t.Run("ConsumeAuthenticatorRecoveryCode", func(t *testing.T) {
+		base, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, base.RecoveryCodes)
+		oldCodes := *base.RecoveryCodes
+
+		read := func(t *testing.T) string {
+			t.Helper()
+			row, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+			require.NoError(t, err)
+			require.NotNil(t, row.RecoveryCodes)
+			return *row.RecoveryCodes
+		}
+
+		claimed, err := provider.ConsumeAuthenticatorRecoveryCode(ctx, base.ID, "not-what-the-row-holds", `{"stale":true}`)
+		require.NoError(t, err, "a refused swap is a lost race, not a fault")
+		assert.False(t, claimed)
+		assert.Equal(t, oldCodes, read(t), "a refused swap must not write")
+
+		claimed, err = provider.ConsumeAuthenticatorRecoveryCode(ctx, base.ID, oldCodes, `{"consumed":true}`)
+		require.NoError(t, err)
+		assert.True(t, claimed, "a swap matching the current blob must land")
+		assert.Equal(t, `{"consumed":true}`, read(t), "the winner's blob must be stored verbatim")
+
+		claimed, err = provider.ConsumeAuthenticatorRecoveryCode(ctx, base.ID, oldCodes, `{"replayed":true}`)
+		require.NoError(t, err)
+		assert.False(t, claimed, "the same before-blob must not win twice")
+		assert.Equal(t, `{"consumed":true}`, read(t))
+
+		claimed, err = provider.ConsumeAuthenticatorRecoveryCode(ctx, uuid.New().String(), oldCodes, `{"orphan":true}`)
+		require.NoError(t, err, "a row that does not exist must not surface as a fault")
+		assert.False(t, claimed)
+	})
 }
 
 func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Provider) {
