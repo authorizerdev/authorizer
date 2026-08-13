@@ -83,6 +83,44 @@ func TestVerifyOTPTOTPThroughService(t *testing.T) {
 		assert.NotEmpty(t, res.AccessToken, "a valid recovery code must mint an access token")
 	})
 
+	// The screen at /app posts a recovery code into the same field as a TOTP
+	// passcode, so this is the path a real user drives. Proving single-use at
+	// the provider is not enough: a fresh MFA session is armed below, so the
+	// only thing that can reject the second attempt is the code already having
+	// been spent by the subtest above.
+	t.Run("a spent recovery code is rejected on replay", func(t *testing.T) {
+		armMfaSession()
+		res, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
+			Email:  &email,
+			Otp:    authConfig.RecoveryCodes[0],
+			IsTotp: refs.NewBoolRef(true),
+		})
+		require.Error(t, err, "a recovery code already redeemed must not authenticate again")
+		assert.Nil(t, res, "no token may be minted from a spent recovery code")
+
+		// The other nine are untouched — spending one must not burn the rest,
+		// and must not leave them unusable either.
+		armMfaSession()
+		res, err = ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
+			Email:  &email,
+			Otp:    authConfig.RecoveryCodes[1],
+			IsTotp: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.NotEmpty(t, res.AccessToken, "an unspent recovery code must still work")
+
+		// And that one is now spent too.
+		armMfaSession()
+		res, err = ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
+			Email:  &email,
+			Otp:    authConfig.RecoveryCodes[1],
+			IsTotp: refs.NewBoolRef(true),
+		})
+		require.Error(t, err)
+		assert.Nil(t, res)
+	})
+
 	t.Run("invalid TOTP passcode is rejected", func(t *testing.T) {
 		armMfaSession()
 		res, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
