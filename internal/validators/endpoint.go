@@ -67,6 +67,19 @@ func isPrivateIP(ip net.IP) bool {
 		{parseCIDR("203.0.113.0/24")},  // TEST-NET-3
 		{parseCIDR("224.0.0.0/4")},     // multicast
 		{parseCIDR("240.0.0.0/4")},     // reserved
+		// IPv6 transition mechanisms EMBED an arbitrary IPv4 address inside an
+		// IPv6 one, so a v6 literal in these ranges reaches a v4 destination
+		// that every check above would have refused — 2002:7f00:0001:: is
+		// 127.0.0.1, and 64:ff9b::a9fe:a9fe is the 169.254.169.254 cloud
+		// metadata endpoint. Blocking the ranges outright is stronger and
+		// simpler than decoding the embedded address, and costs nothing: none
+		// of them is a legitimate destination for a webhook or an OIDC issuer.
+		{parseCIDR("2002::/16")},      // RFC 3056 6to4
+		{parseCIDR("2001::/32")},      // RFC 4380 Teredo
+		{parseCIDR("64:ff9b::/96")},   // RFC 6052 NAT64 well-known prefix
+		{parseCIDR("64:ff9b:1::/48")}, // RFC 8215 NAT64 local-use prefix
+		{parseCIDR("::/128")},         // unspecified
+		{parseCIDR("100::/64")},       // RFC 6666 discard-only
 	}
 	for _, r := range privateRanges {
 		if r.network.Contains(ip) {
