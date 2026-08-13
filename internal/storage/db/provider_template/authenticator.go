@@ -28,6 +28,18 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes ONLY the secret, verified_at
+// and updated_at columns.
+//
+// Do not implement this by loading the row, mutating a struct, and calling the
+// whole-row write: that carries a stale recovery_codes blob back to the server
+// and undoes a concurrent ConsumeAuthenticatorRecoveryCode. The two methods must
+// keep touching disjoint columns. If the backend's UPDATE is an upsert, add an
+// existence condition — a missing row is a no-op, never an insert.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	return nil
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // row still holds oldCodes, and reports whether THIS call performed the write.
 //

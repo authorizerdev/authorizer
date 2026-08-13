@@ -974,6 +974,40 @@ func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Pro
 		require.NoError(t, err, "a row that does not exist must not surface as a fault")
 		assert.False(t, claimed)
 	})
+
+	// The two writers to an authenticator row must touch DISJOINT columns:
+	// UpdateAuthenticatorSecretAndVerifiedAt owns secret/verified_at,
+	// ConsumeAuthenticatorRecoveryCode owns recovery_codes. That is what lets
+	// them commute instead of losing each other's writes, and it only holds if
+	// every backend really does leave recovery_codes alone — a backend that
+	// implemented this as read-mutate-write-whole-row would pass every test
+	// above and still resurrect a consumed recovery code in production.
+	t.Run("UpdateAuthenticatorSecretAndVerifiedAt leaves recovery codes alone", func(t *testing.T) {
+		before, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+		require.NoError(t, err)
+		require.NotNil(t, before.RecoveryCodes)
+		codesBefore := *before.RecoveryCodes
+
+		verifiedAt := time.Now().Unix()
+		require.NoError(t, provider.UpdateAuthenticatorSecretAndVerifiedAt(ctx, before.ID, "rotated_secret", verifiedAt))
+
+		after, err := provider.GetAuthenticatorDetailsByUserId(ctx, auth.UserID, constants.EnvKeyTOTPAuthenticator)
+		require.NoError(t, err)
+		assert.Equal(t, "rotated_secret", after.Secret, "the secret must be written")
+		require.NotNil(t, after.VerifiedAt)
+		assert.Equal(t, verifiedAt, *after.VerifiedAt, "verified_at must be written")
+		require.NotNil(t, after.RecoveryCodes)
+		assert.Equal(t, codesBefore, *after.RecoveryCodes,
+			"recovery_codes must be byte-identical — this write does not own that column")
+		assert.Equal(t, before.UserID, after.UserID, "no other column may be disturbed")
+		assert.Equal(t, before.Method, after.Method)
+
+		// A row deleted mid-flight (admin MFA reset) is a no-op, not an error
+		// and not an insert: this write is bookkeeping after an
+		// already-successful validation and must never fail the login.
+		assert.NoError(t, provider.UpdateAuthenticatorSecretAndVerifiedAt(ctx, uuid.New().String(), "ghost", verifiedAt),
+			"a missing row must be a silent no-op")
+	})
 }
 
 func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Provider) {

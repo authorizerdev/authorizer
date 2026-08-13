@@ -49,6 +49,26 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes only secret and verified_at,
+// leaving recovery_codes to ConsumeAuthenticatorRecoveryCode. AQL UPDATE over a
+// FOR loop that matches nothing updates nothing, so a deleted document is a
+// no-op rather than an insert.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	query := fmt.Sprintf("FOR d IN %s FILTER d._id == @id UPDATE d WITH {secret: @secret, verified_at: @verified_at, updated_at: @updated_at} IN %s", schemas.Collections.Authenticators, schemas.Collections.Authenticators)
+	bindVars := map[string]interface{}{
+		"id":          id,
+		"secret":      secret,
+		"verified_at": verifiedAt,
+		"updated_at":  time.Now().Unix(),
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = cursor.Close() }()
+	return nil
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // document still holds oldCodes. FILTER and UPDATE are one AQL statement over a
 // single document, which ArangoDB applies atomically, so RETURN NEW yields a

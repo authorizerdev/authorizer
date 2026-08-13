@@ -46,6 +46,19 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes only secret and verified_at,
+// leaving recovery_codes to ConsumeAuthenticatorRecoveryCode. An UPDATE that
+// matches no row affects nothing, so a deleted authenticator is a no-op.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	return p.db.WithContext(ctx).Model(&schemas.Authenticator{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"secret":      secret,
+			"verified_at": verifiedAt,
+			"updated_at":  time.Now().Unix(),
+		}).Error
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // row still holds oldCodes. The WHERE clause and the SET are one statement, so
 // the row lock the UPDATE takes decides the race: RowsAffected is 1 for the
