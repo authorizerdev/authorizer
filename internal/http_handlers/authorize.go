@@ -47,14 +47,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
-	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
@@ -156,31 +157,49 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			responseMode = h.Config.DefaultAuthorizeResponseMode
 		}
 
+		// True when the client asserted its own identity through RFC 7591 rather
+		// than being created by an operator. Set during redirect validation below,
+		// and read by the consent gate and the PKCE check.
+		//
+		// It stays false when no redirect_uri was supplied, because that branch
+		// does no client lookup. That is deliberate and safe rather than a gap:
+		// with no redirect_uri the code is delivered to this server's own /app,
+		// so a client that skipped consent this way never receives it.
+		var selfRegistered bool
+
 		if redirectURI == "" {
 			redirectURI = "/app"
 		} else {
 			hostname := parsers.GetHost(gc)
-			validRedirect := validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname)
-			// RFC 6749 §3.1.2.3 / OAuth 2.0 Security BCP (RFC 9700): once a
-			// client has registered exact redirect URIs, the presented
-			// redirect_uri MUST exact-match one of them — never a prefix or
-			// origin match. IsValidRedirectURI above only checks
-			// scheme+host+port against the global AllowedOrigins allowlist,
-			// which alone would let any path under an allowed host through
-			// (including a suffix appended to another client's callback);
-			// it remains the fallback for clients with no registered URIs.
-			if client, err := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID); err == nil && client != nil {
-				if registered := client.ParsedRedirectURIs(); len(registered) > 0 {
-					validRedirect = false
-					for _, r := range registered {
-						if redirectURIMatches(r, redirectURI) {
-							validRedirect = true
-							break
-						}
-					}
-				}
+			// Shared with /app, which re-renders this same redirect_uri on the
+			// login page. Both must apply the identical rule; when they did not,
+			// a client whose registered redirect was outside AllowedOrigins
+			// passed here and was refused there.
+			check, cErr := h.checkClientRedirectURI(gc.Request.Context(), clientID, redirectURI, hostname)
+			switch {
+			case errors.Is(cErr, errClientUnresolvable):
+				log.Debug().Err(cErr).Str("client_id", clientID).Msg("could not resolve client metadata document")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_client",
+					"error_description": "could not resolve the client metadata document for this client_id",
+				})
+				return
+			case cErr != nil:
+				log.Warn().Err(cErr).Str("client_id", clientID).
+					Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "could not verify the client; please retry",
+				})
+				return
 			}
-			if !validRedirect {
+			// A client that registered ITSELF through RFC 7591 is remembered so
+			// the consent gate and PKCE check further down do not repeat the
+			// lookup. Operator-created clients are left false: they were vouched
+			// for by a human who entered their redirect URIs, which is the whole
+			// basis for not interrupting their users.
+			selfRegistered = check.SelfRegistered
+			if !check.Valid {
 				log.Debug().Msg("Invalid redirect URI")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_request",
@@ -306,6 +325,76 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// specify one (the global default may be query).
 			if rawResponseMode == "" {
 				responseMode = constants.ResponseModeFragment
+			}
+		}
+
+		// PKCE is MANDATORY for a self-asserted client — one that registered
+		// itself via RFC 7591 or presented a Client ID Metadata Document. Both
+		// are public clients, and for public clients PKCE is not advisory:
+		//
+		//   RFC 9700 §2.1.1: "Public clients MUST use PKCE".
+		//   OAuth 2.1 §4.1.1: clients "MUST use code_challenge and code_verifier
+		//   and authorization servers MUST enforce their use".
+		//   MCP authorization (2025-11-25): clients MUST implement PKCE and MUST
+		//   use S256 when technically capable.
+		//
+		// Enforced HERE rather than left to the token endpoint. Without a secret,
+		// PKCE is the only thing binding the code to the instance that started
+		// the flow, so a request that omits it is unauthenticatable from the
+		// start; the token endpoint's "code_verifier or client_secret" rule would
+		// eventually refuse it, but only after the user had already logged in and
+		// approved — and with an error naming client_secret, which a public
+		// client can never supply. Failing at /authorize keeps the refusal
+		// truthful and free of user interaction.
+		//
+		// Answered as 400 rather than redirected to the client, matching the
+		// neighbouring PKCE validations above and the MCP authorization spec's
+		// error table, which maps a malformed authorization request to 400.
+		if selfRegistered || (h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, h.Config.ClientID)) {
+			// A self-asserted client may not use an implicit response type at
+			// all, so PKCE below is unconditional rather than carved out for
+			// flows that issue no code.
+			//
+			// OAuth 2.1 removes the implicit grant, and MCP mandates OAuth 2.1.
+			// Independently of that, implicit hands a bearer token straight to
+			// the redirect URI in a URL fragment with nothing binding it to the
+			// requester — for a client whose identity nobody verified, that is
+			// the worst available combination. Both registration paths declare
+			// response_types ["code"] anyway (the registration endpoint refuses
+			// anything else, and the CIMD spec's example does the same), so this
+			// enforces at /authorize what the client already said it would do.
+			if isImplicit {
+				metrics.RecordSecurityEvent("self_registered_client_implicit_rejected", "authorize_endpoint")
+				log.Debug().Str("client_id", clientID).Str("response_type", responseType).
+					Msg("rejected: self-registered client requested an implicit response type")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "unsupported_response_type",
+					"error_description": "this client may only use response_type=code",
+				})
+				return
+			}
+			if codeChallenge == "" {
+				metrics.RecordSecurityEvent("self_registered_client_missing_pkce", "authorize_endpoint")
+				log.Debug().Str("client_id", clientID).Msg("rejected: self-registered client omitted code_challenge")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_challenge is required for this client; use PKCE with code_challenge_method=S256",
+				})
+				return
+			}
+			// S256 only, independent of OAuth21Strict. "plain" carries the
+			// verifier in the same authorization request as the challenge, so it
+			// protects nothing against an attacker who can read that request —
+			// which is the threat model for a client with no secret.
+			if codeChallengeMethod != "S256" {
+				metrics.RecordSecurityEvent("self_registered_client_weak_pkce", "authorize_endpoint")
+				log.Debug().Str("client_id", clientID).Str("method", codeChallengeMethod).
+					Msg("rejected: self-registered client used a non-S256 code_challenge_method")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_challenge_method must be S256 for this client",
+				})
+				return
 			}
 		}
 
@@ -607,6 +696,103 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				},
 			}, http.StatusOK)
 			return
+		}
+
+		// Consent gate for self-asserted (CIMD) clients. Placed here, after the
+		// session is validated and the user resolved, for two reasons: the page
+		// names the account being granted, and an unauthenticated visitor must
+		// reach the login UI first rather than being asked to approve something
+		// on behalf of nobody.
+		//
+		// Skipped once ConsentHandler has replayed the request — it sets the
+		// marker only after its own store lookup and session check pass, so this
+		// cannot be short-circuited by anything the client sends.
+		isCIMDClient := h.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, h.Config.ClientID)
+		if isCIMDClient || selfRegistered {
+			// Consume the grant recorded by ConsentHandler. Single-use and keyed
+			// to (user, client), so a consent authorizes one authorization
+			// request — not every subsequent one until the store expires it.
+			// Keyed to THIS request's parameters and consumed atomically, so a
+			// grant authorizes the one request it was given for and cannot be
+			// redeemed twice by concurrent callers.
+			grantKey := consentGrantKey(user.ID, clientID, originalParams(gc).Encode())
+			granted, gErr := h.MemoryStoreProvider.GetAndRemoveState(grantKey)
+			if gErr != nil || granted == "" {
+				// Both kinds of self-asserted client reach the same page, because
+				// the user-facing fact is the same either way: nobody at this
+				// deployment vouched for the name being displayed. RFC 7591 §5
+				// asks for exactly this — it warns that "a rogue client might use
+				// the name and logo of a legitimate client" and tells servers to
+				// "present warning messages to end-users about dynamically
+				// registered clients".
+				//
+				// Where the name and redirect list come from is the only
+				// difference: a document fetched from the client's own URL, or
+				// the row it wrote at registration.
+				var clientName string
+				var redirectURIs []string
+				if isCIMDClient {
+					doc, dErr := h.ClientMetadataProvider.Resolve(gc.Request.Context(), clientID)
+					if dErr != nil {
+						log.Debug().Err(dErr).Msg("could not resolve client metadata document for consent")
+						gc.JSON(http.StatusBadRequest, gin.H{
+							"error":             "invalid_client",
+							"error_description": "could not resolve the client metadata document for this client_id",
+						})
+						return
+					}
+					clientName, redirectURIs = doc.ClientName, doc.RedirectURIs
+				} else {
+					client, cErr := h.StorageProvider.GetClientByClientID(gc.Request.Context(), clientID)
+					// GetClientByClientID is the documented (nil, nil)-on-absent
+					// exception, so absent and unavailable arrive differently and
+					// must be answered differently: invalid_client tells a caller
+					// their client_id is permanently wrong, which during an
+					// outage is both false and non-retryable. Neither outcome
+					// skips consent — reaching this point already established the
+					// client is self-asserted.
+					switch {
+					case cErr != nil:
+						log.Warn().Err(cErr).Msg("client lookup failed while preparing consent")
+						gc.JSON(http.StatusServiceUnavailable, gin.H{
+							"error":             "temporarily_unavailable",
+							"error_description": "could not load the client; please retry",
+						})
+						return
+					case client == nil:
+						// The row was there during redirect validation and is
+						// gone now — deleted mid-flight.
+						log.Debug().Msg("registered client disappeared between redirect validation and consent")
+						gc.JSON(http.StatusBadRequest, gin.H{
+							"error":             "invalid_client",
+							"error_description": "could not load the client for this client_id",
+						})
+						return
+					}
+					clientName, redirectURIs = client.Name, client.ParsedRedirectURIs()
+				}
+				// OIDC Core §3.1.2.1: with prompt=none the authorization server
+				// "MUST NOT display any authentication or consent user interface
+				// pages". A self-asserted client still requires consent, and the
+				// two cannot both be satisfied — so the request fails with
+				// consent_required and the client decides whether to retry
+				// interactively.
+				//
+				// The two prompt=none guards above only cover the UNAUTHENTICATED
+				// case. Without this, a caller with a live session would be shown
+				// a consent page in response to a request that forbids one.
+				if prompt == "none" {
+					redirectErrorToRP(gc, responseMode, redirectURI, state, "consent_required",
+						"prompt=none was requested but this client requires consent")
+					return
+				}
+				h.renderConsent(gc, consentClient{
+					ClientID:     clientID,
+					ClientName:   clientName,
+					RedirectURIs: redirectURIs,
+				}, redirectURI, user.ID, refs.StringValue(user.Email), scope)
+				return
+			}
 		}
 
 		sessionKey := user.ID

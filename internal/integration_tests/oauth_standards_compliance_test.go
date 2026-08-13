@@ -125,9 +125,14 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 	t.Run("OIDC_Discovery_registration_endpoint_absent", func(t *testing.T) {
 		// We previously advertised registration_endpoint=/app, which is the
 		// signup UI, not an RFC 7591 dynamic client registration endpoint.
-		// Spec-compliant OIDC clients interpret this field as RFC 7591
-		// and will fail when they receive HTML. Until we actually implement
-		// RFC 7591, the field MUST be absent.
+		// Spec-compliant OIDC clients interpret this field as RFC 7591 and will
+		// fail when they receive HTML.
+		//
+		// RFC 7591 IS implemented now, but it is opt-in and this config leaves
+		// it off — so the field must still be absent here. That is the property
+		// under test today: advertising an endpoint that is not mounted sends
+		// clients into a 404 at the one step they cannot recover from. The
+		// enabled case is asserted by TestDynamicClientRegistrationAdvertised.
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
 		req.Host = "localhost"
@@ -142,7 +147,7 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 
 		_, present := body["registration_endpoint"]
 		assert.False(t, present,
-			"registration_endpoint MUST NOT be advertised until RFC 7591 is implemented")
+			"registration_endpoint MUST NOT be advertised while dynamic client registration is disabled")
 	})
 }
 

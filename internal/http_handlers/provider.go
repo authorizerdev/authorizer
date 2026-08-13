@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -41,6 +42,11 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
+	// ClientMetadataProvider resolves Client ID Metadata Documents (CIMD):
+	// client_ids that are HTTPS URLs. nil disables the feature entirely, which
+	// is the default — it changes the authorization endpoint's trust model for
+	// every client, so it is opt-in via --enable-client-id-metadata-document.
+	ClientMetadataProvider *clientmetadata.Provider
 	// OAuthProvider is used to register oauth providers
 	OAuthProvider oauth.Provider
 	// RateLimitProvider is used for per-IP rate limiting
@@ -66,6 +72,10 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 			Log:                 deps.Log,
 			StorageProvider:     deps.StorageProvider,
 			MemoryStoreProvider: deps.MemoryStoreProvider,
+			// Same resolver instance the authorize handler uses, so a document
+			// validated at /authorize is served from cache at /oauth/token and
+			// the two cannot disagree about a client mid-flow.
+			ClientMetadataProvider: deps.ClientMetadataProvider,
 		}),
 	}
 	return g, nil
@@ -135,6 +145,11 @@ type Provider interface {
 	// MCPAuthMiddleware authenticates /mcp and issues the RFC 9728 §5.1
 	// WWW-Authenticate challenge when it cannot.
 	MCPAuthMiddleware() gin.HandlerFunc
+	// ConsentHandler processes the approve/deny decision for a CIMD client.
+	ConsentHandler() gin.HandlerFunc
+	// RegisterClientHandler implements RFC 7591 dynamic client registration.
+	// Only routed when EnableDynamicClientRegistration is set.
+	RegisterClientHandler() gin.HandlerFunc
 	// PlaygroundHandler is the main handler that handels all the playground requests
 	PlaygroundHandler() gin.HandlerFunc
 	// RevokeRefreshTokenHandler is the main handler that handels all the revoke refresh token requests

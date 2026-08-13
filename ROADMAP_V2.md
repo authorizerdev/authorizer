@@ -291,10 +291,11 @@
 - [ ] **Authorization Server Metadata (RFC 8414)**
   - `/.well-known/oauth-authorization-server` endpoint
   - Publishes supported grant types, scopes, response types, token endpoint auth methods
-- [ ] **Dynamic Client Registration (RFC 7591)**
+- [x] **Dynamic Client Registration (RFC 7591)** -- delivered in 2.4.0 behind `--enable-dynamic-client-registration` (off by default)
   - `POST /oauth/register` -- MCP clients register programmatically
-  - Returns `client_id` (and optionally `client_secret` for confidential clients)
-  - Registration access token for subsequent client management
+  - Returns `client_id` only: PUBLIC clients exclusively, so no `client_secret` is ever issued to an anonymous caller
+  - Registration access tokens (RFC 7592 client management) deliberately NOT implemented -- a self-registered client is disposable
+  - CIMD remains the preferred mechanism; this exists for clients that predate it
 - [ ] **Resource Indicators (RFC 8707)**
   - `resource` parameter in authorization and token requests
   - Token audience (`aud`) set to the target MCP server URL
@@ -366,7 +367,7 @@ Human approval and safe third-party access.
 - *Unlocks:* human-in-the-loop, agents calling Google/Slack/etc. on a user's behalf.
 
 ### Wave 4 — Enterprise hardening
-- [x] **MCP authorization** (OAuth 2.1 + RFC 9728 + RFC 8707) (4.1) — delivered in 2.4.0 as `--mcp-enabled`: Authorizer is both the authorization server and the resource server for its own MCP surface. Still open: RFC 7591 dynamic client registration / CIMD for zero-touch client onboarding (and the `/authorize` consent screen CIMD requires), plus **ID-JAG / Cross-App Access** for enterprise-managed MCP.
+- [x] **MCP authorization** (OAuth 2.1 + RFC 9728 + RFC 8707) (4.1) — delivered in 2.4.0 as `--mcp-enabled`: Authorizer is both the authorization server and the resource server for its own MCP surface. Zero-touch client onboarding also landed in 2.4.0: CIMD (`--enable-client-id-metadata-document`, preferred) and RFC 7591 DCR (`--enable-dynamic-client-registration`, for clients that predate CIMD), both gated behind the `/authorize` consent screen. Still open: **ID-JAG / Cross-App Access** for enterprise-managed MCP.
 - [ ] **JIT / time-bound grants** (TTL tuples), **per-agent guardrails** (spend/rate limits), **consent management**.
 - *Unlocks:* enterprise-managed agent deployments at scale.
 
@@ -558,7 +559,7 @@ Phase 5 (can partially parallelize with Phase 3-4)
 |---|---|---|
 | OAuth 2.1 (draft) | 4 | Modern OAuth baseline (PKCE mandatory, no implicit) |
 | RFC 7636 (PKCE) | Done | Proof Key for Code Exchange |
-| RFC 7591 (DCR) | 4 | Dynamic Client Registration for MCP |
+| RFC 7591 (DCR) | Done | Dynamic Client Registration for MCP (opt-in; CIMD preferred) |
 | RFC 8414 (AS Metadata) | 4 | Authorization Server discovery |
 | RFC 8693 (Token Exchange) | 5 | Agent delegation, cross-service tokens |
 | RFC 8707 (Resource Indicators) | 4 | Audience-restricted tokens for MCP |

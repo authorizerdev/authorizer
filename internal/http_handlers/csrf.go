@@ -50,10 +50,48 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Exempt RFC 7591 dynamic client registration. The endpoint is
+		// unauthenticated by design (RFC 7591 §5: the server "SHOULD allow
+		// registration requests with no authorization"), so there is no ambient
+		// credential for a cross-site request to abuse — which is the only thing
+		// CSRF protection defends. The caller is a CLI or SDK making a
+		// programmatic POST with no Origin or Referer, so the generic check
+		// would reject every legitimate request and none of the illegitimate
+		// ones. Abuse is bounded by the per-IP rate limiter and the registry
+		// ceiling instead; see RegisterClientHandler.
+		if c.Request.URL.Path == "/oauth/register" {
+			c.Next()
+			return
+		}
+
 		// Exempt the inbound SCIM 2.0 surface. SCIM requests are machine-to-
 		// machine, authenticated by a per-org bearer token (never cookies), so
 		// CSRF does not apply — same rationale as /oauth/token above.
 		if strings.HasPrefix(c.Request.URL.Path, "/scim/v2/") {
+			c.Next()
+			return
+		}
+
+		// Exempt the consent form POST.
+		//
+		// This is NOT a hole, because the flow already carries a stronger
+		// synchronizer token than the generic middleware would check. The form's
+		// consent_id is a random UUID that exists only inside a page this server
+		// rendered for one specific session; it is single-use, and
+		// ConsentHandler additionally verifies the submitting session is the one
+		// it was issued to. An attacker cannot forge a submission without first
+		// reading a value they have no way to obtain — which is precisely the
+		// property CSRF protection exists to create.
+		//
+		// The exemption is necessary rather than convenient: the generic check
+		// demands `Content-Type: application/json` or `X-Requested-With`, and a
+		// plain HTML form can send neither. The alternative would be to drive the
+		// form with JavaScript, which would make consent — the one screen a user
+		// must be able to read and trust — silently fail with JS disabled.
+		//
+		// Found by the e2e browser test; every unit-level test called the handler
+		// directly and so never saw the middleware.
+		if c.Request.URL.Path == "/authorize/consent" {
 			c.Next()
 			return
 		}

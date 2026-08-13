@@ -1,0 +1,250 @@
+{{/*
+  Shared chrome for the server-rendered pages in the authorization flow
+  (consent, and the consent error page).
+
+  These pages sit INSIDE the login journey: a user reaches them straight from
+  the hosted login UI at /app, so anything that looks different reads as a
+  different site — exactly the wrong signal on a screen whose entire job is to
+  help someone judge whether to trust a client.
+
+  The tokens below are copied from web/app/src/index.css rather than imported:
+  that file is bundled by Vite into the app build and is not servable to a
+  standalone template. Keep the two in step — the values here are the app's,
+  including the note about why the primary blue is one shade past the logo's.
+*/}}
+
+{{define "au_styles"}}
+<style>
+	:root {
+		/* One shade past the logo's #3B82F6 — that exact blue only clears
+		   ~3.7:1 against white, short of the 4.5:1 AA text minimum. */
+		--authorizer-primary-color: #2563eb;
+		--authorizer-primary-hover-color: #1d4ed8;
+		--authorizer-gray-color: #e2e8f0;
+		--authorizer-white-color: #ffffff;
+		--authorizer-danger-color: #dc2626;
+		--authorizer-text-color: #1e293b;
+		--authorizer-fonts-font-stack:
+			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+			Cantarell, 'Helvetica Neue', sans-serif;
+		--authorizer-radius-card: 14px;
+		--authorizer-radius-button: 10px;
+
+		--au-bg: #f8fafc;
+		--au-card-bg: #ffffff;
+		--au-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
+			0 12px 32px -12px rgba(15, 23, 42, 0.12);
+		--au-muted-text: #475569;
+
+		/* Warning surface. The app has danger and success tokens but no
+		   caution one; these are the amber equivalents at the same contrast
+		   bar (text on surface clears 4.5:1). */
+		--au-warn-text: #92400e;
+		--au-warn-bg: #fffbeb;
+		--au-warn-border: #f59e0b;
+	}
+
+	html { box-sizing: border-box; }
+	*, *:before, *:after { box-sizing: inherit; }
+
+	body {
+		margin: 0;
+		font-family: var(--authorizer-fonts-font-stack);
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		color: var(--authorizer-text-color);
+		background-color: var(--au-bg);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--authorizer-primary-color);
+		outline-offset: 2px;
+	}
+
+	.app-shell {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		min-height: 100dvh;
+		padding: 32px 16px;
+	}
+
+	.app-brand {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-bottom: 24px;
+		text-align: center;
+	}
+
+	.app-brand img {
+		height: 56px;
+		width: auto;
+		object-fit: contain;
+		margin-bottom: 12px;
+	}
+
+	.app-brand h1 {
+		margin: 0;
+		font-size: 20px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.container {
+		width: 100%;
+		max-width: 420px;
+		padding: 32px 28px;
+		background-color: var(--au-card-bg);
+		border: 1px solid var(--authorizer-gray-color);
+		border-radius: var(--authorizer-radius-card);
+		box-shadow: var(--au-card-shadow);
+		animation: au-card-in 240ms ease-out;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.container { animation: none; }
+	}
+
+	@keyframes au-card-in {
+		from { opacity: 0; transform: translateY(6px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+
+	@media only screen and (max-width: 480px) {
+		.container { padding: 24px 20px; }
+	}
+
+	.au-page-title {
+		margin: 0 0 12px;
+		text-align: center;
+		font-size: 20px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.au-muted { color: var(--au-muted-text); }
+	.au-center { text-align: center; }
+	.au-lead { margin: 0 0 20px; }
+
+	/* The verified facts about the client, set apart from the prose so the
+	   redirect host — the only thing this server actually checked — is the
+	   easiest thing on the page to find. */
+	.facts {
+		margin: 0 0 20px;
+		padding: 16px;
+		border: 1px solid var(--authorizer-gray-color);
+		border-radius: 10px;
+		background: #f8fafc;
+	}
+
+	.facts dt {
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--au-muted-text);
+		margin-top: 14px;
+	}
+
+	.facts dt:first-child { margin-top: 0; }
+
+	.facts dd {
+		margin: 4px 0 0;
+		word-break: break-all;
+	}
+
+	.host {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-weight: 600;
+		font-size: 15px;
+	}
+
+	.client-id {
+		font-size: 12px;
+		color: var(--au-muted-text);
+	}
+
+	.scopes {
+		margin: 0;
+		padding-left: 18px;
+	}
+
+	.warn {
+		border: 1px solid var(--au-warn-border);
+		border-left-width: 3px;
+		background: var(--au-warn-bg);
+		color: var(--au-warn-text);
+		padding: 12px 14px;
+		border-radius: 10px;
+		margin: 0 0 20px;
+	}
+
+	.unverified {
+		font-size: 12.5px;
+		margin: 0 0 24px;
+	}
+
+	.actions {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin: 0;
+	}
+
+	.btn {
+		width: 100%;
+		font-family: inherit;
+		font-size: 15px;
+		font-weight: 500;
+		padding: 11px 16px;
+		border-radius: var(--authorizer-radius-button);
+		cursor: pointer;
+		transition: background-color 120ms ease, border-color 120ms ease;
+	}
+
+	.btn-primary {
+		border: 1px solid var(--authorizer-primary-color);
+		background: var(--authorizer-primary-color);
+		color: var(--authorizer-white-color);
+	}
+
+	.btn-primary:hover {
+		background: var(--authorizer-primary-hover-color);
+		border-color: var(--authorizer-primary-hover-color);
+	}
+
+	.btn-secondary {
+		border: 1px solid var(--authorizer-gray-color);
+		background: var(--authorizer-white-color);
+		color: var(--authorizer-text-color);
+	}
+
+	.btn-secondary:hover { background: #f1f5f9; }
+
+	.au-status-icon {
+		display: block;
+		margin: 0 auto 14px;
+		width: 44px;
+		height: 44px;
+	}
+</style>
+{{end}}
+
+{{/*
+  The same brand header the hosted login UI renders (web/app/src/App.tsx):
+  logo when one is configured, organization name underneath. Both are
+  operator-configured values, never anything the client supplied — which is the
+  point on the consent screen, where every other name on the page is
+  self-asserted.
+*/}}
+{{define "au_brand"}}
+<header class="app-brand">
+	{{if .organization_logo}}
+	<img src="{{.organization_logo}}" alt="{{.organization_name}}" width="56" height="56" />
+	{{end}}
+	<h1>{{.organization_name}}</h1>
+</header>
+{{end}}

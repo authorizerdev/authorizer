@@ -21,10 +21,19 @@ services:
       # presented at /mcp is checked against <url>/mcp, so the server refuses
       # to start with --mcp-enabled and no --url.
       - "--mcp-enabled"
+      # Accept https client_ids that resolve to a Client ID Metadata Document,
+      # so a client with no pre-registration can authenticate.
+      - "--enable-client-id-metadata-document"
+      # RFC 7591 self-registration, for clients that predate CIMD. Both are on
+      # here so tests/dcr.spec.ts can prove they coexist: a client that supports
+      # CIMD selects it first (the MCP priority order is pre-registered → CIMD →
+      # DCR), so advertising the registration endpoint cannot downgrade one.
+      # Off by default in the product — it is an unauthenticated write endpoint.
+      - "--enable-dynamic-client-registration"
       - "--app-cookie-secure=false"
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"
-      - "--allowed-origins=http://localhost:8080,http://authorizer:8080"
+      - "--allowed-origins=http://localhost:8080,http://authorizer:8080,https://cimd-client:4300"
       - "--google-client-id=mock-client-id"
       - "--google-client-secret=mock-client-secret"
       - "--github-client-id=mock-client-id"
@@ -64,12 +73,22 @@ services:
       # correctness.
       - "--rate-limit-rps=1000"
       - "--rate-limit-burst=1000"
+    environment:
+      # Go reads the system trust store from SSL_CERT_FILE. The bundle appends
+      # our e2e CA to the public roots (see mocks/tls-certs/generate.sh) rather
+      # than replacing them, so this adds trust for the CIMD mock without
+      # removing it for anything else.
+      SSL_CERT_FILE: /certs/bundle.crt
+    volumes:
+      - certs:/certs:ro
     depends_on:
       mock-oauth: { condition: service_started }
       mock-saml-idp: { condition: service_started }
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
       webhook-sink: { condition: service_started }
+      tls-certs: { condition: service_completed_successfully }
+      cimd-client: { condition: service_started }
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
       interval: 2s
@@ -559,6 +578,24 @@ services:
     build: ./mocks/sms-sink
     ports: ["4100:4100"]
 
+  # One-shot: generates a CA and a leaf certificate into the shared `certs`
+  # volume, then exits. Everything that needs TLS waits on it completing.
+  tls-certs:
+    build: ./mocks/tls-certs
+    volumes:
+      - certs:/certs
+
+  # Hosts a Client ID Metadata Document over HTTPS. A compose service rather
+  # than a fixture file because the AUTHORIZER SERVER fetches the client_id URL
+  # — that fetch is what CIMD is.
+  cimd-client:
+    build: ./mocks/cimd-client
+    depends_on:
+      tls-certs: { condition: service_completed_successfully }
+    volumes:
+      - certs:/certs
+    ports: ["4300:4300"]
+
   webhook-sink:
     build: ./mocks/webhook-sink
     ports: ["4200:4200"]
@@ -590,6 +627,7 @@ services:
       AUTHORIZER_REPLICA_A_BASE_URL: http://authorizer-replica-a:8080
       AUTHORIZER_REPLICA_B_BASE_URL: http://authorizer-replica-b:8080
       MOCK_OAUTH_BASE_URL: http://mock-oauth:4000
+      CIMD_CLIENT_BASE_URL: https://cimd-client:4300
       # https, not http: mock-saml-idp terminates TLS (see its server.ts) so
       # Authorizer's idp_sso_url validation (https-only, no test bypass)
       # accepts the stored SSO URL. Callers must ignore the self-signed cert
@@ -686,3 +724,6 @@ services:
       mailpit: { condition: service_started }
       sms-sink: { condition: service_started }
       webhook-sink: { condition: service_started }
+
+volumes:
+  certs:

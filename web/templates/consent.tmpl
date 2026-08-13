@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Authorize {{.client_name}} · {{.organization_name}}</title>
+		{{template "au_styles" .}}
+	</head>
+	<body>
+		<div class="app-shell">
+			{{template "au_brand" .}}
+
+			<main class="container">
+				<h2 class="au-page-title">Authorize {{.client_name}}</h2>
+				<p class="au-center au-muted au-lead">
+					<strong>{{.client_name}}</strong> wants to access your account as
+					<strong>{{.user_email}}</strong>.
+				</p>
+
+				<dl class="facts">
+					<dt>Sends you back to</dt>
+					<dd><span class="host">{{.redirect_host}}</span></dd>
+
+					<dt>Identified by</dt>
+					<dd class="client-id">{{.client_id}}</dd>
+
+					{{if .scopes}}
+					<dt>Requests permission to</dt>
+					<dd>
+						<ul class="scopes">
+							{{range .scopes}}
+							<li>{{.}}</li>
+							{{end}}
+						</ul>
+					</dd>
+					{{end}}
+				</dl>
+
+				{{if .loopback_only}}
+				<div class="warn" role="note">
+					<strong>This application runs on your own computer.</strong>
+					Any program on this machine could claim to be
+					<strong>{{.client_name}}</strong>. Only continue if you just
+					started it yourself.
+				</div>
+				{{end}}
+
+				<p class="au-muted unverified">
+					This application registered itself and its name has not been
+					verified by {{.organization_name}}. The address above is where your
+					access will actually be sent — check that you recognise it.
+				</p>
+
+				<form method="POST" action="/authorize/consent" class="actions">
+					<input type="hidden" name="consent_id" value="{{.consent_id}}" />
+					<button class="btn btn-primary" type="submit" name="action" value="approve">
+						Allow access
+					</button>
+					<button class="btn btn-secondary" type="submit" name="action" value="deny">
+						Cancel
+					</button>
+				</form>
+			</main>
+		</div>
+	</body>
+</html>

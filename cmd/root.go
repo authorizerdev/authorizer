@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/authenticators/webauthn"
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -143,6 +144,18 @@ func init() {
 	// as the OAuth metadata clients discover it through, and mounting it on the
 	// main router gives it the existing CORS, security-header, rate-limit and
 	// logging middleware.
+	f.BoolVar(&rootArgs.config.EnableClientIDMetadataDocument, "enable-client-id-metadata-document", false,
+		"Accept HTTPS-URL client_ids that resolve to a Client ID Metadata Document (CIMD), so clients "+
+			"with no prior relationship can authenticate — required for the OAuth path to the MCP surface. "+
+			"Clients registered this way are self-asserted, so a consent screen is shown for them. Off by default")
+	f.StringSliceVar(&rootArgs.config.ClientIDMetadataAllowedDomains, "client-id-metadata-allowed-domains", nil,
+		"Restrict which hosts may serve a client metadata document (e.g. claude.ai). Empty accepts any HTTPS host")
+	f.BoolVar(&rootArgs.config.EnableDynamicClientRegistration, "enable-dynamic-client-registration", false,
+		"Serve the RFC 7591 dynamic client registration endpoint at POST <url>/oauth/register, for MCP "+
+			"clients that cannot use CIMD. This is an UNAUTHENTICATED write endpoint: prefer "+
+			"--enable-client-id-metadata-document where the client supports it. Clients registered this "+
+			"way are self-asserted, so a consent screen is shown for them. Off by default")
+
 	f.BoolVar(&rootArgs.config.MCPEnabled, "mcp-enabled", false,
 		"Serve the MCP tool surface over HTTP at POST <url>/mcp as an OAuth 2.1 resource server. "+
 			"Requires --url: tokens are accepted only when their audience equals <url>/mcp, and that "+
@@ -701,20 +714,32 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("failed to create service provider")
 	}
 
+	// CIMD resolver. nil when disabled, which is what switches the feature off
+	// everywhere downstream — the authorize handler and the client-auth resolver
+	// both treat a nil provider as "URL client_ids are not a thing here".
+	var clientMetadataProvider *clientmetadata.Provider
+	if rootArgs.config.EnableClientIDMetadataDocument {
+		clientMetadataProvider = clientmetadata.New(&log, rootArgs.config.ClientIDMetadataAllowedDomains,
+			rootArgs.config.Env == constants.E2EEnv)
+		log.Info().Strs("allowed_domains", rootArgs.config.ClientIDMetadataAllowedDomains).
+			Msg("Client ID Metadata Documents enabled")
+	}
+
 	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
-		Log:                   &log,
-		AuditProvider:         auditProvider,
-		AuthenticatorProvider: authenticatorProvider,
-		EmailProvider:         emailProvider,
-		EventsProvider:        eventsProvider,
-		MemoryStoreProvider:   memoryStoreProvider,
-		SMSProvider:           smsProvider,
-		StorageProvider:       storageProvider,
-		TokenProvider:         tokenProvider,
-		OAuthProvider:         oauthProvider,
-		RateLimitProvider:     rateLimitProvider,
-		ServiceProvider:       serviceProvider,
-		AuthzEngine:           authzEngine,
+		ClientMetadataProvider: clientMetadataProvider,
+		Log:                    &log,
+		AuditProvider:          auditProvider,
+		AuthenticatorProvider:  authenticatorProvider,
+		EmailProvider:          emailProvider,
+		EventsProvider:         eventsProvider,
+		MemoryStoreProvider:    memoryStoreProvider,
+		SMSProvider:            smsProvider,
+		StorageProvider:        storageProvider,
+		TokenProvider:          tokenProvider,
+		OAuthProvider:          oauthProvider,
+		RateLimitProvider:      rateLimitProvider,
+		ServiceProvider:        serviceProvider,
+		AuthzEngine:            authzEngine,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

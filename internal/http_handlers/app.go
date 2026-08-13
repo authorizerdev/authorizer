@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/parsers"
-	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // State is the struct that holds authorizer url and redirect url
@@ -42,8 +41,32 @@ func (h *httpProvider) AppHandler() gin.HandlerFunc {
 		if redirectURI == "" {
 			redirectURI = hostname + "/app"
 		} else {
-			// validate redirect url with allowed origins
-			if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
+			// Validate against the CLIENT, not just the global allow-list.
+			//
+			// /authorize hands this page the redirect_uri it already accepted,
+			// so applying a different rule here rejects flows that were valid one
+			// redirect earlier. That is what happened while this checked
+			// AllowedOrigins alone: any client whose registered redirect_uri was
+			// not also an allowed origin got "invalid redirect url" on the login
+			// page and could never sign in. Every fixture had allow-listed its
+			// callback origin, so nothing caught it until a client used an
+			// EPHEMERAL loopback port — which no operator can allow-list in
+			// advance, and which is exactly what an MCP client binds.
+			//
+			// The check is not weakened: with no client_id it is still the
+			// allow-list, and a client with registered URIs is held to an exact
+			// match against them. See checkClientRedirectURI.
+			clientID := strings.TrimSpace(c.Query("client_id"))
+			check, err := h.checkClientRedirectURI(c.Request.Context(), clientID, redirectURI, hostname)
+			if err != nil {
+				// Could not CHECK the client (storage down, or a metadata
+				// document that would not resolve) — never fall back to the
+				// laxer rule on the strength of a failure.
+				log.Warn().Err(err).Str("client_id", clientID).Msg("could not verify redirect url against the client")
+				c.JSON(400, gin.H{"error": "invalid redirect url"})
+				return
+			}
+			if !check.Valid {
 				log.Debug().Msg("Invalid redirect url")
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return

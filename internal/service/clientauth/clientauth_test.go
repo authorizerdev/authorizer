@@ -184,6 +184,33 @@ func TestResolveClient_InactiveClient(t *testing.T) {
 	require.NotNil(t, got)
 }
 
+func TestResolveClient_PublicClientPresentingSecretIsRefused(t *testing.T) {
+	// A client REGISTERED as public must not be authenticated by a secret,
+	// whatever it sends. This already failed before the check existed — bcrypt
+	// compared the presented secret against an empty stored hash and errored —
+	// so what is pinned here is that the refusal is a declared property of the
+	// registration rather than an accident of the stored hash being empty. If a
+	// secret were ever written to a row registered as public, the accident would
+	// stop holding and this test is what notices.
+	public := &schemas.Client{
+		ID:                      "id-public",
+		ClientID:                "public-app",
+		Kind:                    constants.ClientKindDynamic,
+		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodNone,
+		ClientSecret:            hashSecret(t, "a-secret-that-should-never-be-honoured"),
+		IsActive:                true,
+	}
+	r := newResolver(t, map[string]*schemas.Client{"public-app": public})
+	got, err := r.ResolveClient(context.Background(), ResolveParams{
+		BodyClientID:          "public-app",
+		BodySecret:            "a-secret-that-should-never-be-honoured", // the CORRECT secret
+		VerifyPresentedSecret: true,
+	})
+	assert.ErrorIs(t, err, ErrInvalidClient,
+		"a client registered with token_endpoint_auth_method=none must not authenticate with a secret, even a matching one")
+	require.NotNil(t, got, "the resolved client is still returned so the caller can attribute an audit event")
+}
+
 func TestResolveClient_PublicClientNoSecret(t *testing.T) {
 	// A public client (token_endpoint_auth_method == "none") presents no secret;
 	// authorization_code sets VerifyPresentedSecret=true but with no secret there

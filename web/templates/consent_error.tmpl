@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>{{.title}} · {{.organization_name}}</title>
+		{{template "au_styles" .}}
+	</head>
+	<body>
+		<div class="app-shell">
+			{{template "au_brand" .}}
+
+			<main class="container">
+				<svg
+					class="au-status-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="var(--au-warn-border)"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					aria-hidden="true"
+				>
+					<circle cx="12" cy="12" r="9" />
+					<path d="M12 7.5v5" />
+					<path d="M12 16.2h.01" />
+				</svg>
+
+				<h2 class="au-page-title">{{.title}}</h2>
+				<p class="au-center au-muted au-lead">{{.message}}</p>
+
+				{{/*
+				  No retry button. Every error that lands here has already
+				  consumed or invalidated the request, so a retry could only
+				  fail again — and the flow has to restart from the client,
+				  which is the one place that can mint a fresh authorization
+				  request with its own PKCE challenge.
+				*/}}
+				<p class="au-center au-muted unverified">
+					{{.hint}}
+				</p>
+			</main>
+		</div>
+	</body>
+</html>

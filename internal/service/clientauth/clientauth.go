@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
@@ -137,6 +138,9 @@ type ResolveParams struct {
 type Dependencies struct {
 	Log             *zerolog.Logger
 	StorageProvider storage.Provider
+	// ClientMetadataProvider resolves CIMD client_ids (HTTPS URLs). nil disables
+	// the path, which is the default.
+	ClientMetadataProvider *clientmetadata.Provider
 	// MemoryStoreProvider backs the shared, cross-instance caches used by the
 	// client_assertion path: the single-use jti/replay markers and the per-trust-
 	// row JWKS cache. Optional for the secret-only paths.
@@ -231,6 +235,48 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 		log.Debug().Msg("client_id missing")
 		return nil, ErrMissingClientID
 	}
+	// Client ID Metadata Document clients are not in the registry — their
+	// client_id IS the URL of a document describing them. Resolve and validate
+	// it, then represent the client synthetically for the rest of this request.
+	//
+	// They are PUBLIC clients by construction: the spec's own example sets
+	// token_endpoint_auth_method "none", and there is nowhere to put a secret
+	// that both sides would know. Two consequences are enforced here rather than
+	// assumed downstream:
+	//
+	//   - client_credentials is refused outright (RequireSecret). A grant that
+	//     issues a token with no user and no secret must never be reachable by a
+	//     client that registered itself by hosting a JSON file.
+	//   - a presented secret is refused rather than ignored. Accepting it would
+	//     tell a caller their credential "worked" when nothing verified it.
+	//
+	// PKCE still gates the authorization_code exchange, unchanged: that is what
+	// binds the code to the client instance that started the flow.
+	if p.ClientMetadataProvider != nil && clientmetadata.IsMetadataClientIDFor(clientID, p.Config.ClientID) {
+		if params.RequireSecret || params.RequireServiceAccountKind {
+			log.Debug().Msg("metadata-document client is public; client_credentials is not available to it")
+			return nil, ErrUnauthorizedClient
+		}
+		if secret != "" {
+			log.Debug().Msg("metadata-document client presented a secret; it is a public client")
+			return nil, ErrInvalidClient
+		}
+		doc, dErr := p.ClientMetadataProvider.Resolve(ctx, clientID)
+		if dErr != nil {
+			log.Debug().Err(dErr).Msg("could not resolve client metadata document")
+			return nil, ErrInvalidClient
+		}
+		return &schemas.Client{
+			ID:                      doc.ClientID,
+			ClientID:                doc.ClientID,
+			Name:                    doc.ClientName,
+			Kind:                    constants.ClientKindInteractive,
+			TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodNone,
+			RedirectURIs:            strings.Join(doc.RedirectURIs, ","),
+			IsActive:                true,
+		}, nil
+	}
+
 	secretPresented := secret != ""
 	// doVerify decides whether the secret is checked at all: always for
 	// client_credentials (RequireSecret), only-when-present for authorization_code
@@ -280,6 +326,29 @@ func (p *provider) ResolveClient(ctx context.Context, params ResolveParams) (*sc
 	if params.RequireServiceAccountKind && client.Kind != constants.ClientKindServiceAccount {
 		log.Debug().Str("kind", client.Kind).Msg("client not authorized for client_credentials grant")
 		return client, ErrUnauthorizedClient
+	}
+
+	// A registered PUBLIC client must not be authenticated by a secret, whatever
+	// it presented. Without this the request still fails — bcrypt compares the
+	// presented secret against an empty stored hash and errors — so this changes
+	// the REASON rather than the outcome: the refusal becomes a declared property
+	// of the client's registration instead of an accident of the stored hash
+	// being empty. It also stops a caller being told their credential "worked"
+	// if a secret ever gets written to a row registered as public.
+	//
+	// Mirrors what the CIMD branch above does explicitly, and matches how Ory
+	// Hydra drives behaviour from the registered token_endpoint_auth_method
+	// rather than from what the caller chose to send. No RFC compels this — RFC
+	// 9700 does not cover it and OAuth 2.1 §2.4 only forbids using more than one
+	// method per request — so it is hygiene, not a compliance fix.
+	//
+	// The dummy compare preserves the cost of the real one, so this branch does
+	// not become a timing oracle distinguishing a public client from a
+	// confidential one with a wrong secret.
+	if secretPresented && client.TokenEndpointAuthMethod == constants.TokenEndpointAuthMethodNone {
+		log.Debug().Str("client_id", clientID).Msg("public client presented a secret")
+		performDummyCompare(secret)
+		return client, ErrInvalidClient
 	}
 
 	// bcrypt.CompareHashAndPassword is itself constant-time with respect to the
