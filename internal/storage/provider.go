@@ -161,6 +161,31 @@ type Provider interface {
 	// UpdateAuthenticator updates an existing authenticator document in the database.
 	// The updated document is returned, or an error if the operation fails.
 	UpdateAuthenticator(ctx context.Context, totp *schemas.Authenticator) (*schemas.Authenticator, error)
+	// UpdateAuthenticatorSecretAndVerifiedAt writes ONLY the secret,
+	// verified_at and updated_at columns of an authenticator row. It exists so
+	// that marking an authenticator verified — or re-encrypting a legacy
+	// plaintext secret in place — cannot touch recovery_codes.
+	//
+	// UpdateAuthenticator writes the whole row from the caller's struct, so a
+	// caller that read the row, spent time validating a passcode, and then
+	// wrote it back would restore the recovery-code blob as it was at read
+	// time — resurrecting a code that a concurrent redemption had consumed in
+	// between, and silently undoing the single-use guarantee
+	// ConsumeAuthenticatorRecoveryCode exists to provide.
+	//
+	// With this method the two writers to an authenticator row touch DISJOINT
+	// columns: this one owns secret/verified_at, ConsumeAuthenticatorRecoveryCode
+	// owns recovery_codes. They therefore commute — neither ordering loses the
+	// other's write — which is the property that makes the row safe without a
+	// transaction. Keep them disjoint; widening either one re-opens the race.
+	//
+	// A row that no longer exists is a no-op, not an error: this write is
+	// bookkeeping that follows an already-successful validation, and it must
+	// never turn a completed login into a failure. Implementations MUST NOT
+	// upsert — backends whose UPDATE creates a row when none matched need an
+	// explicit existence condition, or an admin MFA reset landing mid-flight
+	// leaves a resurrected ghost authenticator behind.
+	UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error
 	// ConsumeAuthenticatorRecoveryCode replaces the recovery-code blob of the
 	// authenticator row with the given ID, but only while the row still holds
 	// oldCodes. The bool reports whether THIS call performed the write, and it

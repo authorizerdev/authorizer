@@ -49,6 +49,18 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes only secret and verified_at,
+// leaving recovery_codes to ConsumeAuthenticatorRecoveryCode. UpdateOne without
+// upsert matches nothing when the document is gone, so that is a no-op.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	authenticatorsCollection := p.db.Collection(schemas.Collections.Authenticators, options.Collection())
+	_, err := authenticatorsCollection.UpdateOne(ctx,
+		bson.M{"_id": id},
+		bson.M{"$set": bson.M{"secret": secret, "verified_at": verifiedAt, "updated_at": time.Now().Unix()}},
+	)
+	return err
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // row still holds oldCodes. The expected blob is part of the UpdateOne filter,
 // and a single-document update is atomic in MongoDB, so MatchedCount is 1 for

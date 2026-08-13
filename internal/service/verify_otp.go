@@ -267,7 +267,12 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		if authenticator, aErr := p.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, method); aErr == nil && authenticator != nil && authenticator.VerifiedAt == nil {
 			now := time.Now().Unix()
 			authenticator.VerifiedAt = &now
-			if _, err := p.StorageProvider.UpdateAuthenticator(ctx, authenticator); err != nil {
+			// Narrow write, matching totp.Validate: marking a factor verified
+			// must not carry a whole stale row back to the server. Email/SMS
+			// OTP rows hold no recovery codes today, so nothing is at risk
+			// here yet — but the shape is the bug, and the two writers to an
+			// authenticator row are meant to stay on disjoint columns.
+			if err := p.StorageProvider.UpdateAuthenticatorSecretAndVerifiedAt(ctx, authenticator.ID, authenticator.Secret, now); err != nil {
 				log.Debug().Err(err).Msg("Failed to mark otp authenticator verified")
 			}
 		}

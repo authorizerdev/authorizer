@@ -371,8 +371,14 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 		}
 	}
 
+	// Deliberately NOT UpdateAuthenticator. That writes the whole row from
+	// totpModel, whose RecoveryCodes were read at the top of this function —
+	// before a TOTP validation and a memory-store round trip. A recovery code
+	// redeemed in that window would be restored to unconsumed here, quietly
+	// undoing the single-use guarantee. This call touches only the two columns
+	// that actually changed, so it commutes with a concurrent redemption.
 	if updateVerifiedAt || migrate {
-		if _, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel); err != nil {
+		if err = p.deps.StorageProvider.UpdateAuthenticatorSecretAndVerifiedAt(ctx, totpModel.ID, totpModel.Secret, refs.Int64Value(totpModel.VerifiedAt)); err != nil {
 			log.Warn().Err(err).
 				Bool("verified_at_update", updateVerifiedAt).
 				Bool("migration_attempt", migrate).

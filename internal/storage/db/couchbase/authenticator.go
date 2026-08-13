@@ -73,6 +73,33 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes only secret and verified_at,
+// leaving recovery_codes to ConsumeAuthenticatorRecoveryCode.
+//
+// MutateIn, NOT Get→Replace. Replacing the whole document from a struct this
+// method had to read first would carry a stale recovery_codes back to the
+// server and clobber a concurrent redemption — which is the exact bug this
+// method exists to remove, just re-introduced from the other side. MutateIn
+// mutates the named paths server-side and never touches any other field.
+//
+// ConsumeAuthenticatorRecoveryCode's whole-document Replace stays safe against
+// this because it carries the document's CAS, so a MutateIn landing in between
+// makes the Replace fail and the caller re-read — a retry, never a lost write.
+//
+// A missing document is the documented no-op.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	collection := p.db.Collection(schemas.Collections.Authenticators)
+	_, err := collection.MutateIn(id, []gocb.MutateInSpec{
+		gocb.UpsertSpec("secret", secret, nil),
+		gocb.UpsertSpec("verified_at", verifiedAt, nil),
+		gocb.UpsertSpec("updated_at", time.Now().Unix(), nil),
+	}, &gocb.MutateInOptions{Context: ctx})
+	if err != nil && errors.Is(err, gocb.ErrDocumentNotFound) {
+		return nil
+	}
+	return err
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // document still holds oldCodes.
 //

@@ -97,6 +97,21 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	return authenticators, nil
 }
 
+// UpdateAuthenticatorSecretAndVerifiedAt writes only secret and verified_at,
+// leaving recovery_codes to ConsumeAuthenticatorRecoveryCode.
+//
+// IF EXISTS is load-bearing, not decoration: a plain CQL UPDATE is an upsert, so
+// without it an admin MFA reset that deletes the row mid-flight would be
+// followed by this write RESURRECTING it — a ghost authenticator with a secret
+// and no recovery codes, which would then be treated as an enrolled factor.
+func (p *provider) UpdateAuthenticatorSecretAndVerifiedAt(ctx context.Context, id, secret string, verifiedAt int64) error {
+	query := fmt.Sprintf("UPDATE %s SET secret = ?, verified_at = ?, updated_at = ? WHERE id = ? IF EXISTS", KeySpace+"."+schemas.Collections.Authenticators)
+	// The applied bool is deliberately discarded: "the row was already gone" is
+	// the documented no-op, not a failure.
+	_, err := p.db.Query(query, secret, verifiedAt, time.Now().Unix(), id).MapScanCAS(map[string]interface{}{})
+	return err
+}
+
 // ConsumeAuthenticatorRecoveryCode swaps the recovery-code blob only while the
 // row still holds oldCodes. `id` is the partition key, so the IF clause makes
 // this a lightweight transaction — Cassandra serialises it through Paxos on
