@@ -110,6 +110,7 @@ createdb authorizer_perf
   --admin-secret "$(openssl rand -hex 16)" \
   --database-type postgres \
   --database-url "postgres://localhost:5432/authorizer_perf?sslmode=disable" \
+  --url "http://localhost:8080" \
   --jwt-type RS256 \
   --jwt-private-key "$(cat perf/dev-jwt-private.pem)" \
   --jwt-public-key "$(cat perf/dev-jwt-public.pem)" \

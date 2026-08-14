@@ -93,6 +93,7 @@ Pass all config as **CLI arguments** when starting the server binary (e.g. the v
 ./build/authorizer \
   --database-type=sqlite \
   --database-url=data.db \
+  --url=http://localhost:8080 \
   --client-id=YOUR_CLIENT_ID \
   --client-secret=YOUR_CLIENT_SECRET \
   --admin-secret=your-admin-secret \
@@ -107,6 +108,7 @@ For local development (from repo root):
 make dev
 # or
 go run main.go --database-type=sqlite --database-url=test.db \
+  --url=http://localhost:8080 \
   --jwt-type=HS256 --jwt-secret=test --encryption-key=test-encryption-key --admin-secret=admin \
   --client-id=123456 --client-secret=secret
 ```
@@ -120,6 +122,7 @@ The v2 server does **not** read from `.env` or from a fixed set of OS env vars. 
   ./build/authorizer \
     --database-type="$DATABASE_TYPE" \
     --database-url="$DATABASE_URL" \
+    --url="$AUTHORIZER_URL" \
     --client-id="$CLIENT_ID" \
     --client-secret="$CLIENT_SECRET" \
     ...
@@ -138,6 +141,7 @@ docker run -p 8080:8080 \
   ./authorizer \
     --database-type="$DATABASE_TYPE" \
     --database-url="$DATABASE_URL" \
+    --url="$AUTHORIZER_URL" \
     --client-id="$CLIENT_ID" \
     --client-secret="$CLIENT_SECRET" \
     --admin-secret="$ADMIN_SECRET"
@@ -177,6 +181,7 @@ You can build the v2 binary (and optional dashboards) directly from source.
    ./build/authorizer \
      --database-type=sqlite \
      --database-url=data.db \
+     --url=http://localhost:8080 \
      --client-id=YOUR_CLIENT_ID \
      --client-secret=YOUR_CLIENT_SECRET \
      --admin-secret=your-admin-secret
@@ -411,6 +416,7 @@ Run with args:
 docker run -p 8080:8080 your-image \
   --database-type=postgres \
   --database-url="postgres://user:pass@host/db" \
+  --url=https://auth.example.com \
   --client-id=... \
   --client-secret=... \
   --admin-secret=...
