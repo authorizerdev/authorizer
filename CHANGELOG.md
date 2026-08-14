@@ -70,7 +70,6 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 
 ### Deprecated
 
-- **`--mcp-authorizer-url`** — superseded by `--url`, removed in 2.5.0 with the subcommand it belongs to. The two feed different mechanisms: `--url` sets the trusted URL, which is consulted *before* any header, while `--mcp-authorizer-url` only stamps an `x-authorizer-url` header. `authorizer mcp` now honours `--url` (see Fixed), so the two agree by construction and the older flag is redundant. It still works when the subcommand runs without `--url`, and now prints a deprecation notice. Drop it and pass `--url`.
 - **`authorizer mcp` (stdio transport)** — superseded by `--mcp-enabled`, removed in 2.5.0. The stdio subcommand ran a second copy of every provider (storage, memory store, embedded FGA engine) alongside the real server, and its identity was a single process-wide `--mcp-bearer`, so one process could only ever serve one user. Both are gone with the HTTP transport: the MCP surface shares the running server's providers, and every request carries its own token. The subcommand keeps working and now prints a deprecation notice.
 
 ### Security
@@ -105,6 +104,7 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 
 ### Removed
 
+- **BREAKING — `--mcp-authorizer-url` removed.** Use `--url` instead. The two fed different mechanisms: `--url` sets the trusted URL, consulted *before* any header, while `--mcp-authorizer-url` only stamped an `x-authorizer-url` header. `authorizer mcp` now honours `--url` (see Fixed), so the older flag has no remaining job. Shipped in 2.3.0, so this is a breaking change for stdio MCP users — but 2.4.0 already requires every deployment to add `--url`, so the invocation is being edited anyway: drop `--mcp-authorizer-url` and keep the same value on `--url`. Passing it now fails with `unknown flag`. Setting `--mcp-bearer` without `--url` is refused at startup with an explanatory message, rather than failing later as a bare `Unauthenticated` on every tool call.
 - **`authorizer_client_id_not_found_total`**: replaced by **`authorizer_client_id_header_missing_total`**, which matches the actual behavior (header omitted, request still allowed). Update dashboards and alerts accordingly.
 - **OIDC Discovery — `registration_endpoint`**: previously pointed to the signup UI rather than an RFC 7591 dynamic client registration endpoint. (It returns in 2.4.0, pointing at a real RFC 7591 endpoint and only when `--enable-dynamic-client-registration` is set.)
 
