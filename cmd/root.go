@@ -307,7 +307,7 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", defaultRobloxScopes, "Scopes for Roblox")
 
 	// URLs
-	f.StringVar(&rootArgs.config.AuthorizerURL, "url", "", "Canonical/trusted base URL of this Authorizer instance (e.g. https://auth.example.com). When set, it is the ONLY source used to build verification/reset/magic-link email URLs, the JWT iss claim, and OIDC discovery URLs; all request headers (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored. Leaving it empty keeps legacy header-based derivation but exposes host-header-injection account takeover (CWE-640) — set this in production")
+	f.StringVar(&rootArgs.config.AuthorizerURL, "url", "", "Canonical/trusted base URL of this Authorizer instance (e.g. https://auth.example.com). When set, it is the ONLY source used to build verification/reset/magic-link email URLs, the JWT iss claim, and OIDC discovery URLs; all request headers (X-Authorizer-URL, X-Forwarded-Host, Host) are ignored. REQUIRED: the server refuses to start without it, because deriving its own host from request headers exposes host-header-injection account takeover (CWE-640). This is not --allowed-origins: --url is this server's own address, --allowed-origins is the apps it may redirect to")
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
 
 	// Back-channel logout (OIDC BCL 1.0)
