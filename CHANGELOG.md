@@ -70,6 +70,7 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 
 ### Deprecated
 
+- **`--mcp-authorizer-url`** — superseded by `--url`, removed in 2.5.0 with the subcommand it belongs to. The two were never equal partners: `--url` sets the trusted URL and is consulted *before* any header, while `--mcp-authorizer-url` only stamps an `x-authorizer-url` header. Now that `--url` is required, it always wins — so `--mcp-authorizer-url` is **inert whenever `--url` is set**, which is the trap it was worth deprecating for: passing both is not an error and warns about nothing, so a divergent value looks configured and does nothing. It keeps working for `authorizer mcp` invoked without `--url` (the one case that still reaches the header path) and now prints a deprecation notice. Drop it and pass `--url`.
 - **`authorizer mcp` (stdio transport)** — superseded by `--mcp-enabled`, removed in 2.5.0. The stdio subcommand ran a second copy of every provider (storage, memory store, embedded FGA engine) alongside the real server, and its identity was a single process-wide `--mcp-bearer`, so one process could only ever serve one user. Both are gone with the HTTP transport: the MCP surface shares the running server's providers, and every request carries its own token. The subcommand keeps working and now prints a deprecation notice.
 
 ### Security

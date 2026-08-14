@@ -90,6 +90,26 @@ func init() {
 			"(e.g. https://auth.example.com). Required with --mcp-bearer: "+
 			"JWT issuer validation compares the token's iss claim against "+
 			"this value.")
+	// Superseded by --url, which the root command makes REQUIRED as of 2.4.0
+	// and which this subcommand inherits.
+	//
+	// The two feed different mechanisms and are not equal partners: --url sets
+	// the trusted URL, and GetHostFromRequest returns it before it ever looks
+	// at a header, while --mcp-authorizer-url only stamps `x-authorizer-url`
+	// metadata — a header. So once --url is set, this flag is INERT. Passing
+	// both is not an error and produces no warning, which is the trap: a
+	// divergent --mcp-authorizer-url looks configured and does nothing.
+	//
+	// Kept working for the one case that still reaches the header path — this
+	// subcommand invoked without --url — so a 2.3.x stdio setup is not broken
+	// by a minor release. The whole subcommand goes in 2.5.0 regardless.
+	if err := mcpCmd.Flags().MarkDeprecated("mcp-authorizer-url",
+		"use --url instead. --url is required as of 2.4.0 and takes precedence, "+
+			"so this flag is ignored whenever --url is set."); err != nil {
+		// Only fails when the flag name does not exist, which is a
+		// programming error in the line directly above.
+		panic(err)
+	}
 	RootCmd.AddCommand(mcpCmd)
 }
 
