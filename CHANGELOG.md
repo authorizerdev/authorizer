@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML IdP + verified domains + home realm discovery), WebAuthn/passkey login, SCIM 2.0 groups, redesigned MFA behavior, and OAuth 2.1/MCP hardening.
+## [2.4.0] - 2026-08-14
+
+Significant additions include enterprise SSO (SAML IdP + verified domains + home realm discovery), WebAuthn/passkey login, SCIM 2.0 groups, redesigned MFA behavior, and OAuth 2.1/MCP hardening.
 
 ### Added
 
