@@ -93,6 +93,7 @@ Pass all config as **CLI arguments** when starting the server binary (e.g. the v
 ./build/authorizer \
   --database-type=sqlite \
   --database-url=data.db \
+  --url=http://localhost:8080 \
   --client-id=YOUR_CLIENT_ID \
   --client-secret=YOUR_CLIENT_SECRET \
   --admin-secret=your-admin-secret \
@@ -107,6 +108,7 @@ For local development (from repo root):
 make dev
 # or
 go run main.go --database-type=sqlite --database-url=test.db \
+  --url=http://localhost:8080 \
   --jwt-type=HS256 --jwt-secret=test --encryption-key=test-encryption-key --admin-secret=admin \
   --client-id=123456 --client-secret=secret
 ```
