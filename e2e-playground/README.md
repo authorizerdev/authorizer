@@ -26,6 +26,32 @@ From the repository root:
 make e2e-playground
 ```
 
+### If a host port is already taken
+
+The mock services publish fixed host ports, and the suite fails at startup if
+one is in use by something else on your machine:
+
+```
+Error response from daemon: Ports are not available: exposing port TCP
+0.0.0.0:4100 -> 0.0.0.0:0: listen tcp 0.0.0.0:4100: bind: address already in use
+```
+
+Override just that one — the defaults are unchanged, and nothing inside the
+stack is affected because services reach each other over the compose network
+(`http://sms-sink:4100`), not via the host:
+
+```bash
+SMS_SINK_HOST_PORT=4102 make e2e-playground
+```
+
+| Variable | Default | Service |
+| --- | --- | --- |
+| `MOCK_OAUTH_HOST_PORT` | 4000 | mock-oauth |
+| `MOCK_SAML_IDP_HOST_PORT` | 4001 | mock-saml-idp |
+| `SMS_SINK_HOST_PORT` | 4100 | sms-sink |
+| `WEBHOOK_SINK_HOST_PORT` | 4200 | webhook-sink |
+| `CIMD_CLIENT_HOST_PORT` | 4300 | cimd-client |
+
 This builds and starts the full docker-compose stack (six `authorizer` instances configured for different scenarios, the mock OAuth/SAML/SMS/webhook servers, Mailpit for email), runs the entire Playwright suite in a containerized runner, and **always** tears the stack down afterward (`docker compose down -v`) — including on failure or if the stack fails to start.
 
 Equivalent to, run manually:

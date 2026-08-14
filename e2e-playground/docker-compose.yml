@@ -568,15 +568,15 @@ services:
 
   mock-oauth:
     build: ./mocks/mock-oauth
-    ports: ["4000:4000"]
+    ports: ["${MOCK_OAUTH_HOST_PORT:-4000}:4000"]
 
   mock-saml-idp:
     build: ./mocks/mock-saml-idp
-    ports: ["4001:4001"]
+    ports: ["${MOCK_SAML_IDP_HOST_PORT:-4001}:4001"]
 
   sms-sink:
     build: ./mocks/sms-sink
-    ports: ["4100:4100"]
+    ports: ["${SMS_SINK_HOST_PORT:-4100}:4100"]
 
   # One-shot: generates a CA and a leaf certificate into the shared `certs`
   # volume, then exits. Everything that needs TLS waits on it completing.
@@ -594,11 +594,11 @@ services:
       tls-certs: { condition: service_completed_successfully }
     volumes:
       - certs:/certs
-    ports: ["4300:4300"]
+    ports: ["${CIMD_CLIENT_HOST_PORT:-4300}:4300"]
 
   webhook-sink:
     build: ./mocks/webhook-sink
-    ports: ["4200:4200"]
+    ports: ["${WEBHOOK_SINK_HOST_PORT:-4200}:4200"]
 
   mailpit:
     image: axllent/mailpit:latest
