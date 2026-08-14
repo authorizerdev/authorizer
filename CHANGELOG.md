@@ -71,6 +71,7 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 
 ### Deprecated
 
+- **`--mcp-authorizer-url`** — **has no effect as of 2.4.0**; pass `--url` with the same value instead. The two fed different mechanisms: `--url` sets the trusted URL, consulted *before* any header, while this flag only stamped an `x-authorizer-url` header. `authorizer mcp` now honours `--url` (see Fixed), which supplies the value outright — so the flag is read by nothing and a stale or wrong value can no longer affect issuer validation. It is still **parsed**, so a 2.3.x invocation keeps starting rather than dying on `unknown flag`; it warns and is ignored. Removed in 2.5.0 with the subcommand. Setting `--mcp-bearer` without `--url` is now refused at startup with an explanatory message, rather than failing later as a bare `Unauthenticated` on every tool call.
 - **`authorizer mcp` (stdio transport)** — superseded by `--mcp-enabled`, removed in 2.5.0. The stdio subcommand ran a second copy of every provider (storage, memory store, embedded FGA engine) alongside the real server, and its identity was a single process-wide `--mcp-bearer`, so one process could only ever serve one user. Both are gone with the HTTP transport: the MCP surface shares the running server's providers, and every request carries its own token. The subcommand keeps working and now prints a deprecation notice.
 
 ### Security
@@ -95,6 +96,7 @@ Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML Id
 
 ### Fixed
 
+- **`authorizer mcp` silently ignored `--url`**: the subcommand inherits the root flag set, so `--url` was always *accepted* there, but `parsers.SetTrustedURL` was only called from the server's own startup path. Passing `--url` to the stdio MCP subcommand therefore looked configured and did nothing, leaving issuer validation on header derivation and making `--mcp-authorizer-url` the only mechanism that worked. `runMCP` now pins the trusted URL exactly as the server does. A flag that is accepted and ignored is worse than one that is rejected.
 - **Public client_id now exposed in Client API type**: `Client` GraphQL type and proto now include `client_id` (distinct from surrogate `id`). Dashboard Clients page displays correct "Client ID" (the configured client_id, not the internal id). Seeded interactive client has immutable `client_id` from `--client-id` flag ([#664](https://github.com/authorizerdev/authorizer/pull/664)).
 - **Nil-pointer panics in claim/header type assertions**: two unguarded type assertions on untrusted map values (email-verify redirect-uri and webhook-event headers) could panic and crash the process; now guarded with safe type coercion ([#701](https://github.com/authorizerdev/authorizer/pull/701)).
 - **Dashboard and login UI crashes**: CSV file import error handling in dashboard, non-null assertion guards in InputField component, logout button event handling, and WCAG label association for home realm discovery email input ([#702](https://github.com/authorizerdev/authorizer/pull/702)).

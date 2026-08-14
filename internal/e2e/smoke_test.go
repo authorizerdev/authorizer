@@ -493,8 +493,10 @@ func TestReleaseSmoke(t *testing.T) {
 			"--jwt-type=HS256", "--jwt-secret=" + smokeJWTSecret,
 			"--admin-secret=" + smokeAdminSecret,
 			"--client-id=" + smokeClientID, "--client-secret=" + smokeClientSecret,
+			// Replaces --mcp-authorizer-url, inert as of 2.4.0. This is what the
+			// bearer's iss claim is validated against.
+			"--url=" + baseURL,
 			"--mcp-bearer=" + token,
-			"--mcp-authorizer-url=" + baseURL,
 		}
 		mcp := startMCP(t, bin, mcpArgs)
 

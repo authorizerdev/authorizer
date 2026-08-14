@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/rs/zerolog"
@@ -18,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/mcp"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -34,9 +36,11 @@ var mcpArgs struct {
 	// (`profile`, `check_permissions`, `list_permissions`) won't have a
 	// caller to attribute to.
 	bearer string
-	// authorizerURL is the public URL of the Authorizer instance that
-	// minted the bearer token; stamped as `x-authorizer-url` so JWT issuer
-	// validation passes for identity-bearing tools.
+	// authorizerURL is DEPRECATED and has NO EFFECT as of 2.4.0. It is still
+	// parsed so that an existing 2.3.x invocation keeps starting instead of
+	// dying on `unknown flag`, but nothing reads it — the value is supplied by
+	// --url, which runMCP now pins as the trusted URL. Kept as a named field
+	// rather than discarded so the flag registration below stays readable.
 	authorizerURL string
 }
 
@@ -85,11 +89,29 @@ func init() {
 			"user identity for tools like Profile / Permissions / Session). "+
 			"When unset the MCP server runs anonymously; public tools (Meta) "+
 			"still work but identity-bearing tools will fail authn.")
+
+	// DEPRECATED and INERT as of 2.4.0. Superseded by --url.
+	//
+	// The two fed different mechanisms: --url sets the trusted URL, which
+	// GetHostFromRequest consults before it reads any header, while this flag
+	// only stamped an `x-authorizer-url` header. Until runMCP started calling
+	// SetTrustedURL, --url was accepted here and silently did nothing, so this
+	// was the only mechanism that worked in the stdio path.
+	//
+	// Now that --url is honoured here it supplies the value outright, and this
+	// flag is read by nothing. Still PARSED rather than deleted so a 2.3.x
+	// invocation keeps starting instead of dying on `unknown flag` — it warns
+	// and is ignored. Goes with the subcommand in 2.5.0.
 	mcpCmd.Flags().StringVar(&mcpArgs.authorizerURL, "mcp-authorizer-url", "",
-		"Public URL of the Authorizer instance that issued --mcp-bearer "+
-			"(e.g. https://auth.example.com). Required with --mcp-bearer: "+
-			"JWT issuer validation compares the token's iss claim against "+
-			"this value.")
+		"DEPRECATED and ignored — use --url instead.")
+	if err := mcpCmd.Flags().MarkDeprecated("mcp-authorizer-url",
+		"it has NO EFFECT as of 2.4.0 — pass --url with the same value instead. "+
+			"--url is required for the server and is honoured by this subcommand, "+
+			"and is what the token's iss claim is validated against."); err != nil {
+		// Only fails when the flag name does not exist, which is a
+		// programming error in the line directly above.
+		panic(err)
+	}
 	RootCmd.AddCommand(mcpCmd)
 }
 
@@ -102,6 +124,31 @@ func runMCP(_ *cobra.Command, _ []string) {
 	// operator running under a supervisor will actually see it.
 	log.Warn().Msg("`authorizer mcp` (stdio) is deprecated and will be removed in 2.5.0 — " +
 		"run the server with --mcp-enabled and connect to POST <url>/mcp instead")
+
+	// Honour --url here as the server does.
+	//
+	// This subcommand inherits the root flag set, so --url was always ACCEPTED
+	// here — but SetTrustedURL was only ever called from runRoot, so it silently
+	// did nothing, and --mcp-authorizer-url (which stamped an `x-authorizer-url`
+	// header) was the only mechanism that worked. A flag that is accepted and
+	// ignored is worse than one that is rejected:
+	// `authorizer mcp --url=https://auth.example.com` looked configured and left
+	// issuer validation on header derivation. Wiring it here is what lets
+	// --mcp-authorizer-url become inert without breaking the stdio path.
+	parsers.SetTrustedURL(rootArgs.config.AuthorizerURL)
+	parsers.SetLogger(&log)
+
+	// Identity-bearing tools validate the bearer's `iss` against this server's
+	// own URL. With no --url there is nothing to compare against — and no HTTP
+	// request to derive a host from either, since tool calls arrive as gRPC
+	// metadata — so every such call fails with a bare `Unauthenticated` that
+	// looks like a bad token rather than missing config. Say so up front.
+	if mcpArgs.bearer != "" && strings.TrimSpace(rootArgs.config.AuthorizerURL) == "" {
+		log.Fatal().Msg("--url is required with --mcp-bearer: identity-bearing tools " +
+			"validate the token's iss claim against this server's own URL, and without " +
+			"it every tool call fails as Unauthenticated. Pass --url=<the URL of the " +
+			"Authorizer instance that issued the token>, e.g. https://auth.example.com")
+	}
 
 	// Wire all subsystems an MCP-exposed tool might need. As more ops
 	// migrate into internal/service, this list stays the same — the
@@ -206,7 +253,7 @@ func runMCP(_ *cobra.Command, _ []string) {
 		Name:          "authorizer",
 		Version:       constants.VERSION,
 		Bearer:        mcpArgs.bearer,
-		AuthorizerURL: mcpArgs.authorizerURL,
+		AuthorizerURL: rootArgs.config.AuthorizerURL,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create mcp server")
