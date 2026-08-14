@@ -18,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/mcp"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -93,19 +94,21 @@ func init() {
 	// Superseded by --url, which the root command makes REQUIRED as of 2.4.0
 	// and which this subcommand inherits.
 	//
-	// The two feed different mechanisms and are not equal partners: --url sets
-	// the trusted URL, and GetHostFromRequest returns it before it ever looks
-	// at a header, while --mcp-authorizer-url only stamps `x-authorizer-url`
-	// metadata — a header. So once --url is set, this flag is INERT. Passing
-	// both is not an error and produces no warning, which is the trap: a
-	// divergent --mcp-authorizer-url looks configured and does nothing.
+	// The two feed different mechanisms: --url sets the trusted URL, which
+	// GetHostFromRequest returns before it reads any header, while
+	// --mcp-authorizer-url only stamps an `x-authorizer-url` header. Until
+	// runMCP started calling SetTrustedURL (same commit as this deprecation),
+	// --url was accepted here and silently did nothing, so this flag was the
+	// only mechanism that worked in the stdio path — which is why it cannot
+	// simply be deleted.
 	//
-	// Kept working for the one case that still reaches the header path — this
-	// subcommand invoked without --url — so a 2.3.x stdio setup is not broken
-	// by a minor release. The whole subcommand goes in 2.5.0 regardless.
+	// Now that --url is honoured here, the two agree by construction and this
+	// flag is redundant whenever --url is set. It still reaches the header
+	// path when the subcommand runs without --url, so it keeps working; the
+	// whole subcommand goes in 2.5.0 regardless.
 	if err := mcpCmd.Flags().MarkDeprecated("mcp-authorizer-url",
-		"use --url instead. --url is required as of 2.4.0 and takes precedence, "+
-			"so this flag is ignored whenever --url is set."); err != nil {
+		"use --url instead. --url is required as of 2.4.0 and is honoured by "+
+			"this subcommand, so it makes this flag redundant."); err != nil {
 		// Only fails when the flag name does not exist, which is a
 		// programming error in the line directly above.
 		panic(err)
@@ -122,6 +125,21 @@ func runMCP(_ *cobra.Command, _ []string) {
 	// operator running under a supervisor will actually see it.
 	log.Warn().Msg("`authorizer mcp` (stdio) is deprecated and will be removed in 2.5.0 — " +
 		"run the server with --mcp-enabled and connect to POST <url>/mcp instead")
+
+	// Honour --url here as the server does. This subcommand inherits the root
+	// flag set, so --url has always been ACCEPTED here — but SetTrustedURL was
+	// only ever called from runRoot, so it silently did nothing, and
+	// --mcp-authorizer-url (which stamps an `x-authorizer-url` header) was the
+	// only thing that worked. A flag that is accepted and ignored is worse than
+	// one that is rejected: `authorizer mcp --url=https://auth.example.com`
+	// looked configured and left issuer validation on header derivation.
+	//
+	// Setting it here is also what makes --mcp-authorizer-url genuinely
+	// redundant rather than redundant-in-theory: GetHostFromRequest returns the
+	// trusted URL before it reads any header, so with --url set the two agree
+	// by construction instead of by the operator passing the same value twice.
+	parsers.SetTrustedURL(rootArgs.config.AuthorizerURL)
+	parsers.SetLogger(&log)
 
 	// Wire all subsystems an MCP-exposed tool might need. As more ops
 	// migrate into internal/service, this list stays the same — the
