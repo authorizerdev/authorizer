@@ -36,6 +36,7 @@ docker run -d --name authorizer_perf_app \
   --admin-secret="$ADMIN_SECRET" \
   --database-type=postgres \
   --database-url="postgres://postgres:postgres@authorizer_perf_pg:5432/authorizer_perf?sslmode=disable" \
+  --url="http://localhost:8090" \
   --redis-url="redis://authorizer_perf_redis:6379" \
   --jwt-type=RS256 \
   --encryption-key=perf-encryption-key-not-for-production \

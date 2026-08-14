@@ -145,6 +145,7 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
   ./build/authorizer \
     --database-type=sqlite \
     --database-url=test.db \
+    --url=http://localhost:8080 \
     --jwt-type=HS256 \
     --jwt-secret=test \
     --encryption-key=test-encryption-key \
@@ -166,6 +167,7 @@ The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite un
      quay.io/authorizer/authorizer \
      --database-type=sqlite \
      --database-url=/authorizer/data/data.db \
+     --url=http://localhost:8080 \
      --client-id=123456 \
      --client-secret=secret \
      --admin-secret=admin \
@@ -183,6 +185,7 @@ The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite un
      quay.io/authorizer/authorizer \
      --database-type=sqlite \
      --database-url=/authorizer/data/data.db \
+     --url=http://localhost:8080 \
      ...
    ```
 
@@ -235,6 +238,7 @@ ENTRYPOINT ["/bin/sh", "-c"]
 CMD ./authorizer \
   --database-type="$${DATABASE_TYPE:-postgres}" \
   --database-url="$${DATABASE_URL}" \
+  --url="$${AUTHORIZER_URL}" \
   --client-id="$${CLIENT_ID}" \
   --client-secret="$${CLIENT_SECRET}" \
   --admin-secret="$${ADMIN_SECRET}" \
@@ -269,6 +273,7 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
   ./authorizer \
     --database-type=sqlite \
     --database-url=test.db \
+    --url=http://localhost:8080 \
     --jwt-type=HS256 \
     --jwt-secret=test \
     --encryption-key=test-encryption-key \
