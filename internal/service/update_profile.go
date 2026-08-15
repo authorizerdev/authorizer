@@ -100,6 +100,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
 	}
+	mfaDisabled := false
 	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		// Only gate the enable action; disabling is always allowed (subject to the
@@ -115,6 +116,12 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, FailedPrecondition("cannot disable multi factor authentication as it is enforced by organization")
 		}
 
+		// Disabling MFA is a security-relevant action in its own right, not a
+		// profile edit. Recorded below as AuditMFADisabledEvent so it is findable
+		// without reading every profile update; enabling is already covered by the
+		// MFA setup flow's own events.
+		mfaDisabled = refs.BoolValue(user.IsMultiFactorAuthEnabled) &&
+			!refs.BoolValue(params.IsMultiFactorAuthEnabled)
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 
@@ -278,6 +285,29 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 		IPAddress:    meta.IPAddress,
 		UserAgent:    meta.UserAgent,
 	}))
+	// A password change and an MFA disable are security events, and folding them
+	// into AuditProfileUpdatedEvent made them indistinguishable from a display-name
+	// edit — the constants for both existed and nothing ever emitted them. Logged
+	// IN ADDITION to the generic event so nothing that consumes
+	// user.profile_updated today stops seeing these updates.
+	securityEvent := func(action string) {
+		p.AuditProvider.LogEvent(applyDelegationActor(tokenData.ActorID, audit.Event{
+			Action:   action,
+			Protocol: meta.Protocol, ActorID: user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+			IPAddress:    meta.IPAddress,
+			UserAgent:    meta.UserAgent,
+		}))
+	}
+	if isPasswordChanging {
+		securityEvent(constants.AuditPasswordChangedEvent)
+	}
+	if mfaDisabled {
+		securityEvent(constants.AuditMFADisabledEvent)
+	}
 	message := `Profile details updated successfully.`
 	if hasEmailChanged {
 		message += `For the email change we have sent new verification email, please verify and continue`

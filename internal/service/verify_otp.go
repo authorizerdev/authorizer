@@ -301,6 +301,9 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		loginMethod = constants.AuthRecipeMethodMobileOTP
 	}
 	if isEmailVerification {
+		// EventVerifyOTP was declared and asserted by a test, but never recorded
+		// in production — OTP verification volume and failure rate were invisible.
+		metrics.RecordAuthEvent(metrics.EventVerifyOTP, metrics.StatusSuccess)
 		p.AuditProvider.LogEvent(audit.Event{
 			Action:   constants.AuditEmailVerifiedEvent,
 			Protocol: meta.Protocol, ActorID: user.ID,
@@ -312,6 +315,7 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 			UserAgent:    meta.UserAgent,
 		})
 	} else {
+		metrics.RecordAuthEvent(metrics.EventVerifyOTP, metrics.StatusSuccess)
 		p.AuditProvider.LogEvent(audit.Event{
 			Action:   constants.AuditPhoneVerifiedEvent,
 			Protocol: meta.Protocol, ActorID: user.ID,

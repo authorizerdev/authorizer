@@ -198,7 +198,7 @@ func (p *provider) SetCacheNX(key string, value string, ttlSeconds int64) (bool,
 //
 //   - The storage layer cannot distinguish "no such row" from "read failed" —
 //     GetSessionTokenByUserIDAndKey returns a plain error for both, and each of
-//     the 7 providers returns a different one (gorm.ErrRecordNotFound,
+//     the 6 providers returns a different one (gorm.ErrRecordNotFound,
 //     gocql.ErrNotFound, a bare errors.New, a gocb error...). Propagating the
 //     error would turn every ordinary cache miss into a failure.
 //   - Both replay callers already discard it: saml_sp.go only reports a replay
@@ -254,7 +254,7 @@ func (p *provider) GetCache(key string) (string, error) {
 // approximately right instead of reliably wrong. For an exact distributed
 // counter configure REDIS_URL (the Redis provider uses a native atomic INCR);
 // the upgrade path here is a compare-and-set or native increment in the storage
-// layer, which is a per-provider change across all 7 backends.
+// layer, which is a per-provider change across all 6 backends.
 func (p *provider) IncrementCache(key string, ttlSeconds int64) (int64, error) {
 	incrementMutex.Lock()
 	defer incrementMutex.Unlock()
@@ -292,7 +292,7 @@ func (p *provider) IncrementCache(key string, ttlSeconds int64) (int64, error) {
 // indexed. An exact-key delete rides the (user_id, key_name) index instead.
 //
 // If a caller ever genuinely needs prefix expansion here it will silently no-op,
-// so: add a prefix-delete to storage.Provider (all 7 backends) and implement it
+// so: add a prefix-delete to storage.Provider (all 6 backends) and implement it
 // properly rather than reaching for GetAllSessionTokens.
 func (p *provider) DeleteCacheByPrefix(prefix string) error {
 	ctx := context.Background()

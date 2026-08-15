@@ -33,16 +33,14 @@ const (
 	ClientAssertionTypeJWTSPIFFE = "urn:ietf:params:oauth:client-assertion-type:jwt-spiffe"
 )
 
-// RFC 8693 token type URNs used in subject_token_type and issued_token_type.
+// RFC 8693 token type URNs. Only the two this server ACCEPTS are listed — see
+// isSupportedExchangeTokenType. The refresh_token and id_token URNs the RFC also
+// defines were declared here and never referenced; add them back alongside the
+// code that accepts them, so the list stays a statement about this server rather
+// than a copy of the registry.
 const (
 	// TokenTypeURNAccessToken identifies an OAuth2 access token.
 	TokenTypeURNAccessToken = "urn:ietf:params:oauth:token-type:access_token"
-
-	// TokenTypeURNRefreshToken identifies an OAuth2 refresh token.
-	TokenTypeURNRefreshToken = "urn:ietf:params:oauth:token-type:refresh_token"
-
-	// TokenTypeURNIDToken identifies an OpenID Connect ID token.
-	TokenTypeURNIDToken = "urn:ietf:params:oauth:token-type:id_token"
 
 	// TokenTypeURNJWT identifies a generic JWT.
 	TokenTypeURNJWT = "urn:ietf:params:oauth:token-type:jwt"
