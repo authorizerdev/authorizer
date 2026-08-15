@@ -37,16 +37,27 @@ import (
 // # What is still enforced
 //
 //   - Signature and expiry, via ParseJWTToken.
+//
 //   - An `act` claim MUST be present. Without it the token is not delegated and
 //     has no business on this path.
+//
 //   - `aud` MUST equal this server's own URL. A token minted with an RFC 8707
 //     resource indicator carries that resource as its `aud` and is usable ONLY
 //     there — accepting it here would be audience confusion and would make the
 //     resource binding decorative. An agent that wants to call Authorizer must
 //     explicitly request Authorizer's URL as the resource.
+//
+//     The MCP transport needs the SAME checks against a DIFFERENT audience
+//     ("<url>/mcp"), and takes ValidateDelegatedAccessTokenForResource rather
+//     than a second audience accepted here. Read that function before changing
+//     this one: the two entry points existing separately is what keeps a token
+//     valid at exactly one surface.
+//
 //   - Issuer/claims via ValidateJWTClaims, and token_type must be an access token.
+//
 //   - The subject must not be revoked or deactivated — a database lookup, not a
 //     session lookup, so revoking a user still stops their agents.
+//
 //   - The session the delegation was derived from must still exist. See
 //     DelegationSessionID: this is what makes logout and password reset stop a
 //     delegated token here.
@@ -60,6 +71,58 @@ import (
 // that session issued. The signature, the short TTL and the audience binding
 // carry the rest.
 func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
+	// The first-party audience: this server's own URL. Unchanged behaviour —
+	// every caller of this function reaches Authorizer's own API surface
+	// (/graphql, /v1/*, gRPC) via GetUserIDFromSessionOrAccessToken.
+	return p.validateDelegatedForAudience(gc, accessToken, parsers.GetHost(gc))
+}
+
+// ValidateDelegatedAccessTokenForResource is ValidateDelegatedAccessToken with
+// the accepted audience supplied by the caller instead of derived from the
+// request host. It exists for exactly one caller — ValidateMCPAccessToken — and
+// the separation is the security boundary, not a convenience.
+//
+// # Why a second entry point rather than a looser audience rule
+//
+// ValidateDelegatedAccessToken has ONE caller,
+// GetUserIDFromSessionOrAccessToken, which is the default rule behind /graphql,
+// /v1/* and gRPC. Widening the audience check INSIDE it — accepting
+// "<url>/mcp" alongside "<url>" — would therefore make an MCP-bound delegated
+// token valid on every first-party surface as a side effect. That is precisely
+// the audience confusion firstPartyAudienceOK exists to prevent, and it would
+// be asymmetric: the stateful path rejects every resource-bound audience while
+// the delegated path silently accepted one.
+//
+// # The invariant this preserves
+//
+//	f(aud) = surface, and it is a BIJECTION.
+//
+// Every token is valid at exactly one surface: the one its audience names. The
+// match here is therefore EXACT (sameAudience), never "hostname or resource" —
+// accepting both would break the bijection from the other side, letting a
+// delegated token minted for the first-party API authenticate at /mcp too.
+//
+// Fails closed on an empty resource for the same reason ValidateMCPAccessToken
+// does: an empty expected audience must never degrade into "accept anything".
+func (p *provider) ValidateDelegatedAccessTokenForResource(gc *gin.Context, accessToken string, resource string) (map[string]interface{}, error) {
+	if strings.TrimSpace(resource) == "" {
+		return map[string]interface{}{}, fmt.Errorf(`unauthorized: no resource configured`)
+	}
+	return p.validateDelegatedForAudience(gc, accessToken, resource)
+}
+
+// validateDelegatedForAudience is the shared core. expectedAud is the ONLY thing
+// that varies between the first-party and MCP entry points; every other check —
+// the act claim, delegation-session liveness, subject liveness, issuer, subject
+// and token type — is identical by construction, so a fix to any of them cannot
+// land on one surface and miss the other.
+//
+// Note that expectedAud is deliberately NOT used as the issuer. The `iss` claim
+// is always this server's bare URL regardless of which resource the token is
+// bound to, so the issuer check below keeps using parsers.GetHost. Conflating
+// the two would make an MCP token's issuer "<url>/mcp", which no token this
+// server mints ever carries.
+func (p *provider) validateDelegatedForAudience(gc *gin.Context, accessToken string, expectedAud string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 	if accessToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -89,24 +152,31 @@ func (p *provider) ValidateDelegatedAccessToken(gc *gin.Context, accessToken str
 	hostname := parsers.GetHost(gc)
 
 	// Audience isolation, RFC 8707. /oauth/token requires `resource` to be an
-	// ABSOLUTE URI and stamps it verbatim as `aud`, so the only way to name
-	// this server is to request this server's own URL as the resource. The
-	// audience must therefore equal that URL — not the opaque --client-id,
-	// which no resource indicator can ever be.
+	// ABSOLUTE URI and stamps it verbatim as `aud`, so the only way to reach a
+	// surface here is to have named that surface's resource at exchange time:
+	// this server's own URL for the first-party API, "<url>/mcp" for the MCP
+	// transport. The audience must equal the caller-supplied expectedAud — not
+	// the opaque --client-id, which no resource indicator can ever be.
+	//
+	// EXACT, never "one of". Each entry point passes exactly one expectedAud, so
+	// a token minted for the first-party API does not authenticate at /mcp and
+	// an MCP-bound token does not authenticate at /graphql. Relaxing this to
+	// accept both audiences is the one change that would collapse the bijection
+	// described on ValidateDelegatedAccessTokenForResource.
 	//
 	// Getting this wrong in the strict direction is not a safe failure: it
 	// makes the delegated path unreachable by any token this deployment can
 	// mint, so the feature silently does nothing. Getting it wrong in the loose
-	// direction accepts a token minted for a downstream resource server, which
+	// direction accepts a token minted for a different resource server, which
 	// is audience confusion. Both are tested end to end through /oauth/token.
 	//
 	// Compared after trimming a trailing slash so "https://auth.example.com"
 	// and "https://auth.example.com/" are the same audience — otherwise the
 	// caller's exact spelling of the resource decides whether auth works.
 	aud, _ := res["aud"].(string)
-	if !sameAudience(aud, hostname) {
+	if !sameAudience(aud, expectedAud) {
 		if u, uErr := url.Parse(aud); uErr == nil && u.IsAbs() {
-			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", hostname).
+			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", expectedAud).
 				Msg("delegated token rejected: audience names a different resource server")
 		}
 		return res, fmt.Errorf(`unauthorized: token audience is not this server`)

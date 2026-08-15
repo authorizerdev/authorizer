@@ -86,11 +86,19 @@ type Provider interface {
 	// ValidateAccessToken by exactly one property (no session lookup) and
 	// stricter by one (audience must be this server) — see its doc comment.
 	ValidateDelegatedAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error)
+	// ValidateDelegatedAccessTokenForResource is ValidateDelegatedAccessToken
+	// with the accepted audience supplied by the caller rather than derived from
+	// the request host. Exists so the MCP surface can accept delegated tokens
+	// bound to "<url>/mcp" WITHOUT widening the first-party rule — see its doc
+	// comment for the bijection that separation preserves.
+	ValidateDelegatedAccessTokenForResource(gc *gin.Context, accessToken string, resource string) (map[string]interface{}, error)
 	// ValidateMCPAccessToken validates an access token presented at the MCP
 	// surface. Same stateful core as ValidateAccessToken, differing in exactly
 	// one rule: `aud` must equal the caller-supplied canonical MCP resource URI
 	// (RFC 8707 / MCP authorization), which is the audience ValidateAccessToken
-	// rejects. Every other check, subject liveness included, is shared.
+	// rejects. Every other check, subject liveness included, is shared. Falls
+	// back to ValidateDelegatedAccessTokenForResource for tokens carrying an
+	// RFC 8693 `act` claim.
 	ValidateMCPAccessToken(gc *gin.Context, accessToken string, resource string) (map[string]interface{}, error)
 	// ValidateAdminToken validates session token
 	ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionData, error)
