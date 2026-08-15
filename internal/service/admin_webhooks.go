@@ -363,6 +363,12 @@ func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, param
 	if skipSSRF {
 		client = &http.Client{Timeout: testEndpointHTTPTimeout}
 	} else {
+		// Redirects are deliberately still followed here — this must behave
+		// exactly like a real delivery, and delivery follows them (see
+		// events.webhookHTTPClient for why, and why the CIMD and
+		// backchannel-logout fetches differ). A "test endpoint" that applied a
+		// stricter policy than delivery would report a failure the live webhook
+		// would not have.
 		client, err = validators.SafeHTTPClient(ctx, params.Endpoint, testEndpointHTTPTimeout)
 		if err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")

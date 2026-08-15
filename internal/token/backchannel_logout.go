@@ -86,6 +86,13 @@ func (p *provider) NotifyBackchannelLogout(ctx context.Context, uri string, cfg 
 	if err != nil {
 		return fmt.Errorf("backchannel logout SSRF check: %w", err)
 	}
+	// Refuse redirects. Go re-issues a 302'd POST as a GET with no body, so an RP
+	// whose backchannel_logout_uri redirects was already receiving a bodyless GET
+	// and silently not processing the logout — this turns that into a visible
+	// non-2xx rather than a success that did nothing. SafeHTTPClient also pins the
+	// dial to the validated IP, so a redirect could never reach the named host
+	// anyway. Same policy as the JWKS and OIDC-discovery fetches.
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

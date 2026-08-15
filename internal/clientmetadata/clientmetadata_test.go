@@ -164,6 +164,15 @@ func TestCacheTTLIsClamped(t *testing.T) {
 		{"max-age=31536000", maxCacheTTL},
 		{"public, max-age=600", 600 * time.Second},
 		{"MAX-AGE=600", 600 * time.Second},
+		// fmt.Sscanf stopped at the first non-digit and still reported success,
+		// so these parsed as 600 / 60 rather than being rejected. The clamp made
+		// every outcome safe, which is why it went unnoticed — a header this
+		// malformed should still fall back to the floor rather than be half-read.
+		{"max-age=600junk", minCacheTTL},
+		{"max-age=600 junk", minCacheTTL},
+		{"max-age=", minCacheTTL},
+		{"max-age=-5", minCacheTTL},
+		{"max-age=abc", minCacheTTL},
 	}
 	for _, tc := range cases {
 		t.Run(tc.header, func(t *testing.T) {
@@ -299,6 +308,56 @@ func TestFetchValidatesDocumentContent(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "status 404")
 	})
+}
+
+// TestFetchRefusesRedirects pins the redirect policy.
+//
+// The document must be AT the client_id URL — that identity binding is the whole
+// mechanism CIMD rests on — so a hop away from it serves a document for a
+// different identifier. Following one is also useless in production: the
+// SSRF-hardened client pins the dial to the IP validated for the ORIGINAL host,
+// so a redirect elsewhere re-issues the request against that same address
+// carrying a foreign Host header instead of reaching the named host.
+//
+// The redirect target here serves a perfectly valid document for its own URL, so
+// nothing but the redirect policy itself can make this fail.
+func TestFetchRefusesRedirects(t *testing.T) {
+	var targetURL string
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprintf(w, `{"client_id":%q,"client_name":"Moved Client","redirect_uris":["https://app.example.com/cb"]}`, targetURL)
+	}))
+	defer target.Close()
+	targetURL = target.URL + "/moved.json"
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, targetURL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	_, _, err := testProvider(t).fetchViaClient(
+		context.Background(), redirector.URL+"/client.json", redirector.Client())
+	require.Error(t, err, "a redirected document MUST NOT resolve")
+	// The 302 is surfaced as the final response rather than followed.
+	assert.Contains(t, err.Error(), "status 302")
+}
+
+// TestFetchViaClientDoesNotMutateTheCallersClient guards the mechanism behind
+// TestFetchRefusesRedirects. The policy is applied to a copy, because the
+// injected-client seam (SetHTTPClientForTest) hands in a client the caller owns.
+// Setting the field in place would work and still be a side effect on someone
+// else's value.
+func TestFetchViaClientDoesNotMutateTheCallersClient(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	client := srv.Client()
+	require.Nil(t, client.CheckRedirect, "precondition: the caller's client has no redirect policy")
+
+	_, _, _ = testProvider(t).fetchViaClient(context.Background(), srv.URL+"/c.json", client)
+
+	assert.Nil(t, client.CheckRedirect, "fetchViaClient MUST NOT mutate the client it was handed")
 }
 
 // TestIsMetadataClientIDForExcludesTheReservedClient guards against a

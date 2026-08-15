@@ -215,6 +215,15 @@ func (p *provider) deliver(ctx context.Context, log *zerolog.Logger, webhook *sc
 // allow-list, DNS-rebinding host pinning, TLS SNI) is unchanged either way. Mirrors
 // internal/http_handlers/oauth_sso.go's ssoHTTPClient, kept independent so the two
 // escape hatches can never relax each other.
+//
+// Redirects are deliberately still FOLLOWED here, unlike the CIMD document and
+// backchannel-logout fetches which refuse them. Those two retrieve a
+// spec-defined resource that must be AT the URL named; a webhook endpoint is an
+// operator's own URL, and a same-host path redirect is followed today with the
+// final status recorded in WebhookLog.HttpStatus. Refusing them would change
+// that recorded status for existing deployments to close nothing: SafeHTTPClient
+// pins the dial to the validated IP, so a redirect cannot reach a different host
+// regardless. Do not "make this consistent" without a compatibility note.
 func webhookHTTPClient(ctx context.Context, rawURL string, timeout time.Duration, allowPrivate bool) (*http.Client, error) {
 	if allowPrivate {
 		return validators.SafeHTTPClientAllowPrivate(ctx, rawURL, timeout)
