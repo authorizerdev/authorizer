@@ -53,7 +53,10 @@ const (
 
 	// fgaModelDSL is the minimal OpenFGA model the scenario authorizes
 	// against: a user can be a viewer of a document.
-	fgaModelDSL = "model\n  schema 1.1\ntype user\ntype document\n  relations\n    define viewer: [user]"
+	// `agent` is declared so the RFC 8693 delegation intersection has a subject
+	// type to hold the agent half. Declaring the type IS the opt-in; the user
+	// assertions elsewhere in this file are unaffected by its presence.
+	fgaModelDSL = "model\n  schema 1.1\ntype user\ntype agent\ntype document\n  relations\n    define viewer: [user, agent]"
 )
 
 // TestReleaseSmoke is the release gate: one scenario across every public
@@ -480,6 +483,109 @@ func TestReleaseSmoke(t *testing.T) {
 		defer func() { _ = wrongAud.Body.Close() }()
 		assert.Equal(t, http.StatusUnauthorized, wrongAud.StatusCode,
 			"a token minted for the client, not for <url>/mcp, must be refused")
+	})
+
+	// --- Surface 4b: MCP over HTTP with an RFC 8693 delegated token -------
+	// An agent acting for the user must reach the tools, and must be answered
+	// with ITS OWN authority (perms(agent) ∩ perms(user)) rather than the
+	// user's. Run against the real binary because the property spans the token
+	// endpoint, the audience check and the FGA subject expansion — three
+	// components that are individually tested and could still disagree once
+	// wired together.
+	t.Run("mcp delegated", func(t *testing.T) {
+		resource := baseURL + "/mcp"
+
+		created := gql.mutate(t, `mutation { _create_client(params:{name:"smoke-agent", allowed_scopes:["openid"]}) { client { client_id } client_secret } }`)
+		agent := created["_create_client"].(map[string]any)
+		agentID := agent["client"].(map[string]any)["client_id"].(string)
+		agentSecret := agent["client_secret"].(string)
+		require.NotEmpty(t, agentID)
+
+		postForm := func(form url.Values) map[string]any {
+			resp, err := http.Post(baseURL+"/oauth/token",
+				"application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			raw, _ := io.ReadAll(resp.Body)
+			require.Equal(t, http.StatusOK, resp.StatusCode, "token endpoint: %s", raw)
+			var out map[string]any
+			require.NoError(t, json.Unmarshal(raw, &out))
+			return out
+		}
+
+		ccForm := url.Values{}
+		ccForm.Set("grant_type", "client_credentials")
+		ccForm.Set("client_id", agentID)
+		ccForm.Set("client_secret", agentSecret)
+		actorToken := postForm(ccForm)["access_token"].(string)
+
+		exchange := func(res string) string {
+			form := url.Values{}
+			form.Set("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange")
+			form.Set("client_id", agentID)
+			form.Set("client_secret", agentSecret)
+			form.Set("subject_token", token)
+			form.Set("subject_token_type", "urn:ietf:params:oauth:token-type:access_token")
+			form.Set("actor_token", actorToken)
+			form.Set("actor_token_type", "urn:ietf:params:oauth:token-type:access_token")
+			form.Set("resource", res)
+			return postForm(form)["access_token"].(string)
+		}
+
+		delegated := exchange(resource)
+		apiBound := exchange(baseURL)
+
+		mcpCall := func(bearer, body string) *http.Response {
+			req, err := http.NewRequest(http.MethodPost, resource, strings.NewReader(body))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json, text/event-stream")
+			req.Header.Set("Authorization", "Bearer "+bearer)
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			return resp
+		}
+
+		// The bijection: each token opens exactly the surface its audience names.
+		refused := mcpCall(apiBound, mcpInitializeRPC)
+		defer func() { _ = refused.Body.Close() }()
+		assert.Equal(t, http.StatusUnauthorized, refused.StatusCode,
+			"a delegated token bound to the bare server URL must not open /mcp")
+
+		accepted := mcpCall(delegated, mcpInitializeRPC)
+		defer func() { _ = accepted.Body.Close() }()
+		require.Equal(t, http.StatusOK, accepted.StatusCode, "delegated token must reach /mcp")
+
+		// The intersection, through the real tool. The user is a viewer of
+		// document:readme (seeded above); this agent holds no grant at all, so
+		// every answer must be false — including the one the user can see.
+		callResp := mcpCall(delegated, `{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"check_permissions",`+
+			`"arguments":{"checks":[{"relation":"viewer","object":"document:readme"}]}}}`)
+		defer func() { _ = callResp.Body.Close() }()
+		require.Equal(t, http.StatusOK, callResp.StatusCode)
+
+		var toolOut struct {
+			Result struct {
+				Content []struct {
+					Text string `json:"text"`
+				} `json:"content"`
+				IsError bool `json:"isError"`
+			} `json:"result"`
+		}
+		require.NoError(t, json.NewDecoder(callResp.Body).Decode(&toolOut))
+		require.False(t, toolOut.Result.IsError)
+		require.NotEmpty(t, toolOut.Result.Content)
+
+		var perms struct {
+			Results []struct {
+				Allowed bool `json:"allowed"`
+			} `json:"results"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(toolOut.Result.Content[0].Text), &perms))
+		require.Len(t, perms.Results, 1)
+		assert.False(t, perms.Results[0].Allowed,
+			"CONFUSED DEPUTY: the agent holds no grant, so it must be denied even "+
+				"though the delegating user is a viewer of document:readme")
 	})
 
 	// --- Surface 5: MCP (stdio subprocess, deprecated) --------------------

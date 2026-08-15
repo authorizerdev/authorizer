@@ -3,6 +3,8 @@ package mcp
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -86,6 +88,52 @@ func TestExposedMCPToolsCannotBypassTheMCPTokenRule(t *testing.T) {
 		t.Fatal("found no mcp_tool-exposed methods — the proto registry was not linked in, so this test proved nothing")
 	}
 	t.Logf("checked %d mcp_tool-exposed methods", checked)
+}
+
+// TestExposedMCPToolSetIsPinned fixes the exposed tool set so that adding one is
+// a deliberate act with a review attached, not a one-line proto edit.
+//
+// The specific hazard this guards, beyond "the surface grew":
+//
+// Since /mcp accepts RFC 8693 delegated tokens (ValidateMCPAccessToken), a tool
+// call can arrive with NO `nonce` claim — delegated tokens are stateless and
+// carry none. MCPTokenResolver propagates that empty nonce into
+// authctx.Principal, which is harmless for every tool below because none of them
+// reads it. It is NOT harmless in general: service.Logout and service.Session
+// both call MemoryStoreProvider.DeleteUserSession(sessionKey, nonce), so
+// exposing a session-mutating RPC as an MCP tool would hand that code an empty
+// nonce from a delegated caller.
+//
+// So: a new entry here is fine, but check what the underlying RPC does with
+// SessionOrAccessTokenData.Nonce before adding it.
+func TestExposedMCPToolSetIsPinned(t *testing.T) {
+	want := map[string]bool{
+		"Meta":             true,
+		"Profile":          true,
+		"CheckPermissions": true,
+		"ListPermissions":  true,
+	}
+
+	got := map[string]bool{}
+	protoregistry.GlobalFiles.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
+		svcs := fd.Services()
+		for i := 0; i < svcs.Len(); i++ {
+			methods := svcs.Get(i).Methods()
+			for j := 0; j < methods.Len(); j++ {
+				m := methods.Get(j)
+				if tool := mcpToolFromMethod(m); tool != nil && tool.GetExposed() {
+					got[string(m.Name())] = true
+				}
+			}
+		}
+		return true
+	})
+
+	require.NotEmpty(t, got, "the proto registry was not linked in, so this test proved nothing")
+	assert.Equal(t, want, got,
+		"the MCP tool set changed. Adding a tool is a security decision: confirm the RPC "+
+			"does not consume SessionOrAccessTokenData.Nonce (a delegated caller supplies "+
+			"none) and does not mutate session state, then update `want` in this test.")
 }
 
 // methodIsPublic mirrors interceptors.isPublicMethod. Duplicated rather than

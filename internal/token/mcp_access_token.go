@@ -47,15 +47,40 @@ import (
 // uses. MCP is NOT a weaker path: it differs from the first-party check in
 // exactly one rule, the audience, and there it is the stricter of the two.
 //
-// # What is deliberately NOT accepted
+// # RFC 8693 delegated tokens ARE accepted, as a fallback
 //
-// RFC 8693 delegated tokens. They are stateless by design — no nonce, no session
-// entry — so they fail the core's session lookup, and ValidateDelegatedAccessToken
-// requires `aud` to equal the bare server URL rather than the /mcp resource. An
-// agent therefore cannot yet reach /mcp with a delegated token. That is a scoping
-// decision, not an oversight: the delegated path gives up the byte-for-byte
-// comparison against a stored token, and widening it is a deliberate edit to that
-// function (see its doc comment), not a side effect of adding a transport.
+// A delegated token is stateless by design — no nonce, no session entry — so it
+// always fails the stateful core above. It is then retried against
+// ValidateDelegatedAccessTokenForResource, which enforces every other check plus
+// an EXACT match on this same `resource`.
+//
+// This is what lets an agent holding "agent X acting for user Y" authority ask
+// Authorizer about that authority through the MCP tools it was granted. Without
+// it, check_permissions was unreachable with the very token that proves the
+// delegation, and agent-delegation over MCP was a stdio-only story.
+//
+// Three properties make the fallback safe rather than a hole:
+//
+//   - Ordered as a FALLBACK, not a branch. A first-party MCP token is validated
+//     exactly as before and never touches the weaker path.
+//   - Gated on the `act` claim. Only a token that actually carries an actor is
+//     retried, so an ordinary wrong-audience login token is rejected once
+//     instead of paying a second full validation (JWT parse, session lookup,
+//     subject-liveness DB read) on the hot rejection path of an
+//     internet-facing endpoint. The claims are read from the stateful attempt's
+//     own signature-verified parse, so this costs nothing extra; a wrong hint
+//     could only cause a rejection, never an acceptance, because the delegated
+//     validator re-parses and re-verifies independently.
+//   - The audience match stays EXACT. A delegated token bound to the bare
+//     server URL — the kind that works at /graphql today — is still refused
+//     here, and an MCP-bound one is still refused there. See the bijection note
+//     on ValidateDelegatedAccessTokenForResource.
+//
+// What the delegated path gives up relative to the stateful one is the
+// byte-for-byte comparison against a stored copy of the token. The compensating
+// controls are the signature, the 5-minute DelegatedAccessTokenTTL, the exact
+// audience binding, and delegationSessionIsLive — so logout, password reset and
+// admin revoke still take an agent's access down with the user's session.
 func (p *provider) ValidateMCPAccessToken(gc *gin.Context, accessToken string, resource string) (map[string]interface{}, error) {
 	if resource == "" {
 		// Fail closed. An empty expected audience would make the comparison
@@ -63,7 +88,7 @@ func (p *provider) ValidateMCPAccessToken(gc *gin.Context, accessToken string, r
 		// subtle for an auth path: say no explicitly.
 		return map[string]interface{}{}, fmt.Errorf(`unauthorized: no mcp resource configured`)
 	}
-	return p.validateStatefulAccessToken(gc, accessToken, func(aud string) error {
+	claims, err := p.validateStatefulAccessToken(gc, accessToken, func(aud string) error {
 		if !sameAudience(aud, resource) {
 			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", resource).
 				Msg("access token rejected at mcp: audience names a different resource")
@@ -71,4 +96,14 @@ func (p *provider) ValidateMCPAccessToken(gc *gin.Context, accessToken string, r
 		}
 		return nil
 	})
+	if err == nil {
+		return claims, nil
+	}
+	// Not a delegated token: report the stateful failure as-is. ImmediateActor
+	// reads the claims validateStatefulAccessToken already parsed and
+	// signature-verified; an empty map (parse failure) yields "" and stops here.
+	if ImmediateActor(claims) == "" {
+		return claims, err
+	}
+	return p.ValidateDelegatedAccessTokenForResource(gc, accessToken, resource)
 }
