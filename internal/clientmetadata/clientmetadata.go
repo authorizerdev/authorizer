@@ -29,6 +29,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -248,7 +249,22 @@ func (p *Provider) fetchViaClient(ctx context.Context, clientID string, client *
 	}
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := client.Do(req)
+	// Refuse redirects, matching the JWKS and OIDC-discovery fetches. The
+	// document must be AT the client_id URL, so a hop away from it is a document
+	// for a different identifier, and SafeHTTPClient pins the dial to the
+	// validated IP — a redirect elsewhere would re-issue the request against
+	// that same address carrying someone else's Host header rather than
+	// reaching the named host at all.
+	//
+	// Set on a COPY, not on the caller's client: fetch() builds a fresh one per
+	// request, but SetHTTPClientForTest injects a client the test owns, and
+	// mutating a caller's value is a side effect regardless of which path is
+	// hotter. The copy costs nothing and keeps both paths on the same policy, so
+	// the test seam actually exercises what production does.
+	noRedirect := *client
+	noRedirect.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
+
+	resp, err := noRedirect.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("could not fetch client metadata document")
 	}
@@ -322,8 +338,9 @@ func cacheTTL(header string) time.Duration {
 	for _, part := range strings.Split(header, ",") {
 		part = strings.ToLower(strings.TrimSpace(part))
 		if v, ok := strings.CutPrefix(part, "max-age="); ok {
-			var secs int
-			if _, err := fmt.Sscanf(v, "%d", &secs); err == nil && secs > 0 {
+			// strconv.Atoi, not fmt.Sscanf: Sscanf stops at the first non-digit
+			// and still reports success, so "max-age=60junk" parsed as 60.
+			if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
 				ttl = time.Duration(secs) * time.Second
 			}
 		}
