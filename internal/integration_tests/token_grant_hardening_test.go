@@ -120,6 +120,19 @@ func TestTokenExchangeRejectsInvalidResourceIndicator(t *testing.T) {
 		Nonce:       uuid.New().String(), HostName: testAuthorizerHost(ts),
 	})
 	require.NoError(t, err)
+	// Register the session CreateAuthToken does not write. Every production path
+	// that mints an access token registers it (login, signup, verify_email,
+	// authorization_code, refresh, client_credentials), so a token without an
+	// entry is a token whose session has been revoked — and token exchange now
+	// refuses to seed a delegation from one. Without this the subject_token here
+	// is revoked-shaped, and this test would fail on the happy-path case it exists
+	// to protect for a reason that has nothing to do with resource indicators.
+	require.NoError(t, ts.MemoryStoreProvider.SetUserSession(
+		constants.AuthRecipeMethodBasicAuth+":"+user.ID,
+		constants.TokenTypeAccessToken+"_"+subjectTok.FingerPrint,
+		subjectTok.AccessToken.Token,
+		subjectTok.AccessToken.ExpiresAt,
+	))
 
 	agentID, agentSecret := newDelegationAgent(t, ts, "openid")
 	actorTok := agentAccessToken(t, ts, router, agentID, agentSecret)

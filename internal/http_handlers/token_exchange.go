@@ -242,6 +242,43 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		sessionID = token.DelegationSessionID(loginMethod, subject, nonce)
 	}
 
+	// The delegation has to be revocable at MINT time, not only at use time.
+	//
+	// delegationSessionIsLive already refuses a delegated token whose originating
+	// session is gone — but only at Authorizer's own surfaces. The token minted
+	// here is bound to a third-party `resource` and is validated by THAT server,
+	// which has no view of this session store. So without this check, a user who
+	// logged out could still have their agent mint fresh credentials against
+	// external resource servers for as long as the subject_token remained
+	// unexpired, and nothing downstream would notice.
+	//
+	// Checked only when there is something to check. A `sid` is either well-formed
+	// or absent — DelegationSessionID returns "" rather than a partial value — and
+	// its absence is a documented state meaning "this subject had no session"
+	// (see CreateDelegatedAccessToken, which omits the claim entirely in that
+	// case, so its presence always means checkable). Rejecting that case too would
+	// delete a supported branch rather than close the gap.
+	//
+	// Service-account subjects are exempt: a client_credentials token has no
+	// browser session, and its liveness was already established by the IsActive
+	// check above. Applying this to them would break the multi-hop agent chain.
+	if onBehalfOfType == constants.AuditActorTypeUser && sessionID != "" {
+		if sessionKey, sessionNonce, ok := token.ParseDelegationSessionID(sessionID); ok {
+			if _, sErr := h.MemoryStoreProvider.GetUserSession(
+				sessionKey, constants.TokenTypeAccessToken+"_"+sessionNonce); sErr != nil {
+				log.Debug().Msg("rejected: the subject's originating session is no longer live")
+				// Deliberately the same opaque invalid_grant the invalid-subject_token
+				// path returns, so this is not an oracle for whether a given user is
+				// currently signed in.
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_grant",
+					"error_description": "The subject_token is invalid or has expired",
+				})
+				return
+			}
+		}
+	}
+
 	delegated, err := h.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
 		Subject:   subject,
 		Actor:     act,
