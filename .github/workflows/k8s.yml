@@ -1,0 +1,50 @@
+name: Kubernetes workload identity
+
+# The Kubernetes workload-identity path had no test against a real cluster.
+# Every other test substitutes an httptest server, which replaces the single
+# property that decides whether the feature works in production: a real cluster
+# publishes its issuer, JWKS and apiserver on private/loopback addresses, and
+# validators.SafeHTTPClient rejects those unconditionally.
+#
+# Runs on a schedule and on demand rather than per-push: it provisions a cluster
+# (~1 min) and guards a documented limitation that changes rarely, so gating
+# every PR on it would buy little for the time.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+  pull_request:
+    paths:
+      # Only the code that decides whether a cluster is reachable at all.
+      - 'internal/service/clientauth/**'
+      - 'internal/validators/safe_http.go'
+      - 'internal/service/admin_trusted_issuers.go'
+      - 'scripts/k8s-e2e.sh'
+      - 'internal/integration_tests/k8s_workload_identity_test.go'
+      - '.github/workflows/k8s.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # kind is preinstalled on ubuntu-latest runners, but pin it so a runner
+      # image change cannot silently alter which Kubernetes version is tested.
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+          version: v0.24.0
+
+      - name: Run the Kubernetes workload-identity suite
+        run: make test-k8s

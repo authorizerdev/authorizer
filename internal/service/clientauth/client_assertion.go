@@ -497,6 +497,21 @@ type tokenReviewResponse struct {
 // endpoint). Reaching a private in-cluster apiserver needs a deliberate SSRF
 // exemption + CA-pinning decision, which is intentionally left to the operator/
 // security owner rather than weakening the SSRF guard here.
+//
+// The limitation is WIDER than this function, and measured rather than assumed —
+// see internal/integration_tests/k8s_workload_identity_test.go (`make test-k8s`),
+// which runs against a real kind cluster. It is not only the apiserver: the
+// cluster's `jwks_uri` points at the apiserver's own private address too, so the
+// static_jwks_url / oidc_discovery key sources are refused for the same reason,
+// with or without TokenReview. Measured on kind:
+//
+//	issuer    https://kubernetes.default.svc.cluster.local  (ClusterIP)
+//	jwks_uri  https://172.27.0.2:6443/openid/v1/jwks         (RFC 1918)
+//	apiserver https://127.0.0.1:60438                        (loopback)
+//
+// The operator-visible symptom is a bare `400 invalid_client / "Client
+// authentication failed"` with nothing pointing at the refused fetch, which is
+// also worth fixing whenever the address problem is.
 func (p *provider) performTokenReview(ctx context.Context, apiServerURL, token, expectedAud string) error {
 	var reqBody tokenReviewRequest
 	reqBody.APIVersion = "authentication.k8s.io/v1"

@@ -366,6 +366,10 @@ perf-k6-validate:
 perf-k6-check:
 	k6 run perf/k6/fga_check.js
 
+.PHONY: test-k8s
+test-k8s: ## Run the Kubernetes workload-identity e2e suite against a throwaway kind/k3d cluster
+	@./scripts/k8s-e2e.sh
+
 .PHONY: e2e-playground
 e2e-playground: ## Run the live-playground e2e suite (OIDC/SAML/SCIM/SSO/OAuth/MFA) against an ephemeral docker-compose stack
 # The explicit `build` below is load-bearing: `docker compose up` builds an image

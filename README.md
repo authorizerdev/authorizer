@@ -55,7 +55,7 @@ For production builds, tests, and Docker, see [Getting Started](#getting-started
 - ✅ Secure session management
 - ✅ Email verification
 - ✅ OAuth2 and OpenID Connect compatible APIs (IdP, Relying Party/broker, and both simultaneously for multi-tenant SSO)
-- ✅ Machine-to-machine (service-to-service) authentication with `client_credentials` grant and secretless workload identity (RFC 7523 client_assertion, Kubernetes TokenReview) — SPIFFE JWT-SVID is **preview**: its draft (`draft-schwenkschuster-oauth-spiffe-client-auth-00`) expired 2026-01-02, is not WG-adopted, and its assertion-type URN is not IANA-registered, so the value may change
+- ✅ Machine-to-machine (service-to-service) authentication with `client_credentials` grant and secretless workload identity (RFC 7523 client_assertion, Kubernetes projected ServiceAccount tokens, TokenReview) — **requires a publicly-routable issuer/JWKS endpoint.** Authorizer's SSRF guard rejects private, loopback and link-local addresses, and a standard cluster publishes its issuer (`kubernetes.default.svc`), `jwks_uri` and apiserver on exactly those, so an in-cluster deployment cannot reach them. Use a managed cluster's public API endpoint or a publicly-reachable JWKS mirror. Pinned by `make test-k8s`. SPIFFE JWT-SVID is **preview**: its draft (`draft-schwenkschuster-oauth-spiffe-client-auth-00`) expired 2026-01-02, is not WG-adopted, and its assertion-type URN is not IANA-registered, so the value may change
 - ✅ Agent-to-agent (A2A) delegation via RFC 8693 token-exchange with nested `act` chains and scope attenuation
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
