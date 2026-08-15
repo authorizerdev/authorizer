@@ -19,12 +19,17 @@ import {
 	SheetFooter,
 } from './ui/sheet';
 
-const keySourceTypes = [
-	'oidc_discovery',
-	'static_jwks_url',
-	'spiffe_bundle_endpoint',
-];
+// Only the sources the server can actually resolve. 'spiffe_bundle_endpoint' was
+// offered here but has no implementation behind it — fetchJWKSBytes rejects it
+// with "unsupported key_source_type" — so picking it produced an issuer that
+// looked saved and failed at the first authentication. The API now refuses it at
+// write time (service.validateKeySourceType), which would have made this dropdown
+// an option guaranteed to error. Re-add it together with the implementation.
+const keySourceTypes = ['oidc_discovery', 'static_jwks_url'];
 
+// Kept in step with service.validateIssuerType. 'spiffe_jwt' is preview: its
+// draft expired 2026-01-02, is not WG-adopted, and its assertion-type URN is not
+// IANA-registered.
 const issuerTypes = ['kubernetes_sa', 'spiffe_jwt', 'oidc', 'cloud_oidc'];
 
 interface UpdateTrustedIssuerModalProps {

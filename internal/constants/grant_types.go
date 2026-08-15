@@ -59,8 +59,19 @@ const (
 	// Preferred for private clusters — avoids exposing K8s discovery endpoints.
 	KeySourceStaticJWKSURL = "static_jwks_url"
 
-	// KeySourceSPIFFEBundleEndpoint fetches keys from a SPIFFE bundle endpoint.
-	// Requires SpiffeRefreshHintSeconds to be honoured at runtime (Phase 5).
+	// KeySourceSPIFFEBundleEndpoint names a SPIFFE bundle endpoint as the key
+	// source.
+	//
+	// NOT IMPLEMENTED. fetchJWKSBytes has no case for it and returns
+	// "unsupported key_source_type", and SpiffeRefreshHintSeconds — which a
+	// bundle endpoint's refresh cadence depends on — is stored and returned by
+	// the admin API but never read at runtime.
+	//
+	// The constant is kept, rather than deleted, because
+	// service.validateKeySourceType rejects it BY NAME with "not implemented
+	// yet". Before that existed the value was accepted and stored verbatim, so an
+	// issuer configured with it looked healthy and failed only when the first
+	// workload tried to authenticate.
 	KeySourceSPIFFEBundleEndpoint = "spiffe_bundle_endpoint"
 )
 
@@ -82,9 +93,13 @@ const (
 
 // TrustedIssuer authentication method identifiers.
 const (
-	// AuthMethodJWTAssertion uses a JWT as the client_assertion (Phases 3–5, default).
+	// AuthMethodJWTAssertion uses a JWT as the client_assertion. It is the only
+	// value AddTrustedIssuer writes, and the only one anything reads.
 	AuthMethodJWTAssertion = "jwt_assertion"
-
-	// AuthMethodX509MTLS uses an X.509-SVID via mTLS (Phase 6).
-	AuthMethodX509MTLS = "x509_mtls"
 )
+
+// An x509_mtls auth method (X.509-SVID over mTLS) was declared here and never
+// implemented: nothing read it, AddTrustedIssuer hardcoded jwt_assertion, and no
+// request field could set it, so the constant was unreachable in every direction.
+// Removed rather than left as a claim the code does not honour. Reintroduce it
+// with the implementation, not ahead of it.
