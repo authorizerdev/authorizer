@@ -30,6 +30,13 @@ const (
 	EventTokenIssued   = "token_issued"
 	EventTokenRefresh  = "token_refresh"
 	EventTokenRevoke   = "token_revoke"
+	// EventTokenExchange counts RFC 8693 delegation exchanges specifically,
+	// success and failure. EventTokenIssued stays the count of ALL issuance
+	// (unchanged, so existing dashboards keep working) — but it carries no grant
+	// label, so before this there was no way to see delegated issuance apart from
+	// authorization_code or client_credentials, and no failure count at all to
+	// compute a rate against.
+	EventTokenExchange = "token_exchange"
 
 	StatusSuccess = "success"
 	StatusFailure = "failure"

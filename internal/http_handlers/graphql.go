@@ -268,13 +268,23 @@ func (h *httpProvider) gqlDelegatedScopeMiddleware() gql.FieldMiddleware {
 			return next(ctx) // first-party token; see the package comment.
 		}
 
+		// Both refusals below are metered. This is the agent scope-ceiling
+		// enforcement point, and it was previously silent on every transport: an
+		// operator had no way to see that agents were hitting their ceiling, which
+		// is exactly the number needed before deciding whether to widen one. The
+		// two outcomes are separate labels because they call for opposite actions
+		// — "not_delegatable" means the operation is not on the delegated
+		// allow-list at all (a client bug, or probing), while "scope_missing"
+		// means it is reachable but this token was not granted it.
 		required, ok := delegatedscope.RequiredForGraphQL(fc.Field.Name)
 		if !ok {
 			// Fail closed: an operation nobody has cleared for delegated
 			// callers is out of reach for an agent, whatever scope it holds.
+			metrics.RecordSecurityEvent("delegated_insufficient_scope", "graphql_not_delegatable")
 			return nil, gqlerror.Errorf("insufficient_scope")
 		}
 		if !delegatedscope.Satisfied(token.ClaimScopes(claims), required) {
+			metrics.RecordSecurityEvent("delegated_insufficient_scope", "graphql_scope_missing")
 			return nil, gqlerror.Errorf("insufficient_scope")
 		}
 		return next(ctx)

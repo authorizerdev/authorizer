@@ -44,11 +44,11 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 
 	// RFC 8693 §2.1: subject_token and subject_token_type are REQUIRED.
 	if subjectToken == "" || subjectTokenType == "" {
-		badTokenExchangeRequest(gc, "subject_token and subject_token_type are required")
+		h.badTokenExchangeRequest(gc, agent, reasonMissingSubject, "subject_token and subject_token_type are required")
 		return
 	}
 	if !isSupportedExchangeTokenType(subjectTokenType) {
-		badTokenExchangeRequest(gc, "unsupported subject_token_type")
+		h.badTokenExchangeRequest(gc, agent, reasonUnsupportedSubject, "unsupported subject_token_type")
 		return
 	}
 
@@ -56,11 +56,11 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	// exchange is impersonation — a separate, admin-gated design not served on
 	// this endpoint. Reject fail-closed rather than silently impersonating.
 	if actorToken == "" {
-		badTokenExchangeRequest(gc, "actor_token is required: only the delegation profile is supported here (impersonation is not permitted)")
+		h.badTokenExchangeRequest(gc, agent, reasonMissingActor, "actor_token is required: only the delegation profile is supported here (impersonation is not permitted)")
 		return
 	}
 	if actorTokenType == "" || !isSupportedExchangeTokenType(actorTokenType) {
-		badTokenExchangeRequest(gc, "unsupported or missing actor_token_type")
+		h.badTokenExchangeRequest(gc, agent, reasonUnsupportedActor, "unsupported or missing actor_token_type")
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	// token-exchange path only; other grants are unaffected.
 	resources := gc.PostFormArray("resource")
 	if len(resources) != 1 || strings.TrimSpace(resources[0]) == "" {
-		badTokenExchangeRequest(gc, "exactly one resource parameter is required")
+		h.badTokenExchangeRequest(gc, agent, reasonResourceCount, "exactly one resource parameter is required")
 		return
 	}
 	resource := strings.TrimSpace(resources[0])
@@ -81,10 +81,8 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	// server. Same helper, same rejection, so the two paths cannot drift.
 	if !isValidResourceIndicator(resource) {
 		log.Debug().Str("client_id", agent.ClientID).Str("resource", resource).Msg("rejected: invalid resource indicator")
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_target",
-			"error_description": "resource must be an absolute URI without a fragment",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonResourceInvalid,
+			"invalid_target", "resource must be an absolute URI without a fragment")
 		return
 	}
 
@@ -95,19 +93,15 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	subjectClaims, err := h.validateExchangeToken(subjectToken, hostname)
 	if err != nil {
 		log.Debug().Err(err).Msg("invalid subject_token")
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_grant",
-			"error_description": "The subject_token is invalid or has expired",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectTokenInvalid,
+			"invalid_grant", "The subject_token is invalid or has expired")
 		return
 	}
 	actorClaims, err := h.validateExchangeToken(actorToken, hostname)
 	if err != nil {
 		log.Debug().Err(err).Msg("invalid actor_token")
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_grant",
-			"error_description": "The actor_token is invalid or has expired",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonActorTokenInvalid,
+			"invalid_grant", "The actor_token is invalid or has expired")
 		return
 	}
 	// RFC 8693 §1.1: the actor_token represents the acting party. Bind it to the
@@ -117,19 +111,15 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	// so require the actor_token's subject to be this client.
 	if actorSub, _ := actorClaims["sub"].(string); actorSub != agent.ID {
 		log.Debug().Msg("actor_token does not belong to the authenticated client")
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_grant",
-			"error_description": "The actor_token must belong to the authenticated client",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonActorNotCaller,
+			"invalid_grant", "The actor_token must belong to the authenticated client")
 		return
 	}
 
 	subject, _ := subjectClaims["sub"].(string)
 	if subject == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_grant",
-			"error_description": "The subject_token has no subject",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectMissing,
+			"invalid_grant", "The subject_token has no subject")
 		return
 	}
 
@@ -154,17 +144,13 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		subjectClient, cErr := h.StorageProvider.GetClientByID(gc, subject)
 		if cErr != nil || subjectClient == nil {
 			log.Debug().Err(cErr).Msg("subject service account could not be verified")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_grant",
-				"error_description": "The subject could not be verified",
-			})
+			h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectUnverifiable,
+				"invalid_grant", "The subject could not be verified")
 			return
 		}
 		if !subjectClient.IsActive {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_grant",
-				"error_description": "The subject is no longer active",
-			})
+			h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectInactive,
+				"invalid_grant", "The subject is no longer active")
 			return
 		}
 	} else {
@@ -172,17 +158,13 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		if uErr != nil || user == nil {
 			// A user authority we cannot load must not seed a delegation (fail closed).
 			log.Debug().Err(uErr).Msg("subject user could not be verified")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_grant",
-				"error_description": "The subject could not be verified",
-			})
+			h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectUnverifiable,
+				"invalid_grant", "The subject could not be verified")
 			return
 		}
 		if user.RevokedTimestamp != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_grant",
-				"error_description": "The subject is no longer active",
-			})
+			h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectInactive,
+				"invalid_grant", "The subject is no longer active")
 			return
 		}
 	}
@@ -196,10 +178,8 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	if len(ceiling) == 0 {
 		// Empty AllowedScopes is DENY-ALL (schema § AllowedScopes) — an agent with
 		// no ceiling can delegate nothing.
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_scope",
-			"error_description": "The agent has no authorized scopes",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonAgentNoScopes,
+			"invalid_scope", "The agent has no authorized scopes")
 		return
 	}
 	effective := intersectScopes(subjectScope, ceiling)
@@ -207,10 +187,8 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		effective = intersectScopes(effective, requested)
 	}
 	if len(effective) == 0 {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_scope",
-			"error_description": "The requested scope is empty after attenuation against the subject and the agent ceiling",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonScopeEmpty,
+			"invalid_scope", "The requested scope is empty after attenuation against the subject and the agent ceiling")
 		return
 	}
 
@@ -223,10 +201,8 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		act["act"] = prior
 	}
 	if actChainDepth(act) > maxActChainDepth {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_request",
-			"error_description": "The delegation chain exceeds the maximum allowed depth",
-		})
+		h.rejectExchange(gc, agent, http.StatusBadRequest, reasonChainTooDeep,
+			"invalid_request", "The delegation chain exceeds the maximum allowed depth")
 		return
 	}
 
@@ -242,6 +218,43 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 		sessionID = token.DelegationSessionID(loginMethod, subject, nonce)
 	}
 
+	// The delegation has to be revocable at MINT time, not only at use time.
+	//
+	// delegationSessionIsLive already refuses a delegated token whose originating
+	// session is gone — but only at Authorizer's own surfaces. The token minted
+	// here is bound to a third-party `resource` and is validated by THAT server,
+	// which has no view of this session store. So without this check, a user who
+	// logged out could still have their agent mint fresh credentials against
+	// external resource servers for as long as the subject_token remained
+	// unexpired, and nothing downstream would notice.
+	//
+	// Checked only when there is something to check. A `sid` is either well-formed
+	// or absent — DelegationSessionID returns "" rather than a partial value — and
+	// its absence is a documented state meaning "this subject had no session"
+	// (see CreateDelegatedAccessToken, which omits the claim entirely in that
+	// case, so its presence always means checkable). Rejecting that case too would
+	// delete a supported branch rather than close the gap.
+	//
+	// Service-account subjects are exempt: a client_credentials token has no
+	// browser session, and its liveness was already established by the IsActive
+	// check above. Applying this to them would break the multi-hop agent chain.
+	if onBehalfOfType == constants.AuditActorTypeUser && sessionID != "" {
+		if sessionKey, sessionNonce, ok := token.ParseDelegationSessionID(sessionID); ok {
+			if _, sErr := h.MemoryStoreProvider.GetUserSession(
+				sessionKey, constants.TokenTypeAccessToken+"_"+sessionNonce); sErr != nil {
+				log.Debug().Msg("rejected: the subject's originating session is no longer live")
+				// Deliberately the same opaque invalid_grant the invalid-subject_token
+				// path returns, so this is not an oracle for whether a given user is
+				// currently signed in. The AUDIT record distinguishes them (the
+				// reason constant differs) because that is written server-side and
+				// never reaches the caller.
+				h.rejectExchange(gc, agent, http.StatusBadRequest, reasonSubjectSessionGone,
+					"invalid_grant", "The subject_token is invalid or has expired")
+				return
+			}
+		}
+	}
+
 	delegated, err := h.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
 		Subject:   subject,
 		Actor:     act,
@@ -253,10 +266,8 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to mint delegated token")
-		gc.JSON(http.StatusInternalServerError, gin.H{
-			"error":             "server_error",
-			"error_description": "Could not complete token issuance",
-		})
+		h.rejectExchange(gc, agent, http.StatusInternalServerError, reasonMintFailed,
+			"server_error", "Could not complete token issuance")
 		return
 	}
 
@@ -288,6 +299,10 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	})
 
 	metrics.RecordAuthEvent(metrics.EventTokenIssued, metrics.StatusSuccess)
+	// Delegation-specific, alongside the generic issuance counter above. Without
+	// it there is no denominator for the failure count rejectExchange records, and
+	// no way to see delegated issuance apart from any other grant.
+	metrics.RecordAuthEvent(metrics.EventTokenExchange, metrics.StatusSuccess)
 
 	// RFC 8693 §2.2 token-exchange response.
 	gc.JSON(http.StatusOK, gin.H{
@@ -299,12 +314,76 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	})
 }
 
-// badTokenExchangeRequest writes the RFC 6749 §5.2 invalid_request response.
-func badTokenExchangeRequest(gc *gin.Context, desc string) {
-	gc.JSON(http.StatusBadRequest, gin.H{
-		"error":             "invalid_request",
+// Rejection reasons for rejectExchange. These become a Prometheus label and an
+// audit Metadata value, so they are a FIXED, low-cardinality set — never a
+// caller-derived string. Each names the rule that refused, which is the thing an
+// operator needs in order to tell "this agent is misconfigured" from "this agent
+// is probing".
+const (
+	reasonMissingSubject      = "missing_subject_token"
+	reasonUnsupportedSubject  = "unsupported_subject_token_type"
+	reasonMissingActor        = "missing_actor_token"
+	reasonUnsupportedActor    = "unsupported_actor_token_type"
+	reasonResourceCount       = "resource_not_exactly_one"
+	reasonResourceInvalid     = "invalid_resource_indicator"
+	reasonSubjectTokenInvalid = "subject_token_invalid"
+	reasonActorTokenInvalid   = "actor_token_invalid"
+	reasonActorNotCaller      = "actor_token_not_the_caller"
+	reasonSubjectMissing      = "subject_token_has_no_subject"
+	reasonSubjectUnverifiable = "subject_unverifiable"
+	reasonSubjectInactive     = "subject_inactive"
+	reasonSubjectSessionGone  = "subject_session_not_live"
+	reasonAgentNoScopes       = "agent_has_no_scopes"
+	reasonScopeEmpty          = "scope_empty_after_attenuation"
+	reasonChainTooDeep        = "delegation_chain_too_deep"
+	reasonMintFailed          = "token_issuance_failed"
+)
+
+// rejectExchange writes a token-exchange refusal AND records it.
+//
+// It exists because every one of the fourteen refusal paths on this endpoint was
+// previously silent: no audit entry, no metric, only a Debug log. The
+// client_credentials grant already audits its failures
+// (AuditTokenClientCredentialsFailedEvent), so machine-identity auth failures
+// were attributable while delegation failures — the more sensitive of the two,
+// since a delegated token carries a user's authority — were not. An agent
+// probing this endpoint left no trail.
+//
+// Routing every refusal through one function is also what keeps that true: a new
+// rejection path added later cannot be silent without deliberately bypassing this.
+func (h *httpProvider) rejectExchange(gc *gin.Context, agent *schemas.Client, status int, reason, errCode, desc string) {
+	metrics.RecordAuthEvent(metrics.EventTokenExchange, metrics.StatusFailure)
+	metrics.RecordSecurityEvent("token_exchange_rejected", reason)
+
+	// agent is nil-safe: the caller is always an authenticated client by the time
+	// this handler runs, but an audit call must never be the thing that panics an
+	// auth endpoint.
+	actorID := ""
+	if agent != nil {
+		actorID = agent.ID
+	}
+	h.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditTokenExchangeFailedEvent,
+		ActorID:      actorID,
+		ActorType:    constants.AuditActorTypeServiceAccount,
+		ResourceType: constants.AuditResourceTypeToken,
+		// The reason constant only — never the subject id or the token. A refusal
+		// record must not become a place where an unverified subject's identity is
+		// written on the strength of a request that was rejected.
+		Metadata:  reason,
+		IPAddress: utils.GetIP(gc.Request),
+		UserAgent: utils.GetUserAgent(gc.Request),
+	})
+
+	gc.JSON(status, gin.H{
+		"error":             errCode,
 		"error_description": desc,
 	})
+}
+
+// badTokenExchangeRequest writes the RFC 6749 §5.2 invalid_request response.
+func (h *httpProvider) badTokenExchangeRequest(gc *gin.Context, agent *schemas.Client, reason, desc string) {
+	h.rejectExchange(gc, agent, http.StatusBadRequest, reason, "invalid_request", desc)
 }
 
 // isSupportedExchangeTokenType reports whether an RFC 8693 subject/actor token

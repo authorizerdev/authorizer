@@ -299,7 +299,22 @@ const (
 	// wrong secret) — mirrors AuditLoginFailedEvent for the human login path.
 	AuditTokenClientCredentialsFailedEvent = "token.client_credentials_failed"
 	// AuditTokenExchangeEvent is logged when a token exchange occurs (RFC 8693).
+	//
+	// Reserved, deliberately unused: a successful exchange is recorded as
+	// AuditTokenIssuedEvent with grant_type=token-exchange in its Metadata, and
+	// ROADMAP_V2.md documents "token.issued" as the issuance event. Switching the
+	// action would silently break any query already filtering on it. Failures use
+	// AuditTokenExchangeFailedEvent below, mirroring the client_credentials pair.
 	AuditTokenExchangeEvent = "token.exchange"
+	// AuditTokenExchangeFailedEvent is logged when an RFC 8693 token exchange is
+	// REJECTED.
+	//
+	// Every rejection on that endpoint used to be silent — 14 refusal paths, none
+	// audited — while the client_credentials path already audited its failures.
+	// An agent probing the delegation endpoint therefore left no trail at all,
+	// which is the opposite of what a delegation surface needs: the whole point of
+	// the act chain is that an agent's activity is attributable.
+	AuditTokenExchangeFailedEvent = "token.exchange_failed"
 	// AuditWorkloadAuthEvent is logged when a workload authenticates via client_assertion
 	// (K8s SA token, SPIFFE JWT-SVID, or generic OIDC workload token).
 	AuditWorkloadAuthEvent = "token.workload_auth"
