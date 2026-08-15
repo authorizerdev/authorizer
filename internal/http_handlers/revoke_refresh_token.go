@@ -6,7 +6,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -143,10 +142,27 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		existingToken, err := h.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+nonce)
-		// RFC 7009 §2.1: use constant-time comparison to prevent timing attacks
-		// Dual-read against the stored digest — see crypto.VerifySessionValue.
-		if err != nil || !crypto.VerifySessionValue(tokenValue, existingToken) {
+		// RFC 7009 §2.1: the hint is an optimisation, not a filter — the server
+		// "MAY ignore" it and MUST still find the token when the hint is wrong or
+		// absent. Only the refresh entry used to be consulted, so an access token
+		// presented here matched nothing and the handler answered 200 having
+		// revoked precisely nothing; §2.2 mandates that 200 either way, so the
+		// caller could not tell. Try the hinted type first, then the other.
+		//
+		// sessionEntryMatches keeps the constant-time, digest-dual-read comparison
+		// this line always did — see internal/http_handlers/session_lookup.go.
+		candidates := []string{constants.TokenTypeRefreshToken, constants.TokenTypeAccessToken}
+		if tokenTypeHint == constants.TokenTypeAccessToken {
+			candidates = []string{constants.TokenTypeAccessToken, constants.TokenTypeRefreshToken}
+		}
+		matched := false
+		for _, tokenType := range candidates {
+			if h.sessionEntryMatches(sessionToken, tokenType+"_"+nonce, tokenValue) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
 			// RFC 7009 §2.2: Token not found or mismatch - return 200
 			log.Debug().Msg("Token not found or mismatch, returning 200 per RFC 7009")
 			gc.JSON(http.StatusOK, gin.H{})

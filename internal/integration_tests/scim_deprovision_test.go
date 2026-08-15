@@ -152,4 +152,29 @@ func TestDeprovisionedUserRevocation_AccessTokenBlockedEvenIfSessionDeleteMissed
 	// The still-live session-store entry alone must not be enough: the same
 	// access token must now be rejected purely on the RevokedTimestamp check.
 	assert.Error(t, callProfile(), "a revoked user's access token must stop authenticating requests immediately")
+
+	// Introspection's RevokedTimestamp branch is asserted HERE, not in
+	// TestDeprovisionedUserRevocation above, and the reason is the session check
+	// introspection now performs (RFC 7662 §2.2, see tokenSessionIsLive). That
+	// test calls DeleteAllUserSessions before introspecting, so its "inactive"
+	// result is satisfied by the session check alone and no longer proves the
+	// RevokedTimestamp branch runs at all. This test deliberately leaves the
+	// session entry live, so the only thing that can produce inactive here is
+	// RevokedTimestamp — which keeps that branch covered.
+	router := gin.New()
+	router.POST("/oauth/introspect", ts.HttpProvider.IntrospectHandler())
+	form := url.Values{}
+	form.Set("token", *signupRes.AccessToken)
+	form.Set("client_id", cfg.ClientID)
+	form.Set("client_secret", cfg.ClientSecret)
+	w := httptest.NewRecorder()
+	introspectReq, _ := http.NewRequest(http.MethodPost, "/oauth/introspect", strings.NewReader(form.Encode()))
+	introspectReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	introspectReq.Header.Set("X-Authorizer-URL", "http://"+ts.HttpServer.Listener.Addr().String())
+	router.ServeHTTP(w, introspectReq)
+	require.Equal(t, http.StatusOK, w.Code)
+	var body map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, false, body["active"],
+		"a revoked user's token must introspect as inactive on RevokedTimestamp alone, with its session still live")
 }

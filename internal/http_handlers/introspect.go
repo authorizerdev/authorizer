@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/service/clientauth"
 )
@@ -110,6 +111,21 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			return
 		}
 
+		// RFC 7662 §2.2: "active" means the token "has not been revoked". In this
+		// codebase revocation IS the deletion of the memory-store session entry —
+		// logout, password reset, admin session-wipe and /oauth/revoke all work
+		// that way — so that entry is what has to be consulted. Signature, exp,
+		// iss and aud cannot see any of it, which is why a logged-out token used
+		// to introspect as active (with its sub, scope and aud disclosed) for the
+		// remainder of its TTL, and why a resource server trusting this endpoint
+		// kept accepting it.
+		//
+		// Placed before the user lookup below so a revoked token costs no DB read.
+		if !h.tokenSessionIsLive(claims, tokenValue) {
+			gc.JSON(http.StatusOK, gin.H{"active": false})
+			return
+		}
+
 		// Revocation awareness: for a first-party user token (sub == user id), a
 		// revoked/deprovisioned user's token must introspect as inactive even
 		// before the short access-token TTL elapses (SCIM active:false, account
@@ -185,6 +201,36 @@ func respondResourceClientAuthError(gc *gin.Context, err error, hasBasicAuth boo
 		"error":             "invalid_client",
 		"error_description": "Client authentication failed",
 	})
+}
+
+// tokenSessionIsLive reports whether the session entry backing this token still
+// exists and still holds it. See sessionEntryMatches: that entry is the
+// revocation record, which is why exp/iss/aud alone could never see a logout.
+//
+// Only STATEFUL token types are checked. An id_token is never registered in the
+// store — it is an assertion, not a credential, and nothing revokes one — so
+// requiring an entry would make every id_token introspect as inactive.
+// TestIntrospectActiveIDToken guards that.
+//
+// An RFC 8693 delegated token needs no special case here. It is stateless and
+// carries no `nonce`, so it falls on the guard below and reports inactive, which
+// is the documented contract (see CreateDelegatedAccessToken: "NOT via
+// /oauth/introspect"). It also never reaches this far in practice — its `aud` is
+// a resource URI, which the audience check above already rejects.
+func (h *httpProvider) tokenSessionIsLive(claims map[string]interface{}, presented string) bool {
+	tokenType, _ := claims["token_type"].(string)
+	if tokenType != constants.TokenTypeAccessToken && tokenType != constants.TokenTypeRefreshToken {
+		return true
+	}
+	nonce, _ := claims["nonce"].(string)
+	sessionKey := claimsSessionKey(claims)
+	if nonce == "" || sessionKey == "" {
+		// Every stateful token this server mints carries both, so something that
+		// cannot be checked must not report active. Same rule as
+		// validateStatefulAccessToken's `nonce == ""` guard.
+		return false
+	}
+	return h.sessionEntryMatches(sessionKey, tokenType+"_"+nonce, presented)
 }
 
 // audienceMatchesIntrospect accepts either a string aud or a []interface{}
