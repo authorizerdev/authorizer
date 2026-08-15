@@ -242,13 +242,23 @@ func enforceDelegatedScope(tokenData *token.SessionOrAccessTokenData, fullMethod
 	if tokenData == nil || strings.TrimSpace(tokenData.ActorID) == "" {
 		return nil
 	}
+	// Both refusals below are metered, matching the GraphQL choke point. This was
+	// silent on every transport, so an operator could not see agents hitting
+	// their ceiling — the number needed before deciding whether to widen one. The
+	// labels distinguish the two, because they call for opposite actions:
+	// "not_delegatable" means the method is not on the delegated allow-list at
+	// all (a client bug, or probing), "scope_missing" means it is reachable but
+	// this token was not granted the scope. Method names are NOT included — they
+	// would be a high-cardinality label on an internet-facing path.
 	required, ok := delegatedscope.RequiredForGRPC(fullMethod)
 	if !ok {
 		// Fail closed: an operation nobody has cleared for delegated callers is
 		// out of reach for an agent, whatever scope it holds.
+		metrics.RecordSecurityEvent("delegated_insufficient_scope", "grpc_not_delegatable")
 		return status.Error(codes.PermissionDenied, "insufficient_scope")
 	}
 	if !delegatedscope.Satisfied(tokenData.Scope, required) {
+		metrics.RecordSecurityEvent("delegated_insufficient_scope", "grpc_scope_missing")
 		return status.Error(codes.PermissionDenied, "insufficient_scope")
 	}
 	return nil

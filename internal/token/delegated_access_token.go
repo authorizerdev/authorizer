@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -179,6 +180,7 @@ func (p *provider) validateDelegatedForAudience(gc *gin.Context, accessToken str
 			p.dependencies.Log.Debug().Str("aud", aud).Str("expected", expectedAud).
 				Msg("delegated token rejected: audience names a different resource server")
 		}
+		metrics.RecordSecurityEvent("delegated_token_rejected", "audience_mismatch")
 		return res, fmt.Errorf(`unauthorized: token audience is not this server`)
 	}
 
@@ -187,10 +189,16 @@ func (p *provider) validateDelegatedForAudience(gc *gin.Context, accessToken str
 	// token whose delegation has already been revoked is rejected without
 	// spending a DB read.
 	if !p.delegationSessionIsLive(res) {
+		// The revocation lever firing. Metered because it is the ONLY externally
+		// visible signal that logout / password reset / admin revoke is actually
+		// taking an agent's access down with the user's session — everything else
+		// about it is a Debug log.
+		metrics.RecordSecurityEvent("delegated_token_rejected", "session_revoked")
 		return res, fmt.Errorf(`unauthorized: originating session is no longer valid`)
 	}
 
 	if !p.subjectIsLive(gc, userID) {
+		metrics.RecordSecurityEvent("delegated_token_rejected", "subject_inactive")
 		return res, fmt.Errorf(`unauthorized: delegation subject is not active`)
 	}
 
