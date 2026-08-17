@@ -35,6 +35,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -79,15 +80,28 @@ func k8sFacts(t *testing.T) clusterFacts {
 	return f
 }
 
-// TestK8sClusterAddressesAreRefusedBySSRFGuard is the core finding, pinned.
+// TestK8sAddressReachabilityFollowsTheAddressClass pins the actual rule, which is
+// narrower than "Kubernetes does not work".
 //
-// Every address a standard cluster publishes for OIDC discovery, JWKS and the
-// apiserver falls in a range validators.SafeHTTPClient rejects. This is not a
-// kind artefact: kubernetes.default.svc is ALWAYS a ClusterIP (10.0.0.0/8 or
-// 172.16.0.0/12), and jwks_uri always points at the apiserver's internal
-// address. Managed clusters with a public API endpoint are the exception the
-// feature currently depends on, not the norm it was designed around.
-func TestK8sClusterAddressesAreRefusedBySSRFGuard(t *testing.T) {
+// Whether this feature works on a given cluster is decided entirely by what that
+// cluster publishes as its issuer / jwks_uri / apiserver:
+//
+//   - Self-managed clusters running the DEFAULT --service-account-issuer
+//     (https://kubernetes.default.svc.cluster.local — what kind, and kubeadm
+//     without extra flags, produce) publish private addresses. SafeHTTPClient
+//     refuses those, so key fetch and TokenReview are both unreachable.
+//
+//   - EKS, GKE and AKS publish a PUBLIC https issuer with public OIDC discovery
+//     by default (https://oidc.eks.<region>.amazonaws.com/id/…,
+//     https://container.googleapis.com/v1/projects/…). Those are accepted, and
+//     the feature works there with no configuration beyond the trusted issuer.
+//
+// An earlier version of this test asserted refusal unconditionally, which is a
+// false generalisation from kind: it fails on any managed cluster, where the
+// correct outcome is that the address is ACCEPTED. Assert the rule instead of
+// one cluster's instance of it, so the suite is truthful on whatever cluster it
+// is pointed at.
+func TestK8sAddressReachabilityFollowsTheAddressClass(t *testing.T) {
 	f := k8sFacts(t)
 	ctx := context.Background()
 
@@ -96,16 +110,54 @@ func TestK8sClusterAddressesAreRefusedBySSRFGuard(t *testing.T) {
 		"apiserver": f.apiServer,
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := validators.SafeHTTPClient(ctx, raw, 2*time.Second)
-			require.Error(t, err,
-				"%s (%s) is expected to be refused; if this now succeeds the SSRF policy changed "+
-					"and the Kubernetes story changed with it — update the KNOWN LIMITATION on "+
-					"performTokenReview and this test together", name, raw)
-			assert.Contains(t, err.Error(), "private/internal networks are not allowed",
-				"the refusal must come from the SSRF guard specifically, not from a TLS or DNS "+
-					"failure that would mask it")
+			private, why := addressIsPrivate(t, raw)
+			_, err := validators.SafeHTTPClient(ctx, raw, 3*time.Second)
+
+			if private {
+				require.Error(t, err,
+					"%s (%s) resolves to a private address (%s) and MUST be refused; if this now "+
+						"succeeds the SSRF policy changed and the Kubernetes story changed with it",
+					name, raw, why)
+				assert.Contains(t, err.Error(), "private/internal networks are not allowed",
+					"the refusal must come from the SSRF guard specifically, not a TLS or DNS "+
+						"failure that would mask it")
+				t.Logf("%s is private (%s) — unreachable, as expected on a default-issuer cluster", name, why)
+				return
+			}
+
+			require.NoError(t, err,
+				"%s (%s) is publicly routable, so the guard MUST accept it — this is the "+
+					"EKS/GKE/AKS case, where the feature works with no extra configuration",
+				name, raw)
+			t.Logf("%s is public — reachable, feature works on this cluster", name)
 		})
 	}
+}
+
+// addressIsPrivate reports whether a URL's host resolves into a range the SSRF
+// guard rejects. It re-resolves rather than reusing the guard's own answer, so
+// the test's expectation is derived independently of the code under test.
+func addressIsPrivate(t *testing.T, raw string) (bool, string) {
+	t.Helper()
+	u, err := url.Parse(raw)
+	require.NoError(t, err, "cluster published an unparseable address: %s", raw)
+
+	host := u.Hostname()
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast(), ip.String()
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		// Unresolvable in-cluster DNS (kubernetes.default.svc from outside the
+		// cluster) is the private case by construction.
+		return true, "unresolvable: " + host
+	}
+	for _, ip := range ips {
+		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+			return true, ip.String()
+		}
+	}
+	return false, ips[0].String()
 }
 
 // TestK8sProjectedTokenIsWellFormed isolates the failure.
@@ -192,10 +244,19 @@ func TestK8sWorkloadAuthenticationEndToEnd(t *testing.T) {
 	req.Header.Set("X-Authorizer-URL", testAuthorizerHost(ts))
 	router.ServeHTTP(w, req)
 
-	assert.NotEqual(t, http.StatusOK, w.Code,
-		"KNOWN LIMITATION pinned: a real cluster's JWKS address is private, so SafeHTTPClient "+
-			"refuses the fetch and the workload cannot authenticate. If this now returns 200 the "+
-			"limitation is fixed — invert this assertion and update README + performTokenReview's "+
-			"doc comment. Body: %s", w.Body.String())
-	t.Logf("operator-visible response: %d %s", w.Code, w.Body.String())
+	// The expected outcome follows the address class, exactly as above. On a
+	// default-issuer cluster the JWKS fetch is refused and the workload cannot
+	// authenticate; on EKS/GKE/AKS the JWKS is public and it can.
+	if private, why := addressIsPrivate(t, f.jwksURI); private {
+		assert.NotEqual(t, http.StatusOK, w.Code,
+			"jwks_uri is private (%s), so SafeHTTPClient refuses the fetch and the workload "+
+				"cannot authenticate. The operator-visible symptom is this bare invalid_client "+
+				"with nothing naming the refused fetch. Body: %s", why, w.Body.String())
+		t.Logf("default-issuer cluster: %d %s", w.Code, w.Body.String())
+		return
+	}
+	assert.Equal(t, http.StatusOK, w.Code,
+		"jwks_uri is publicly routable, so a projected token MUST authenticate with no "+
+			"configuration beyond this trusted issuer. Body: %s", w.Body.String())
+	t.Logf("public-issuer cluster: workload authenticated")
 }

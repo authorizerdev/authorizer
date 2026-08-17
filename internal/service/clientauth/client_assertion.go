@@ -498,12 +498,21 @@ type tokenReviewResponse struct {
 // exemption + CA-pinning decision, which is intentionally left to the operator/
 // security owner rather than weakening the SSRF guard here.
 //
-// The limitation is WIDER than this function, and measured rather than assumed —
-// see internal/integration_tests/k8s_workload_identity_test.go (`make test-k8s`),
-// which runs against a real kind cluster. It is not only the apiserver: the
-// cluster's `jwks_uri` points at the apiserver's own private address too, so the
-// static_jwks_url / oidc_discovery key sources are refused for the same reason,
-// with or without TokenReview. Measured on kind:
+// The limitation is WIDER than this function but NARROWER than "Kubernetes does
+// not work", and it is measured rather than assumed — see
+// internal/integration_tests/k8s_workload_identity_test.go (`make test-k8s`).
+// What decides it is what the cluster publishes:
+//
+//   - EKS/GKE/AKS publish a PUBLIC https issuer with public OIDC discovery by
+//     default, so both key fetch and (with a public API endpoint) TokenReview
+//     work with no extra configuration.
+//   - Clusters on the DEFAULT --service-account-issuer publish private
+//     addresses, and then the cluster's own `jwks_uri` is refused too — so
+//     static_jwks_url / oidc_discovery fail for the same reason, with or
+//     without TokenReview. The fix there needs no code: point jwks_url at a
+//     reachable mirror; issuer_url is only matched against `iss`, never fetched.
+//
+// Measured on kind (a default-issuer cluster):
 //
 //	issuer    https://kubernetes.default.svc.cluster.local  (ClusterIP)
 //	jwks_uri  https://172.27.0.2:6443/openid/v1/jwks         (RFC 1918)
