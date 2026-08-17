@@ -144,7 +144,7 @@ func TestValidate_NonProtoRequestPassesThrough(t *testing.T) {
 	require.NoError(t, err, "non-proto requests must not be rejected by the validator")
 }
 
-// TestValidate_PreservesInvariant guards against regressions where someone
+// TestValidate_BuildsCleanly guards against regressions where someone
 // makes Validate() return a non-functional middleware (e.g. by reordering
 // the protovalidate.New() call). If the validator itself fails to build,
 // callers must learn about it at startup, not at first request.

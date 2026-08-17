@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -225,6 +226,10 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 		})
 	}
 
+	// Metered like every other authentication entry point. EventMagicLink was
+	// declared and never recorded, so magic-link volume was invisible next to
+	// login/signup/oauth on the same dashboard.
+	metrics.RecordAuthEvent(metrics.EventMagicLink, metrics.StatusSuccess)
 	p.AuditProvider.LogEvent(audit.Event{
 		Action:   constants.AuditMagicLinkRequestedEvent,
 		Protocol: meta.Protocol, ActorID: user.ID,

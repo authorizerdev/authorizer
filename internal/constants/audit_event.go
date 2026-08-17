@@ -78,7 +78,9 @@ const (
 	AuditSignupEvent = "user.signup"
 	// AuditLogoutEvent is logged when a user logs out.
 	AuditLogoutEvent = "user.logout"
-	// AuditPasswordChangedEvent is logged when a user changes their password.
+	// AuditPasswordChangedEvent is logged when a user changes their own password
+	// via UpdateProfile. Emitted IN ADDITION to AuditProfileUpdatedEvent, so a
+	// password change is findable without reading every profile edit.
 	AuditPasswordChangedEvent = "user.password_changed"
 	// AuditPasswordResetEvent is logged when a user resets their password via token or OTP.
 	AuditPasswordResetEvent = "user.password_reset"
@@ -96,7 +98,10 @@ const (
 	AuditWebauthnCredentialDeletedEvent = "user.webauthn_credential_deleted"
 	// AuditMFAEnabledEvent is logged when a user enables multi-factor authentication.
 	AuditMFAEnabledEvent = "user.mfa_enabled"
-	// AuditMFADisabledEvent is logged when a user disables multi-factor authentication.
+	// AuditMFADisabledEvent is logged when a user disables multi-factor
+	// authentication via UpdateProfile. Emitted IN ADDITION to
+	// AuditProfileUpdatedEvent — turning MFA off is a security event, not a
+	// profile edit.
 	AuditMFADisabledEvent = "user.mfa_disabled"
 	// AuditMFALockedEvent is logged when a user locks their own account
 	// after losing access to their MFA factor(s).
@@ -122,7 +127,11 @@ const (
 	AuditAdminLoginFailedEvent = "admin.login_failed"
 	// AuditAdminLogoutEvent is logged when an admin logs out.
 	AuditAdminLogoutEvent = "admin.logout"
-	// AuditAdminUserCreatedEvent is logged when an admin creates a user.
+	// AuditAdminUserCreatedEvent: RESERVED, never emitted. There is no admin
+	// create-user operation — AdminProvider exposes Users/User/UpdateUser/DeleteUser
+	// and creation happens through the invite flow, which logs
+	// AuditAdminInviteSentEvent. Kept so a future create path has a name; it is not
+	// evidence of a missing log call.
 	AuditAdminUserCreatedEvent = "admin.user_created"
 	// AuditAdminUserUpdatedEvent is logged when an admin updates a user.
 	AuditAdminUserUpdatedEvent = "admin.user_updated"
@@ -134,7 +143,7 @@ const (
 	AuditAdminAccessEnabledEvent = "admin.access_enabled"
 	// AuditAdminInviteSentEvent is logged when an admin sends a user invitation.
 	AuditAdminInviteSentEvent = "admin.invite_sent"
-	// AuditAdminConfigChangedEvent is logged when an admin modifies server configuration.
+	// AuditAdminConfigChangedEvent: RESERVED, never emitted — server configuration is CLI-flag driven in v2 and cannot be modified at runtime, so nothing can emit this.
 	AuditAdminConfigChangedEvent = "admin.config_changed"
 	// AuditAdminWebhookCreatedEvent is logged when an admin creates a webhook.
 	AuditAdminWebhookCreatedEvent = "admin.webhook_created"
@@ -168,7 +177,7 @@ const (
 	AuditSSOLoginInitiatedEvent = "sso.login_initiated"
 	// AuditSSOCallbackSuccessEvent is logged when an org OIDC SSO callback succeeds.
 	AuditSSOCallbackSuccessEvent = "sso.callback_success"
-	// AuditSSOCallbackFailedEvent is logged when an org OIDC SSO callback fails.
+	// AuditSSOCallbackFailedEvent: RESERVED, never emitted — the org OIDC callback currently records failures in logs and metrics only.
 	AuditSSOCallbackFailedEvent = "sso.callback_failed"
 	// AuditSAMLLoginInitiatedEvent is logged when an org SAML SP login is started.
 	AuditSAMLLoginInitiatedEvent = "saml.login_initiated"
@@ -199,7 +208,7 @@ const (
 	// AuditTokenRevokedEvent is logged when a token is revoked.
 	AuditTokenRevokedEvent = "token.revoked"
 
-	// AuditSessionCreatedEvent is logged when a new session is created.
+	// AuditSessionCreatedEvent: RESERVED, never emitted — session creation is covered by the login/signup events that cause it.
 	AuditSessionCreatedEvent = "session.created"
 	// AuditSessionTerminatedEvent is logged when a session is terminated.
 	AuditSessionTerminatedEvent = "session.terminated"
@@ -212,11 +221,11 @@ const (
 	AuditClientDeletedEvent = "admin.client_deleted"
 	// AuditClientSecretRotatedEvent is logged when a client secret is rotated.
 	AuditClientSecretRotatedEvent = "admin.client_secret_rotated"
-	// AuditClientDeactivatedEvent is logged when an admin disables a client.
+	// AuditClientDeactivatedEvent: RESERVED, never emitted — client activation state is changed through UpdateClient, which logs the generic admin client-updated event.
 	// Distinct from the generic update event so incident responders can query the kill-switch
 	// signal directly without scanning all update payloads.
 	AuditClientDeactivatedEvent = "admin.client_deactivated"
-	// AuditClientActivatedEvent is logged when an admin re-enables a client.
+	// AuditClientActivatedEvent: RESERVED, never emitted — as above.
 	AuditClientActivatedEvent = "admin.client_activated"
 
 	// AuditOrgOIDCConnectionCreatedEvent is logged when an admin creates an org OIDC connection.
@@ -237,7 +246,7 @@ const (
 	AuditTrustedIssuerUpdatedEvent = "admin.trusted_issuer_updated"
 	// AuditTrustedIssuerDeletedEvent is logged when an admin deletes a trusted issuer.
 	AuditTrustedIssuerDeletedEvent = "admin.trusted_issuer_deleted"
-	// AuditTrustedIssuerTokenReviewChangedEvent is logged when EnableTokenReview is toggled.
+	// AuditTrustedIssuerTokenReviewChangedEvent: RESERVED, never emitted — UpdateTrustedIssuer logs a single admin trusted-issuer-updated event covering every field.
 	// Downgrading from online (true) to offline (false) is a security-posture change and
 	// must be queryable independently of generic trusted_issuer_updated events.
 	AuditTrustedIssuerTokenReviewChangedEvent = "admin.trusted_issuer_token_review_changed"
@@ -315,7 +324,9 @@ const (
 	// which is the opposite of what a delegation surface needs: the whole point of
 	// the act chain is that an agent's activity is attributable.
 	AuditTokenExchangeFailedEvent = "token.exchange_failed"
-	// AuditWorkloadAuthEvent is logged when a workload authenticates via client_assertion
-	// (K8s SA token, SPIFFE JWT-SVID, or generic OIDC workload token).
+	// AuditWorkloadAuthEvent: RESERVED, never emitted — a workload authenticating
+	// via client_assertion (K8s SA token, SPIFFE JWT-SVID, or generic OIDC
+	// workload token) succeeds through the client_credentials path, which logs
+	// AuditTokenClientCredentialsEvent.
 	AuditWorkloadAuthEvent = "token.workload_auth"
 )

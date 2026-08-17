@@ -66,7 +66,7 @@ func TestSchemaForMessage_CycleSafe(t *testing.T) {
 	assert.Equal(t, "object", schema.Type)
 }
 
-// TestSchemaForMessage_ScalarOnly walks a request that's purely scalars
+// TestSchemaForMessage_AllScalarKinds walks a request that's purely scalars
 // (no nested message). Profile takes no arguments at all; Session takes
 // a few list-of-string + nested PermissionInput.
 func TestSchemaForMessage_AllScalarKinds(t *testing.T) {
