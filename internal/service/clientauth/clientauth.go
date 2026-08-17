@@ -22,7 +22,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
-	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Sentinel errors callers map to the RFC 6749 §5.2 token-endpoint responses.
@@ -191,7 +190,7 @@ func New(cfg *config.Config, deps *Dependencies) Provider {
 		maxAssertionLifetime: defaultMaxClientAssertionLifetime,
 	}
 	p.fetchURL = p.safeFetchURL
-	p.safeHTTPClient = validators.SafeHTTPClient
+	p.safeHTTPClient = p.newSafeClient
 	return p
 }
 
