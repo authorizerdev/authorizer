@@ -65,8 +65,20 @@ func isPrivateIP(ip net.IP) bool {
 		{parseCIDR("192.0.2.0/24")},    // TEST-NET-1
 		{parseCIDR("198.51.100.0/24")}, // TEST-NET-2
 		{parseCIDR("203.0.113.0/24")},  // TEST-NET-3
-		{parseCIDR("224.0.0.0/4")},     // multicast
-		{parseCIDR("240.0.0.0/4")},     // reserved
+		// The two below sat in the same IANA special-purpose registry as every
+		// range above and were the only members of it still reachable. All three
+		// TEST-NETs were blocked while these were not, which was an oversight
+		// rather than a decision.
+		//
+		// 198.18.0.0/15 is the one that mattered: it is not globally routable, so
+		// organisations use it internally EXACTLY BECAUSE it looks public — as a
+		// lab range, or to number a network they do not want colliding with RFC
+		// 1918. An SSRF there reaches a real internal service, and reaches it via
+		// an address every "is this private?" intuition says is fine.
+		{parseCIDR("198.18.0.0/15")},  // RFC 2544 benchmarking
+		{parseCIDR("192.88.99.0/24")}, // 6to4 relay anycast (deprecated, RFC 7526)
+		{parseCIDR("224.0.0.0/4")},    // multicast
+		{parseCIDR("240.0.0.0/4")},    // reserved
 		// IPv6 transition mechanisms EMBED an arbitrary IPv4 address inside an
 		// IPv6 one, so a v6 literal in these ranges reaches a v4 destination
 		// that every check above would have refused — 2002:7f00:0001:: is
