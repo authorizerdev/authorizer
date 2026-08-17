@@ -16,7 +16,10 @@ test.db
 .yalc
 yalc.lock
 certs/
-# Test-only e2e-playground fixtures are intentionally checked in (docs/superpowers/plans/2026-07-20-playground-e2e.md Global Constraints).
+# Test-only e2e-playground fixtures are intentionally checked in: the suite
+# generates its TLS material into the stack at run time, and these are the
+# fixtures it needs present beforehand. They are test-only and contain no
+# production secret.
 !e2e-playground/fixtures/certs/
 !e2e-playground/mocks/mock-saml-idp/certs/
 *-shm
