@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
@@ -238,5 +239,67 @@ func TestTrustedIssuerAdmin(t *testing.T) {
 		listRes, _, err := ts.StorageProvider.ListTrustedIssuers(ctx, saID, &model.Pagination{Limit: 10})
 		require.NoError(t, err)
 		assert.Equal(t, 0, len(listRes))
+	})
+
+	// key_source_type and issuer_type were checked for non-emptiness only, so any
+	// string was stored verbatim. The value that mattered was
+	// "spiffe_bundle_endpoint": a declared constant with no implementation, which
+	// fetchJWKSBytes rejects at authentication time with "unsupported
+	// key_source_type". An operator got a 200 and a row that looked configured,
+	// and found out it was dead only when the first workload tried to
+	// authenticate. A plain typo failed identically, at the same unhelpful moment.
+	t.Run("key_source_type is allow-listed against what is implemented", func(t *testing.T) {
+		saID := createSA(t)
+
+		t.Run("spiffe_bundle_endpoint is refused as not implemented", func(t *testing.T) {
+			req := newIssuerReq(saID)
+			req.KeySourceType = constants.KeySourceSPIFFEBundleEndpoint
+			_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+			require.Error(t, err, "a key source with no implementation must not be storable")
+			assert.Contains(t, err.Error(), "not implemented",
+				"the error must say the value is unimplemented, not merely invalid — "+
+					"they call for different actions")
+		})
+
+		t.Run("a typo is refused", func(t *testing.T) {
+			req := newIssuerReq(saID)
+			req.KeySourceType = "static_jwks_urls" // trailing s
+			_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unsupported key_source_type")
+		})
+
+		for _, good := range []string{constants.KeySourceOIDCDiscovery, constants.KeySourceStaticJWKSURL} {
+			t.Run("implemented source "+good+" is still accepted", func(t *testing.T) {
+				req := newIssuerReq(saID)
+				req.KeySourceType = good
+				_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+				require.NoError(t, err, "the allow-list must not break a working configuration")
+			})
+		}
+	})
+
+	// issuer_type drives no behaviour today — nothing switches on it — but it is
+	// stored, returned by the admin API and rendered in the dashboard. An
+	// unconstrained free-text column shaped like an enum diverges across
+	// deployments and cannot later be given meaning without a migration.
+	t.Run("issuer_type is allow-listed", func(t *testing.T) {
+		saID := createSA(t)
+
+		req := newIssuerReq(saID)
+		req.IssuerType = "kubernetes_service_account" // plausible, and wrong
+		_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported issuer_type")
+
+		for _, good := range []string{
+			constants.IssuerTypeKubernetesSA, constants.IssuerTypeSPIFFEJWT,
+			constants.IssuerTypeOIDC, constants.IssuerTypeCloudOIDC,
+		} {
+			ok := newIssuerReq(saID)
+			ok.IssuerType = good
+			_, err := ts.GraphQLProvider.AddTrustedIssuer(ctx, ok)
+			require.NoError(t, err, "declared issuer type %q must be accepted", good)
+		}
 	})
 }

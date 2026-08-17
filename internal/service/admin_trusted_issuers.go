@@ -38,6 +38,62 @@ func normalizeAPIServerURL(raw *string) *string {
 // https URL and require it whenever online TokenReview is enabled (fail-closed:
 // enabling review without a reachable apiserver would silently reject every
 // token at runtime). apiServerURL is expected to be already normalized.
+// validateKeySourceType allow-lists key_source_type against the sources
+// fetchJWKSBytes can actually resolve.
+//
+// Both fields used to be checked for non-emptiness only, so any string was
+// stored verbatim. That mattered most for "spiffe_bundle_endpoint": it is a
+// declared constant with no implementation — fetchJWKSBytes has no case for it
+// and falls through to `unsupported key_source_type` — so an operator could
+// create an issuer, receive a 200 and a row that looked configured, and discover
+// it was dead only when the first workload tried to authenticate. A plain typo
+// ("static_jwks_urls") failed exactly the same way, at exactly the same
+// unhelpful moment.
+//
+// The set here is deliberately the set fetchJWKSBytes IMPLEMENTS, not the set of
+// declared constants. When spiffe_bundle_endpoint is implemented, this is the
+// second place to change, and the error message below is the reminder.
+func validateKeySourceType(v string) error {
+	switch strings.TrimSpace(v) {
+	case "":
+		return InvalidArgument("key_source_type is required")
+	case constants.KeySourceOIDCDiscovery, constants.KeySourceStaticJWKSURL:
+		return nil
+	case constants.KeySourceSPIFFEBundleEndpoint:
+		return InvalidArgument(fmt.Sprintf(
+			"key_source_type %q is not implemented yet; use %q or %q",
+			constants.KeySourceSPIFFEBundleEndpoint,
+			constants.KeySourceOIDCDiscovery, constants.KeySourceStaticJWKSURL))
+	default:
+		return InvalidArgument(fmt.Sprintf(
+			"unsupported key_source_type %q; supported values are %q and %q",
+			v, constants.KeySourceOIDCDiscovery, constants.KeySourceStaticJWKSURL))
+	}
+}
+
+// validateIssuerType allow-lists issuer_type.
+//
+// Unlike key_source_type this field drives no behaviour today — nothing switches
+// on it, which is why every IssuerType* constant is otherwise unreferenced. It is
+// still validated, because it is stored, returned by the admin API and shown in
+// the dashboard: an unconstrained free-text column that looks like an enum will
+// diverge across deployments and cannot later be given meaning without a
+// migration. Rejecting a typo now is cheaper than reconciling one later.
+func validateIssuerType(v string) error {
+	switch strings.TrimSpace(v) {
+	case "":
+		return InvalidArgument("issuer_type is required")
+	case constants.IssuerTypeKubernetesSA, constants.IssuerTypeSPIFFEJWT,
+		constants.IssuerTypeOIDC, constants.IssuerTypeCloudOIDC:
+		return nil
+	default:
+		return InvalidArgument(fmt.Sprintf(
+			"unsupported issuer_type %q; supported values are %q, %q, %q and %q",
+			v, constants.IssuerTypeKubernetesSA, constants.IssuerTypeSPIFFEJWT,
+			constants.IssuerTypeOIDC, constants.IssuerTypeCloudOIDC))
+	}
+}
+
 func validateTokenReviewConfig(enableTokenReview bool, apiServerURL *string) error {
 	raw := refs.StringValue(apiServerURL)
 	if raw == "" {
@@ -76,14 +132,14 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 	if strings.TrimSpace(params.IssuerURL) == "" {
 		return nil, nil, InvalidArgument("issuer_url is required")
 	}
-	if strings.TrimSpace(params.KeySourceType) == "" {
-		return nil, nil, InvalidArgument("key_source_type is required")
+	if err := validateKeySourceType(params.KeySourceType); err != nil {
+		return nil, nil, err
 	}
 	if strings.TrimSpace(params.ExpectedAud) == "" {
 		return nil, nil, InvalidArgument("expected_aud is required")
 	}
-	if strings.TrimSpace(params.IssuerType) == "" {
-		return nil, nil, InvalidArgument("issuer_type is required")
+	if err := validateIssuerType(params.IssuerType); err != nil {
+		return nil, nil, err
 	}
 
 	// Reject issuers bound to a non-existent service account — otherwise a typo
@@ -139,7 +195,7 @@ func (p *provider) AddTrustedIssuer(ctx context.Context, meta RequestMetadata, p
 		// only ever creates client_assertion_trust rows; org-scoped SSO connections
 		// are created through the dedicated OIDC-connection admin API.
 		Kind:                     constants.TrustKindClientAssertion,
-		AuthMethod:               "jwt_assertion",
+		AuthMethod:               constants.AuthMethodJWTAssertion,
 		IsActive:                 true,
 		SpiffeRefreshHintSeconds: refs.Int64Value(params.SpiffeRefreshHintSeconds),
 		EnableTokenReview:        enableTokenReview,
