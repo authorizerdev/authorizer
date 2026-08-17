@@ -264,7 +264,14 @@ func (p *provider) resolveViaClientAssertion(ctx context.Context, params Resolve
 	}
 
 	// 8. Replay (C2/H4): single-use per issuer. Prefer jti; fall back to a hash of
-	//    (iss,sub,iat,exp) when the token carries no jti (K8s SA tokens have none).
+	//    (iss,sub,iat,exp) when the token carries no jti.
+	//
+	//    The fallback is NOT for Kubernetes: a projected ServiceAccount token
+	//    does carry a jti (verified against a live cluster — claims are aud,
+	//    exp, iat, iss, jti, kubernetes.io, nbf, sub), so K8s assertions key on
+	//    it like anything else. The fallback covers issuers that omit it, which
+	//    RFC 7523 permits, and it must stay: without it such an assertion would
+	//    have no single-use key at all.
 	//    Held until the token's exp so a captured token cannot be re-presented.
 	//    This read is a cheap SHORT-CIRCUIT only — it rejects an obvious replay
 	//    before the (possibly remote) TokenReview call below. Correctness does
@@ -431,11 +438,48 @@ func (p *provider) fetchJWKSBytes(ctx context.Context, issuer *schemas.TrustedIs
 	}
 }
 
+// newSafeClient builds the SSRF-hardened *http.Client for every outbound fetch
+// this package makes — JWKS, OIDC discovery, and the TokenReview POST.
+//
+// allowPrivate (Config.Env == constants.E2EEnv, set by --env=e2e and never true
+// in production) is the ONLY thing that switches it to
+// validators.SafeHTTPClientAllowPrivate. That function's doc comment asks for
+// careful review before a third caller, so here is the reasoning.
+//
+// # Why this needs one at all
+//
+// Workload identity is defined by Authorizer FETCHING a key document the
+// operator points it at. Every existing test of that path substitutes the fetch
+// seam, which removes the one thing that decides whether it works in
+// production: the address. A JWKS mirror in the e2e stack is a docker-compose
+// service on a private address, which the guard refuses unconditionally — so
+// without this the only end-to-end coverage of the fetch is no coverage.
+//
+// The alternatives were worse. Relaxing the guard's ranges to admit the test
+// network weakens a production control for a test. Putting the mirror on a
+// range the guard happens to permit couples the suite to a gap in the block
+// list (there were two; see internal/validators, where they are now closed) and
+// silently loses coverage the moment that gap is fixed correctly.
+//
+// # What is NOT relaxed
+//
+// The scheme allow-list, the one-shot DNS resolution and dial pinning that
+// defeat rebinding, redirect refusal, the response size cap, and TLS
+// verification. This widens which ADDRESSES are reachable and nothing else —
+// the same trade the SSO broker and webhook delivery already make, for the same
+// reason, under the same flag.
+func (p *provider) newSafeClient(ctx context.Context, rawURL string, timeout time.Duration) (*http.Client, error) {
+	if p.Config != nil && p.Config.Env == constants.E2EEnv {
+		return validators.SafeHTTPClientAllowPrivate(ctx, rawURL, timeout)
+	}
+	return validators.SafeHTTPClient(ctx, rawURL, timeout)
+}
+
 // safeFetchURL performs an SSRF-hardened GET: the host is resolved once and
 // pinned (validators.SafeHTTPClient), redirects are refused (a redirect could
 // escape to an internal address), and the body is size-capped.
 func (p *provider) safeFetchURL(ctx context.Context, rawURL string) ([]byte, error) {
-	client, err := validators.SafeHTTPClient(ctx, rawURL, httpFetchTimeout)
+	client, err := p.newSafeClient(ctx, rawURL, httpFetchTimeout)
 	if err != nil {
 		return nil, err
 	}

@@ -218,7 +218,9 @@ func TestClientAssertion_ReplayRejected_NoJTI(t *testing.T) {
 	key := genKey(t)
 	r := buildResolver(t, jwksBytes(t, &key.PublicKey, testKID), testSubject)
 	claims := validClaims()
-	delete(claims, "jti") // K8s SA tokens carry no jti — (iss,sub,iat,exp) is the key.
+	// An issuer that omits jti (RFC 7523 permits it) keys on (iss,sub,iat,exp)
+	// instead. Not the Kubernetes case: projected SA tokens do carry a jti.
+	delete(claims, "jti")
 	assertion := signRS256(t, key, testKID, claims)
 
 	_, err := r.ResolveClient(context.Background(), assertionParams(assertion))
