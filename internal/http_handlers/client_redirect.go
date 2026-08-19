@@ -3,6 +3,7 @@ package http_handlers
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/clientmetadata"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -60,6 +61,27 @@ func (h *httpProvider) checkClientRedirectURI(ctx context.Context, clientID, red
 		return redirectCheck{Valid: validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname)}, nil
 	}
 
+	// The deployment's own client can carry its redirect_uris in configuration
+	// (--redirect-uris) rather than in the registry. It has a registry row, but
+	// nothing writes RedirectURIs to that row: it is seeded from --client-id at
+	// boot and no admin operation sets the field, so without this branch the
+	// reserved client can never be held to an exact match and always lands on
+	// the AllowedOrigins fallback below — which compares ORIGINS, so every path
+	// under an allowed host is accepted. That is the gap OIDC Core §3.1.2.1
+	// closes by requiring an exact match.
+	//
+	// Config rather than the row on purpose: writing it at boot would need
+	// UpdateClient to carry the field across all storage backends, and would
+	// leave a stale allow-list behind the day an operator removes the flag.
+	// Reading it here means the flag is the whole state.
+	//
+	// Empty keeps today's behaviour exactly, so an existing deployment that
+	// never listed its URIs is unaffected.
+	if configured := trimmed(h.Config.RedirectURIs); len(configured) > 0 &&
+		clientID == strings.TrimSpace(h.Config.ClientID) {
+		return redirectCheck{Valid: matchesAny(configured, redirectURI)}, nil
+	}
+
 	// A Client ID Metadata Document client carries its redirect_uris in a
 	// document at its own client_id URL rather than in the registry. A
 	// resolution failure is fatal rather than a fall-through to the
@@ -107,4 +129,17 @@ func matchesAny(registered []string, presented string) bool {
 		}
 	}
 	return false
+}
+
+// trimmed drops blank entries and surrounding whitespace. The flag is a
+// comma-separated list, so "a, b" arrives with a leading space on the second
+// value and would never match under an exact comparison.
+func trimmed(in []string) []string {
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if v = strings.TrimSpace(v); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
