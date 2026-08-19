@@ -5,7 +5,7 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.4.0] - 2026-08-19
 
 Targets the 2.4.0 release. Significant additions include enterprise SSO (SAML IdP + verified domains + home realm discovery), WebAuthn/passkey login, SCIM 2.0 groups, redesigned MFA behavior, and OAuth 2.1/MCP hardening.
 
