@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -179,6 +180,7 @@ func init() {
 
 	// Allowed origins
 	f.StringSliceVar(&rootArgs.config.AllowedOrigins, "allowed-origins", defaultAllowedOrigins, "Allowed origins")
+	f.StringSliceVar(&rootArgs.config.RedirectURIs, "redirect-uris", nil, "Exact redirect URIs allowed for this deployment's own client (--client-id), comma-separated. When set, redirect_uri is matched EXACTLY against this list per OIDC Core §3.1.2.1 instead of falling back to --allowed-origins, which compares origins and so accepts any path under an allowed host. List every redirect URI your apps use: it applies to every flow carrying this client_id. Unset keeps the origin-based fallback")
 
 	// Database flags
 	f.StringVar(&rootArgs.config.DatabaseType, "database-type", "", "Type of database to use")
@@ -433,6 +435,11 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	if err := validateMCPConfig(&rootArgs.config); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
+	if err := validateRedirectURIs(&rootArgs.config); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
@@ -903,6 +910,44 @@ func validateAuthorizerURL(cfg *config.Config) error {
 		return fmt.Errorf("--url=%q is not a usable canonical URL: it must be an absolute http(s) URL "+
 			"with a host and no user info (e.g. https://auth.example.com). An unusable value is "+
 			"treated as unset, which silently restores header-derived URLs", cfg.AuthorizerURL)
+	}
+	return nil
+}
+
+// validateRedirectURIs refuses --redirect-uris entries that could never match.
+//
+// The comparison this list feeds is exact (see redirectURIMatches), so a value
+// that is not a usable absolute http(s) URL cannot match anything a browser
+// would present. Left unchecked it does not fail loudly: the flag looks
+// configured, every login is refused with "invalid redirect_uri", and nothing
+// says which entry is at fault.
+//
+// A fragment or user info is rejected outright for the same reason
+// redirectURIMatches rejects them — a fragment swallows the authorization
+// response, user info is the "evil.com@real.host" phishing shape — so a
+// registration carrying either is a mistake, not a match that never fires.
+func validateRedirectURIs(cfg *config.Config) error {
+	for _, raw := range cfg.RedirectURIs {
+		uri := strings.TrimSpace(raw)
+		if uri == "" {
+			continue
+		}
+		u, err := url.Parse(uri)
+		switch {
+		case err != nil:
+			return fmt.Errorf("--redirect-uris entry %q is not a valid URL: %w", uri, err)
+		case u.Scheme != "http" && u.Scheme != "https":
+			return fmt.Errorf("--redirect-uris entry %q must be an absolute http(s) URL "+
+				"(e.g. https://app.example.com/callback)", uri)
+		case u.Host == "":
+			return fmt.Errorf("--redirect-uris entry %q has no host", uri)
+		case u.Fragment != "":
+			return fmt.Errorf("--redirect-uris entry %q carries a fragment; RFC 6749 §3.1.2 "+
+				"forbids one on the redirection endpoint", uri)
+		case u.User != nil:
+			return fmt.Errorf("--redirect-uris entry %q carries user info, which reads as one "+
+				"host while resolving to another", uri)
+		}
 	}
 	return nil
 }

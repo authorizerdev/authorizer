@@ -47,6 +47,22 @@ type Config struct {
 	// So --url also decides where the wildcard default is allowed to redirect.
 	AllowedOrigins []string
 
+	// RedirectURIs is an optional allow-list of EXACT redirect URIs for this
+	// deployment's own client (the one named by --client-id). When it is set,
+	// that client is held to an exact match — the same rule RFC 6749 §3.1.2.3
+	// and OIDC Core §3.1.2.1 state, and the one already applied to clients that
+	// registered through RFC 7591 or a metadata document.
+	//
+	// When it is empty, redirect_uri falls back to AllowedOrigins, which
+	// compares ORIGINS: every path under an allowed origin is accepted. That is
+	// the historical behaviour and stays the default, because tightening it
+	// silently would refuse the callback of every deployment that never listed
+	// its URIs. Setting this flag opts a deployment into the stricter rule.
+	//
+	// It applies to EVERY flow that carries this client_id, not just one app, so
+	// the list must name every redirect URI the deployment's apps actually use.
+	RedirectURIs []string
+
 	// EnableLoginPage is the flag to enable login page
 	EnableLoginPage bool
 	// EnableOrgDiscovery gates the public home-realm-discovery endpoint
