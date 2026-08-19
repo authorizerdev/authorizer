@@ -5,7 +5,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "${AUTHORIZER_HOST_PORT:-8080}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer:8080"
@@ -107,7 +107,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8081:8080"
+      - "${AUTHORIZER_SSO_HOST_PORT:-8081}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer-sso:8080"
@@ -183,7 +183,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8082:8080"
+      - "${AUTHORIZER_WEBAUTHN_HOST_PORT:-8082}:8080"
     networks:
       default:
         aliases:
@@ -241,7 +241,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8083:8080"
+      - "${AUTHORIZER_MAGIC_LINK_HOST_PORT:-8083}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer-magic-link:8080"
@@ -291,7 +291,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8086:8080"
+      - "${AUTHORIZER_EMAIL_VERIFY_HOST_PORT:-8086}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer-email-verify:8080"
@@ -343,7 +343,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8084:8080"
+      - "${AUTHORIZER_MFA_ENFORCED_HOST_PORT:-8084}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer-mfa-enforced:8080"
@@ -394,7 +394,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8085:8080"
+      - "${AUTHORIZER_MFA_MAGIC_LINK_HOST_PORT:-8085}:8080"
     command:
       - "--http-port=8080"
       - "--url=http://authorizer-mfa-magic-link:8080"
