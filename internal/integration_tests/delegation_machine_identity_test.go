@@ -359,3 +359,83 @@ func TestChainedMachineSubjectReExchange(t *testing.T) {
 			"a deactivated service-account subject must not seed a further hop")
 	})
 }
+
+// TestRequiredRelationsClassifiesMachineSubject covers the THIRD FGA decision
+// surface. check_permissions and list_permissions both base their decision on
+// resolveFgaCaller's classified subject; enforceRequiredRelations hardcoded
+// "user:<id>" and threw that classification away, so a machine identity was
+// answered as a human user there.
+//
+// It needs no delegation at all: a plain client_credentials token presented to
+// validate_jwt_token with required_relations was satisfied by a tuple written
+// for "user:<service-account-row-id>", while check_permissions denied the very
+// same token. That is exactly the "two answers to one authority question" the
+// surface's own doc comment warns about, and a gateway gating on
+// required_relations would admit requests the permission API refuses.
+func TestRequiredRelationsClassifiesMachineSubject(t *testing.T) {
+	cfg := getTestConfig()
+	ts, _ := initFGATestSetup(t, cfg)
+	_, ctx := createContext(ts)
+	router := gin.New()
+	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+
+	setAdminCookie(t, ts)
+	_, err := ts.GraphQLProvider.FgaWriteModel(ctx, &model.FgaWriteModelInput{Dsl: fgaMachineDelegationModel})
+	require.NoError(t, err)
+
+	agent, secret := newDelegationAgentFull(t, ts, "openid,email")
+	machine := agentAccessToken(t, ts, router, agent.ClientID, secret)
+
+	gate := func(t *testing.T, object string) error {
+		t.Helper()
+		_, gErr := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			Token:     machine,
+			TokenType: constants.TokenTypeAccessToken,
+			RequiredRelations: []*model.FgaRelationInput{
+				{Relation: "can_view", Object: object},
+			},
+		})
+		return gErr
+	}
+
+	t.Run("a user:<sa-row-id> tuple must NOT satisfy the gate", func(t *testing.T) {
+		setAdminCookie(t, ts)
+		_, wErr := ts.GraphQLProvider.FgaWriteTuples(ctx, &model.FgaWriteTuplesInput{
+			Tuples: []*model.FgaTupleInput{
+				{User: "user:" + agent.ID, Relation: "viewer", Object: "document:laundered"},
+			},
+		})
+		require.NoError(t, wErr)
+
+		assert.Error(t, gate(t, "document:laundered"),
+			"required_relations must classify the machine token as service_account:<client_id>")
+	})
+
+	t.Run("the correct service_account tuple DOES satisfy the gate", func(t *testing.T) {
+		// Proves the surface still works under the real identity — the fix
+		// denies the laundered subject, it does not break machine callers.
+		setAdminCookie(t, ts)
+		_, wErr := ts.GraphQLProvider.FgaWriteTuples(ctx, &model.FgaWriteTuplesInput{
+			Tuples: []*model.FgaTupleInput{
+				{User: "service_account:" + agent.ClientID, Relation: "viewer", Object: "document:proper"},
+			},
+		})
+		require.NoError(t, wErr)
+
+		assert.NoError(t, gate(t, "document:proper"),
+			"a machine token granted under its real subject must pass the gate")
+	})
+
+	t.Run("required_relations agrees with check_permissions", func(t *testing.T) {
+		// The invariant the surface's doc comment promises. Both must give the
+		// same answer for the same token, relation and object.
+		presentDelegatedToken(ts, machine)
+		res, cErr := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:laundered"}},
+		})
+		require.NoError(t, cErr)
+		require.Len(t, res.Results, 1)
+		assert.False(t, res.Results[0].Allowed, "check_permissions denies the laundered subject")
+		assert.Error(t, gate(t, "document:laundered"), "required_relations must agree")
+	})
+}

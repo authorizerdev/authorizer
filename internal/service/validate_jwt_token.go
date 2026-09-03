@@ -40,6 +40,10 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		return nil, nil, Unauthenticated("invalid token")
 	}
 	userID = sub
+	// The PRESENTED token's own login_method. It classifies the subject for the
+	// required_relations gate below, so a machine token is answered as
+	// service_account:<client_id> rather than user:<surrogate-id>.
+	subjectLoginMethod, _ := claims["login_method"].(string)
 
 	if tokenType == constants.TokenTypeAccessToken || tokenType == constants.TokenTypeRefreshToken {
 		nonceVal, ok := claims["nonce"].(string)
@@ -116,7 +120,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 	}
 	// Fine-grained authorization gate (AND semantics, fail-closed).
 	if len(params.RequiredRelations) > 0 {
-		if err := p.enforceRequiredRelations(ctx, meta, log, userID, params.RequiredRelations); err != nil {
+		if err := p.enforceRequiredRelations(ctx, meta, log, userID, subjectLoginMethod, params.RequiredRelations); err != nil {
 			log.Debug().Err(err).Msg("Required relations not satisfied")
 			return nil, nil, err
 		}
