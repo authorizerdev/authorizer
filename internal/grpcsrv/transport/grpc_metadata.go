@@ -121,9 +121,22 @@ func clientIPFromGRPC(ctx context.Context, md metadata.MD) string {
 			peerAddr = strings.TrimSpace(items[n-1])
 			forwarded = strings.Join(items[:n-1], ",")
 		} else {
-			// No chain at all means the gateway had no RemoteAddr to append.
-			// Fail closed to "unknown" rather than promoting a caller-supplied
-			// value we cannot anchor to a connection.
+			// No chain at all. Two ways to get here, both safe:
+			//
+			//   - The MCP surface, which also serves over an in-process bufconn
+			//     (internal/mcp) but forwards ONLY the Authorization header —
+			//     deliberately, see Server.stampAuth — so it never carries a
+			//     forwarded chain. Its callers therefore have no resolvable
+			//     address and record an empty one. That is not a regression in
+			//     kind: before this change the same calls recorded the literal
+			//     string "bufconn". Nothing is spoofable either way, because a
+			//     remote MCP client's headers never cross the bridge, and the
+			//     admin-secret lockout is unreachable over MCP (its interceptor
+			//     accepts bearer tokens only).
+			//   - A gateway call whose HTTP RemoteAddr was empty.
+			//
+			// Either way there is nothing anchoring the metadata to a
+			// connection, so no caller-supplied value may be promoted.
 			forwarded, realIP = "", ""
 		}
 	}

@@ -149,8 +149,14 @@ func GetIP(r *http.Request) string {
 			}
 		}
 	}
+	// Parsed, not returned raw: gin runs this header through the same
+	// validation as X-Forwarded-For and falls back to the peer on garbage.
+	// Returning it unchecked would let a trusted proxy's malformed value become
+	// a lockout bucket key that is not an address at all.
 	if realIP := strings.TrimSpace(r.Header.Get("X-Real-Ip")); realIP != "" {
-		return realIP
+		if net.ParseIP(realIP) != nil {
+			return realIP
+		}
 	}
 	return peer
 }

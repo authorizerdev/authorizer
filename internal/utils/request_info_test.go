@@ -166,6 +166,9 @@ func TestGetIPMatchesGinClientIP(t *testing.T) {
 		{"bare ip entry", []string{"10.0.0.5"}, "10.0.0.5:443", map[string]string{"X-Forwarded-For": "1.1.1.1"}},
 		{"ipv6 trusted peer", []string{"2001:db8::/32"}, "[2001:db8::1]:443", map[string]string{"X-Forwarded-For": "1.1.1.1"}},
 		{"leftmost entry is trusted", []string{"10.0.0.0/8"}, "10.0.0.5:443", map[string]string{"X-Forwarded-For": "10.0.0.9"}},
+		{"trusted malformed real-ip", []string{"10.0.0.0/8"}, "10.0.0.5:443", map[string]string{"X-Real-Ip": "not-an-ip"}},
+		{"trusted malformed real-ip and xff", []string{"10.0.0.0/8"}, "10.0.0.5:443", map[string]string{"X-Forwarded-For": "bogus", "X-Real-Ip": "also-bogus"}},
+		{"trusted empty xff", []string{"10.0.0.0/8"}, "10.0.0.5:443", map[string]string{"X-Forwarded-For": ""}},
 	}
 
 	for _, tc := range cases {
@@ -176,10 +179,6 @@ func TestGetIPMatchesGinClientIP(t *testing.T) {
 			require.NoError(t, engine.SetTrustedProxies(tc.trusted))
 
 			r := req(tc.remoteAddr, tc.headers)
-			gc, _ := gin.CreateTestContext(httptest.NewRecorder())
-			gc.Request = r
-			// gin's engine is reachable through the router that created the
-			// context, so drive the real one.
 			var ginAnswer string
 			engine.GET("/", func(c *gin.Context) { ginAnswer = c.ClientIP() })
 			w := httptest.NewRecorder()
