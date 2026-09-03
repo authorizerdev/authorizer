@@ -33,7 +33,13 @@ func TestMetaFromGin_ExtractsRequestSignals(t *testing.T) {
 
 	meta := MetaFromGin(gc)
 	assert.Equal(t, "https://auth.example.com", meta.HostURL)
-	assert.Equal(t, "10.1.2.3", meta.IPAddress)
+	// httptest's default peer (192.0.2.1) is not a configured trusted proxy, so
+	// the X-Forwarded-For above is a claim the caller made about itself and is
+	// ignored. This assertion previously read "10.1.2.3" — it encoded
+	// GHSA-93hc-xq3w-xw87, where a spoofable header chose the admin-secret
+	// lockout bucket. See utils.TestGetIPHonoursForwardedHeadersFromTrustedProxy
+	// for the trusted-peer half of this behaviour.
+	assert.Equal(t, "192.0.2.1", meta.IPAddress)
 	assert.Equal(t, "AuthorizerTest/1.0", meta.UserAgent)
 	assert.Equal(t, "Bearer abc", meta.AuthorizationHeader)
 	require.Len(t, meta.Cookies, 1)

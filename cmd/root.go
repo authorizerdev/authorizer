@@ -250,7 +250,7 @@ func init() {
 	f.IntVar(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
 	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
 	f.BoolVar(&rootArgs.config.RateLimitFailClosed, "rate-limit-fail-closed", false, "On rate-limit backend errors, reject with 503 instead of allowing the request")
-	f.StringSliceVar(&rootArgs.config.TrustedProxies, "trusted-proxies", nil, "Comma-separated CIDRs of trusted reverse proxies. When set, gin uses X-Forwarded-For from these networks. Empty (default) trusts no proxies and uses RemoteAddr.")
+	f.StringSliceVar(&rootArgs.config.TrustedProxies, "trusted-proxies", nil, "Comma-separated CIDRs (or bare IPs) of trusted reverse proxies. Forwarded headers (X-Forwarded-For, X-Real-Ip) are honoured ONLY from these networks and decide the client IP used for rate limiting, the admin-secret lockout, and audit logs. List EVERY hop (CDN and load balancer both) or the client IP resolves to the outermost unlisted proxy. Empty (default) trusts no proxies and uses the connection peer address.")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")

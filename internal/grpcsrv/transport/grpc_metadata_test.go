@@ -23,7 +23,11 @@ func TestMetaFromGRPC_ExtractsAllSignals(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	meta := MetaFromGRPC(ctx)
 	assert.Equal(t, "https://auth.example.com", meta.HostURL)
-	assert.Equal(t, "10.1.2.3", meta.IPAddress)
+	// No peer on the context, so the forwarded metadata is an unanchored claim
+	// and is ignored. This previously asserted "10.1.2.3" — it encoded the gRPC
+	// half of GHSA-93hc-xq3w-xw87, where a caller chose its own admin-lockout
+	// bucket by setting a metadata key. See TestClientIPFromGRPC_* below.
+	assert.Empty(t, meta.IPAddress)
 	assert.Equal(t, "browser/1.0", meta.UserAgent)
 	assert.Equal(t, "Bearer abc", meta.AuthorizationHeader)
 	require.Len(t, meta.Cookies, 2)

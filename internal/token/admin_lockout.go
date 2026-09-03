@@ -62,13 +62,21 @@ const (
 // What this does NOT protect against, stated plainly so it is not mistaken for a
 // boundary:
 //
-//   - clientIP comes from utils.GetIP / RequestMetadata, which prefer the
-//     X-Real-Ip and X-Forwarded-For request headers. On a deployment that is not
-//     behind a proxy that overwrites them, those are attacker-controlled: a
-//     guesser rotates the header per request and never fills a bucket. Fixing
-//     that needs trusted-proxy configuration this server does not yet have.
 //   - a distributed guesser gets adminSecretMaxFailedAttempts per source
-//     regardless.
+//     regardless. Deliberately NOT addressed with an aggregate/global ceiling:
+//     a single non-spoofable counter shared by every caller is a denial-of-
+//     service lever pointed at the operators, since any attacker could trip it
+//     and lock every admin out of their own console. The per-source bucket is
+//     the right granularity; entropy is the control for the distributed case.
+//
+// What clientIP IS, since this used to be the hole: utils.GetIP resolves it
+// from the connection peer, honouring X-Forwarded-For / X-Real-Ip ONLY when
+// that peer is in the operator-configured --trusted-proxies set, and returning
+// a bare address with the port stripped. Before that fix (GHSA-93hc-xq3w-xw87)
+// a guesser rotated a forged header — or simply opened a new connection, since
+// the ephemeral port was part of the key — and never filled a bucket.
+// internal/server.NewRouter configures utils.SetTrustedProxies and gin's
+// SetTrustedProxies from the same value on adjacent lines; keep them that way.
 //
 // It is defence in depth that makes naive online guessing expensive, not a
 // substitute for a high-entropy AdminSecret. The entropy is the control.

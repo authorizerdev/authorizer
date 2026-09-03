@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/gen/openapi"
+	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
 // spaBuildCacheMiddleware sets cache headers for SPA build assets:
@@ -53,6 +54,25 @@ func (s *server) NewRouter() *gin.Engine {
 	}
 	if err := router.SetTrustedProxies(trustedProxies); err != nil {
 		s.Dependencies.Log.Warn().Err(err).Msg("failed to apply trusted proxies; falling back to gin defaults")
+	}
+	// utils.GetIP feeds the admin-secret lockout bucket and every audit event's
+	// IPAddress, and it MUST resolve the client the same way the router just
+	// did. Configuring the two independently is what allowed
+	// GHSA-93hc-xq3w-xw87: the router trusted no proxies while GetIP read
+	// X-Forwarded-For unconditionally, so the lockout bucketed on an
+	// attacker-chosen label. Keep these two calls adjacent.
+	if err := utils.SetTrustedProxies(trustedProxies); err != nil {
+		s.Dependencies.Log.Warn().Err(err).Msg("failed to apply trusted proxies to client-IP resolution; forwarded headers will be ignored")
+	}
+	if len(trustedProxies) == 0 {
+		// Loud because the failure mode is silent and expensive: a deployment
+		// that IS behind a proxy but never set the flag attributes every
+		// request to the proxy's address, so one attacker's failed admin
+		// guesses fill the single shared bucket and lock out every operator.
+		// The flag is already load-bearing for rate limiting, which keys on
+		// gin's ClientIP — this makes client-IP resolution consistent with it
+		// rather than newly dependent on it.
+		s.Dependencies.Log.Warn().Msg("no --trusted-proxies configured: X-Forwarded-For and X-Real-Ip are IGNORED and the connection peer address is used as the client IP. If this server sits behind a reverse proxy or load balancer, set --trusted-proxies to its CIDR(s) — list every hop (CDN and load balancer both), or client IPs will be recorded as the outermost unlisted proxy")
 	}
 	router.Use(gin.Recovery())
 
