@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -165,4 +167,86 @@ func TestClientIPFromGRPC_MatchesHTTPPath(t *testing.T) {
 
 	assert.Equal(t, viaHTTP, viaGRPC)
 	assert.Equal(t, "1.1.1.1", viaHTTP)
+}
+
+// gatewayMatcher mirrors gateway.Handler's WithIncomingHeaderMatcher. Kept in
+// sync deliberately: this test asserts the RESOLVER survives a smuggled entry
+// even if the boundary filter were ever removed, so it must be able to build
+// the pre-filter metadata shape.
+func annotateLikeGateway(t *testing.T, remoteAddr string, headers map[string]string) metadata.MD {
+	t.Helper()
+	mux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+			if strings.EqualFold(key, "x-authorizer-admin-secret") {
+				return key, true
+			}
+			return runtime.DefaultHeaderMatcher(key)
+		}),
+	)
+	r, err := http.NewRequest(http.MethodPost, "http://localhost:8080/v1/admin/login", nil)
+	require.NoError(t, err)
+	r.RemoteAddr = remoteAddr
+	for k, v := range headers {
+		r.Header.Set(k, v)
+	}
+	ctx, err := runtime.AnnotateContext(context.Background(), mux, r,
+		"/authorizer.v1.AuthorizerAdminService/AdminLogin")
+	require.NoError(t, err)
+	out, _ := metadata.FromOutgoingContext(ctx)
+	return out
+}
+
+// TestClientIPFromGRPC_GrpcMetadataPrefixCannotSmuggle is the regression test
+// for a REST-surface bypass of GHSA-93hc-xq3w-xw87 found in adversarial review,
+// not in the original report.
+//
+// grpc-gateway's DefaultHeaderMatcher strips a "Grpc-Metadata-" prefix and
+// forwards what remains, so `Grpc-Metadata-X-Forwarded-For: <attacker>` becomes
+// a real `x-forwarded-for` metadata entry — placed BEFORE the authoritative
+// chain AnnotateContext appends afterwards. Reading the FIRST value therefore
+// handed an unauthenticated REST caller its own choice of client IP, and the
+// admin-secret lockout bucketed on it again.
+//
+// Two independent locks now: gateway.Handler refuses these keys at the
+// boundary, and this resolver reads the LAST value. This test builds metadata
+// through the REAL runtime.AnnotateContext WITHOUT the boundary filter, so it
+// exercises the resolver's lock on its own. (metadata.New cannot express a
+// multi-value key, which is exactly why the original tests missed this.)
+func TestClientIPFromGRPC_GrpcMetadataPrefixCannotSmuggle(t *testing.T) {
+	require.NoError(t, utils.SetTrustedProxies(nil))
+
+	md := annotateLikeGateway(t, "198.51.100.10:40000", map[string]string{
+		"Grpc-Metadata-X-Forwarded-For": "203.0.113.9",
+	})
+	require.Len(t, md.Get("x-forwarded-for"), 2,
+		"precondition: the smuggled entry must precede the gateway's own chain")
+
+	ctx := peer.NewContext(metadata.NewIncomingContext(context.Background(), md),
+		&peer.Peer{Addr: bufconnAddr{}})
+	assert.Equal(t, "198.51.100.10", MetaFromGRPC(ctx).IPAddress,
+		"a smuggled Grpc-Metadata-X-Forwarded-For must not become the client IP")
+
+	// The exploit shape: rotate the smuggled value, the bucket key must not move.
+	first := ""
+	for i := 1; i <= 5; i++ {
+		m := annotateLikeGateway(t, "198.51.100.10:40000", map[string]string{
+			"Grpc-Metadata-X-Forwarded-For": fmt.Sprintf("203.0.113.%d", i),
+		})
+		c := peer.NewContext(metadata.NewIncomingContext(context.Background(), m),
+			&peer.Peer{Addr: bufconnAddr{}})
+		ip := MetaFromGRPC(c).IPAddress
+		if first == "" {
+			first = ip
+		}
+		assert.Equal(t, first, ip, "rotating the smuggled header moved the lockout bucket")
+	}
+
+	// Same for X-Real-Ip.
+	md = annotateLikeGateway(t, "198.51.100.11:40000", map[string]string{
+		"Grpc-Metadata-X-Real-Ip": "203.0.113.9",
+	})
+	ctx = peer.NewContext(metadata.NewIncomingContext(context.Background(), md),
+		&peer.Peer{Addr: bufconnAddr{}})
+	assert.Equal(t, "198.51.100.11", MetaFromGRPC(ctx).IPAddress,
+		"a smuggled Grpc-Metadata-X-Real-Ip must not become the client IP")
 }

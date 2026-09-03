@@ -102,8 +102,16 @@ const bufconnNetwork = "bufconn"
 //     utils.GetIP exactly the shape it would have seen on the gin path, so a
 //     REST call and the equivalent direct HTTP call resolve identically.
 func clientIPFromGRPC(ctx context.Context, md metadata.MD) string {
-	forwarded := firstHeader(md, "x-forwarded-for", "grpcgateway-x-forwarded-for")
-	realIP := firstHeader(md, "x-real-ip", "grpcgateway-x-real-ip")
+	// LAST value, not first. A metadata key can hold several values, and
+	// grpc-gateway appends its own authoritative chain (client XFF + the real
+	// HTTP RemoteAddr) AFTER any entry a client smuggled in via the
+	// "Grpc-Metadata-X-Forwarded-For" spelling, which DefaultHeaderMatcher
+	// forwards with the prefix stripped. Reading the first value therefore
+	// handed an unauthenticated REST caller its own choice of client IP and
+	// reinstated GHSA-93hc-xq3w-xw87 on this surface. gateway.Handler now also
+	// refuses those keys at the boundary; this is the second lock.
+	forwarded := lastHeader(md, "x-forwarded-for", "grpcgateway-x-forwarded-for")
+	realIP := lastHeader(md, "x-real-ip", "grpcgateway-x-real-ip")
 
 	peerAddr := ""
 	viaGateway := false
@@ -207,6 +215,21 @@ func ApplyToGRPC(ctx context.Context, side *service.ResponseSideEffects) error {
 		return nil
 	}
 	return grpc.SendHeader(ctx, md)
+}
+
+// lastHeader returns the LAST value of the first key present.
+//
+// firstHeader's semantics are wrong for any key a client can also inject: a
+// metadata key holds a list, and the value this server appends itself lands at
+// the end. For the forwarding headers that distinction is the security
+// boundary — see clientIPFromGRPC.
+func lastHeader(md metadata.MD, keys ...string) string {
+	for _, k := range keys {
+		if vs := md.Get(k); len(vs) > 0 {
+			return vs[len(vs)-1]
+		}
+	}
+	return ""
 }
 
 func firstHeader(md metadata.MD, keys ...string) string {

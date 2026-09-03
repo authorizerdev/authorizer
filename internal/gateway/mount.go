@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/textproto"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -79,12 +80,7 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 		// REST callers could only authenticate via the admin cookie. All other
 		// headers fall through to the default matcher so existing behaviour is
 		// unchanged.
-		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
-			if strings.EqualFold(key, "x-authorizer-admin-secret") {
-				return key, true
-			}
-			return runtime.DefaultHeaderMatcher(key)
-		}),
+		incomingHeaderMatcherOption(),
 		// Promote the service layer's session/MFA cookies to real Set-Cookie
 		// response headers. Handlers emit them via transport.ApplyToGRPC ->
 		// grpc.SendHeader as `set-cookie` server metadata; grpc-gateway's
@@ -214,4 +210,42 @@ func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientCo
 		return err
 	}
 	return authorizerv1.RegisterAuthorizerAdminServiceHandler(ctx, mux, conn)
+}
+
+// incomingHeaderMatcherOption builds the gateway's inbound header policy.
+//
+// Extracted as a named function so the test suite drives the REAL policy rather
+// than a copy that can drift — the drift is the vulnerability here.
+func incomingHeaderMatcherOption() runtime.ServeMuxOption {
+	return runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+
+		if strings.EqualFold(key, "x-authorizer-admin-secret") {
+			return key, true
+		}
+		// Refuse client-supplied forwarding headers outright.
+		//
+		// DefaultHeaderMatcher strips a "Grpc-Metadata-" prefix and forwards
+		// whatever follows (runtime/mux.go), so a REST client sending
+		// `Grpc-Metadata-X-Forwarded-For: 1.2.3.4` gets a real
+		// `x-forwarded-for` metadata entry — placed BEFORE the authoritative
+		// chain AnnotateContext appends afterwards. That smuggled entry
+		// reinstated the exact spoof GHSA-93hc-xq3w-xw87 is about: the
+		// admin-secret lockout bucketed on an attacker-chosen value again,
+		// over REST, unauthenticated.
+		//
+		// The raw `X-Forwarded-For` header is already safe (AnnotateContext
+		// handles it itself and DefaultHeaderMatcher does not forward it,
+		// since it is not a permanent header) — this closes the prefixed
+		// spelling, which is the only way a client can reach the key.
+		//
+		// Belt and braces with transport.clientIPFromGRPC, which reads the
+		// LAST value rather than the first for the same reason. Either alone
+		// would close it; a header this load-bearing gets both.
+		switch textproto.CanonicalMIMEHeaderKey(strings.TrimPrefix(
+			textproto.CanonicalMIMEHeaderKey(key), runtime.MetadataHeaderPrefix)) {
+		case "X-Forwarded-For", "X-Real-Ip", "X-Forwarded-Host":
+			return "", false
+		}
+		return runtime.DefaultHeaderMatcher(key)
+	})
 }
