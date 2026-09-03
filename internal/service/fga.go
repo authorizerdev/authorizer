@@ -135,21 +135,29 @@ func (p *provider) resolveFgaSubject(ctx context.Context, meta RequestMetadata, 
 //
 // MACHINE vs USER vs DELEGATED — the classification keys ONLY on the token's
 // login_method claim:
-//   - login_method == constants.AuthRecipeMethodServiceAccount is stamped
-//     EXCLUSIVELY on client_credentials machine tokens
-//     (token.createMachineAccessToken). Those tokens have no resource-owner user
-//     (sub is the service account's surrogate id) and never carry an RFC 8693
-//     `act` delegation claim. Such a caller resolves to
-//     "service_account:<client_id>".
-//   - every other login_method (human recipes, sso) resolves to "user:<sub>".
+//   - login_method == constants.AuthRecipeMethodServiceAccount marks a MACHINE
+//     subject. It is stamped on client_credentials tokens
+//     (token.createMachineAccessToken) and on a delegated token whose SUBJECT is
+//     a service account (token.DelegationTokenConfig.ServiceAccountSubject).
+//     Either way `sub` is the service account's surrogate id and the caller
+//     resolves to "service_account:<client_id>".
+//   - every other login_method — INCLUDING its absence — resolves to
+//     "user:<sub>".
 //
-// This makes the delegation guard structural, not a runtime check: an RFC 8693
-// delegated token (token.CreateDelegatedAccessToken) is stateless, carries a
-// user `sub` plus an `act` chain, and carries NO login_method claim — so it can
-// never be classified as a machine subject and always resolves to "user:<sub>".
-// The security-critical rule (delegated and user tokens stay user subjects; only
-// autonomous machine tokens become service_account subjects) holds by
-// construction.
+// The absence rule is why the claim must be stamped. An earlier version relied
+// on a delegated token carrying NO login_method and concluded that a delegated
+// token "always resolves to user:<sub> by construction". That was correct for a
+// user subject and wrong for a machine one: a service account exchanging a
+// token got a credential with no login_method, so this function classified an
+// autonomous machine as a human user, flipping OpenFGA decisions from deny to
+// allow (GHSA-vq29-8q3c-3hrm). Classification follows the SUBJECT's real
+// identity, which the mint now records explicitly rather than leaving to be
+// inferred from a missing claim.
+//
+// Delegation is orthogonal to this split and is carried by actorID, not by
+// login_method: BOTH a user-subject and a machine-subject delegated token
+// resolve with a non-empty actorID, so delegationSubjects applies the
+// perms(agent) ∩ perms(subject) intersection to each identically.
 //
 // The actor is read from the same source as the subject, never from a second
 // lookup: authctx.Principal is populated ONLY by the gRPC interceptor, so a
@@ -178,10 +186,19 @@ func (p *provider) resolveFgaCaller(ctx context.Context, meta RequestMetadata) (
 		if err != nil {
 			return fgaCaller{}, err
 		}
-		// A machine token never carries an `act` chain (see above), so a
-		// service_account subject is never delegated. Dropping any actorID here
-		// keeps that invariant enforced rather than merely documented.
-		return fgaCaller{subject: subject}, nil
+		// actorID is RETAINED, not dropped.
+		//
+		// It used to be dropped, on the reasoning that a machine token never
+		// carries an `act` chain so a service_account subject is never
+		// delegated. That is true of a client_credentials token — which has no
+		// `act`, so actorID is "" here anyway and this is a no-op for it — but
+		// it is NOT true of a delegated token whose SUBJECT is a service
+		// account (the multi-hop agent chain). Since such a token now correctly
+		// carries login_method=service_account, it reaches this branch WITH an
+		// actor, and dropping it would collapse the agent's authority from
+		// perms(agent) ∩ perms(subject) to perms(subject) alone — trading the
+		// identity-laundering bug for a privilege-widening one.
+		return fgaCaller{subject: subject, actorID: actorID}, nil
 	}
 	return fgaCaller{subject: "user:" + callerID, actorID: actorID}, nil
 }

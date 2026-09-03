@@ -256,13 +256,19 @@ func (h *httpProvider) handleTokenExchangeGrant(gc *gin.Context, agent *schemas.
 	}
 
 	delegated, err := h.TokenProvider.CreateDelegatedAccessToken(&token.DelegationTokenConfig{
-		Subject:   subject,
-		Actor:     act,
-		Audience:  resource,
-		Scope:     effective,
-		ClientID:  agent.ClientID,
-		HostName:  hostname,
-		SessionID: sessionID,
+		Subject:  subject,
+		Actor:    act,
+		Audience: resource,
+		Scope:    effective,
+		ClientID: agent.ClientID,
+		HostName: hostname,
+		// Carry a machine subject's identity onto the minted token. Without
+		// this the token drops login_method entirely and service.fga
+		// re-classifies the service account as a human user
+		// (GHSA-vq29-8q3c-3hrm). onBehalfOfType was derived above from the
+		// subject_token's OWN login_method, not from anything the caller sent.
+		ServiceAccountSubject: onBehalfOfType == "agent",
+		SessionID:             sessionID,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to mint delegated token")

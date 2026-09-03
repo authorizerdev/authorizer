@@ -101,8 +101,9 @@ func TestTokenExchangeServiceAccountSubjectIsExemptFromSessionCheck(t *testing.T
 // TestTokenExchangeChainedHopFollowsTheSubjectSession pins that the check reads
 // the `sid` a chained exchange carries, not just a first-hop `nonce`.
 //
-// A delegated token deliberately carries no login_method or nonce claim, so hop 2
-// resolves its session through the `sid` hop 1 stamped. If the check only ever
+// A delegated token carries no nonce claim (and, for the user subject used here,
+// no login_method either), so hop 2 resolves its session through the `sid` hop 1
+// stamped. If the check only ever
 // looked at `nonce`, hop 2 would silently skip it and a logout would stop the
 // first hop while leaving every subsequent one working.
 func TestTokenExchangeChainedHopFollowsTheSubjectSession(t *testing.T) {

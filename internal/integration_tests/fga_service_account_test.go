@@ -220,9 +220,11 @@ func TestFGAServiceAccountSubject(t *testing.T) {
 
 	// (c)+(d) A user/session token still resolves to user:<sub> and NEVER inherits
 	// the service account's grants — even though a service_account with tuples
-	// exists. A real RFC 8693 delegated token carries a user sub + an act chain
-	// and no service_account login_method, so it is classified here exactly like
-	// this user token: the guard is structural (see callerOwnSubject).
+	// exists. A USER-SUBJECT RFC 8693 delegated token carries a user sub + an act
+	// chain and no login_method, so it is classified here exactly like this user
+	// token. (A delegated token whose SUBJECT is a service account is a different
+	// case: it carries login_method=service_account and resolves to
+	// service_account:<client_id> — see TestDelegatedTokenKeepsMachineIdentity.)
 	t.Run("user token stays user:<sub> and does not inherit service_account grants", func(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Del("Authorization")

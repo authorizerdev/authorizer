@@ -74,6 +74,21 @@ type DelegationTokenConfig struct {
 	// produce one) but a token without it can never authenticate HERE; it
 	// remains usable at the downstream resource server it was bound to.
 	SessionID string
+	// ServiceAccountSubject stamps login_method=service_account on tokens whose
+	// SUBJECT is a service account (the multi-hop agent chain, where agent A
+	// exchanges agent B's machine token — and the degenerate case where they
+	// are the same account).
+	//
+	// Without it such a token carries no login_method at all, and
+	// service.resolveFgaCaller classifies "no login_method" as a human user.
+	// A machine identity therefore laundered itself into "user:<sub>",
+	// flipping OpenFGA decisions from deny to allow and slipping past every
+	// login_method-keyed guard (GHSA-vq29-8q3c-3hrm).
+	//
+	// It is set ONLY for a service-account subject. A user-subject delegation
+	// still carries no login_method and still resolves to "user:<sub>", which
+	// is what keeps every existing delegation working unchanged.
+	ServiceAccountSubject bool
 }
 
 // DelegationSessionID encodes the memory-store coordinates of the session a
@@ -96,10 +111,18 @@ type DelegationTokenConfig struct {
 // The format mirrors ValidateAccessToken's session-key derivation
 // ("<login_method>:<user_id>|<nonce>", the login_method half omitted when the
 // token carries none) so both paths address the same entry. It is deliberately
-// NOT stamped as separate `nonce` and `login_method` claims: a `login_method`
-// claim on a delegated token would make service/fga.go classify the caller as a
-// service_account subject, silently breaking the invariant that a delegated
-// token always resolves to "user:<sub>".
+// NOT stamped as a separate `nonce` claim, which would make the stateless token
+// look addressable by the stateful validator.
+//
+// An earlier version of this comment also claimed a `login_method` claim must
+// never appear on a delegated token, because service/fga.go would then classify
+// the caller as a service_account subject and break "a delegated token always
+// resolves to user:<sub>". That invariant was itself the bug
+// (GHSA-vq29-8q3c-3hrm): it is correct for a USER subject and wrong for a
+// SERVICE-ACCOUNT one, where resolving to "user:<sub>" launders a machine
+// identity into a human one. login_method is now stamped for exactly the
+// service-account case — see DelegationTokenConfig.ServiceAccountSubject — and
+// still omitted for a user subject.
 //
 // NOTE the OIDC Back-Channel Logout token (backchannel_logout.go) also carries
 // a `sid`, and sends the BARE NONCE. The two are deliberately not identical —
@@ -161,6 +184,13 @@ func (p *provider) CreateDelegatedAccessToken(cfg *DelegationTokenConfig) (*JWTT
 	// the claim's presence always means "this is checkable".
 	if cfg.SessionID != "" {
 		claims["sid"] = cfg.SessionID
+	}
+	// Carry a machine subject's identity forward. See ServiceAccountSubject:
+	// omitting this let a service account's delegated token be classified as a
+	// human user. Deliberately NOT set for a user subject, whose absence of the
+	// claim is what keeps it resolving to "user:<sub>".
+	if cfg.ServiceAccountSubject {
+		claims["login_method"] = constants.AuthRecipeMethodServiceAccount
 	}
 	signed, err := p.signJWTToken(claims, accessTokenJWTType)
 	if err != nil {
