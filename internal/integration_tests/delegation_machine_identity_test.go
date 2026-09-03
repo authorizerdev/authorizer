@@ -294,3 +294,68 @@ func TestDelegatedMachineIdentityDoesNotFlipFgaDecision(t *testing.T) {
 			"perms(agent) ∩ perms(subject) must still hold for a machine subject")
 	})
 }
+
+// TestChainedMachineSubjectReExchange pins a BEHAVIOUR CHANGE introduced by
+// stamping login_method, so it is a deliberate decision rather than a surprise.
+//
+// Before the fix, a machine-subject delegated token carried no login_method, so
+// re-exchanging it sent token_exchange.go down the USER branch, which did
+// GetUserByID(<service-account row id>), found nothing, and rejected the hop
+// with "subject could not be verified". The multi-hop agent chain therefore
+// only ever worked for its FIRST hop.
+//
+// After the fix the token names its real identity, so the hop takes the agent
+// branch and succeeds — which is what the design intends. It stays bounded by
+// every existing control: the subject client must still be active, scope is
+// still intersected downward, and maxActChainDepth still caps the chain.
+func TestChainedMachineSubjectReExchange(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	router := gin.New()
+	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+
+	resource := "https://api.example.com/v1"
+	subjectAgent, subjectSecret := newDelegationAgentFull(t, ts, "openid,email,profile")
+	hop1Agent, hop1Secret := newDelegationAgentFull(t, ts, "openid,email")
+	hop2Agent, hop2Secret := newDelegationAgentFull(t, ts, "openid")
+
+	subjectMachine := agentAccessToken(t, ts, router, subjectAgent.ClientID, subjectSecret)
+	hop1Actor := agentAccessToken(t, ts, router, hop1Agent.ClientID, hop1Secret)
+
+	code, hop1Tok := exchangeTokens(t, ts, router, subjectMachine, hop1Actor,
+		hop1Agent.ClientID, hop1Secret, resource)
+	require.Equal(t, http.StatusOK, code)
+
+	hop2Actor := agentAccessToken(t, ts, router, hop2Agent.ClientID, hop2Secret)
+	code, hop2Tok := exchangeTokens(t, ts, router, hop1Tok, hop2Actor,
+		hop2Agent.ClientID, hop2Secret, resource)
+	require.Equal(t, http.StatusOK, code, "a machine-subject chain must now survive past hop 1")
+
+	c2 := decodeJWTPayload(t, hop2Tok)
+	assert.Equal(t, subjectAgent.ID, c2["sub"], "subject stays agent B across hops")
+	assert.Equal(t, constants.AuthRecipeMethodServiceAccount, c2["login_method"],
+		"the machine identity must survive every hop, not just the first")
+	assert.ElementsMatch(t, []string{"openid"}, claimScope(t, c2),
+		"attenuation still narrows monotonically down the chain")
+
+	act2, ok := c2["act"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, hop2Agent.ClientID, act2["sub"], "immediate actor is hop 2")
+	prior, ok := act2["act"].(map[string]interface{})
+	require.True(t, ok, "hop 1 must remain nested beneath hop 2")
+	assert.Equal(t, hop1Agent.ClientID, prior["sub"])
+
+	t.Run("a deactivated subject stops the chain", func(t *testing.T) {
+		// The control that bounds the newly-reachable path: liveness is still
+		// re-checked at every hop, not just the first.
+		subjectAgent.IsActive = false
+		_, uErr := ts.StorageProvider.UpdateClient(context.Background(), subjectAgent)
+		require.NoError(t, uErr)
+
+		hop3Actor := agentAccessToken(t, ts, router, hop2Agent.ClientID, hop2Secret)
+		code, _ := exchangeTokens(t, ts, router, hop2Tok, hop3Actor,
+			hop2Agent.ClientID, hop2Secret, resource)
+		assert.Equal(t, http.StatusBadRequest, code,
+			"a deactivated service-account subject must not seed a further hop")
+	})
+}
