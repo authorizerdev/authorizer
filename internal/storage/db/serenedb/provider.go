@@ -9,11 +9,12 @@
 //     is missing and never alters what exists.
 //  2. Upserts with an explicit conflict target (see upsert.go).
 //
-// ponytail: SereneDB's MVCC is optimistic, so contended same-row writes abort
-// with SQLSTATE 40001 instead of blocking. Only the two upserts here retry it;
-// every other write path inherits the SQL provider unchanged and will surface
-// 40001 to the caller under the same contention. Move the retry to a GORM
-// callback if that shows up in practice.
+// SereneDB's MVCC is optimistic, so contended same-row writes abort with
+// SQLSTATE 40001 instead of blocking. That is handled at the connection pool
+// (see connpool.go) so every write path gets it, not just the two overridden
+// here — but only for autocommit statements. The SQL provider's four explicit
+// Transaction() call sites still surface 40001 under sustained same-row
+// contention.
 package serenedb
 
 import (
@@ -35,7 +36,11 @@ type provider struct {
 
 // NewProvider returns a new SereneDB provider
 func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
-	base, err := sql.NewProviderWithMigrate(cfg, &sql.Dependencies{Log: deps.Log}, migrate)
+	base, err := sql.NewProviderWithOptions(cfg, &sql.Dependencies{Log: deps.Log}, sql.Options{
+		Migrate:                migrate,
+		WrapPool:               newRetryPool,
+		SkipDefaultTransaction: true,
+	})
 	if err != nil {
 		return nil, err
 	}

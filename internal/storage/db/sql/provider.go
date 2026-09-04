@@ -1,7 +1,10 @@
 package sql
 
 import (
+	stdsql "database/sql"
+
 	libsql "github.com/ekristen/gorm-libsql"
+	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver for the pool seam below
 	"github.com/rs/zerolog"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -55,28 +58,49 @@ func Models() []any {
 	return []any{&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{}}
 }
 
+// Options customise how the provider is built. Both hooks exist for engines
+// that speak a supported wire protocol but differ underneath; both are nil for
+// every database type this package handles directly, so the default path is
+// unchanged.
+type Options struct {
+	// Migrate replaces GORM AutoMigrate. SereneDB rejects the
+	// ALTER COLUMN ... TYPE that AutoMigrate re-issues on every boot, so it
+	// supplies a create-only migrator instead.
+	Migrate func(*gorm.DB) error
+	// WrapPool wraps the connection pool before GORM sees it. SereneDB uses it
+	// to retry write conflicts its optimistic MVCC raises. PostgreSQL family
+	// only.
+	WrapPool func(*stdsql.DB) gorm.ConnPool
+	// SkipDefaultTransaction turns off the transaction GORM wraps around every
+	// single Create/Update/Delete. Only SereneDB sets it: that implicit
+	// transaction routes every write through BeginTx, where a conflict aborts
+	// the whole transaction and cannot be retried statement-by-statement. The
+	// schemas here carry no GORM associations, so one write is one statement
+	// and the wrapper buys nothing to begin with. Explicit Transaction() blocks
+	// are unaffected.
+	SkipDefaultTransaction bool
+}
+
 // NewProvider returns a new SQL provider
 func NewProvider(
 	config *config.Config,
 	deps *Dependencies,
 ) (*Provider, error) {
-	return NewProviderWithMigrate(config, deps, nil)
+	return NewProviderWithOptions(config, deps, Options{})
 }
 
-// NewProviderWithMigrate returns a new SQL provider, letting the caller replace
-// the schema migration. Pass nil for the default (GORM AutoMigrate). SereneDB
-// speaks the Postgres wire protocol but rejects the ALTER COLUMN ... TYPE that
-// AutoMigrate re-issues on every boot, so it supplies its own create-only
-// migrator.
-func NewProviderWithMigrate(
+// NewProviderWithOptions returns a new SQL provider with the given hooks
+// applied. See Options.
+func NewProviderWithOptions(
 	config *config.Config,
 	deps *Dependencies,
-	migrate func(*gorm.DB) error,
+	opts Options,
 ) (*Provider, error) {
 	var sqlDB *gorm.DB
 	var err error
 
 	ormConfig := &gorm.Config{
+		SkipDefaultTransaction: opts.SkipDefaultTransaction,
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: schemas.Prefix,
 		},
@@ -92,7 +116,15 @@ func NewProviderWithMigrate(
 
 	switch dbType {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB, constants.DbTypeSereneDB:
-		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
+		if opts.WrapPool != nil {
+			var rawDB *stdsql.DB
+			if rawDB, err = stdsql.Open("pgx", dbURL); err != nil {
+				return nil, err
+			}
+			sqlDB, err = gorm.Open(postgres.New(postgres.Config{Conn: opts.WrapPool(rawDB)}), ormConfig)
+		} else {
+			sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
+		}
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
 	case constants.DbTypeLibSQL:
@@ -121,6 +153,7 @@ func NewProviderWithMigrate(
 	// or any custom name) — failing with "constraint does not exist" (Postgres
 	// SQLSTATE 42704) and aborting startup. Clear the legacy uniqueness up front,
 	// name-agnostically, before AutoMigrate runs.
+	migrate := opts.Migrate
 	if migrate == nil {
 		migrate = func(db *gorm.DB) error {
 			clearLegacyColumnUniqueness(db, deps.Log)

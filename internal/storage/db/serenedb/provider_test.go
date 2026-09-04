@@ -182,3 +182,49 @@ func TestAuthenticatorUniqueIndexEnforced(t *testing.T) {
 	require.Error(t, err, "a second enrollment for the same (user_id, method) must be rejected")
 	assert.True(t, uniqueViolation(err), "expected SQLSTATE 23505, got %v", err)
 }
+
+// TestDeleteUserCascadeStaysAtomic guards the one place this provider's GORM
+// config differs from the SQL one. SkipDefaultTransaction removes the implicit
+// transaction GORM wraps around each single write — required, because that
+// transaction routes every write through BeginTx and past the pool's conflict
+// retry. Explicit Transaction() blocks are supposed to be unaffected, and
+// DeleteUser's cascade is one of them. This asserts that rather than inferring
+// it: every user-keyed table must be empty afterwards.
+func TestDeleteUserCascadeStaysAtomic(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close() //nolint:errcheck
+	ctx := context.Background()
+
+	user, err := p.AddUser(ctx, &schemas.User{
+		Email:         refs.NewStringRef(uuid.New().String() + "@authorizer.dev"),
+		SignupMethods: constants.AuthRecipeMethodBasicAuth,
+	})
+	require.NoError(t, err)
+
+	orgID := uuid.New().String()
+	require.NoError(t, p.AddSession(ctx, &schemas.Session{UserID: user.ID}))
+	_, err = p.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
+		OrgID: orgID, Issuer: "https://idp.example.com", Subject: uuid.New().String(), UserID: user.ID,
+	})
+	require.NoError(t, err)
+	_, err = p.AddOrgMembership(ctx, &schemas.OrgMembership{OrgID: orgID, UserID: user.ID, Roles: "member"})
+	require.NoError(t, err)
+	_, err = p.AddAuthenticator(ctx, &schemas.Authenticator{
+		UserID: user.ID, Method: constants.EnvKeyTOTPAuthenticator, Secret: "s3cret",
+	})
+	require.NoError(t, err)
+	_, err = p.AddWebauthnCredential(ctx, &schemas.WebauthnCredential{
+		UserID: user.ID, CredentialID: uuid.New().String(), PublicKey: "pk", Name: "laptop",
+	})
+	require.NoError(t, err)
+	require.NoError(t, p.AddSessionToken(ctx, &schemas.SessionToken{UserID: user.ID, KeyName: "access", Token: "t"}))
+	require.NoError(t, p.AddMFASession(ctx, &schemas.MFASession{UserID: user.ID, KeyName: "mfa"}))
+
+	require.NoError(t, p.DeleteUser(ctx, user))
+
+	for _, table := range schemas.UserOwnedCollections {
+		var count int64
+		require.NoError(t, p.DB().WithContext(ctx).Table(table).Where("user_id = ?", user.ID).Count(&count).Error)
+		assert.Zero(t, count, "%s still holds rows for the deleted user", table)
+	}
+}
