@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/db/couchbase"
 	"github.com/authorizerdev/authorizer/internal/storage/db/dynamodb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/mongodb"
+	"github.com/authorizerdev/authorizer/internal/storage/db/serenedb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/sql"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -542,6 +543,10 @@ func New(config *config.Config, deps *Dependencies) (Provider, error) {
 		constants.DbTypeCockroachDB,
 		constants.DbTypePlanetScaleDB:
 		provider, err = sql.NewProvider(config, &sql.Dependencies{
+			Log: deps.Log,
+		})
+	case constants.DbTypeSereneDB:
+		provider, err = serenedb.NewProvider(config, &serenedb.Dependencies{
 			Log: deps.Log,
 		})
 	case constants.DbTypeMongoDB:
