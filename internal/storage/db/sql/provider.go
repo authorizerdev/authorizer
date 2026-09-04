@@ -40,11 +40,39 @@ type indexInfo struct {
 }
 **/
 
+// Provider is the SQL storage provider. It is exported so wire-compatible
+// engines that need to override a handful of methods (see
+// internal/storage/db/serenedb) can embed it instead of duplicating the whole
+// backend.
+type Provider = provider
+
+// DB exposes the underlying GORM handle to embedders.
+func (p *provider) DB() *gorm.DB { return p.db }
+
+// Models is the full set of tables this provider owns, in migration order.
+// Kept in one place so alternative migrators cannot drift from AutoMigrate.
+func Models() []any {
+	return []any{&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{}}
+}
+
 // NewProvider returns a new SQL provider
 func NewProvider(
 	config *config.Config,
 	deps *Dependencies,
-) (*provider, error) {
+) (*Provider, error) {
+	return NewProviderWithMigrate(config, deps, nil)
+}
+
+// NewProviderWithMigrate returns a new SQL provider, letting the caller replace
+// the schema migration. Pass nil for the default (GORM AutoMigrate). SereneDB
+// speaks the Postgres wire protocol but rejects the ALTER COLUMN ... TYPE that
+// AutoMigrate re-issues on every boot, so it supplies its own create-only
+// migrator.
+func NewProviderWithMigrate(
+	config *config.Config,
+	deps *Dependencies,
+	migrate func(*gorm.DB) error,
+) (*Provider, error) {
 	var sqlDB *gorm.DB
 	var err error
 
@@ -63,7 +91,7 @@ func NewProvider(
 	dbURL := config.DatabaseURL
 
 	switch dbType {
-	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB:
+	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB, constants.DbTypeSereneDB:
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
@@ -93,10 +121,14 @@ func NewProvider(
 	// or any custom name) — failing with "constraint does not exist" (Postgres
 	// SQLSTATE 42704) and aborting startup. Clear the legacy uniqueness up front,
 	// name-agnostically, before AutoMigrate runs.
-	clearLegacyColumnUniqueness(sqlDB, deps.Log)
+	if migrate == nil {
+		migrate = func(db *gorm.DB) error {
+			clearLegacyColumnUniqueness(db, deps.Log)
+			return db.AutoMigrate(Models()...)
+		}
+	}
 
-	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{})
-	if err != nil {
+	if err = migrate(sqlDB); err != nil {
 		return nil, err
 	}
 
