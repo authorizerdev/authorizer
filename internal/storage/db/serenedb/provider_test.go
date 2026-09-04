@@ -155,3 +155,30 @@ func TestAddAuthenticatorConcurrentEnrollment(t *testing.T) {
 		Count(&count).Error)
 	assert.Equal(t, int64(1), count, "concurrent enrollment must not duplicate the authenticator")
 }
+
+// TestAuthenticatorUniqueIndexEnforced is the backstop for the create-only
+// migrator. AddAuthenticator's conflict fallback only works because the
+// (user_id, method) unique index exists and raises 23505 — if the migrator ever
+// stopped creating it, the concurrency test above would go quietly flaky
+// instead of failing. This writes the duplicate row directly, bypassing the
+// pre-check, and asserts the index rejects it.
+func TestAuthenticatorUniqueIndexEnforced(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close() //nolint:errcheck
+	ctx := context.Background()
+
+	userID := uuid.New().String()
+	first := &schemas.Authenticator{
+		ID: uuid.New().String(), Key: uuid.New().String(),
+		UserID: userID, Method: constants.EnvKeyTOTPAuthenticator, Secret: "one",
+	}
+	require.NoError(t, p.DB().WithContext(ctx).Create(first).Error)
+
+	second := &schemas.Authenticator{
+		ID: uuid.New().String(), Key: uuid.New().String(),
+		UserID: userID, Method: constants.EnvKeyTOTPAuthenticator, Secret: "two",
+	}
+	err := p.DB().WithContext(ctx).Create(second).Error
+	require.Error(t, err, "a second enrollment for the same (user_id, method) must be rejected")
+	assert.True(t, uniqueViolation(err), "expected SQLSTATE 23505, got %v", err)
+}
