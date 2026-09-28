@@ -155,6 +155,12 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 	shouldAddBasicSignUpMethod := false
 	isBasicAuthEnabled := p.Config.EnableBasicAuthentication
 	isMobileBasicAuthEnabled := p.Config.EnableMobileBasicAuthentication
+	// Tracks whether this request changed a CREDENTIAL, which is what decides
+	// session revocation below. Deliberately separate from hasEmailChanged:
+	// that flag is set only when email verification is enabled, while
+	// revocation must happen on every email change.
+	passwordChanged := false
+	emailChanged := false
 
 	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
 		if !isBasicAuthEnabled && !isMobileBasicAuthEnabled {
@@ -178,6 +184,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 
 		password, _ := crypto.EncryptPassword(refs.StringValue(params.NewPassword))
 		user.Password = &password
+		passwordChanged = true
 
 		if shouldAddBasicSignUpMethod {
 			user.SignupMethods = user.SignupMethods + "," + constants.AuthRecipeMethodBasicAuth
@@ -207,20 +214,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 			return nil, nil, InvalidArgument("user with this email address already exists")
 		}
 
-		// Synchronous, and the error is checked — mirroring reset_password.go.
-		// A password change exists to lock out whoever held the old credential,
-		// so every pre-existing session and refresh token must be gone BEFORE
-		// the caller is told it succeeded. Fire-and-forget left a window where
-		// an attacker's token still worked after the response went out, and
-		// swallowed the error entirely, so a memory-store fault meant old
-		// sessions stayed live while the change reported success.
-		if err := p.MemoryStoreProvider.DeleteAllUserSessions(user.ID); err != nil {
-			log.Debug().Err(err).Msg("Failed to revoke existing sessions after password change")
-		}
-		for _, c := range cookie.BuildDeleteSessionCookies(meta.HostURL, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
-			side.AddCookie(c)
-		}
-
+		emailChanged = true
 		user.Email = &newEmail
 		isEmailVerificationEnabled := p.Config.EnableEmailVerification
 		if isEmailVerificationEnabled {
@@ -270,6 +264,31 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 
 		}
 	}
+
+	// Synchronous, and mirroring reset_password.go: a credential change exists
+	// to lock out whoever held the old credential, so every pre-existing session
+	// and refresh token must be gone BEFORE the caller is told it succeeded.
+	// Fire-and-forget left a window where an attacker's token still worked after
+	// the response went out.
+	//
+	// This used to sit INSIDE the email-change branch, so a password-only change
+	// — the "change my password" flow, the single containment action a
+	// compromised user takes — revoked nothing. Every stolen refresh token
+	// stayed live for its full TTL (30 days by default) while the victim was
+	// told the change succeeded (GHSA-qx8r-9p3g-vcp4).
+	//
+	// Gated on its own flags rather than hasEmailChanged: that one is set only
+	// when email verification is enabled, while revocation must happen on every
+	// email change.
+	if passwordChanged || emailChanged {
+		if err := p.MemoryStoreProvider.DeleteAllUserSessions(user.ID); err != nil {
+			log.Debug().Err(err).Msg("Failed to revoke existing sessions after credential change")
+		}
+		for _, c := range cookie.BuildDeleteSessionCookies(meta.HostURL, p.Config.AppCookieSecure, cookie.ParseSameSite(p.Config.AppCookieSameSite)) {
+			side.AddCookie(c)
+		}
+	}
+
 	_, err = p.StorageProvider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to update user")

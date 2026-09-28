@@ -88,14 +88,17 @@ func TestValidateJWTTokenTypeBinding(t *testing.T) {
 	}
 }
 
-// TestValidateJWTTokenRejectsForeignTokenValue pins the second half of the fix:
-// the session entry's VALUE is compared, not merely its existence.
+// TestValidateJWTTokenRejectsRevokedToken pins that a genuine, unexpired token
+// stops validating once its session is gone — the property logout, password
+// reset and admin revoke all rely on.
 //
-// Two separate logins by the same user produce two nonces and two session
-// entries. Presenting login A's access token is legitimate and must pass. The
-// interesting case is the negative one below it — a token whose signature and
-// claims are genuine but whose session entry has been deleted must fail, and
-// must fail on the store lookup rather than on the signature.
+// Note this passes both before and after the token_type fix: the store lookup
+// alone catches a deleted entry. It is here as a guard, not as proof of the
+// fix. The VerifySessionValue half of the change has no test that fails without
+// it either — all three tokens of a login share a nonce, so the entry exists
+// whatever is presented, and the type check now rejects those cases first.
+// That half is parity with ValidateAccessToken rather than a separately
+// demonstrated defect; TestValidateJWTTokenTypeBinding is what pins the bug.
 func TestValidateJWTTokenRejectsRevokedToken(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
