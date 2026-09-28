@@ -212,11 +212,14 @@ func TestVerificationTokenPurposeBindingREST(t *testing.T) {
 	require.NoError(t, err)
 
 	// The handler reports both success and failure as a 307 to redirect_uri;
-	// what separates them is whether the Location carries tokens or an error.
+	// what separates them is whether the Location carries an error. It used to
+	// be whether the Location carried TOKENS, but tokens no longer ride in that
+	// URL (GHSA-44vr-f829-xfch) — the session is delivered by cookie, and the
+	// EmailVerifiedAt assertion below is the real proof the route did its job.
 	t.Run("a signup token still completes verification here", func(t *testing.T) {
 		resp := hitVerifyEmail(t, signupVR.Token)
 		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
-		assert.Contains(t, resp.Header.Get("Location"), "access_token=",
+		assert.NotContains(t, resp.Header.Get("Location"), "error=",
 			"the purpose this route serves must keep working")
 
 		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)

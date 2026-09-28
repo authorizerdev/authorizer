@@ -3,9 +3,7 @@ package http_handlers
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,10 +29,42 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "VerifyEmailHandler").Logger()
 	return func(c *gin.Context) {
 		hostname := parsers.GetHost(c)
+		// checkClientRedirectURI rather than IsValidRedirectURI directly: the
+		// latter compares ORIGINS, so every path under an allowed host passes,
+		// and this endpoint hands the target an authorization code. The
+		// exact-match validator already existed for /authorize and /app (OIDC
+		// Core §3.1.2.1) and simply was never called here
+		// (GHSA-44vr-f829-xfch).
+		//
+		// A verification request records no client_id, so the deployment's own
+		// client is the only identity available. Exact matching therefore
+		// applies when the operator has declared --redirect-uris, and falls
+		// back to the origin allow-list otherwise. That is why dropping the
+		// tokens from the redirect (further down) is the primary fix and this
+		// is hardening on top of it, not the other way round.
+		//
+		// Returns false and has ALREADY written the response when the URI is
+		// unacceptable. A lookup FAILURE and a non-matching URI are answered
+		// differently on purpose: checkClientRedirectURI reads the client
+		// registry, a read this handler never used to do, and collapsing a
+		// storage outage into "invalid redirect uri" would tell the user their
+		// link is bad during what is really a server fault. Mirrors /authorize.
+		validRedirect := func(uri string) bool {
+			check, cErr := h.checkClientRedirectURI(c.Request.Context(), h.Config.ClientID, uri, hostname)
+			switch {
+			case cErr != nil:
+				log.Warn().Err(cErr).Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "could not verify the client; please retry"})
+				return false
+			case !check.Valid:
+				log.Debug().Msg("Invalid redirect URI")
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
+				return false
+			}
+			return true
+		}
 		redirectURL := strings.TrimSpace(c.Query("redirect_uri"))
-		if redirectURL != "" && !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
-			log.Debug().Msg("Invalid redirect URI")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
+		if redirectURL != "" && !validRedirect(redirectURL) {
 			return
 		}
 		errorRes := gin.H{
@@ -70,9 +100,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		if redirectURL == "" {
 			redirectURL = verified.RedirectURI
 		}
-		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
-			log.Debug().Msg("Invalid redirect URI in token claim")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
+		if !validRedirect(redirectURL) {
 			return
 		}
 
@@ -182,12 +210,20 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// 	}
 		// }
 
-		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
-		if expiresIn <= 0 {
-			expiresIn = 1
-		}
-
-		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
+		// Tokens are NOT placed in the redirect URL. This endpoint is reached
+		// from an emailed link, so its URL is unusually long-lived: it sits in
+		// mail-client history, in the browser history, in every proxy and web
+		// server log between the user and the app, and in the Referer of every
+		// subresource the target page loads. Appending access_token, id_token
+		// and refresh_token to the QUERY string of a target validated only at
+		// origin granularity meant any path under an allowed origin received a
+		// full session (GHSA-44vr-f829-xfch).
+		//
+		// The browser session cookie set below, plus the authorization `code`,
+		// are the delivery channel — matching oauth_callback.go and
+		// oauth_sso.go, which were migrated to code-only delivery already. This
+		// handler was the last one still emitting raw tokens.
+		params := "state=" + state + "&nonce=" + nonce
 
 		if code != "" {
 			params += "&code=" + code
@@ -199,7 +235,10 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.AccessToken.Token), authToken.AccessToken.ExpiresAt)
 
 		if authToken.RefreshToken != nil {
-			params = params + `&refresh_token=` + authToken.RefreshToken.Token
+			// Registered in the session store so the refresh token remains
+			// redeemable, but NOT appended to the redirect — see above. A
+			// refresh token in an emailed URL is the longest-lived credential
+			// in the worst possible place.
 			_ = h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, crypto.HashSessionValue(authToken.RefreshToken.Token), authToken.RefreshToken.ExpiresAt)
 		}
 
