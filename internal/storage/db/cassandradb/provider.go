@@ -731,7 +731,7 @@ func buildCQLColumnMap(v interface{}) map[string]interface{} {
 			}
 		}
 		fv := rv.Field(i)
-		if fv.Kind() == reflect.Ptr {
+		if fv.Kind() == reflect.Pointer {
 			if fv.IsNil() {
 				if omitempty {
 					continue

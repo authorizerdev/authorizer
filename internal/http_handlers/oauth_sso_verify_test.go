@@ -58,12 +58,12 @@ func ssoValidClaims() jwt.MapClaims {
 
 func ssoFlowAndConn() (*ssoFlowState, *schemas.TrustedIssuer) {
 	return &ssoFlowState{
-			OrgID:          "org-1",
-			ExpectedIssuer: ssoTestIssuer,
-			Nonce:          ssoTestNonce,
-		}, &schemas.TrustedIssuer{
-			SSOClientID: ssoTestClientID,
-		}
+		OrgID:          "org-1",
+		ExpectedIssuer: ssoTestIssuer,
+		Nonce:          ssoTestNonce,
+	}, &schemas.TrustedIssuer{
+		SSOClientID: ssoTestClientID,
+	}
 }
 
 func TestSSOIDToken_ValidPasses(t *testing.T) {
