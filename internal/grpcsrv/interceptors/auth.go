@@ -119,6 +119,49 @@ func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.Un
 		if isPublicMethod(methodDesc) &&
 			(serviceName == publicServiceName ||
 				(serviceName == adminServiceName && string(methodDesc.Name()) == adminLoginMethodName)) {
+			// `public` means authentication is OPTIONAL. It has never meant that
+			// AUTHORIZATION is skipped, but returning here before resolving any
+			// credential made it mean exactly that: enforceDelegatedScope was
+			// below this line, so no public method ever reached it.
+			//
+			// Six public RPCs are dual-mode — they accept a bearer token AND an
+			// MFA-session cookie (the MFA setup family; see
+			// service.resolveOTPSetupCaller). Given a bearer they hand it to
+			// GetUserIDFromSessionOrAccessToken, which accepts a delegated
+			// token, and treat the result as the user's own identity. So an
+			// agent holding an `openid`-scoped delegated token could call
+			// TotpMfaSetup, collect a Verified MFA-session cookie, and trade it
+			// at SkipMfaSetup for an unattenuated first-party user token with no
+			// `act` claim — laundering a constrained delegation into the user's
+			// full authority. No MFA RPC is on the delegated allow-list, so the
+			// policy already said "deny"; it simply was not consulted.
+			//
+			// Resolution is OPPORTUNISTIC, and that is the whole subtlety: a
+			// caller with no credential, or an unusable one (a stale cookie, an
+			// expired bearer), must still reach the handler exactly as before.
+			// Only a successfully resolved credential is gated, and
+			// enforceDelegatedScope itself no-ops on a first-party token, so
+			// this changes nothing for anyone but a delegated caller.
+			//
+			// GraphQL needed no equivalent change: its gate is a resolver
+			// middleware that runs per root field and has no notion of a public
+			// operation.
+			if tp != nil {
+				meta := transport.MetaFromGRPC(ctx)
+				if tokenData, err := resolve(&gin.Context{Request: meta.Request}); err == nil &&
+					tokenData != nil && tokenData.UserID != "" {
+					ctx = authctx.WithPrincipal(ctx, &authctx.Principal{
+						UserID:      tokenData.UserID,
+						LoginMethod: tokenData.LoginMethod,
+						Nonce:       tokenData.Nonce,
+						ActorID:     tokenData.ActorID,
+						Scope:       tokenData.Scope,
+					})
+					if err := enforceDelegatedScope(tokenData, info.FullMethod); err != nil {
+						return nil, err
+					}
+				}
+			}
 			return handler(ctx, req)
 		}
 		if tp == nil {

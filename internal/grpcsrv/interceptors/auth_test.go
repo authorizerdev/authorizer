@@ -59,21 +59,94 @@ func (s *stubTokenProvider) ValidateBrowserSession(_ *gin.Context, encryptedSess
 }
 
 func TestAuth_PublicMethodPassesThrough(t *testing.T) {
-	stub := &stubTokenProvider{}
+	// A public method with no usable credential reaches the handler with no
+	// principal attached — unchanged.
+	//
+	// What DID change: resolution is now attempted. `public` means
+	// authentication is optional, not that authorization is skipped, so a
+	// credential that IS presented must still be examined (see
+	// TestAuth_PublicMethodEnforcesDelegatedScope). Asserting userChecks == 0
+	// here used to pin the opposite, which is the bypass GHSA-25j3-4jg3-w352
+	// describes.
+	stub := &stubTokenProvider{tokenErr: status.Error(codes.Unauthenticated, "no credential")}
 	mw := Auth(stub, nil, nil)
 
 	called := false
 	_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
 		called = true
 		_, ok := authctx.FromContext(ctx)
-		assert.False(t, ok, "public methods should not attach principal")
+		assert.False(t, ok, "an unauthenticated public call attaches no principal")
 		return &authorizerv1.Meta{}, nil
 	})
 
-	require.NoError(t, err)
+	require.NoError(t, err, "a failed resolve must not turn a public method into Unauthenticated")
 	assert.True(t, called)
 	assert.Equal(t, 0, stub.superAdminChecks)
-	assert.Equal(t, 0, stub.userChecks)
+	assert.Equal(t, 1, stub.userChecks, "the credential is examined, then ignored when unusable")
+}
+
+// TestAuth_PublicMethodEnforcesDelegatedScope pins the fix: a DELEGATED caller
+// presenting a token at a public method is still held to the delegated
+// allow-list. Meta is on that list at ScopeOpenID, so a token carrying openid
+// passes and one without it does not — proving the gate runs rather than that
+// the method is simply unreachable.
+func TestAuth_PublicMethodEnforcesDelegatedScope(t *testing.T) {
+	t.Run("delegated token without the required scope is denied", func(t *testing.T) {
+		stub := &stubTokenProvider{tokenData: &token.SessionOrAccessTokenData{
+			UserID:  "user-1",
+			ActorID: "agent-1",
+			Scope:   []string{"email"},
+		}}
+		mw := Auth(stub, nil, nil)
+
+		called := false
+		_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(_ context.Context, _ any) (any, error) {
+			called = true
+			return &authorizerv1.Meta{}, nil
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.False(t, called, "the handler must not run")
+	})
+
+	t.Run("delegated token with the required scope passes", func(t *testing.T) {
+		stub := &stubTokenProvider{tokenData: &token.SessionOrAccessTokenData{
+			UserID:  "user-1",
+			ActorID: "agent-1",
+			Scope:   []string{"openid"},
+		}}
+		mw := Auth(stub, nil, nil)
+
+		called := false
+		_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(ctx context.Context, _ any) (any, error) {
+			called = true
+			p, ok := authctx.FromContext(ctx)
+			assert.True(t, ok, "a resolved caller attaches a principal")
+			assert.Equal(t, "agent-1", p.ActorID, "the agent is attributable in audit")
+			return &authorizerv1.Meta{}, nil
+		})
+
+		require.NoError(t, err)
+		assert.True(t, called)
+	})
+
+	t.Run("first-party token is not scope-gated", func(t *testing.T) {
+		stub := &stubTokenProvider{tokenData: &token.SessionOrAccessTokenData{
+			UserID: "user-1",
+			Scope:  []string{"email"}, // no openid, and no ActorID
+		}}
+		mw := Auth(stub, nil, nil)
+
+		called := false
+		_, err := mw(context.Background(), &authorizerv1.MetaRequest{}, info(authorizerv1.AuthorizerService_Meta_FullMethodName), func(_ context.Context, _ any) (any, error) {
+			called = true
+			return &authorizerv1.Meta{}, nil
+		})
+
+		require.NoError(t, err)
+		assert.True(t, called, "only delegated callers are gated; see the delegatedscope package comment")
+	})
 }
 
 func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
