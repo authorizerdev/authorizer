@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -34,6 +35,26 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		log.Debug().Err(err).Msg("Failed to parse jwt token")
 		return nil, nil, err
 	}
+
+	// The requested type must equal the token's OWN signed token_type claim.
+	// This endpoint is introspection: a caller asking "is this a valid
+	// access_token" is asking a specific question, and answering IsValid:true
+	// for a refresh_token or an id_token tells a resource server the wrong
+	// thing (RFC 9700 §2.3 — an id_token is not an access token).
+	//
+	// Every sibling validator already does this — ValidateAccessToken,
+	// ValidateRefreshToken, ValidateDelegatedAccessToken, and the token-exchange
+	// subject check. This function is a second, weaker implementation that
+	// dropped it, so all six cross-type combinations validated successfully.
+	//
+	// The failure is deliberately indistinguishable from any other invalid
+	// token: this RPC is `public`, so a distinct "wrong token type" error would
+	// tell an unauthenticated caller holding an unknown token what kind it is.
+	if claimType, _ := claims["token_type"].(string); claimType != tokenType {
+		log.Debug().Str("requested", tokenType).Str("claim", claimType).Msg("Token type does not match the token's claim")
+		return nil, nil, Unauthenticated("invalid token")
+	}
+
 	sub, ok := claims["sub"].(string)
 	if !ok || sub == "" {
 		log.Debug().Msg("Invalid subject in token")
@@ -60,6 +81,17 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		tok, err := p.MemoryStoreProvider.GetUserSession(sessionKey, tokenType+"_"+nonceVal)
 		if err != nil || tok == "" {
 			log.Debug().Err(err).Msg("Failed to get token from session store")
+			return nil, nil, Unauthenticated("invalid token")
+		}
+		// Compare the stored VALUE, not merely the entry's existence. The
+		// fetched value used to be discarded, and because CreateAuthToken
+		// stamps one nonce on all three tokens of a login, an entry always
+		// existed under "<requestedType>_<nonce>" whatever token was presented
+		// — which is what made the type confusion above reachable instead of
+		// self-correcting. Dual-read digest/raw, exactly as ValidateAccessToken
+		// does for the same store entry.
+		if !crypto.VerifySessionValue(params.Token, tok) {
+			log.Debug().Msg("Presented token does not match the stored session value")
 			return nil, nil, Unauthenticated("invalid token")
 		}
 	}
