@@ -61,6 +61,17 @@ func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetada
 // rather than being duplicated across every return branch below.
 func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
 	if tokenData, err := p.callerTokenData(ctx, meta); err == nil && tokenData != nil && tokenData.UserID != "" {
+		// A machine identity has no user behind it: a client_credentials token's
+		// `sub` is a Client row id, so the lookup below misses and the caller
+		// gets Internal/500 for what is really a rejected credential. Rejecting
+		// it here is explicit, fails closed, and returns the right status.
+		//
+		// The miss is not a security control either — it holds only as long as
+		// no service account has a user row. Enrolling a second factor "for" a
+		// service account is meaningless in any case.
+		if tokenData.LoginMethod == constants.AuthRecipeMethodServiceAccount {
+			return nil, Unauthenticated(`unauthorized`)
+		}
 		return p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
 	}
 

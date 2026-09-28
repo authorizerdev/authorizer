@@ -26,6 +26,13 @@ import (
 // challenging their EXISTING second factor, defeating it entirely.
 func (p *provider) resolveWebauthnSetupCaller(ctx context.Context, meta RequestMetadata, email, phoneNumber string) (*schemas.User, bool, error) {
 	if tokenData, tErr := p.callerTokenData(ctx, meta); tErr == nil && tokenData != nil && tokenData.UserID != "" {
+		// See resolveOTPSetupCallerIdentity: a machine identity's `sub` is a
+		// Client row id, so this lookup misses and returns Internal/500 for a
+		// credential that should simply be rejected. Registering a passkey for a
+		// service account is meaningless.
+		if tokenData.LoginMethod == constants.AuthRecipeMethodServiceAccount {
+			return nil, false, Unauthenticated("unauthorized")
+		}
 		user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
 		if err != nil {
 			return nil, false, err
