@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -202,7 +203,7 @@ func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
 		assert.Contains(t, location, "error=")
 	})
 
-	t.Run("no MFA configured still completes normally with real tokens", func(t *testing.T) {
+	t.Run("no MFA configured still completes normally via the session cookie", func(t *testing.T) {
 		cfgNoMFA := getTestConfig()
 		cfgNoMFA.IsEmailServiceEnabled = true
 		cfgNoMFA.EnableEmailVerification = true
@@ -226,6 +227,19 @@ func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
 		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
-		assert.Contains(t, resp.Header.Get("Location"), "access_token=")
+		// Tokens no longer ride in the redirect URL (GHSA-44vr-f829-xfch):
+		// this endpoint is reached from an emailed link, so that URL outlives
+		// the request in mail history and proxy logs. Asserting they ARE there
+		// was asserting the vulnerability. The session is delivered by cookie,
+		// which is what "completes normally" now means — see
+		// TestVerifyEmailDoesNotLeakTokensInRedirect for the full contract.
+		assert.NotContains(t, resp.Header.Get("Location"), "access_token=")
+		var sawSessionCookie bool
+		for _, c := range resp.Cookies() {
+			if strings.Contains(c.Name, "session") && c.Value != "" {
+				sawSessionCookie = true
+			}
+		}
+		assert.True(t, sawSessionCookie, "the session must still be established")
 	})
 }
