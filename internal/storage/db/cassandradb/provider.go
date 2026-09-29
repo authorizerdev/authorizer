@@ -420,9 +420,20 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	auditLogResourceTypeIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_resource_type ON %s.%s (resource_type)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogResourceTypeIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	auditLogResourceIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_resource_id ON %s.%s (resource_id)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogResourceIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
 	// ScyllaDB builds secondary indexes asynchronously. Poll with a probe query
 	// that requires the actor_id index until it succeeds instead of a fixed sleep.
-	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog, 30*time.Second)
+	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog,
+		[]string{"actor_id", "action", "resource_type", "resource_id"}, 30*time.Second)
 
 	// Client table
 	clientCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, kind text, name text, description text, client_secret text, allowed_scopes text, redirect_uris text, grant_types text, token_endpoint_auth_method text, is_active boolean, org_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Client)
@@ -653,20 +664,26 @@ func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, 
 // waitForCassandraIndexes polls a probe query that requires the actor_id secondary
 // index until it succeeds or the timeout is reached. ScyllaDB builds secondary
 // indexes asynchronously; queries on indexed columns fail until the index is ready.
-func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
+// columns are probed independently: Scylla builds secondary indexes
+// concurrently, so the last one created is not necessarily the last one ready,
+// and waiting on a single column would let a query against another index run
+// before that index exists.
+func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, columns []string, timeout time.Duration) {
 	deadline := time.Now().Add(timeout)
-	delay := 500 * time.Millisecond
-	for {
-		if err := session.Query(probe).Exec(); err == nil {
-			return
-		}
-		if time.Now().After(deadline) {
-			return
-		}
-		time.Sleep(delay)
-		if delay < 3*time.Second {
-			delay += 500 * time.Millisecond
+	for _, col := range columns {
+		probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1", keyspace, table, col)
+		delay := 500 * time.Millisecond
+		for {
+			if err := session.Query(probe).Exec(); err == nil {
+				break
+			}
+			if time.Now().After(deadline) {
+				return
+			}
+			time.Sleep(delay)
+			if delay < 3*time.Second {
+				delay += 500 * time.Millisecond
+			}
 		}
 	}
 }
