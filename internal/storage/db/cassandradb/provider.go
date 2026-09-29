@@ -430,10 +430,10 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously. Poll with a probe query
-	// that requires the actor_id index until it succeeds instead of a fixed sleep.
+	// ScyllaDB builds secondary indexes asynchronously. Poll each indexed column
+	// until its index answers, instead of a fixed sleep.
 	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog,
-		[]string{"actor_id", "action", "resource_type", "resource_id"}, 30*time.Second)
+		[]string{"actor_id", "action", "resource_type", "resource_id"}, 60*time.Second)
 
 	// Client table
 	clientCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, kind text, name text, description text, client_secret text, allowed_scopes text, redirect_uris text, grant_types text, token_endpoint_auth_method text, is_active boolean, org_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Client)
@@ -645,7 +645,13 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 // fail until the index is ready.
 func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, table, column string, timeout time.Duration) {
 	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1 ALLOW FILTERING", keyspace, table, column)
-	deadline := time.Now().Add(timeout)
+	pollUntilQuerySucceeds(session, probe, time.Now().Add(timeout))
+}
+
+// pollUntilQuerySucceeds retries probe with a capped linear backoff until it
+// succeeds or deadline passes. Shared so the backoff cannot drift between the
+// single-column and multi-column waits.
+func pollUntilQuerySucceeds(session *cansandraDriver.Session, probe string, deadline time.Time) {
 	delay := 500 * time.Millisecond
 	for {
 		if err := session.Query(probe).Exec(); err == nil {
@@ -661,30 +667,36 @@ func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, 
 	}
 }
 
-// waitForCassandraIndexes polls a probe query that requires the actor_id secondary
-// index until it succeeds or the timeout is reached. ScyllaDB builds secondary
-// indexes asynchronously; queries on indexed columns fail until the index is ready.
-// columns are probed independently: Scylla builds secondary indexes
-// concurrently, so the last one created is not necessarily the last one ready,
-// and waiting on a single column would let a query against another index run
-// before that index exists.
+// waitForCassandraIndexes probes each indexed column until its secondary index
+// answers, or until that column's share of the timeout runs out. ScyllaDB builds
+// secondary indexes asynchronously and queries on an indexed column fail until
+// the index is ready.
+//
+// Every column is probed, not just one: Scylla builds indexes concurrently, so
+// the last one created is not necessarily the last one ready, and waiting on a
+// single column would let a query against another index run before that index
+// exists.
+//
+// The budget is split PER COLUMN rather than shared. With one shared deadline a
+// slow first index consumes the whole budget and the remaining columns are never
+// probed at all — turning a startup race on one column into a startup race on
+// every other, which is worse than the single-column wait this replaced. An
+// exhausted column moves on rather than abandoning the rest.
+//
+// Best-effort by design: this is startup smoothing, not a correctness gate, so an
+// expired probe is not an error.
 func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, columns []string, timeout time.Duration) {
-	deadline := time.Now().Add(timeout)
+	if len(columns) == 0 {
+		return
+	}
+	perColumn := timeout / time.Duration(len(columns))
 	for _, col := range columns {
+		// No ALLOW FILTERING here, deliberately: the hint would let the probe
+		// succeed whether or not the index exists, so the wait would return
+		// immediately and detect nothing. The probe has to be a query that
+		// FAILS until the index is ready.
 		probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1", keyspace, table, col)
-		delay := 500 * time.Millisecond
-		for {
-			if err := session.Query(probe).Exec(); err == nil {
-				break
-			}
-			if time.Now().After(deadline) {
-				return
-			}
-			time.Sleep(delay)
-			if delay < 3*time.Second {
-				delay += 500 * time.Millisecond
-			}
-		}
+		pollUntilQuerySucceeds(session, probe, time.Now().Add(perColumn))
 	}
 }
 

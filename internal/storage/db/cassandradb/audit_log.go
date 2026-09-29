@@ -54,10 +54,14 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	// Only the timestamp bounds set that flag; an indexed-equality-only query
 	// keeps its existing index-served plan.
 	//
-	// ponytail: ALLOW FILTERING for the timestamp range. This is an admin-only,
-	// rarely-run query and the table is small relative to user data. The upgrade
-	// path when it stops being cheap is a materialized view keyed on a coarse
-	// time bucket, not a bigger scan.
+	// ponytail: ALLOW FILTERING covers TWO cases, not just the rare one. The
+	// timestamp range is genuinely rare. Two or more equality filters is NOT —
+	// "this actor, this action" is an ordinary admin search, and it now scans
+	// where it previously errored outright. That is still the right trade here
+	// (admin-only endpoint, paginated, and an erroring filter combination is
+	// worse than a slow one), but it is a scan, not a free lunch. The upgrade
+	// path when it stops being cheap is a composite materialized view over the
+	// filter combinations that actually get used — not a bigger scan.
 	clauses := []string{}
 	filterValues := []interface{}{}
 	needsAllowFiltering := false
@@ -133,6 +137,17 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 			auditLogs = append(auditLogs, &auditLog)
 		}
 		counter++
+	}
+	// A scan that dies part-way — read timeout, coordinator failure — ends
+	// Next() normally, so without this the call returns a TRUNCATED page with a
+	// nil error while paginationClone.Total (a separate query) reports the real
+	// count. An admin would see an incomplete audit trail with no signal it was
+	// cut short, which is the exact failure this table exists to prevent. Newly
+	// reachable here: the filters above can now produce ALLOW FILTERING scans,
+	// where a partial read is far likelier than on an index-served equality.
+	// DeleteAuditLogsBefore below already does this.
+	if err := scanner.Err(); err != nil {
+		return nil, nil, err
 	}
 
 	return auditLogs, &paginationClone, nil

@@ -287,7 +287,14 @@ func getIndex(scopeName string) map[string][]string {
 	auditLogIndex1 := fmt.Sprintf("CREATE INDEX AuditLogActorIdIndex ON %s.%s(actor_id)", scopeName, schemas.Collections.AuditLog)
 	auditLogIndex2 := fmt.Sprintf("CREATE INDEX AuditLogActionIndex ON %s.%s(action)", scopeName, schemas.Collections.AuditLog)
 	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogCreatedAtIndex ON %s.%s(created_at)", scopeName, schemas.Collections.AuditLog)
-	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3}
+	// resource_type / resource_id are filterable via ListAuditLogs. Without these
+	// the predicates still return correct rows, but N1QL falls back to the
+	// CREATE PRIMARY INDEX scan of the fastest-growing collection in the scope,
+	// while Cassandra serves the same filter from an index — the "O(1) in one
+	// backend, full scan in another" parity bug AGENTS.md calls out.
+	auditLogIndex4 := fmt.Sprintf("CREATE INDEX AuditLogResourceTypeIndex ON %s.%s(resource_type)", scopeName, schemas.Collections.AuditLog)
+	auditLogIndex5 := fmt.Sprintf("CREATE INDEX AuditLogResourceIdIndex ON %s.%s(resource_id)", scopeName, schemas.Collections.AuditLog)
+	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3, auditLogIndex4, auditLogIndex5}
 
 	// TrustedIssuer indexes
 	trustedIssuerIndex1 := fmt.Sprintf("CREATE INDEX TrustedIssuerIssuerURLIndex ON %s.%s(issuer_url)", scopeName, schemas.Collections.TrustedIssuer)
