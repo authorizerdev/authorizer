@@ -1343,6 +1343,75 @@ func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider
 		assert.Equal(t, actorID, logs[0].ActorID)
 	})
 
+	t.Run("filter by resource_id", func(t *testing.T) {
+		resourceID := uuid.New().String()
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       constants.AuditAdminFgaTuplesWrittenEvent,
+			ResourceType: constants.AuditResourceTypeFgaTuple,
+			ResourceID:   resourceID,
+		}))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"resource_id": resourceID,
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1)
+		assert.Equal(t, resourceID, logs[0].ResourceID)
+	})
+
+	t.Run("filter by resource_type", func(t *testing.T) {
+		resourceType := "provider_test_rt_" + uuid.New().String()[:8]
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       constants.AuditAdminFgaTuplesWrittenEvent,
+			ResourceType: resourceType,
+			ResourceID:   uuid.New().String(),
+		}))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"resource_type": resourceType,
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1)
+		assert.Equal(t, resourceType, logs[0].ResourceType)
+	})
+
+	t.Run("filter by timestamp range", func(t *testing.T) {
+		// Two rows sharing an action, far apart in time. The range must select
+		// exactly the recent one — a backend that ignores the bounds returns both.
+		action := "provider_test_ts_" + uuid.New().String()[:8]
+		now := time.Now().Unix()
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       action,
+			ResourceType: constants.AuditResourceTypeUser,
+			CreatedAt:    now - int64(90*24*time.Hour/time.Second),
+		}))
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       action,
+			ResourceType: constants.AuditResourceTypeUser,
+			CreatedAt:    now,
+		}))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"action":         action,
+			"from_timestamp": now - int64(time.Hour/time.Second),
+			"to_timestamp":   now + int64(time.Hour/time.Second),
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1, "timestamp range must exclude the 90-day-old row")
+		assert.Equal(t, now, logs[0].CreatedAt)
+	})
+
 	t.Run("list does not mutate caller pagination pointer", func(t *testing.T) {
 		pagination := &model.Pagination{Limit: 10, Offset: 0}
 		_, returnedPag, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{})

@@ -3,6 +3,7 @@ package cassandradb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -44,24 +45,64 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	queryBase := fmt.Sprintf("SELECT id, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
 	countBase := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
 
-	whereClause := ""
+	// Every filter column below is backed by a secondary index (see
+	// provider.go), so equality restrictions need no ALLOW FILTERING — Scylla
+	// builds those indexes as materialized views and serves them directly.
+	//
+	// The created_at BOUNDS are different: a range on a non-primary-key column
+	// cannot be served by an index, so it forces ALLOW FILTERING and a scan.
+	// Only the timestamp bounds set that flag; an indexed-equality-only query
+	// keeps its existing index-served plan.
+	//
+	// ponytail: ALLOW FILTERING for the timestamp range. This is an admin-only,
+	// rarely-run query and the table is small relative to user data. The upgrade
+	// path when it stops being cheap is a materialized view keyed on a coarse
+	// time bucket, not a bigger scan.
+	clauses := []string{}
 	filterValues := []interface{}{}
+	needsAllowFiltering := false
+
+	addEq := func(col string, v interface{}) {
+		clauses = append(clauses, col+"=?")
+		filterValues = append(filterValues, v)
+	}
 
 	if action, ok := filter["action"]; ok && action != "" {
-		whereClause += " WHERE action=?"
-		filterValues = append(filterValues, action)
+		addEq("action", action)
 	}
 	if actorID, ok := filter["actor_id"]; ok && actorID != "" {
-		if whereClause == "" {
-			whereClause += " WHERE actor_id=?"
-		} else {
-			whereClause += " AND actor_id=?"
-		}
-		filterValues = append(filterValues, actorID)
+		addEq("actor_id", actorID)
+	}
+	if resourceType, ok := filter["resource_type"]; ok && resourceType != "" {
+		addEq("resource_type", resourceType)
+	}
+	if resourceID, ok := filter["resource_id"]; ok && resourceID != "" {
+		addEq("resource_id", resourceID)
+	}
+	if fromTimestamp, ok := filter["from_timestamp"]; ok {
+		clauses = append(clauses, "created_at>=?")
+		filterValues = append(filterValues, fromTimestamp)
+		needsAllowFiltering = true
+	}
+	if toTimestamp, ok := filter["to_timestamp"]; ok {
+		clauses = append(clauses, "created_at<=?")
+		filterValues = append(filterValues, toTimestamp)
+		needsAllowFiltering = true
 	}
 
-	// Count total — equality on indexed columns (action, actor_id) must not
-	// use ALLOW FILTERING; Scylla builds secondary indexes as materialized views.
+	whereClause := ""
+	if len(clauses) > 0 {
+		whereClause = " WHERE " + strings.Join(clauses, " AND ")
+	}
+	// More than one restriction on non-primary-key columns cannot be served by a
+	// single index either, so Cassandra/Scylla requires the scan hint there too.
+	if len(clauses) > 1 {
+		needsAllowFiltering = true
+	}
+	if needsAllowFiltering {
+		whereClause += " ALLOW FILTERING"
+	}
+
 	countQuery := countBase + whereClause
 	err := p.db.Query(countQuery, filterValues...).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
@@ -69,7 +110,13 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	}
 
 	// Fetch with pagination
-	query := queryBase + whereClause + fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset)
+	// CQL grammar: LIMIT precedes ALLOW FILTERING, so the hint cannot simply be
+	// carried along on whereClause here.
+	query := queryBase + strings.TrimSuffix(whereClause, " ALLOW FILTERING") +
+		fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset)
+	if needsAllowFiltering {
+		query += " ALLOW FILTERING"
+	}
 	scanner := p.db.Query(query, filterValues...).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
