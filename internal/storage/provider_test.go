@@ -1381,6 +1381,44 @@ func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider
 		assert.Equal(t, resourceType, logs[0].ResourceType)
 	})
 
+	t.Run("filter by action and actor_id and resource_id", func(t *testing.T) {
+		// Several indexed equalities at once. Cassandra/Scylla cannot serve
+		// more than one secondary index in a single query, so this is the case
+		// that decides whether the CQL builder needs a scan hint.
+		action := "provider_test_multi_" + uuid.New().String()[:8]
+		actorID := uuid.New().String()
+		resourceID := uuid.New().String()
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      actorID,
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       action,
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   resourceID,
+		}))
+		// Same action, different actor and resource — must be excluded.
+		require.NoError(t, provider.AddAuditLog(ctx, &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeAdmin,
+			Action:       action,
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   uuid.New().String(),
+		}))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, pag, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"action":      action,
+			"actor_id":    actorID,
+			"resource_id": resourceID,
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1)
+		assert.Equal(t, actorID, logs[0].ActorID)
+		assert.Equal(t, resourceID, logs[0].ResourceID)
+		// The count query takes a separate code path from the fetch query.
+		require.NotNil(t, pag)
+		assert.Equal(t, int64(1), pag.Total)
+	})
+
 	t.Run("filter by timestamp range", func(t *testing.T) {
 		// Two rows sharing an action, far apart in time. The range must select
 		// exactly the recent one — a backend that ignores the bounds returns both.
