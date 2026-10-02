@@ -121,6 +121,7 @@ Deploy production ready Authorizer instance using one click deployment options a
 |       Koyeb       | <a target="_blank" href="https://app.koyeb.com/deploy?name=authorizer&type=docker&image=quay.io/authorizer/authorizer&env[PORT]=8000&env[DATABASE_TYPE]=postgres&env[DATABASE_URL]=CHANGE_ME&ports=8000;http;/"><img alt="Deploy to Koyeb" src="https://www.koyeb.com/static/images/deploy/button.svg" /></a> | [docs](https://docs.authorizer.dev/deployment/koyeb)  |
 |     RepoCloud     | <a href="https://repocloud.io/details/?app_id=174"><img src="https://d16t0pc4846x52.cloudfront.net/deploy.png" alt="Deploy on RepoCloud"></a> | [docs](https://repocloud.io/details/?app_id=174) |
 | Alibaba Cloud| <a target="_blank" href="https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Authorizer%E7%A4%BE%E5%8C%BA%E7%89%88"><img src="https://service-info-public.oss-cn-hangzhou.aliyuncs.com/computenest-en.svg" alt="Alibaba Cloud" /></a> | [docs](https://docs.authorizer.dev/deployment/alibaba-cloud) |
+| ZopDay | <a target="_blank" href="https://zop.dev/zopday/app/deploy?image=quay.io/authorizer/authorizer:latest&port=8000"><img src="https://zop.dev/deploytozopday-inkhard.svg" alt="Deploy on ZopDay" /></a> | [docs](https://zop.dev/zopday/oss) |
 
 
 ### Deploy Authorizer Using Source Code
