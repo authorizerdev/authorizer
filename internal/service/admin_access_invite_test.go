@@ -91,6 +91,8 @@ type inviteAudit struct{ audit.Provider }
 
 func (inviteAudit) LogEvent(_ audit.Event) {}
 
+func (inviteAudit) LogEventSync(_ context.Context, _ audit.Event) error { return nil }
+
 func newInviteProvider(cfg *config.Config, st storage.Provider, tp token.Provider) *provider {
 	log := zerolog.Nop()
 	return &provider{
