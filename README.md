@@ -1,4 +1,6 @@
 
+
+[![Deploy to Railyard](https://app.railyard.run/deploy/badge)](https://app.railyard.run/deploy?repo=https://github.com/authorizerdev/authorizer)
 <p align="center">
   <img src="https://authorizer.dev/images/logo.png" alt="Authorizer" width="200" />
 </p>
