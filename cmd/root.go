@@ -818,6 +818,7 @@ func runRoot(c *cobra.Command, args []string) {
 		MemoryStoreProvider: memoryStoreProvider,
 		AuthzEngine:         authzEngine,
 		EventsProvider:      eventsProvider,
+		AuditProvider:       auditProvider,
 	})
 	scimHandler := scimhttp.New(&scimhttp.Dependencies{
 		Log:     &log,
