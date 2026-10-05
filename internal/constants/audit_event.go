@@ -29,6 +29,25 @@ const (
 	AuditActorTypeServiceAccount = "service_account"
 )
 
+// Audit auth-mode constants record HOW a super-admin authenticated.
+//
+// Super-admin is a single shared AdminSecret, or a session cookie derived from
+// it — there is no per-admin identity, so an audit record cannot name a person.
+// Recording the mode is the honest alternative: it says which credential was
+// used, and makes a shared-secret action distinguishable from a dashboard
+// session without inventing an identity the system does not have.
+//
+// The session HANDLE is never recorded. It is a live bearer credential and the
+// dashboard renders the audit table.
+const (
+	// AuditAuthModeAdminSession means the caller presented a valid admin
+	// session cookie (dashboard login).
+	AuditAuthModeAdminSession = "admin_session"
+	// AuditAuthModeSharedSecret means the caller presented the
+	// x-authorizer-admin-secret header.
+	AuditAuthModeSharedSecret = "shared_secret"
+)
+
 // Audit resource type constants identify the type of resource affected by an auditable action.
 const (
 	// AuditResourceTypeUser represents a user entity.

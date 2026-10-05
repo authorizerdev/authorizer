@@ -39,6 +39,14 @@ func (s *stubTokenProvider) IsSuperAdmin(_ *gin.Context) bool {
 	return s.superAdmin
 }
 
+func (s *stubTokenProvider) AdminAuthMode(_ *gin.Context) string {
+	s.superAdminChecks++
+	if s.superAdmin {
+		return constants.AuditAuthModeSharedSecret
+	}
+	return ""
+}
+
 func (s *stubTokenProvider) GetUserIDFromSessionOrAccessToken(_ *gin.Context) (*token.SessionOrAccessTokenData, error) {
 	s.userChecks++
 	if s.tokenErr != nil {
@@ -179,6 +187,7 @@ func TestAuth_AdminMethodRequiresSuperAdmin(t *testing.T) {
 			require.True(t, ok)
 			require.NotNil(t, p)
 			assert.True(t, p.IsSuperAdmin)
+			assert.Equal(t, constants.AuditAuthModeSharedSecret, p.AuthMode)
 			assert.Empty(t, p.UserID)
 			return &authorizerv1.AdminMetaResponse{}, nil
 		})

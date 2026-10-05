@@ -178,8 +178,8 @@ func Auth(tp token.Provider, log *zerolog.Logger, resolve TokenResolver) grpc.Un
 			// is the only version of that guard that holds: merely skipping this
 			// check would move it one layer down, since service.requireSuperAdmin
 			// re-derives super-admin from meta.Request on its own.
-			if tp.IsSuperAdmin(gc) {
-				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true})
+			if mode := tp.AdminAuthMode(gc); mode != "" {
+				ctx = authctx.WithPrincipal(ctx, &authctx.Principal{IsSuperAdmin: true, AuthMode: mode})
 				return handler(ctx, req)
 			}
 
