@@ -15,6 +15,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -75,6 +76,8 @@ type inviteToken struct {
 }
 
 func (inviteToken) IsSuperAdmin(_ *gin.Context) bool { return true }
+
+func (inviteToken) AdminAuthMode(_ *gin.Context) string { return constants.AuditAuthModeAdminSession }
 
 func (tp inviteToken) CreateVerificationToken(cfg *token.AuthTokenConfig, _ string, _ string) (string, error) {
 	if tp.createVerificationToken != nil {

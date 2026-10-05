@@ -18,6 +18,8 @@ type recordingAudit struct {
 	err error
 }
 
+func (recordingAudit) LogEvent(_ audit.Event) {}
+
 func (r *recordingAudit) LogEventSync(_ context.Context, e audit.Event) error {
 	if r.err != nil {
 		return r.err
