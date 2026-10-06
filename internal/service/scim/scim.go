@@ -23,6 +23,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -97,6 +98,27 @@ type Dependencies struct {
 	// (user.provisioned/deprovisioned/scim_updated, group.created/updated/deleted).
 	// Nil when webhooks are not wired — event firing is then a no-op.
 	EventsProvider events.Provider
+	// AuditProvider records authorization-relevant SCIM operations. SCIM is
+	// driven by an external IdP, so its writes are the least supervised
+	// authorization changes in the system — and until this field existed the
+	// package could not audit at all.
+	//
+	// Nil when audit is not wired — logging is then a no-op, matching the
+	// EventsProvider convention above.
+	AuditProvider audit.Provider
+}
+
+// logAuditSync records an audit event synchronously, returning the storage
+// error. A nil AuditProvider is a no-op returning nil.
+//
+// Callers decide what a failure means: the SCIM group paths that treat a tuple
+// write as non-fatal must treat a failed audit the same way, or an accepted
+// partial failure becomes a failed deprovision.
+func (p *provider) logAuditSync(ctx context.Context, event audit.Event) error {
+	if p.AuditProvider == nil {
+		return nil
+	}
+	return p.AuditProvider.LogEventSync(ctx, event)
 }
 
 // maxFilterScan bounds the org-member scan a non-indexed SCIM filter performs
