@@ -5,6 +5,29 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Audit-log filters were silently ignored on CassandraDB/ScyllaDB and Couchbase.** `_audit_logs` advertises six filters; those two backends built their `WHERE` clause from `actor_id` and `action` only and discarded `resource_type`, `resource_id`, `from_timestamp` and `to_timestamp` — returning unfiltered rows with **no error**, so a narrowed audit query read as authoritative when it was not. The dashboard's Audit Logs page was already sending three of the dropped filters, so the UI offered filtering that did nothing. A second bug surfaced while fixing it: on ScyllaDB two indexed equalities without `ALLOW FILTERING` are rejected outright, which is the query the old builder emitted — so `_audit_logs(action:, actor_id:)`, the one combination Cassandra was believed to support, had never worked there. All six filters now apply on every backend ([#802](https://github.com/authorizerdev/authorizer/pull/802)).
+- **A failed audit-log scan returned a truncated page with a nil error** on CassandraDB/ScyllaDB. `ListAuditLogs` never checked `scanner.Err()`, so a read timeout or coordinator failure part-way through ended iteration normally: the caller got fewer rows and no indication, while `pagination.total` reported the real count. Newly reachable because the filters above can now produce scans, where a partial read is far likelier ([#802](https://github.com/authorizerdev/authorizer/pull/802)).
+- **Couchbase could fail to start after an upgrade** while building a newly added secondary index. The per-attempt query timeout was the client default (75s) while the retry budget was 30s, so one attempt outran the whole deadline and the error aborted provider construction; separately, the transient-error check matched only `"unambiguous timeout"` and so missed gocb's `"ambiguous timeout"` — which is exactly what a `CREATE INDEX` that outruns the client returns, since the server may have accepted it. Both are fixed, and a timed-out attempt is now harmless: the definition is registered server-side, the retry sees it already exists, and startup proceeds while the backfill finishes ([#802](https://github.com/authorizerdev/authorizer/pull/802)).
+
+### Security
+
+- **OpenTelemetry bumped to v1.45.0** for [GO-2026-6505](https://pkg.go.dev/vuln/GO-2026-6505): the OTLP trace exporter can log exporter configuration — including endpoint URLs, which may carry credentials or internal hostnames — at info level. `govulncheck` classes it reachable here through the embedded OpenFGA engine's init, the gocql driver and the metrics package. Indirect dependency only; no source change ([#807](https://github.com/authorizerdev/authorizer/pull/807)).
+
+### Added
+
+- **Groundwork for authorization-change evidence.** `audit.Provider` gains `LogEventSync`, a synchronous audit write that returns its error, for operations where the audit record is part of the contract rather than a side effect; `LogEvent` keeps its fire-and-forget semantics so logins and token issuance do not gain a synchronous dependency on the audit table. `token.Provider` gains `AdminAuthMode`, which reports whether a super-admin authenticated by admin session or by shared secret — super-admin is a single shared `AdminSecret` with no per-admin identity, so an audit record can never name a person, and the credential mode is the honest substitute. The SCIM service gains an audit provider, which it previously lacked entirely. **No new audit records are written and no behaviour changes in this release**; this is the plumbing the next phase consumes ([#806](https://github.com/authorizerdev/authorizer/pull/806)).
+
+### Upgrade notes
+
+- **CassandraDB/ScyllaDB and Couchbase: audit-log result counts will drop.** The four filters listed above now apply. Any saved query, dashboard view or integration that passed them was receiving unfiltered rows; it will now receive correctly filtered ones, and `pagination.total` changes with them. This is a correction, not data loss.
+- **CassandraDB/ScyllaDB: two new secondary indexes backfill after upgrade.** `resource_type` and `resource_id` filters can return incomplete results until the backfill finishes — Scylla builds these as materialized views. Verify with `nodetool viewbuildstatus` before treating a filtered audit query as authoritative, and expect elevated cluster I/O while it runs. Timestamp-range filters use `ALLOW FILTERING` and perform a scan; acceptable for occasional admin queries, slower as the table grows.
+- **Couchbase: index builds may show activity for a while after upgrade.** Two new GSIs are created against the existing audit-log collection. No action required — startup no longer blocks on the build.
+- **No GraphQL, gRPC/proto or REST response shape changed.** No SDK release is required for this version.
+
 ## [2.4.1] - 2026-09-03
 
 Security release. Fixes two published advisories plus two further issues of the
