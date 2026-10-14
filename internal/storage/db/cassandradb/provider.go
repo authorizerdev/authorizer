@@ -415,11 +415,15 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	auditLogTimestampIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_created_at ON %s.%s (created_at)", KeySpace, schemas.Collections.AuditLog)
-	err = session.Query(auditLogTimestampIndex).Exec()
-	if err != nil {
-		return nil, err
-	}
+	// No index on created_at, deliberately. A Cassandra secondary index serves
+	// equality only, and every query this table issues against created_at is a
+	// range — the bounds in ListAuditLogs and DeleteAuditLogsBefore, both of
+	// which take the ALLOW FILTERING scan path. The index could therefore never
+	// be used, while still costing a write on every row of the highest-write
+	// table in the schema. See buildAuditLogWhere in audit_log.go.
+	//
+	// Pre-existing deployments keep the index until it is dropped by hand:
+	//   DROP INDEX IF EXISTS authorizer.authorizer_audit_log_created_at;
 	auditLogResourceTypeIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_resource_type ON %s.%s (resource_type)", KeySpace, schemas.Collections.AuditLog)
 	err = session.Query(auditLogResourceTypeIndex).Exec()
 	if err != nil {
