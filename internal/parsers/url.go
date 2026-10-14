@@ -47,6 +47,19 @@ func SetTrustedURL(u string) {
 	trustedURL = sanitizeAuthorizerURL(strings.TrimSpace(u))
 }
 
+// TrustedURL returns the operator-configured canonical base URL (--url), or ""
+// when none is usable.
+//
+// Exported for transports that do not carry an *http.Request and so cannot go
+// through GetHostFromRequest. The gRPC path is the reason this exists: it built
+// its host from caller-supplied metadata and never consulted --url at all, so
+// the host-pinning this package enforces for the gin path simply did not apply
+// there. A transport that derives a host MUST prefer this over anything the
+// caller sent.
+func TrustedURL() string {
+	return trustedURL
+}
+
 // SetLogger records the logger used to report rejected X-Authorizer-URL
 // header values. Called once from cmd/root at startup, alongside SetTrustedURL.
 func SetLogger(log *zerolog.Logger) {
