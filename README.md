@@ -1,6 +1,3 @@
-
-
-[![Deploy to Railyard](https://app.railyard.run/deploy/badge)](https://app.railyard.run/deploy?repo=https://github.com/authorizerdev/authorizer)
 <p align="center">
   <img src="https://authorizer.dev/images/logo.png" alt="Authorizer" width="200" />
 </p>
@@ -124,6 +121,7 @@ Deploy production ready Authorizer instance using one click deployment options a
 |     RepoCloud     | <a href="https://repocloud.io/details/?app_id=174"><img src="https://d16t0pc4846x52.cloudfront.net/deploy.png" alt="Deploy on RepoCloud"></a> | [docs](https://repocloud.io/details/?app_id=174) |
 | Alibaba Cloud| <a target="_blank" href="https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Authorizer%E7%A4%BE%E5%8C%BA%E7%89%88"><img src="https://service-info-public.oss-cn-hangzhou.aliyuncs.com/computenest-en.svg" alt="Alibaba Cloud" /></a> | [docs](https://docs.authorizer.dev/deployment/alibaba-cloud) |
 | ZopDay | <a target="_blank" href="https://zop.dev/zopday/app/deploy?image=quay.io/authorizer/authorizer:latest&port=8000"><img src="https://zop.dev/deploytozopday-inkhard.svg" alt="Deploy on ZopDay" /></a> | [docs](https://zop.dev/zopday/oss) |
+| Railyard | <a target="_blank" href="https://app.railyard.run/deploy?repo=https://github.com/authorizerdev/authorizer"><img src="https://app.railyard.run/deploy/badge" alt="Deploy to Railyard" /></a> | [docs](https://railyard.run/docs/deploy-button/) |
 
 
 ### Deploy Authorizer Using Source Code
