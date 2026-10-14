@@ -241,9 +241,21 @@ func incomingHeaderMatcherOption() runtime.ServeMuxOption {
 		// Belt and braces with transport.clientIPFromGRPC, which reads the
 		// LAST value rather than the first for the same reason. Either alone
 		// would close it; a header this load-bearing gets both.
+		//
+		// X-Authorizer-Url is here for the identical reason, one key over. It
+		// decides the host of emailed password-reset and magic-link URLs and the
+		// `iss` claim of the resulting tokens. The gin path pins it to --url
+		// inside parsers.GetHostFromRequest; the gRPC path did not consult --url
+		// at all, so the prefixed spelling reinstated host poisoning over REST.
+		// transport.hostURLFromGRPC now prefers --url — this is its second lock.
+		//
+		// This does NOT affect the gateway's own x-authorizer-url value: that is
+		// injected via runtime.WithMetadata (above), a separate option which
+		// operates on the already-parsed request and never passes through this
+		// matcher.
 		switch textproto.CanonicalMIMEHeaderKey(strings.TrimPrefix(
 			textproto.CanonicalMIMEHeaderKey(key), runtime.MetadataHeaderPrefix)) {
-		case "X-Forwarded-For", "X-Real-Ip", "X-Forwarded-Host":
+		case "X-Forwarded-For", "X-Real-Ip", "X-Forwarded-Host", "X-Authorizer-Url":
 			return "", false
 		}
 		return runtime.DefaultHeaderMatcher(key)

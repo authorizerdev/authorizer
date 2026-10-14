@@ -41,6 +41,29 @@ func TestIncomingHeaderMatcherRefusesForwardingHeaders(t *testing.T) {
 		})
 	}
 
+	// X-Authorizer-Url is the same class, one key over. It decides the host of
+	// emailed password-reset / magic-link URLs and the `iss` claim of the tokens
+	// minted from them, so a caller who can set it can have a victim emailed a
+	// genuine reset link pointing at a host the caller controls. The gin path
+	// pins it to --url; the gRPC path did not, so the prefixed spelling
+	// reinstated host poisoning over REST.
+	t.Run("the authorizer-url header cannot be smuggled", func(t *testing.T) {
+		for _, smuggled := range []string{
+			"Grpc-Metadata-X-Authorizer-Url",
+			"grpc-metadata-x-authorizer-url",
+			"GRPC-METADATA-X-AUTHORIZER-URL",
+			"X-Authorizer-Url",
+		} {
+			md := annotate(t, map[string]string{smuggled: "https://evil.example.net"})
+			for _, key := range []string{"x-authorizer-url", "grpcgateway-x-authorizer-url"} {
+				for _, v := range md.Get(key) {
+					assert.NotEqual(t, "https://evil.example.net", v,
+						"%s smuggled an attacker-chosen host into %s", smuggled, key)
+				}
+			}
+		}
+	})
+
 	t.Run("the admin-secret header is still forwarded", func(t *testing.T) {
 		md := annotate(t, map[string]string{"x-authorizer-admin-secret": "s3cret"})
 		assert.Equal(t, []string{"s3cret"}, md.Get("x-authorizer-admin-secret"),
