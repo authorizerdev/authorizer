@@ -37,38 +37,63 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 }
 
 // ListAuditLogs queries audit logs with filters and pagination
-func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error) {
-	auditLogs := []*schemas.AuditLog{}
-	paginationClone := *pagination
+// auditLogIndexedColumns is the set of audit_log columns backed by a secondary
+// index in NewProvider. The ALLOW FILTERING decision in buildAuditLogWhere is
+// derived from this set rather than from the clause count alone, so adding or
+// dropping an index is a one-line change here and cannot leave a hint-less
+// equality against an unindexed column — which Cassandra rejects outright
+// rather than merely running slowly.
+//
+// created_at is deliberately absent. Its index was dropped: a Cassandra
+// secondary index serves equality only, and the only queries this table ever
+// issues against created_at are the range bounds below and the range in
+// DeleteAuditLogsBefore, so the index could never be used while still costing a
+// write on every audit row — and audit_log is the highest-write table here.
+var auditLogIndexedColumns = map[string]bool{
+	"actor_id":      true,
+	"action":        true,
+	"resource_type": true,
+	"resource_id":   true,
+}
 
-	// Build query with filters
-	queryBase := fmt.Sprintf("SELECT id, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
-	countBase := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
-
-	// Every filter column below is backed by a secondary index (see
-	// provider.go), so equality restrictions need no ALLOW FILTERING — Scylla
-	// builds those indexes as materialized views and serves them directly.
-	//
-	// The created_at BOUNDS are different: a range on a non-primary-key column
-	// cannot be served by an index, so it forces ALLOW FILTERING and a scan.
-	// Only the timestamp bounds set that flag; an indexed-equality-only query
-	// keeps its existing index-served plan.
-	//
-	// ponytail: ALLOW FILTERING covers TWO cases, not just the rare one. The
-	// timestamp range is genuinely rare. Two or more equality filters is NOT —
-	// "this actor, this action" is an ordinary admin search, and it now scans
-	// where it previously errored outright. That is still the right trade here
-	// (admin-only endpoint, paginated, and an erroring filter combination is
-	// worse than a slow one), but it is a scan, not a free lunch. The upgrade
-	// path when it stops being cheap is a composite materialized view over the
-	// filter combinations that actually get used — not a bigger scan.
+// buildAuditLogWhere builds the WHERE clause and bind values for ListAuditLogs,
+// and reports whether the query needs ALLOW FILTERING.
+//
+// The hint is returned separately rather than appended to the clause because CQL
+// grammar puts LIMIT before ALLOW FILTERING, so the paged query cannot simply
+// carry the clause through.
+//
+// Three things force the hint, and the set above is what decides the first two:
+//
+//  1. An equality on a column with no secondary index.
+//  2. A range restriction. A range on a non-primary-key column cannot be served
+//     by a secondary index even when the column has one, so this holds
+//     regardless of auditLogIndexedColumns.
+//  3. More than one restriction. A single query can only be served by one
+//     index, so Cassandra/Scylla requires the hint for any second clause.
+//
+// ponytail: (3) is the common case, not the rare one. "this actor, this action"
+// is an ordinary admin search and it scans. That is the right trade for an
+// admin-only paginated endpoint — an erroring filter combination is worse than a
+// slow one, and before #802 that combination errored outright on Scylla. The
+// upgrade path when it stops being cheap is a composite materialized view over
+// the filter combinations that actually get used, not a bigger scan.
+func buildAuditLogWhere(filter map[string]interface{}) (string, []interface{}, bool) {
 	clauses := []string{}
-	filterValues := []interface{}{}
+	values := []interface{}{}
 	needsAllowFiltering := false
 
 	addEq := func(col string, v interface{}) {
 		clauses = append(clauses, col+"=?")
-		filterValues = append(filterValues, v)
+		values = append(values, v)
+		if !auditLogIndexedColumns[col] {
+			needsAllowFiltering = true
+		}
+	}
+	addRange := func(expr string, v interface{}) {
+		clauses = append(clauses, expr)
+		values = append(values, v)
+		needsAllowFiltering = true
 	}
 
 	if action, ok := filter["action"]; ok && action != "" {
@@ -84,40 +109,44 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		addEq("resource_id", resourceID)
 	}
 	if fromTimestamp, ok := filter["from_timestamp"]; ok {
-		clauses = append(clauses, "created_at>=?")
-		filterValues = append(filterValues, fromTimestamp)
-		needsAllowFiltering = true
+		addRange("created_at>=?", fromTimestamp)
 	}
 	if toTimestamp, ok := filter["to_timestamp"]; ok {
-		clauses = append(clauses, "created_at<=?")
-		filterValues = append(filterValues, toTimestamp)
-		needsAllowFiltering = true
+		addRange("created_at<=?", toTimestamp)
 	}
 
-	whereClause := ""
-	if len(clauses) > 0 {
-		whereClause = " WHERE " + strings.Join(clauses, " AND ")
+	if len(clauses) == 0 {
+		return "", values, false
 	}
-	// More than one restriction on non-primary-key columns cannot be served by a
-	// single index either, so Cassandra/Scylla requires the scan hint there too.
 	if len(clauses) > 1 {
 		needsAllowFiltering = true
 	}
-	if needsAllowFiltering {
-		whereClause += " ALLOW FILTERING"
-	}
+	return " WHERE " + strings.Join(clauses, " AND "), values, needsAllowFiltering
+}
+
+func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error) {
+	auditLogs := []*schemas.AuditLog{}
+	paginationClone := *pagination
+
+	// Build query with filters
+	queryBase := fmt.Sprintf("SELECT id, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
+	countBase := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
+
+	whereClause, filterValues, needsAllowFiltering := buildAuditLogWhere(filter)
 
 	countQuery := countBase + whereClause
+	if needsAllowFiltering {
+		countQuery += " ALLOW FILTERING"
+	}
 	err := p.db.Query(countQuery, filterValues...).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Fetch with pagination
-	// CQL grammar: LIMIT precedes ALLOW FILTERING, so the hint cannot simply be
-	// carried along on whereClause here.
-	query := queryBase + strings.TrimSuffix(whereClause, " ALLOW FILTERING") +
-		fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset)
+	// Fetch with pagination. CQL grammar puts LIMIT before ALLOW FILTERING, which
+	// is why buildAuditLogWhere returns the hint as a flag rather than baked into
+	// the clause.
+	query := queryBase + whereClause + fmt.Sprintf(" LIMIT %d", pagination.Limit+pagination.Offset)
 	if needsAllowFiltering {
 		query += " ALLOW FILTERING"
 	}
