@@ -127,6 +127,14 @@ func TestFGAStoreConfig(t *testing.T) {
 			cfg:         Config{DatabaseType: "cockroachdb", DatabaseURL: "postgres://h/db"},
 			wantEnabled: false,
 		},
+		{
+			// SereneDB speaks the Postgres wire protocol but is a search-OLAP
+			// engine, not an OpenFGA datastore. Auto-mapping it would point the
+			// authorization store at a backend OpenFGA never migrated.
+			name:        "serenedb is NOT auto-mapped (needs explicit store)",
+			cfg:         Config{DatabaseType: "serenedb", DatabaseURL: "postgres://h/db"},
+			wantEnabled: false,
+		},
 	}
 
 	for _, tc := range cases {

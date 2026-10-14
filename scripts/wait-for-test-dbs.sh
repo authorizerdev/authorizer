@@ -15,7 +15,7 @@ TIMEOUT_SECONDS="${TEST_DB_WAIT_TIMEOUT:-120}"
 
 # name:port pairs. Couchbase is absent on purpose — scripts/couchbase-test.sh
 # already provisions and waits for it.
-ALL_SERVICES="redis:6380 postgres:5434 mongodb:27017 scylladb:9042 arangodb:8529 dynamodb:8000"
+ALL_SERVICES="redis:6380 postgres:5434 serenedb:7890 mongodb:27017 scylladb:9042 arangodb:8529 dynamodb:8000"
 
 # With no arguments, wait for everything (make test-all-db). With arguments,
 # wait only for the named services, so a single-backend target does not block on

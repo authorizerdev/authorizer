@@ -123,6 +123,14 @@ test-postgres: test-cleanup-postgres
 	docker rm -vf authorizer_postgres; \
 	exit $$status
 
+test-serenedb: test-cleanup-serenedb
+	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres serenedb/serenedb:26.08.2
+	sh scripts/wait-for-test-dbs.sh serenedb && \
+	{ go clean --testcache; TEST_DBS="serenedb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_serenedb; \
+	exit $$status
+
 test-sqlite:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
@@ -203,7 +211,7 @@ test-all-db: test-cleanup test-docker-up
 	@# failed to start them and produced a second, misleading failure. Same
 	@# capture-status-then-clean shape the e2e-playground target already uses.
 	go clean --testcache; \
-	TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
+	TEST_DBS="couchbase,postgres,serenedb,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -212,6 +220,7 @@ test-all-db: test-cleanup test-docker-up
 test-docker-up:
 	docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres serenedb/serenedb:26.08.2
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
@@ -223,6 +232,7 @@ test-docker-up:
 # Remove all test database containers
 test-cleanup:
 	-docker rm -vf authorizer_postgres
+	-docker rm -vf authorizer_serenedb
 	-docker rm -vf authorizer_scylla_db
 	-docker rm -vf authorizer_mongodb_db
 	-docker rm -vf authorizer_arangodb
@@ -232,6 +242,8 @@ test-cleanup:
 
 test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
+test-cleanup-serenedb:
+	-docker rm -vf authorizer_serenedb
 test-cleanup-mongodb:
 	-docker rm -vf authorizer_mongodb_db
 test-cleanup-scylladb:
