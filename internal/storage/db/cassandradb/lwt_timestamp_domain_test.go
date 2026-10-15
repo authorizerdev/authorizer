@@ -3,9 +3,12 @@ package cassandradb
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // knownMixedTables are tables that still mix timestamp domains. Empty, and the
@@ -90,9 +93,26 @@ func TestEveryTableUsesOneTimestampDomain(t *testing.T) {
 				for j := i + 1; j < len(lines) && j <= i+3 && tm == nil; j++ {
 					tm = coll.FindStringSubmatch(lines[j])
 				}
-				if tm == nil {
-					continue
+			}
+			if tm == nil {
+				// The statement names its table through a variable, so which
+				// table it hits is only known at run time and this scan cannot
+				// classify it. DeleteUser's cascade over
+				// schemas.UserOwnedCollections is the one such write today, and
+				// it spans both domains — three of those tables are
+				// server-domain, four are not.
+				//
+				// A write like that MUST decide its domain from the table it is
+				// about to hit. Requiring it to consult serverDomainTables is
+				// what stops the cascade from silently client-stamping a
+				// server-domain table, which is invisible everywhere else.
+				region := strings.Join(lines[i:min(i+25, len(lines))], "\n")
+				if !strings.Contains(region, "serverDomainTables[") {
+					t.Errorf("%s:%d writes to a table named by a variable without consulting "+
+						"serverDomainTables, so it cannot be stamped for the table it hits:\n  %s",
+						f, i+1, strings.TrimSpace(line))
 				}
+				continue
 			}
 			table := tm[1]
 			if byTable[table] == nil {
@@ -146,6 +166,52 @@ func TestEveryTableUsesOneTimestampDomain(t *testing.T) {
 		case !mixed && allowed:
 			t.Errorf("%s no longer mixes timestamp domains — remove it from "+
 				"knownMixedTables so the guard starts protecting it", table)
+		}
+	}
+
+	// serverDomainTables must agree with what was just detected. DeleteUser's
+	// cascade writes to every table in schemas.UserOwnedCollections through one
+	// statement whose target is a loop variable, so the scan above cannot see
+	// it; the cascade consults that map instead. If the two disagree, a table
+	// is being written in the wrong domain by the cascade and nothing else
+	// would say so.
+	fieldToTable := map[string]string{}
+	cv := reflect.Indirect(reflect.ValueOf(schemas.Collections))
+	for i := 0; i < cv.NumField(); i++ {
+		fieldToTable[cv.Type().Field(i).Name] = cv.Field(i).String()
+	}
+	userOwned := map[string]bool{}
+	for _, tbl := range schemas.UserOwnedCollections {
+		userOwned[tbl] = true
+	}
+	for field, s := range byTable {
+		tbl, ok := fieldToTable[field]
+		if !ok {
+			t.Errorf("schemas.Collections has no field %s — the reverse lookup drifted", field)
+			continue
+		}
+		isServerDomain := len(s.server) > 0 && len(s.client) == 0
+		switch {
+		case isServerDomain && userOwned[tbl] && !serverDomainTables[tbl]:
+			t.Errorf("%s is server-domain and cascaded by DeleteUser, but missing from "+
+				"serverDomainTables — the cascade will client-stamp it and re-mix the table", field)
+		case !isServerDomain && serverDomainTables[tbl]:
+			t.Errorf("%s is listed in serverDomainTables but its writes are not all "+
+				"server-domain\n  server: %v\n  client: %v", field, s.server, s.client)
+		}
+	}
+	for tbl := range serverDomainTables {
+		if !userOwned[tbl] {
+			continue
+		}
+		found := false
+		for field := range byTable {
+			if fieldToTable[field] == tbl {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("serverDomainTables names %q but no write statements were attributed to it", tbl)
 		}
 	}
 

@@ -155,7 +155,22 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 			deleteValues[i] = id
 		}
 		deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+table, placeholders)
-		if err := p.db.Query(deleteQuery, deleteValues...).Exec(); err != nil {
+		// This one statement writes to every table in UserOwnedCollections, so
+		// it has to be stamped the way each target table is stamped. Three of
+		// them are server-domain because a lightweight transaction on them is
+		// load-bearing; a client-stamped delete here would put them straight
+		// back into the mixed state that loses writes silently — a session
+		// token surviving the hard delete of its own user.
+		//
+		// TestEveryTableUsesOneTimestampDomain cannot catch that: this
+		// statement names its table through a loop variable rather than
+		// schemas.Collections.X, so it is invisible to a source scan. The test
+		// cross-checks serverDomainTables against what it detected instead.
+		cascadeDelete := p.db.Query(deleteQuery, deleteValues...)
+		if serverDomainTables[table] {
+			cascadeDelete = cascadeDelete.DefaultTimestamp(false)
+		}
+		if err := cascadeDelete.Exec(); err != nil {
 			return err
 		}
 	}

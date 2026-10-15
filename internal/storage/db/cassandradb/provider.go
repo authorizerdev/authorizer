@@ -790,3 +790,25 @@ func buildCQLColumnMap(v interface{}) map[string]interface{} {
 	}
 	return out
 }
+
+// serverDomainTables are the tables whose writes take the coordinator's clock
+// (gocql's DefaultTimestamp(false)) rather than this process's.
+//
+// They earn that because a lightweight transaction on them is load-bearing —
+// the `applied` flag of a `DELETE ... IF EXISTS` is the exactly-once arbiter
+// for consuming a session token, an OAuth state, or an authenticator recovery
+// code. An LWT is stamped from the Paxos ballot, so every other write to the
+// same partition must come from that same clock or the later write can carry
+// the earlier timestamp and be discarded with no error.
+//
+// This exists for writes issued from a generic loop, where the target table is
+// a variable and the call site cannot be read off the source: DeleteUser's
+// cascade over schemas.UserOwnedCollections. Direct call sites say
+// DefaultTimestamp(false) inline instead, which keeps the reason next to the
+// statement. TestEveryTableUsesOneTimestampDomain cross-checks this map against
+// the domains it detects, so the two cannot drift apart.
+var serverDomainTables = map[string]bool{
+	schemas.Collections.SessionToken:   true,
+	schemas.Collections.OAuthState:     true,
+	schemas.Collections.Authenticators: true,
+}
