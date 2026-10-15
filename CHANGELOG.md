@@ -5,6 +5,12 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Cassandra/ScyllaDB: a delete could be silently discarded after a lightweight-transaction insert** ([#818](https://github.com/authorizerdev/authorizer/pull/818)). A lightweight transaction takes its mutation timestamp from the Paxos ballot, i.e. the server clock, while a plain `DELETE` writes a tombstone carrying the driver's client-side timestamp. A tombstone only shadows a row whose timestamp it exceeds, so with the server clock running ahead the delete was dropped with no error and the row survived. Measured on `scylladb/scylla` at 46 of 50 tight insert-delete pairs. `AddUser` loses its `IF NOT EXISTS` — it only ever constrained a freshly generated UUID partition key, enforced no uniqueness, and its applied flag was never read — and the two `org_domain` deletes gain `IF EXISTS`, because there the lightweight transaction is load-bearing: the domain is the partition key and first-writer-wins is the atomicity guarantee. A dropped delete there left a verified domain claimed permanently. Apache Cassandra was not observed to drop the write, because its ballot timestamp is truncated to whole milliseconds; that is a margin, not a guarantee. No schema or data migration.
+
 ## [2.4.2] - 2026-10-14
 
 Security release. Closes six advisories reported through `SECURITY.md`, plus three
