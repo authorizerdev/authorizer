@@ -3,6 +3,7 @@ package cassandradb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -82,18 +83,26 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	return deleted, nil
 }
 
-// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
+// The userId parameter can be just the user ID (e.g. "123") or the full stored
+// format (e.g. "auth_provider:123"), matching the SQL provider.
+//
+// The match is **anchored**: the exact value, or a ":<userId>" suffix. It used
+// to be an unanchored "%<userId>%" contains-match, which let a delete for "42"
+// take out tokens belonging to "142" or "provider:427" — the same defect the
+// SQL provider already fixed, left live here because no test covered it on this
+// backend.
+//
+// Matching happens in Go rather than with CQL LIKE: Apache Cassandra only
+// accepts LIKE on a SASI index and rejects it against the plain secondary index
+// this provider creates, so these two methods failed outright there. The query
+// already carried ALLOW FILTERING, i.e. a full table scan, so the only thing
+// that changes is where the comparison runs.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
-	var ids []string
-	likePattern := "%" + userId + "%"
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query, likePattern).Iter()
-	var id string
-	for iter.Scan(&id) {
-		ids = append(ids, id)
-	}
-	if err := iter.Close(); err != nil {
+	ids, err := p.sessionTokenIDsMatching(func(storedUserID string) bool {
+		return storedUserID == userId || strings.HasSuffix(storedUserID, ":"+userId)
+	})
+	if err != nil {
 		return err
 	}
 	for _, id := range ids {
@@ -106,17 +115,14 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 }
 
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
+// (e.g. "auth_provider"). A legitimate prefix match: stored user_id is
+// "<namespace>:<userID>". See DeleteAllSessionTokensByUserID for why the match
+// is done in Go instead of with CQL LIKE.
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
-	likePattern := namespace + ":%"
-	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query, likePattern).Iter()
-	var id string
-	for iter.Scan(&id) {
-		ids = append(ids, id)
-	}
-	if err := iter.Close(); err != nil {
+	ids, err := p.sessionTokenIDsMatching(func(storedUserID string) bool {
+		return strings.HasPrefix(storedUserID, namespace+":")
+	})
+	if err != nil {
 		return err
 	}
 	for _, id := range ids {
@@ -382,4 +388,23 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 		return nil, err
 	}
 	return states, nil
+}
+
+// sessionTokenIDsMatching scans the session-token table and returns the ids
+// whose stored user_id satisfies match. One full scan, same as the ALLOW
+// FILTERING query it replaces.
+func (p *provider) sessionTokenIDsMatching(match func(storedUserID string) bool) ([]string, error) {
+	query := fmt.Sprintf(`SELECT id, user_id FROM %s`, KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query).Iter()
+	var ids []string
+	var id, storedUserID string
+	for iter.Scan(&id, &storedUserID) {
+		if match(storedUserID) {
+			ids = append(ids, id)
+		}
+	}
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
