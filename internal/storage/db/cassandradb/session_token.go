@@ -25,7 +25,21 @@ func (p *provider) AddSessionToken(ctx context.Context, token *schemas.SessionTo
 	}
 	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, token_value, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		KeySpace+"."+schemas.Collections.SessionToken)
-	return p.db.Query(query, token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt).Exec()
+	// DefaultTimestamp(false): the coordinator stamps this write, not gocql.
+	//
+	// DeleteSessionTokenByUserIDAndKey consumes a token with DELETE ... IF
+	// EXISTS and treats the applied flag as the exactly-once arbiter for
+	// refresh-token rotation. That LWT's timestamp comes from the Paxos ballot,
+	// i.e. the server clock, while a client-stamped insert comes from this
+	// process's clock. When the client clock runs ahead, the tombstone lands
+	// BELOW the insert: the row survives, yet Paxos saw it and returned
+	// applied=true — so a second claim of the same single-use token also
+	// returns applied=true. Measured on scylladb/scylla with the client clock
+	// 10ms ahead: 20 of 20 tokens claimed twice. Server-stamping puts the
+	// insert in the LWT's own domain and the double-claim goes to 0 of 20,
+	// without adding a Paxos round-trip to the login path.
+	return p.db.Query(query, token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt).
+		DefaultTimestamp(false).Exec()
 }
 
 // GetSessionTokenByUserIDAndKey retrieves a session token by user ID and key
@@ -43,7 +57,8 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 // DeleteSessionToken deletes a session token by ID
 func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-	return p.db.Query(query, id).Exec()
+	// Server-stamped, same timestamp domain as the LWT delete. See AddSessionToken.
+	return p.db.Query(query, id).DefaultTimestamp(false).Exec()
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
@@ -107,7 +122,7 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -127,7 +142,7 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -150,7 +165,7 @@ func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -315,11 +330,15 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	}
 	_ = iter.Close()
 	for _, eid := range existingIDs {
-		_ = p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).Exec()
+		_ = p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).
+			DefaultTimestamp(false).Exec()
 	}
 	query := fmt.Sprintf(`INSERT INTO %s (id, state_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
 		KeySpace+"."+schemas.Collections.OAuthState)
-	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).Exec()
+	// Server-stamped: the single-use consumption of this row is an LWT delete.
+	// See AddSessionToken for the mechanism.
+	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).
+		DefaultTimestamp(false).Exec()
 }
 
 // GetOAuthStateByKey retrieves an OAuth state by key
