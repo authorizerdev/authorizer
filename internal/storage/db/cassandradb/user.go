@@ -55,11 +55,23 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	fields = fields[:len(fields)-1] + ")"
 	placeholders = placeholders[:len(placeholders)-1] + ")"
 
-	// IF NOT EXISTS only guards the partition key (id) — a freshly generated UUID that
-	// never collides — so it does NOT enforce email/phone uniqueness. That is enforced
-	// by the GetUserByEmail/GetUserByPhoneNumber check-then-insert above, which carries
+	// Plain INSERT, deliberately not IF NOT EXISTS.
+	//
+	// The guard was never load-bearing: it only ever constrained the partition
+	// key (id), a freshly generated UUID that never collides, so it did NOT
+	// enforce email/phone uniqueness. That is enforced by the
+	// GetUserByEmail/GetUserByPhoneNumber check-then-insert above, which carries
 	// the same inherent TOCTOU race as any non-partition-key guard in Cassandra.
-	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.User, fields, placeholders)
+	// Its applied flag was never read either — Exec() discards it.
+	//
+	// It was also harmful. IF NOT EXISTS makes this a lightweight transaction, so
+	// the row marker came from the Paxos ballot (server clock), while DeleteUser
+	// below writes a plain row tombstone carrying gocql's client-side timestamp.
+	// A tombstone only shadows a row whose marker it exceeds, so with the server
+	// clock ahead the delete is discarded with no error — measured at 46 of 50 on
+	// scylladb/scylla. Dropping the pointless guard puts every write to this table
+	// in one timestamp domain, and saves a Paxos round-trip on every signup.
+	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s", KeySpace+"."+schemas.Collections.User, fields, placeholders)
 	err := p.db.Query(query, insertValues...).Exec()
 
 	if err != nil {
