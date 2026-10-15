@@ -354,11 +354,17 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	}
 	addToken(targetStored)
 	addToken(otherStored)
+	// Stored without a login-method prefix, which is the other shape
+	// memory_store writes and the equality branch of the predicate. Untested
+	// before, on every backend.
+	addToken(targetUser)
 
 	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
 
 	_, err := provider.GetSessionTokenByUserIDAndKey(ctx, targetStored, "session_token_key")
-	assert.Error(t, err, "target user's session token should be deleted")
+	assert.Error(t, err, "target user's namespaced session token should be deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetUser, "session_token_key")
+	assert.Error(t, err, "target user's un-namespaced session token should be deleted")
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
 	assert.NoError(t, err, "substring-matching other user's session token must survive")
 

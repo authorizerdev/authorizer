@@ -114,7 +114,7 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 // already carried ALLOW FILTERING, i.e. a full table scan, so the only thing
 // that changes is where the comparison runs.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
-	ids, err := p.sessionTokenIDsMatching(func(storedUserID string) bool {
+	ids, err := p.sessionTokenIDsMatching(ctx, func(storedUserID string) bool {
 		return storedUserID == userId || strings.HasSuffix(storedUserID, ":"+userId)
 	})
 	if err != nil {
@@ -134,7 +134,7 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 // "<namespace>:<userID>". See DeleteAllSessionTokensByUserID for why the match
 // is done in Go instead of with CQL LIKE.
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
-	ids, err := p.sessionTokenIDsMatching(func(storedUserID string) bool {
+	ids, err := p.sessionTokenIDsMatching(ctx, func(storedUserID string) bool {
 		return strings.HasPrefix(storedUserID, namespace+":")
 	})
 	if err != nil {
@@ -337,6 +337,14 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 		KeySpace+"."+schemas.Collections.OAuthState)
 	// Server-stamped: the single-use consumption of this row is an LWT delete.
 	// See AddSessionToken for the mechanism.
+	//
+	// Safe only because state.ID is freshly generated per call (memory_store
+	// SetState), so the DELETE above and this INSERT touch different partitions
+	// — id is the partition key — and cannot order against each other. If a
+	// caller ever supplies a stable state.ID (derived from state_key, say),
+	// they become a delete-then-insert on ONE partition, two server timestamps
+	// from possibly different coordinators, and the insert can be dropped
+	// silently. Keep the id fresh, or make that pair an LWT.
 	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).
 		DefaultTimestamp(false).Exec()
 }
@@ -412,9 +420,9 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 // sessionTokenIDsMatching scans the session-token table and returns the ids
 // whose stored user_id satisfies match. One full scan, same as the ALLOW
 // FILTERING query it replaces.
-func (p *provider) sessionTokenIDsMatching(match func(storedUserID string) bool) ([]string, error) {
+func (p *provider) sessionTokenIDsMatching(ctx context.Context, match func(storedUserID string) bool) ([]string, error) {
 	query := fmt.Sprintf(`SELECT id, user_id FROM %s`, KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query).Iter()
+	iter := p.db.Query(query).WithContext(ctx).Iter()
 	var ids []string
 	var id, storedUserID string
 	for iter.Scan(&id, &storedUserID) {

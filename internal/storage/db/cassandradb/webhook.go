@@ -81,7 +81,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
 	query := fmt.Sprintf("SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.Webhook, pagination.Limit+pagination.Offset)
-	scanner := p.db.Query(query).Iter().Scanner()
+	scanner := p.db.Query(query).WithContext(ctx).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -93,14 +94,24 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
 //
-// ponytail: substring (CONTAINS) match is intentional, not a bug. Session tokens are
-// stored with user_id = "<authRecipeMethod>:<user.ID>" (e.g. "basic_auth:<uuid>"), but
-// this method is called with the bare user.ID, which is the suffix. Exact-equality or
-// STARTS_WITH would match zero rows and break "log out all my sessions". This mirrors the
-// SQL provider (LIKE '%userId%') and MongoDB provider ($regex: userId). Distinct user IDs
-// are UUIDs, so one cannot be a substring of another — no cross-user collateral in practice.
+// The match is anchored: the exact value, or a ":<userId>" suffix. Stored
+// user_id is "[<loginMethod>:]<userID>" (memory_store SetUserSession), so the
+// user id is always the final segment.
+//
+// It used to be an unanchored substring match, which let a delete for "42"
+// also take out tokens belonging to "142" or "provider:427". The SQL provider
+// was anchored long ago; these backends kept the defect because the assertion
+// covering it lived inside a SQL-only subtest. It now runs on every backend as
+// "Anchored Session Token Delete".
+//
+// CONTAINS stays as the server-side narrowing filter — it is a superset of what
+// we want and keeps the work in the query engine — and the anchored predicate
+// is applied in Go. Doing the suffix test in N1QL would mean LIKE '%:'||$1,
+// whose wildcards would need escaping to stay literal; this needs no escaping
+// to be correct. The previous comment here argued the substring match mirrored
+// the SQL provider, which stopped being true when SQL was anchored.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
-	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE CONTAINS(user_id, $1)`,
+	query := fmt.Sprintf(`SELECT _id, user_id FROM %s.%s WHERE CONTAINS(user_id, $1)`,
 		p.scopeName, schemas.Collections.SessionToken)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -110,11 +121,15 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 		return err
 	}
 	type idRow struct {
-		ID string `json:"_id"`
+		ID     string `json:"_id"`
+		UserID string `json:"user_id"`
 	}
 	for q.Next() {
 		var row idRow
 		if err := q.Row(&row); err != nil {
+			continue
+		}
+		if row.UserID != userId && !strings.HasSuffix(row.UserID, ":"+userId) {
 			continue
 		}
 		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})

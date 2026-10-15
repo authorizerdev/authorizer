@@ -263,6 +263,14 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// No query uses this index any more: GetWebhookByEventName was its only
+	// consumer and now scans with a Go-side prefix match, because Apache
+	// Cassandra rejects CQL LIKE against a plain secondary index. Left in place
+	// deliberately — dropping it is a schema migration on live deployments, for
+	// an index whose only cost is write amplification on a table that holds a
+	// handful of rows. Remove it in a change that owns that migration.
+	// (authorizer_email_template_event_name is NOT dead: email_template.go
+	// still selects on event_name with =.)
 	webhookIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webhook_event_name ON %s.%s (event_name)", KeySpace, schemas.Collections.Webhook)
 	err = session.Query(webhookIndexQuery).Exec()
 	if err != nil {

@@ -31,15 +31,26 @@ var knownMixedTables = map[string]string{}
 //     USING TIMESTAMP.
 //
 // Mix the two on one partition and the later write can carry the earlier
-// timestamp, in which case it is discarded with no error at all. Measured on
-// scylladb/scylla, 50 pairs per cell:
+// timestamp, in which case it is discarded with no error at all.
 //
-//	LWT insert, then plain row DELETE          46-48/50 deletes dropped
-//	LWT insert, then DELETE ... IF EXISTS            0/50
-//	LWT insert, then server-stamped DELETE           0/50
+// Measured, LWT insert then DELETE on the same partition, 50 pairs per cell:
 //
-// Both columns of the fix work; which one a table uses depends on whether its
-// LWT is load-bearing. org_domain keeps its LWT and converges onto it (the
+//	                                      cassandra 4.1.12   scylladb
+//	plain DELETE, ambient clocks                    0/50       0/50 *
+//	plain DELETE, client stamp forced -10ms        50/50      48/50
+//	DELETE ... IF EXISTS, forced -10ms              0/50       0/50
+//	server-stamped DELETE, forced -10ms             0/50       0/50
+//
+//	* an earlier scylladb container, with a different instantaneous
+//	  client-vs-coordinator clock relationship, dropped 48/50 on this same
+//	  ambient row. Whether it fires without forcing depends entirely on which
+//	  way the two clocks happen to sit — which is what made #813 look flaky.
+//
+// So the exposure is neither engine-specific nor theoretical: it needs only the
+// client clock to fall behind the coordinator's. Both fixes close it completely
+// on both engines.
+//
+// Which fix a table uses depends on whether its LWT is load-bearing. org_domain keeps its LWT and converges onto it (the
 // domain is the partition key, first-writer-wins is the atomicity guarantee);
 // session_tokens and oauth_states keep a plain insert and server-stamp it,
 // because converging the other way would add a Paxos round-trip to every

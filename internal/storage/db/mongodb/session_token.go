@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,10 +61,25 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	return res.DeletedCount > 0, nil
 }
 
-// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
+//
+// The match is anchored: the exact value, or a ":<userId>" suffix. Stored
+// user_id is "[<loginMethod>:]<userID>" (memory_store SetUserSession), so the
+// user id is always the final segment.
+//
+// It used to be an unanchored substring match, which let a delete for "42"
+// also take out tokens belonging to "142" or "provider:427". The SQL provider
+// was anchored long ago; these backends kept the defect because the assertion
+// covering it lived inside a SQL-only subtest. It now runs on every backend as
+// "Anchored Session Token Delete".
+//
+// regexp.QuoteMeta matters independently of the anchoring: the old form
+// interpolated userId straight into a $regex, so an id containing regex
+// metacharacters was evaluated as a pattern rather than matched literally.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	collection := p.db.Collection(schemas.Collections.SessionToken, options.Collection())
-	_, err := collection.DeleteMany(ctx, bson.M{"user_id": bson.M{"$regex": userId}})
+	pattern := "^(.*:)?" + regexp.QuoteMeta(userId) + "$"
+	_, err := collection.DeleteMany(ctx, bson.M{"user_id": bson.M{"$regex": pattern}})
 	return err
 }
 
