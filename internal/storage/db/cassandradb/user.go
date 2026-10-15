@@ -55,11 +55,25 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	fields = fields[:len(fields)-1] + ")"
 	placeholders = placeholders[:len(placeholders)-1] + ")"
 
-	// IF NOT EXISTS only guards the partition key (id) — a freshly generated UUID that
-	// never collides — so it does NOT enforce email/phone uniqueness. That is enforced
-	// by the GetUserByEmail/GetUserByPhoneNumber check-then-insert above, which carries
+	// Plain INSERT, deliberately not IF NOT EXISTS.
+	//
+	// The guard was never load-bearing: it only ever constrained the partition
+	// key (id), a freshly generated UUID that never collides, so it did NOT
+	// enforce email/phone uniqueness. That is enforced by the
+	// GetUserByEmail/GetUserByPhoneNumber check-then-insert above, which carries
 	// the same inherent TOCTOU race as any non-partition-key guard in Cassandra.
-	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.User, fields, placeholders)
+	//
+	// It was also actively harmful. IF NOT EXISTS makes this a lightweight
+	// transaction, so the row's write timestamp came from the Paxos ballot
+	// (server-side) while every later UpdateUser/DeleteUser on the same
+	// partition carries a gocql client-side timestamp (DefaultTimestamp is true
+	// by default). Cassandra resolves conflicts by last-write-wins on that
+	// timestamp, so a subsequent plain write whose timestamp did not strictly
+	// exceed the ballot's was DISCARDED SILENTLY — no error, the mutation simply
+	// never took effect. Mixing LWT and non-LWT writes on one partition is the
+	// documented anti-pattern; removing the pointless half puts every write to
+	// this table in one timestamp domain.
+	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s", KeySpace+"."+schemas.Collections.User, fields, placeholders)
 	err := p.db.Query(query, insertValues...).Exec()
 
 	if err != nil {
