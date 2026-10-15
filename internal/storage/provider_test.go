@@ -544,7 +544,15 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	assert.Error(t, err)
 
 	// Test GetUserByPhoneNumber
-	user.PhoneNumber = refs.NewStringRef("+1234567891")
+	//
+	// Unique numbers per run, like the emails above. These were two fixed
+	// literals, so a run that failed before the cleanup at the bottom left
+	// them in the table and every later run against the same database failed
+	// here instead with "user with given phone number already exists" — one
+	// failure cascading into a different, misleading one.
+	phoneBefore := "+1" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+	phoneAfter := "+2" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+	user.PhoneNumber = refs.NewStringRef(phoneBefore)
 	createdUser, err = provider.AddUser(ctx, user)
 	require.NoError(t, err)
 	require.NotNil(t, createdUser)
@@ -561,10 +569,19 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	assert.Equal(t, *user.Password, *fetchedUser.Password)
 
 	// Test UpdateUsers
+	//
+	// Filter by this user's own email rather than listing the first page
+	// unfiltered. The unfiltered form asserted the just-created user appears in
+	// Limit:10/Offset:0, which only holds while the table is nearly empty — it
+	// passes in CI (fresh container per run) and fails on every repeated local
+	// run once a few hundred rows have accumulated, looking exactly like a
+	// write that did not take effect. Scoping the query keeps both assertions
+	// (ListUsers works; the created user carries its password) independent of
+	// how much data is already there.
 	users, _, err = provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	}, "")
+	}, *user.Email)
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)
@@ -581,16 +598,16 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	require.NotNil(t, foundInList.Password, "ListUsers must not drop the stored password")
 	assert.Equal(t, *user.Password, *foundInList.Password)
 	data := map[string]interface{}{
-		"phone_number": "+3216549870",
+		"phone_number": phoneAfter,
 	}
 	err = provider.UpdateUsers(ctx, data, []string{createdUser.ID})
 	assert.NoError(t, err)
 
 	// Test GetUserByPhoneNumber after update
-	user, err = provider.GetUserByPhoneNumber(ctx, "+3216549870")
+	user, err = provider.GetUserByPhoneNumber(ctx, phoneAfter)
 	require.NoError(t, err)
 	require.NotNil(t, user)
-	assert.Equal(t, "+3216549870", *user.PhoneNumber)
+	assert.Equal(t, phoneAfter, *user.PhoneNumber)
 
 	// Cleanup: delete the user to avoid data leakage between test runs
 	err = provider.DeleteUser(ctx, user)
