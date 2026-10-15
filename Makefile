@@ -147,6 +147,7 @@ test-scylladb: test-cleanup-scylladb
 	@# recipe line, so a failing test aborted the recipe before teardown and left
 	@# the port bound, breaking the NEXT run for an unrelated reason.
 	sh scripts/wait-for-test-dbs.sh scylladb && \
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
 	{ go clean --testcache; TEST_DBS="scylladb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_scylla_db; \
@@ -160,6 +161,7 @@ test-scylladb: test-cleanup-scylladb
 test-cassandradb: test-cleanup-cassandradb
 	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
 	sh scripts/wait-for-test-dbs.sh cassandradb && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
 	{ go clean --testcache; TEST_DBS="cassandradb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_cassandra_db; \
@@ -233,6 +235,8 @@ test-docker-up:
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	sh scripts/wait-for-test-dbs.sh
+	sh scripts/wait-for-cql.sh authorizer_scylla_db
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db
 
 # Remove all test database containers
 test-cleanup:
