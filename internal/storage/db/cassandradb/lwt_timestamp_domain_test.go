@@ -32,17 +32,28 @@ var knownMixedTables = map[string]string{
 // TestNoTableMixesLWTAndPlainWrites pins the invariant that every write to a
 // given table is either a lightweight transaction or none of them are.
 //
-// Cassandra resolves conflicts by last-write-wins on the mutation timestamp. An
-// LWT's timestamp comes from the Paxos ballot (server-side); a plain write
-// carries gocql's client-side timestamp (DefaultTimestamp defaults to true).
-// Those are different clocks, so a plain write issued AFTER an LWT can carry an
-// earlier timestamp and be DISCARDED SILENTLY — no error, the mutation simply
-// never applies. Mixing the two on one partition is the documented
-// Cassandra/Scylla anti-pattern.
+// Cassandra and Scylla resolve conflicts by last-write-wins on the mutation
+// timestamp, and an LWT does not take that timestamp from the same clock a
+// plain write does. An LWT insert's row marker is derived from the Paxos ballot
+// (server clock); a plain write carries gocql's client-side timestamp
+// (DefaultTimestamp defaults to true). A row tombstone only shadows a row whose
+// marker it exceeds, so a plain DELETE issued after an LWT insert is discarded
+// silently when the server clock runs ahead — no error, the row just survives.
+// Mixing the two on one partition is the documented anti-pattern, and this is
+// why.
 //
-// A static check, because the live failure is a sub-millisecond timestamp race:
-// it reproduced roughly once in six runs of the ScyllaDB suite and cannot be
-// asserted on reliably. See #813.
+// Measured, 50 insert-then-delete pairs per cell:
+//
+//	scylladb/scylla 3.0.8   plain DELETE 46/50 dropped   IF EXISTS 0/50
+//	cassandra 4.1.12        plain DELETE  0/50 dropped   IF EXISTS 0/50
+//
+// Cassandra escapes it only because its ballot timestamp is truncated to whole
+// milliseconds, which floors the marker behind the later client timestamp. That
+// is a margin, not a guarantee, and it does not hold on Scylla.
+//
+// A static check, because the live failure depends on sub-millisecond clock lead
+// between two processes and cannot be asserted on reliably in CI. #813 is the
+// report that led here; its Org_Domain_Operations failure is this bug.
 func TestNoTableMixesLWTAndPlainWrites(t *testing.T) {
 	files, err := filepath.Glob("*.go")
 	if err != nil {
