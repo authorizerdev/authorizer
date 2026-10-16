@@ -147,9 +147,24 @@ test-scylladb: test-cleanup-scylladb
 	@# recipe line, so a failing test aborted the recipe before teardown and left
 	@# the port bound, breaking the NEXT run for an unrelated reason.
 	sh scripts/wait-for-test-dbs.sh scylladb && \
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
 	{ go clean --testcache; TEST_DBS="scylladb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_scylla_db; \
+	exit $$status
+
+# The cassandradb and scylladb providers share one implementation but take
+# different keyspace-replication CQL, and only the ScyllaDB path was ever
+# tested. The first run of this target against real Apache Cassandra failed:
+# CQL LIKE needs a SASI index there, so three queries this provider issues were
+# rejected outright. Different port from scylladb on purpose, so both can run.
+test-cassandradb: test-cleanup-cassandradb
+	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
+	sh scripts/wait-for-test-dbs.sh cassandradb && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
+	{ go clean --testcache; TEST_DBS="cassandradb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_cassandra_db; \
 	exit $$status
 
 test-arangodb: test-cleanup-arangodb
@@ -202,8 +217,14 @@ test-all-db: test-cleanup test-docker-up
 	@# leaving ports 5434/27017/9042/8529/8000/8091 bound — so the NEXT run
 	@# failed to start them and produced a second, misleading failure. Same
 	@# capture-status-then-clean shape the e2e-playground target already uses.
-	go clean --testcache; \
-	TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
+	@# The CQL waits belong HERE and not in test-docker-up: that is a
+	@# prerequisite target, and a failure on one of its standalone recipe lines
+	@# aborts make before this recipe -- and $(MAKE) test-cleanup below -- ever
+	@# runs, leaking all eight containers and leaving every port bound. Inside
+	@# the && chain a probe failure is captured by status and still cleans up.
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -214,16 +235,29 @@ test-docker-up:
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
+	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	sh scripts/wait-for-test-dbs.sh
+	@# Advisory here, authoritative inside test-all-db. `make test-docker-up` is
+	@# also a standalone target, so it has to leave the stack actually usable --
+	@# without these, a user running it and then `go test` gets a Cassandra that
+	@# is still booting, which is the flake the probe exists to prevent. But a
+	@# hard failure on a prerequisite recipe line aborts make before
+	@# test-all-db's cleanup runs, so the `-` keeps a slow boot from leaking
+	@# eight containers. The enforcing copy in test-all-db is inside the &&
+	@# chain, where a failure is captured and still cleans up. Re-running it
+	@# there costs nothing: the probe returns in 0s once CQL answers.
+	-sh scripts/wait-for-cql.sh authorizer_scylla_db
+	-sh scripts/wait-for-cql.sh authorizer_cassandra_db
 
 # Remove all test database containers
 test-cleanup:
 	-docker rm -vf authorizer_postgres
 	-docker rm -vf authorizer_scylla_db
+	-docker rm -vf authorizer_cassandra_db
 	-docker rm -vf authorizer_mongodb_db
 	-docker rm -vf authorizer_arangodb
 	-docker rm -vf authorizer_dynamodb
@@ -236,6 +270,8 @@ test-cleanup-mongodb:
 	-docker rm -vf authorizer_mongodb_db
 test-cleanup-scylladb:
 	-docker rm -vf authorizer_scylla_db
+test-cleanup-cassandradb:
+	-docker rm -vf authorizer_cassandra_db
 test-cleanup-arangodb:
 	-docker rm -vf authorizer_arangodb
 test-cleanup-dynamodb:

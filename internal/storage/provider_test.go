@@ -28,6 +28,7 @@ var allDBTypes = []string{
 	constants.DbTypeMongoDB,
 	constants.DbTypeArangoDB,
 	constants.DbTypeScyllaDB,
+	constants.DbTypeCassandraDB,
 	constants.DbTypeCouchbaseDB,
 	constants.DbTypeDynamoDB,
 }
@@ -70,6 +71,11 @@ func getTestDBConfig(dbType string) *config.Config {
 		cfg.DatabaseURL = "http://localhost:8529"
 	case constants.DbTypeScyllaDB:
 		cfg.DatabaseURL = "127.0.0.1:9042"
+	case constants.DbTypeCassandraDB:
+		// A separate port from ScyllaDB on purpose: this provider backs both DB
+		// types and they take different keyspace-replication CQL, so a shared
+		// port would silently test one engine twice.
+		cfg.DatabaseURL = "127.0.0.1:9142"
 	case constants.DbTypeCouchbaseDB:
 		cfg.DatabaseURL = "couchbase://127.0.0.1"
 		// Allow extra time for Couchbase container to become ready in tests (test-all-db runs Couchbase last)
@@ -230,6 +236,10 @@ func TestStorageProvider(t *testing.T) {
 				testDeleteUserCascade(t, ctx, provider)
 			})
 
+			t.Run("Anchored Session Token Delete", func(t *testing.T) {
+				testAnchoredSessionTokenDelete(t, ctx, provider)
+			})
+
 			if isSQLTestDB(dbType) {
 				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
 					testSQLCRUDCorrectnessFixes(t, ctx, provider)
@@ -284,36 +294,6 @@ func testSQLCRUDCorrectnessFixes(t *testing.T, ctx context.Context, provider Pro
 
 	require.NoError(t, provider.DeleteUser(ctx, userA))
 
-	// #2: DeleteAllSessionTokensByUserID must delete only the target user's
-	// tokens, not another user whose stored id contains the target as a
-	// substring. otherUser ("xu"+suffix) contains targetUser ("u"+suffix).
-	suffix := uuid.New().String()
-	targetUser := "u" + suffix
-	otherUser := "xu" + suffix
-	targetStored := "auth_provider:" + targetUser
-	otherStored := "auth_provider:" + otherUser
-
-	addToken := func(storedUserID, key string) {
-		require.NoError(t, provider.AddSessionToken(ctx, &schemas.SessionToken{
-			UserID:    storedUserID,
-			KeyName:   key,
-			Token:     "tok_" + uuid.New().String(),
-			ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
-		}))
-	}
-	addToken(targetStored, "session_token_key")
-	addToken(otherStored, "session_token_key")
-
-	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
-
-	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetStored, "session_token_key")
-	assert.Error(t, err, "target user's session token should be deleted")
-	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
-	assert.NoError(t, err, "substring-matching other user's session token must survive")
-
-	// cleanup the surviving token
-	_ = provider.DeleteAllSessionTokensByUserID(ctx, otherUser)
-
 	// #3a: UpdateUser rejects a partial struct (CreatedAt == 0, i.e. never loaded).
 	_, err = provider.UpdateUser(ctx, &schemas.User{
 		ID:    uuid.New().String(),
@@ -346,6 +326,59 @@ func testSQLCRUDCorrectnessFixes(t *testing.T, ctx context.Context, provider Pro
 	assert.Equal(t, "user", refetched.Roles, "roles must be preserved")
 
 	require.NoError(t, provider.DeleteUser(ctx, refetched))
+}
+
+// testAnchoredSessionTokenDelete asserts DeleteAllSessionTokensByUserID deletes
+// only the target user's tokens, never another user whose stored id merely
+// contains the target as a substring. otherUser ("xu"+suffix) contains
+// targetUser ("u"+suffix).
+//
+// It runs on every backend because that is the only way this class of bug is
+// caught: the SQL provider was anchored long ago, while Cassandra/ScyllaDB kept
+// an unanchored "%<userId>%" match that deleted the other user's token too —
+// and CI stayed green because this assertion lived inside a SQL-only subtest.
+func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider Provider) {
+	suffix := uuid.New().String()
+	targetUser := "u" + suffix
+	otherUser := "xu" + suffix
+	targetStored := "auth_provider:" + targetUser
+	otherStored := "auth_provider:" + otherUser
+
+	addToken := func(storedUserID string) {
+		require.NoError(t, provider.AddSessionToken(ctx, &schemas.SessionToken{
+			UserID:    storedUserID,
+			KeyName:   "session_token_key",
+			Token:     "tok_" + uuid.New().String(),
+			ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+		}))
+	}
+	addToken(targetStored)
+	addToken(otherStored)
+	// Stored without a login-method prefix, which is the other shape
+	// memory_store writes and the equality branch of the predicate. Untested
+	// before, on every backend.
+	addToken(targetUser)
+	// A newline inside the prefix. Not a value the application can write, but
+	// the six backends express this predicate six different ways and this is
+	// where they stop agreeing: MongoDB's $regex is PCRE, where `.` does not
+	// cross a newline and `$` matches before a trailing one, so this row
+	// survived on MongoDB while every other backend deleted it. Keeping the
+	// case pins cross-backend equivalence rather than each implementation's
+	// own idea of it.
+	addToken("a\nb:" + targetUser)
+
+	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
+
+	_, err := provider.GetSessionTokenByUserIDAndKey(ctx, targetStored, "session_token_key")
+	assert.Error(t, err, "target user's namespaced session token should be deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetUser, "session_token_key")
+	assert.Error(t, err, "target user's un-namespaced session token should be deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, "a\nb:"+targetUser, "session_token_key")
+	assert.Error(t, err, "a newline in the login-method prefix must not shield the token from deletion")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
+	assert.NoError(t, err, "substring-matching other user's session token must survive")
+
+	_ = provider.DeleteAllSessionTokensByUserID(ctx, otherUser)
 }
 
 // testUserSearchOperations verifies ListUsers' optional case-insensitive
@@ -527,7 +560,15 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	assert.Error(t, err)
 
 	// Test GetUserByPhoneNumber
-	user.PhoneNumber = refs.NewStringRef("+1234567891")
+	//
+	// Unique numbers per run, like the emails above. These were two fixed
+	// literals, so a run that failed before the cleanup at the bottom left
+	// them in the table and every later run against the same database failed
+	// here instead with "user with given phone number already exists" — one
+	// failure cascading into a different, misleading one.
+	phoneBefore := "+1" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+	phoneAfter := "+2" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+	user.PhoneNumber = refs.NewStringRef(phoneBefore)
 	createdUser, err = provider.AddUser(ctx, user)
 	require.NoError(t, err)
 	require.NotNil(t, createdUser)
@@ -544,10 +585,19 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	assert.Equal(t, *user.Password, *fetchedUser.Password)
 
 	// Test UpdateUsers
+	//
+	// Filter by this user's own email rather than listing the first page
+	// unfiltered. The unfiltered form asserted the just-created user appears in
+	// Limit:10/Offset:0, which only holds while the table is nearly empty — it
+	// passes in CI (fresh container per run) and fails on every repeated local
+	// run once a few hundred rows have accumulated, looking exactly like a
+	// write that did not take effect. Scoping the query keeps both assertions
+	// (ListUsers works; the created user carries its password) independent of
+	// how much data is already there.
 	users, _, err = provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	}, "")
+	}, *user.Email)
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)
@@ -564,16 +614,16 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	require.NotNil(t, foundInList.Password, "ListUsers must not drop the stored password")
 	assert.Equal(t, *user.Password, *foundInList.Password)
 	data := map[string]interface{}{
-		"phone_number": "+3216549870",
+		"phone_number": phoneAfter,
 	}
 	err = provider.UpdateUsers(ctx, data, []string{createdUser.ID})
 	assert.NoError(t, err)
 
 	// Test GetUserByPhoneNumber after update
-	user, err = provider.GetUserByPhoneNumber(ctx, "+3216549870")
+	user, err = provider.GetUserByPhoneNumber(ctx, phoneAfter)
 	require.NoError(t, err)
 	require.NotNil(t, user)
-	assert.Equal(t, "+3216549870", *user.PhoneNumber)
+	assert.Equal(t, phoneAfter, *user.PhoneNumber)
 
 	// Cleanup: delete the user to avoid data leakage between test runs
 	err = provider.DeleteUser(ctx, user)
@@ -709,8 +759,10 @@ func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider,
 
 	// Test GetWebhookByEventName
 	fetchedByEventName, err := provider.GetWebhookByEventName(ctx, webhook.EventName)
-	assert.NoError(t, err)
-	assert.NotNil(t, fetchedByEventName)
+	require.NoError(t, err)
+	// require, not assert: indexing an empty result panics, and a panic in one
+	// backend's subtest aborts the run for every backend after it.
+	require.NotEmpty(t, fetchedByEventName, "GetWebhookByEventName must find the webhook just created")
 	assert.Equal(t, created.ID, fetchedByEventName[0].ID)
 
 	// Test UpdateWebhook mutates only the changed field and preserves the rest.

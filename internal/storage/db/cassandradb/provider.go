@@ -263,6 +263,14 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// No query uses this index any more: GetWebhookByEventName was its only
+	// consumer and now scans with a Go-side prefix match, because Apache
+	// Cassandra rejects CQL LIKE against a plain secondary index. Left in place
+	// deliberately — dropping it is a schema migration on live deployments, for
+	// an index whose only cost is write amplification on a table that holds a
+	// handful of rows. Remove it in a change that owns that migration.
+	// (authorizer_email_template_event_name is NOT dead: email_template.go
+	// still selects on event_name with =.)
 	webhookIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webhook_event_name ON %s.%s (event_name)", KeySpace, schemas.Collections.Webhook)
 	err = session.Query(webhookIndexQuery).Exec()
 	if err != nil {
@@ -789,4 +797,26 @@ func buildCQLColumnMap(v interface{}) map[string]interface{} {
 		out[name] = fv.Interface()
 	}
 	return out
+}
+
+// serverDomainTables are the tables whose writes take the coordinator's clock
+// (gocql's DefaultTimestamp(false)) rather than this process's.
+//
+// They earn that because a lightweight transaction on them is load-bearing —
+// the `applied` flag of a `DELETE ... IF EXISTS` is the exactly-once arbiter
+// for consuming a session token, an OAuth state, or an authenticator recovery
+// code. An LWT is stamped from the Paxos ballot, so every other write to the
+// same partition must come from that same clock or the later write can carry
+// the earlier timestamp and be discarded with no error.
+//
+// This exists for writes issued from a generic loop, where the target table is
+// a variable and the call site cannot be read off the source: DeleteUser's
+// cascade over schemas.UserOwnedCollections. Direct call sites say
+// DefaultTimestamp(false) inline instead, which keeps the reason next to the
+// statement. TestEveryTableUsesOneTimestampDomain cross-checks this map against
+// the domains it detects, so the two cannot drift apart.
+var serverDomainTables = map[string]bool{
+	schemas.Collections.SessionToken:   true,
+	schemas.Collections.OAuthState:     true,
+	schemas.Collections.Authenticators: true,
 }
