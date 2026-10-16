@@ -140,8 +140,14 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
 	prefix := namespace + ":"
-	// N1QL does not have STARTS_WITH; use LIKE with prefix%
-	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE user_id LIKE $1`,
+	// LIKE narrows server-side, and the exact prefix test runs in Go. LIKE
+	// alone is wrong here: `_` is a single-character wildcard and every
+	// auth-recipe name contains one ("basic_auth", "magic_link_login",
+	// "service_account"), so `basic_auth:%` also matches `basicXauth:...`. The
+	// SQL provider escapes for this reason; N1QL has no portable ESCAPE, so the
+	// literal comparison happens below instead. Same shape as
+	// DeleteAllSessionTokensByUserID above.
+	query := fmt.Sprintf(`SELECT _id, user_id FROM %s.%s WHERE user_id LIKE $1`,
 		p.scopeName, schemas.Collections.SessionToken)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -151,11 +157,15 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 		return err
 	}
 	type idRow struct {
-		ID string `json:"_id"`
+		ID     string `json:"_id"`
+		UserID string `json:"user_id"`
 	}
 	for q.Next() {
 		var row idRow
 		if err := q.Row(&row); err != nil {
+			continue
+		}
+		if !strings.HasPrefix(row.UserID, prefix) {
 			continue
 		}
 		_, _ = p.db.Collection(schemas.Collections.SessionToken).Remove(row.ID, &gocb.RemoveOptions{Context: ctx})

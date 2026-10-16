@@ -73,12 +73,25 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 // covering it lived inside a SQL-only subtest. It now runs on every backend as
 // "Anchored Session Token Delete".
 //
-// regexp.QuoteMeta matters independently of the anchoring: the old form
-// interpolated userId straight into a $regex, so an id containing regex
-// metacharacters was evaluated as a pattern rather than matched literally.
+// Three things are load-bearing in the pattern, and QuoteMeta is only one:
+//
+//   - regexp.QuoteMeta makes the NEEDLE literal. The old form interpolated
+//     userId straight into $regex, so an id containing regex metacharacters
+//     was evaluated as a pattern rather than matched literally.
+//   - (?s) makes `.` cross a newline. Without it a stored "a\nb:<userId>" is
+//     NOT matched, while every other backend deletes it — a missed revocation
+//     on this backend only.
+//   - \z, not $, anchors at true end-of-string. PCRE's $ also matches before a
+//     trailing newline, so "<prefix>:<userId>\n" would be deleted here and
+//     kept everywhere else — the over-delete primitive this change exists to
+//     remove, surviving on one backend.
+//
+// None of the three is reachable from application writes today (login methods
+// come from a fixed set, ids are UUIDv4), but "unreachable today" is exactly
+// the standard the substring match was removed under.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	collection := p.db.Collection(schemas.Collections.SessionToken, options.Collection())
-	pattern := "^(.*:)?" + regexp.QuoteMeta(userId) + "$"
+	pattern := "(?s)^(.*:)?" + regexp.QuoteMeta(userId) + `\z`
 	_, err := collection.DeleteMany(ctx, bson.M{"user_id": bson.M{"$regex": pattern}})
 	return err
 }
@@ -86,7 +99,11 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
 	collection := p.db.Collection(schemas.Collections.SessionToken, options.Collection())
-	_, err := collection.DeleteMany(ctx, bson.M{"user_id": bson.M{"$regex": "^" + namespace + ":"}})
+	// Escaped and (?s)-anchored for the same reasons as
+	// DeleteAllSessionTokensByUserID above: the namespace reached $regex raw,
+	// and auth-recipe names ("basic_auth", "magic_link_login") are not
+	// regex-inert.
+	_, err := collection.DeleteMany(ctx, bson.M{"user_id": bson.M{"$regex": "(?s)^" + regexp.QuoteMeta(namespace) + ":"}})
 	return err
 }
 

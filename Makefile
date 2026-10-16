@@ -217,8 +217,14 @@ test-all-db: test-cleanup test-docker-up
 	@# leaving ports 5434/27017/9042/8529/8000/8091 bound — so the NEXT run
 	@# failed to start them and produced a second, misleading failure. Same
 	@# capture-status-then-clean shape the e2e-playground target already uses.
-	go clean --testcache; \
-	TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); \
+	@# The CQL waits belong HERE and not in test-docker-up: that is a
+	@# prerequisite target, and a failure on one of its standalone recipe lines
+	@# aborts make before this recipe -- and $(MAKE) test-cleanup below -- ever
+	@# runs, leaking all eight containers and leaving every port bound. Inside
+	@# the && chain a probe failure is captured by status and still cleans up.
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -235,8 +241,6 @@ test-docker-up:
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	sh scripts/wait-for-test-dbs.sh
-	sh scripts/wait-for-cql.sh authorizer_scylla_db
-	sh scripts/wait-for-cql.sh authorizer_cassandra_db
 
 # Remove all test database containers
 test-cleanup:

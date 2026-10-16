@@ -358,6 +358,14 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	// memory_store writes and the equality branch of the predicate. Untested
 	// before, on every backend.
 	addToken(targetUser)
+	// A newline inside the prefix. Not a value the application can write, but
+	// the six backends express this predicate six different ways and this is
+	// where they stop agreeing: MongoDB's $regex is PCRE, where `.` does not
+	// cross a newline and `$` matches before a trailing one, so this row
+	// survived on MongoDB while every other backend deleted it. Keeping the
+	// case pins cross-backend equivalence rather than each implementation's
+	// own idea of it.
+	addToken("a\nb:" + targetUser)
 
 	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
 
@@ -365,6 +373,8 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	assert.Error(t, err, "target user's namespaced session token should be deleted")
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetUser, "session_token_key")
 	assert.Error(t, err, "target user's un-namespaced session token should be deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, "a\nb:"+targetUser, "session_token_key")
+	assert.Error(t, err, "a newline in the login-method prefix must not shield the token from deletion")
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
 	assert.NoError(t, err, "substring-matching other user's session token must survive")
 

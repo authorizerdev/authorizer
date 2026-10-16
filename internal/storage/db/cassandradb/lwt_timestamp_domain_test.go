@@ -77,6 +77,32 @@ func TestEveryTableUsesOneTimestampDomain(t *testing.T) {
 	coll := regexp.MustCompile(`schemas\.Collections\.(\w+)`)
 	assigned := regexp.MustCompile(`(\w+)\s*:?=\s*fmt\.Sprintf\(`)
 
+	// regionFrom returns up to n lines starting at idx, with comment lines
+	// dropped and the region cut short at the next write statement or the end
+	// of the enclosing function.
+	//
+	// Both halves were demonstrated false passes. Without the cut, a
+	// DefaultTimestamp(false) belonging to the NEXT statement classified this
+	// one — a client-stamped session-token delete inserted above the
+	// server-stamped oauth-state delete was read as server-domain and the test
+	// passed. Without dropping comments, a comment merely MENTIONING
+	// serverDomainTables satisfied the variable-table check while the code
+	// below it stamped nothing.
+	regionFrom := func(lines []string, idx, n int) string {
+		var out []string
+		for j := idx; j < len(lines) && j < idx+n; j++ {
+			l := lines[j]
+			if j > idx && (stmt.MatchString(l) || strings.HasPrefix(l, "}")) {
+				break
+			}
+			if strings.HasPrefix(strings.TrimSpace(l), "//") {
+				continue
+			}
+			out = append(out, l)
+		}
+		return strings.Join(out, "\n")
+	}
+
 	type seen struct{ server, client []string }
 	byTable := map[string]*seen{}
 
@@ -110,18 +136,30 @@ func TestEveryTableUsesOneTimestampDomain(t *testing.T) {
 				// table it hits is only known at run time and this scan cannot
 				// classify it. DeleteUser's cascade over
 				// schemas.UserOwnedCollections is the one such write today, and
-				// it spans both domains — three of those tables are
-				// server-domain, four are not.
+				// it spans both domains — two of those seven tables are
+				// server-domain, five are not.
 				//
 				// A write like that MUST decide its domain from the table it is
 				// about to hit. Requiring it to consult serverDomainTables is
 				// what stops the cascade from silently client-stamping a
 				// server-domain table, which is invisible everywhere else.
-				region := strings.Join(lines[i:min(i+25, len(lines))], "\n")
-				if !strings.Contains(region, "serverDomainTables[") {
+				region := regionFrom(lines, i, 25)
+				switch {
+				case !strings.Contains(region, "serverDomainTables["):
 					t.Errorf("%s:%d writes to a table named by a variable without consulting "+
 						"serverDomainTables, so it cannot be stamped for the table it hits:\n  %s",
 						f, i+1, strings.TrimSpace(line))
+				case !strings.Contains(region, "DefaultTimestamp(false)"):
+					t.Errorf("%s:%d consults serverDomainTables but never calls "+
+						"DefaultTimestamp(false), so the lookup decides nothing:\n  %s",
+						f, i+1, strings.TrimSpace(line))
+				case strings.Contains(region, "!serverDomainTables["):
+					// Presence is not correctness. Inverting this one branch
+					// client-stamps the server-domain tables AND server-stamps
+					// the client-domain ones -- the most likely way a refactor
+					// breaks this line, and it used to pass.
+					t.Errorf("%s:%d negates the serverDomainTables lookup, which stamps every "+
+						"table the wrong way round:\n  %s", f, i+1, strings.TrimSpace(line))
 				}
 				continue
 			}
@@ -141,17 +179,15 @@ func TestEveryTableUsesOneTimestampDomain(t *testing.T) {
 			// this statement: DefaultTimestamp(false) makes it server-domain.
 			// Find that call -- either inline on this line, or further down
 			// referring to the variable this statement was assigned to.
-			region := line
+			region := regionFrom(lines, i, 3)
 			if am := assigned.FindStringSubmatch(line); am != nil {
 				needle := "Query(" + am[1]
 				for j := i; j < len(lines) && j <= i+30; j++ {
 					if strings.Contains(lines[j], needle) {
-						region = strings.Join(lines[j:min(j+3, len(lines))], "\n")
+						region = regionFrom(lines, j, 3)
 						break
 					}
 				}
-			} else {
-				region = strings.Join(lines[i:min(i+3, len(lines))], "\n")
 			}
 			if strings.Contains(region, "DefaultTimestamp(false)") {
 				byTable[table].server = append(byTable[table].server, m)
