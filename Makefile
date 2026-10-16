@@ -241,6 +241,17 @@ test-docker-up:
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	sh scripts/wait-for-test-dbs.sh
+	@# Advisory here, authoritative inside test-all-db. `make test-docker-up` is
+	@# also a standalone target, so it has to leave the stack actually usable --
+	@# without these, a user running it and then `go test` gets a Cassandra that
+	@# is still booting, which is the flake the probe exists to prevent. But a
+	@# hard failure on a prerequisite recipe line aborts make before
+	@# test-all-db's cleanup runs, so the `-` keeps a slow boot from leaking
+	@# eight containers. The enforcing copy in test-all-db is inside the &&
+	@# chain, where a failure is captured and still cleans up. Re-running it
+	@# there costs nothing: the probe returns in 0s once CQL answers.
+	-sh scripts/wait-for-cql.sh authorizer_scylla_db
+	-sh scripts/wait-for-cql.sh authorizer_cassandra_db
 
 # Remove all test database containers
 test-cleanup:
