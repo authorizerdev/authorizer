@@ -111,8 +111,11 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 // Matching happens in Go rather than with CQL LIKE: Apache Cassandra only
 // accepts LIKE on a SASI index and rejects it against the plain secondary index
 // this provider creates, so these two methods failed outright there. The query
-// already carried ALLOW FILTERING, i.e. a full table scan, so the only thing
-// that changes is where the comparison runs.
+// already carried ALLOW FILTERING, i.e. a full table scan, so the scan cost is
+// unchanged — but the transfer cost is not: on ScyllaDB, where LIKE did work,
+// only matching rows crossed the wire and now every (id, user_id) pair does.
+// There is no cheaper option without a SASI index, and no CQL suffix operator,
+// so this is the price of a correct anchored match on this backend.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	ids, err := p.sessionTokenIDsMatching(ctx, func(storedUserID string) bool {
 		return storedUserID == userId || strings.HasSuffix(storedUserID, ":"+userId)

@@ -119,7 +119,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	// it went unnoticed. Costs nothing: ALLOW FILTERING already scanned the
 	// whole table, so the only change is where the comparison happens.
 	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s`, KeySpace+"."+schemas.Collections.Webhook)
-	scanner := p.db.Query(query).Iter().Scanner()
+	scanner := p.db.Query(query).WithContext(ctx).Iter().Scanner()
 	webhooks := []*schemas.Webhook{}
 	for scanner.Next() {
 		var webhook schemas.Webhook

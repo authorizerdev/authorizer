@@ -366,6 +366,12 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	// case pins cross-backend equivalence rather than each implementation's
 	// own idea of it.
 	addToken("a\nb:" + targetUser)
+	// A TRAILING newline, which is the other half of the same divergence and
+	// the one `\z` (not `$`) exists for: PCRE's `$` also matches just before a
+	// final newline, so with `$` this row is deleted on MongoDB and kept on
+	// every other backend — an over-delete, the exact primitive this subtest
+	// removes. Without this case, swapping `\z` for `$` passes.
+	addToken(targetStored + "\n")
 
 	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, targetUser))
 
@@ -377,8 +383,11 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	assert.Error(t, err, "a newline in the login-method prefix must not shield the token from deletion")
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, otherStored, "session_token_key")
 	assert.NoError(t, err, "substring-matching other user's session token must survive")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetStored+"\n", "session_token_key")
+	assert.NoError(t, err, "a trailing newline makes the user id a different value; it must not be deleted")
 
 	_ = provider.DeleteAllSessionTokensByUserID(ctx, otherUser)
+	_ = provider.DeleteAllSessionTokensByUserID(ctx, targetUser+"\n")
 }
 
 // testUserSearchOperations verifies ListUsers' optional case-insensitive
@@ -1159,8 +1168,9 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 
 	// A different user's token must NOT be swept up by DeleteAllSessionTokensByUserID.
 	// user_id is stored namespaced ("auth_provider:<uuid>") and the delete is called with
-	// the bare uuid, so the match is a suffix/substring — a second, distinct user's token
-	// (different uuid) must survive to prove no cross-user collateral deletion.
+	// the bare uuid, so the match is the exact value or a ":<uuid>" suffix — a second,
+	// distinct user's token (different uuid) must survive to prove no cross-user
+	// collateral deletion. See testAnchoredSessionTokenDelete for the anchoring itself.
 	otherUser := "auth_provider:" + uuid.New().String()
 	otherToken := &schemas.SessionToken{
 		UserID:    otherUser,

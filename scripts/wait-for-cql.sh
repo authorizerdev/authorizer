@@ -4,7 +4,7 @@
 # wait-for-test-dbs.sh probes with `nc -z`, which on Docker Desktop connects to
 # the published-port proxy rather than to the server: it succeeds the instant
 # `docker run -p` returns, while Cassandra is still ~50s from binding its
-# native transport. Measured — `nc -z 127.0.0.1 9143` succeeded at t=1s while
+# native transport. Measured — `nc -z 127.0.0.1 9142` succeeded at t=1s while
 # `cqlsh` inside the same container still failed at t=3s. So for these two
 # backends the port probe proves nothing and the storage tests can start against
 # a database that is still booting. This asks the server itself, from inside the
