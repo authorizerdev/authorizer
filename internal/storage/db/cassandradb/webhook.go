@@ -81,7 +81,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
 	query := fmt.Sprintf("SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.Webhook, pagination.Limit+pagination.Offset)
-	scanner := p.db.Query(query).Iter().Scanner()
+	scanner := p.db.Query(query).WithContext(ctx).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
@@ -111,8 +111,15 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
-	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name LIKE ? ALLOW FILTERING`, KeySpace+"."+schemas.Collections.Webhook)
-	scanner := p.db.Query(query, eventName+"%").Iter().Scanner()
+	// Prefix match in Go, not with CQL LIKE. Apache Cassandra only accepts LIKE
+	// on a SASI index — with the plain secondary index this provider creates it
+	// rejects the query outright ("LIKE restriction is only supported on
+	// properly indexed columns"), so webhook dispatch failed on every Apache
+	// Cassandra deployment. ScyllaDB accepts the same statement, which is why
+	// it went unnoticed. Costs nothing: ALLOW FILTERING already scanned the
+	// whole table, so the only change is where the comparison happens.
+	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s`, KeySpace+"."+schemas.Collections.Webhook)
+	scanner := p.db.Query(query).WithContext(ctx).Iter().Scanner()
 	webhooks := []*schemas.Webhook{}
 	for scanner.Next() {
 		var webhook schemas.Webhook
@@ -120,7 +127,13 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 		if err != nil {
 			return nil, err
 		}
+		if !strings.HasPrefix(webhook.EventName, eventName) {
+			continue
+		}
 		webhooks = append(webhooks, &webhook)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 	return webhooks, nil
 }

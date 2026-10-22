@@ -134,7 +134,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	// schemas.UserOwnedCollections). Every one of these tables is keyed on `id`.
 	for _, table := range schemas.UserOwnedCollections {
 		selectQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = ? ALLOW FILTERING", KeySpace+"."+table)
-		scanner := p.db.Query(selectQuery, user.ID).Iter().Scanner()
+		scanner := p.db.Query(selectQuery, user.ID).WithContext(ctx).Iter().Scanner()
 		var ids []string
 		for scanner.Next() {
 			var id string
@@ -155,13 +155,37 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 			deleteValues[i] = id
 		}
 		deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+table, placeholders)
-		if err := p.db.Query(deleteQuery, deleteValues...).Exec(); err != nil {
+		// This one statement writes to every table in UserOwnedCollections, so
+		// it has to be stamped the way each target table is stamped. Two of the
+		// seven are server-domain — authenticators and session_tokens — because
+		// a lightweight transaction on them is load-bearing; a client-stamped
+		// delete here would put them straight back into the mixed state that
+		// loses writes silently. (serverDomainTables also lists oauth_states,
+		// which is not user-owned and so never reached from here.)
+		//
+		// The live beneficiary today is authenticators, whose user_id is the
+		// bare id this query matches. Session tokens are stored under
+		// "<loginMethod>:<id>" by memory_store, so this `user_id = ?` select
+		// does not find them on ANY backend — stamping that half is correct and
+		// defensive rather than currently active. (That those rows are not
+		// cascaded at all is a separate, pre-existing gap, uniform across
+		// backends, and not this change's to fix.)
+		//
+		// TestEveryTableUsesOneTimestampDomain cannot catch that: this
+		// statement names its table through a loop variable rather than
+		// schemas.Collections.X, so it is invisible to a source scan. The test
+		// cross-checks serverDomainTables against what it detected instead.
+		cascadeDelete := p.db.Query(deleteQuery, deleteValues...)
+		if serverDomainTables[table] {
+			cascadeDelete = cascadeDelete.DefaultTimestamp(false)
+		}
+		if err := cascadeDelete.Exec(); err != nil {
 			return err
 		}
 	}
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.User)
-	return p.db.Query(query, user.ID).Exec()
+	return p.db.Query(query, user.ID).WithContext(ctx).Exec()
 }
 
 // ListUsers to get list of users from database
