@@ -31,6 +31,7 @@ var allDBTypes = []string{
 	constants.DbTypeCassandraDB,
 	constants.DbTypeCouchbaseDB,
 	constants.DbTypeDynamoDB,
+	constants.DbTypeCockroachDB,
 }
 
 // getTestDBTypes returns the list of database types to test against.
@@ -63,6 +64,11 @@ func getTestDBConfig(dbType string) *config.Config {
 	switch dbType {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeCockroachDB:
+		// CockroachDB speaks the Postgres wire protocol and runs through the same
+		// GORM provider; a separate port keeps it from being mistaken for (or
+		// colliding with) the Postgres container.
+		cfg.DatabaseURL = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 	case constants.DbTypeSqlite:
 		cfg.DatabaseURL = "test.db"
 	case constants.DbTypeMongoDB:

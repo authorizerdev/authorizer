@@ -7,6 +7,8 @@ DOCKER_IMAGE ?= quay.io/authorizer/authorizer:$(VERSION)
 # Integration tests and memory_store/db tests always use SQLite.
 # Redis memory_store tests run only when TEST_ENABLE_REDIS=1.
 GO_TEST_ALL := go test -p 1 -v ./...
+# Pinned to a release line so the suite does not move under us.
+COCKROACH_IMAGE := cockroachdb/cockroach:latest-v24.3
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
@@ -123,6 +125,17 @@ test-postgres: test-cleanup-postgres
 	docker rm -vf authorizer_postgres; \
 	exit $$status
 
+# CockroachDB is Postgres-wire compatible and runs through the same GORM SQL
+# provider, so this target exists to prove that compatibility actually holds
+# (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
+test-cockroachdb: test-cleanup-cockroachdb
+	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
+	sh scripts/wait-for-test-dbs.sh cockroachdb && \
+	{ go clean --testcache; TEST_DBS="cockroachdb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_cockroachdb; \
+	exit $$status
+
 test-sqlite:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
@@ -224,7 +237,7 @@ test-all-db: test-cleanup test-docker-up
 	@# the && chain a probe failure is captured by status and still cleans up.
 	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
 	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
-	{ go clean --testcache; TEST_DBS="couchbase,postgres,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,cockroachdb,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -233,6 +246,9 @@ test-all-db: test-cleanup test-docker-up
 test-docker-up:
 	docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+	@# Only 26257 (SQL) is published. Cockroach's admin UI is on 8080, which is
+	@# the port `make dev` binds.
+	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
@@ -256,6 +272,7 @@ test-docker-up:
 # Remove all test database containers
 test-cleanup:
 	-docker rm -vf authorizer_postgres
+	-docker rm -vf authorizer_cockroachdb
 	-docker rm -vf authorizer_scylla_db
 	-docker rm -vf authorizer_cassandra_db
 	-docker rm -vf authorizer_mongodb_db
@@ -266,6 +283,8 @@ test-cleanup:
 
 test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
+test-cleanup-cockroachdb:
+	-docker rm -vf authorizer_cockroachdb
 test-cleanup-mongodb:
 	-docker rm -vf authorizer_mongodb_db
 test-cleanup-scylladb:

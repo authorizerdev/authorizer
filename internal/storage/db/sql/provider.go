@@ -63,8 +63,12 @@ func NewProvider(
 	dbURL := config.DatabaseURL
 
 	switch dbType {
-	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB:
+	case constants.DbTypePostgres, constants.DbTypeYugabyte:
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
+	case constants.DbTypeCockroachDB:
+		// Postgres wire protocol, but AutoMigrate needs one behaviour changed —
+		// see cockroachdb.go.
+		sqlDB, err = gorm.Open(newCockroachDialector(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
 	case constants.DbTypeLibSQL:
@@ -93,7 +97,7 @@ func NewProvider(
 	// or any custom name) — failing with "constraint does not exist" (Postgres
 	// SQLSTATE 42704) and aborting startup. Clear the legacy uniqueness up front,
 	// name-agnostically, before AutoMigrate runs.
-	clearLegacyColumnUniqueness(sqlDB, deps.Log)
+	clearLegacyColumnUniqueness(sqlDB, dbType, deps.Log)
 
 	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{})
 	if err != nil {
@@ -151,7 +155,7 @@ func (p *provider) Close() error {
 // why this must run before AutoMigrate. Best-effort and non-fatal: fresh
 // installs, and catalogs without information_schema (sqlite), simply find
 // nothing to drop.
-func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
+func clearLegacyColumnUniqueness(db *gorm.DB, dbType string, log *zerolog.Logger) {
 	// Run through a discarding GORM logger. The information_schema probe below
 	// intentionally errors on databases without that catalog (sqlite); GORM's
 	// default logger writes such errors to os.Stdout, which corrupts the MCP
@@ -197,7 +201,11 @@ func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
 			}
 			for name, cols := range columnsByConstraint {
 				if len(cols) == 1 && targets[cols[0]] {
-					if err := db.Migrator().DropConstraint(t.model, name); err != nil {
+					err := db.Migrator().DropConstraint(t.model, name)
+					if err != nil && dbType == constants.DbTypeCockroachDB {
+						err = dropUniqueConstraint(db, t.name, name)
+					}
+					if err != nil {
 						log.Debug().Err(err).Str("constraint", name).Msg("failed to drop legacy unique constraint")
 					}
 				}

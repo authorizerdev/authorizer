@@ -71,11 +71,12 @@ Run `make fmt` before committing; CI runs `make lint`.
 ```bash
 make test                 # Full module test run; TEST_DBS=sqlite (integration tests always SQLite)
 make test-sqlite          # Same as test — explicit SQLite-only, no Docker
-make test-all-db          # All 8 DBs via Docker (postgres, sqlite, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
+make test-all-db          # All 9 DBs via Docker (postgres, cockroachdb, sqlite, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
 make smoke                # Release e2e smoke tests (build tag `smoke`, 5m timeout)
 
 # Single-DB targets (each spins up Docker, runs tests, tears down)
 make test-postgres
+make test-cockroachdb
 make test-mongodb
 make test-scylladb
 make test-cassandradb
@@ -86,7 +87,7 @@ make test-couchbase
 # Docker helpers for test-all-db
 make test-docker-up       # Start all test DB containers + Redis
 make test-cleanup         # Remove all test containers
-make test-cleanup-postgres | test-cleanup-mongodb | test-cleanup-scylladb | test-cleanup-cassandradb
+make test-cleanup-postgres | test-cleanup-cockroachdb | test-cleanup-mongodb | test-cleanup-scylladb | test-cleanup-cassandradb
 make test-cleanup-arangodb | test-cleanup-dynamodb | test-cleanup-couchbase
 ```
 
