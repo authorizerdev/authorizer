@@ -85,6 +85,8 @@ make test-cassandradb
 make test-arangodb
 make test-dynamodb
 make test-couchbase
+make test-sqlserver        # Not in test-all-db: 2 upsert tests are known-red
+                          # (driver builds MERGE from the PK, ignores OnConflict.Columns)
 
 # Docker helpers for test-all-db
 make test-docker-up       # Start all test DB containers + Redis
@@ -92,6 +94,7 @@ make test-cleanup         # Remove all test containers
 make test-cleanup-postgres | test-cleanup-cockroachdb | test-cleanup-mysql | test-cleanup-mariadb
 make test-cleanup-mongodb | test-cleanup-scylladb | test-cleanup-cassandradb
 make test-cleanup-arangodb | test-cleanup-dynamodb | test-cleanup-couchbase
+make test-cleanup-sqlserver
 ```
 
 **Test env vars**:

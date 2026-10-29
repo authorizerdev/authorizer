@@ -3,7 +3,7 @@
 #
 # Same reason wait-for-cql.sh exists: wait-for-test-dbs.sh probes with `nc -z`,
 # which on Docker Desktop connects to the published-port proxy and succeeds the
-# instant `docker run -p` returns. For these two engines that proves nothing —
+# instant `docker run -p` returns. For these engines that proves nothing —
 # MySQL binds 3306, runs its init scripts and then *restarts*, and CockroachDB
 # accepts TCP before it is accepting SQL clients. Both windows are long enough
 # for the storage tests to start against a database that is not there yet. This
@@ -15,26 +15,38 @@ ENGINE="$2"
 TIMEOUT_SECONDS="${TEST_SQL_WAIT_TIMEOUT:-180}"
 
 if [ -z "$CONTAINER" ] || [ -z "$ENGINE" ]; then
-  echo "usage: wait-for-sql.sh <container-name> <mysql|mariadb|cockroachdb>" >&2
+  echo "usage: wait-for-sql.sh <container-name> <mysql|mariadb|cockroachdb|sqlserver>" >&2
   exit 2
 fi
 
 probe() {
   case "$ENGINE" in
     mysql)
-      docker exec "$CONTAINER" mysqladmin ping -uroot -ppassword >/dev/null 2>&1
+      # A query against the test database, not `mysqladmin ping`: the entrypoint
+      # starts a temporary server to run its init (which is what creates
+      # authorizer_test), *then* restarts. Ping answers during that window, so
+      # it reports ready while the database does not exist yet and the next
+      # connection is refused mid-restart.
+      docker exec "$CONTAINER" mysql -uroot -ppassword -e 'SELECT 1' authorizer_test >/dev/null 2>&1
       ;;
     mariadb)
       # MariaDB 11 renamed the client binaries; the mysql* names are only
       # compatibility symlinks and are being dropped, so try the real one first.
-      docker exec "$CONTAINER" mariadb-admin ping -uroot -ppassword >/dev/null 2>&1 ||
-        docker exec "$CONTAINER" mysqladmin ping -uroot -ppassword >/dev/null 2>&1
+      docker exec "$CONTAINER" mariadb -uroot -ppassword -e 'SELECT 1' authorizer_test >/dev/null 2>&1 ||
+        docker exec "$CONTAINER" mysql -uroot -ppassword -e 'SELECT 1' authorizer_test >/dev/null 2>&1
       ;;
     cockroachdb)
       docker exec "$CONTAINER" ./cockroach sql --insecure -e 'SELECT 1' >/dev/null 2>&1
       ;;
+    sqlserver)
+      # Against the server, not a database: the mssql image has no
+      # MSSQL_DATABASE equivalent, so authorizer_test is created by the caller
+      # once the server answers.
+      docker exec "$CONTAINER" /opt/mssql-tools18/bin/sqlcmd -C -S localhost \
+        -U sa -P "${SQLSERVER_PASSWORD:-Str0ng!Passw0rd}" -Q 'SELECT 1' >/dev/null 2>&1
+      ;;
     *)
-      echo "unknown engine '$ENGINE' (known: mysql, mariadb, cockroachdb)" >&2
+      echo "unknown engine '$ENGINE' (known: mysql, mariadb, cockroachdb, sqlserver)" >&2
       exit 2
       ;;
   esac

@@ -11,6 +11,8 @@ GO_TEST_ALL := go test -p 1 -v ./...
 COCKROACH_IMAGE := cockroachdb/cockroach:latest-v24.3
 MYSQL_IMAGE := mysql:8.0.40
 MARIADB_IMAGE := mariadb:11
+SQLSERVER_IMAGE := mcr.microsoft.com/mssql/server:2022-latest
+SQLSERVER_PASSWORD := Str0ng!Passw0rd
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
@@ -313,6 +315,22 @@ test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
 test-cleanup-cockroachdb:
 	-docker rm -vf authorizer_cockroachdb
+test-sqlserver: test-cleanup-sqlserver
+	@# Not part of test-all-db: two upsert tests are known-red on SQL Server
+	@# because gorm.io/driver/sqlserver builds its MERGE predicate from the
+	@# primary key and ignores clause.OnConflict.Columns, so an upsert keyed on
+	@# a composite unique index inserts a second row instead of replacing one.
+	@# Tracked separately from the AutoMigrate fixes; everything else passes.
+	docker run -d --name authorizer_sqlserver -p 1433:1433 \
+		-e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='$(SQLSERVER_PASSWORD)' $(SQLSERVER_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_sqlserver sqlserver && \
+	docker exec authorizer_sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa \
+		-P '$(SQLSERVER_PASSWORD)' -Q "CREATE DATABASE authorizer_test" && \
+	{ go clean --testcache; TEST_DBS="sqlserver" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_sqlserver; \
+	exit $$status
+
 test-cleanup-mysql:
 	-docker rm -vf authorizer_mysql
 test-cleanup-mariadb:
@@ -329,6 +347,8 @@ test-cleanup-dynamodb:
 	-docker rm -vf authorizer_dynamodb
 test-cleanup-couchbase:
 	-docker rm -vf authorizer_couchbase
+test-cleanup-sqlserver:
+	-docker rm -vf authorizer_sqlserver
 generate-graphql:
 	go run github.com/99designs/gqlgen --verbose generate && go mod tidy
 generate-db-template:

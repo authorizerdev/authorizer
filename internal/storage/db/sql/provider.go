@@ -4,7 +4,6 @@ import (
 	libsql "github.com/ekristen/gorm-libsql"
 	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -77,7 +76,9 @@ func NewProvider(
 		// see mysql.go.
 		sqlDB, err = gorm.Open(newMySQLDialector(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(dbURL), ormConfig)
+		// MS SQL wire protocol, but AutoMigrate needs one behaviour changed —
+		// see sqlserver.go.
+		sqlDB, err = gorm.Open(newSQLServerDialector(dbURL), ormConfig)
 	}
 
 	if err != nil {

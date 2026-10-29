@@ -37,6 +37,7 @@ func sqlMigrationTestDBTypes() []string {
 		constants.DbTypeSqlite:      true,
 		constants.DbTypeMysql:       true,
 		constants.DbTypeMariaDB:     true,
+		constants.DbTypeSqlserver:   true,
 	}
 	env := os.Getenv("TEST_DBS")
 	if env == "" {
@@ -76,6 +77,11 @@ func sqlMigrationTestConfig(t *testing.T, dbType string) *config.Config {
 	case constants.DbTypeMariaDB:
 		cfg.DatabaseURL = "root:password@tcp(localhost:3307)/authorizer_test"
 		skipIfTCPClosed(t, "localhost:3307")
+	case constants.DbTypeSqlserver:
+		// Fixed password: SQL Server rejects weak ones outright. Matches the
+		// container `make test-sqlserver` starts.
+		cfg.DatabaseURL = "sqlserver://sa:Str0ng!Passw0rd@localhost:1433?database=authorizer_test"
+		skipIfTCPClosed(t, "localhost:1433")
 	default:
 		t.Skipf("unsupported SQL db type for migration test: %s", dbType)
 	}

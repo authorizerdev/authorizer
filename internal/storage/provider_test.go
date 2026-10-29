@@ -37,6 +37,10 @@ var allDBTypes = []string{
 	constants.DbTypeMariaDB,
 }
 
+// sqlServerTestDSN points at the container `make test-sqlserver` starts. The
+// password is fixed because SQL Server rejects weak ones outright.
+const sqlServerTestDSN = "sqlserver://sa:Str0ng!Passw0rd@localhost:1433?database=authorizer_test"
+
 // getTestDBTypes returns the list of database types to test against.
 // Reads from TEST_DBS env var (comma-separated). Defaults to allDBTypes if not set.
 func getTestDBTypes() []string {
@@ -67,6 +71,8 @@ func getTestDBConfig(dbType string) *config.Config {
 	switch dbType {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeSqlserver:
+		cfg.DatabaseURL = sqlServerTestDSN
 	case constants.DbTypeLibSQL:
 		// Local file, same as the sqlite case: libsql's embedded mode is a
 		// sqlite fork, so this exercises the dialect without a sqld server.
