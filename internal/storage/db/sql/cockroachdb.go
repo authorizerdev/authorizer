@@ -22,33 +22,21 @@ func newCockroachDialector(dbURL string) gorm.Dialector {
 	return cockroachDialector{postgres.Dialector{Config: &postgres.Config{DSN: dbURL}}}
 }
 
+// Migrator keeps the driver's own migrator — and with it every method gorm
+// expects to find, including the BuildIndexOptions it type-asserts with no
+// ok-check — and replaces only the unique reconciliation.
 func (d cockroachDialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return cockroachMigrator{d.Dialector.Migrator(db)}
+	return cockroachMigrator{d.Dialector.Migrator(db).(postgres.Migrator)}
 }
 
 type cockroachMigrator struct {
-	gorm.Migrator
+	postgres.Migrator
 }
 
-// MigrateColumnUnique keeps AutoMigrate from dropping our unique indexes on
-// CockroachDB.
-//
-// CockroachDB lists UNIQUE *indexes* in information_schema.table_constraints;
-// PostgreSQL lists only real UNIQUE constraints there. GORM reads that extra
-// row as "this column has a UNIQUE constraint the model no longer asks for" for
-// every `gorm:"uniqueIndex"` field, and issues
-// DROP CONSTRAINT "uni_<table>_<column>" — a NamingStrategy-derived name that
-// never exists, because the object is an index with its own name. AutoMigrate
-// then aborts with SQLSTATE 42704 and the server never starts:
-//
-//	constraint "uni_authorizer_oauth_states_state_key" of relation
-//	"authorizer_oauth_states" does not exist (SQLSTATE 42704)
-//
-// Those indexes are declared by the models and are meant to be there, so the
-// drop is skipped. The create direction (a `gorm:"unique"` field whose
-// constraint is genuinely missing) is delegated untouched.
+// MigrateColumnUnique leaves the unique indexes the models declare alone; see
+// skipUniqueIndexDrop for why CockroachDB needs this and PostgreSQL does not.
 func (m cockroachMigrator) MigrateColumnUnique(value any, field *schema.Field, columnType gorm.ColumnType) error {
-	if unique, ok := columnType.Unique(); ok && unique && !field.Unique && !field.PrimaryKey {
+	if skipUniqueIndexDrop(field, columnType) {
 		return nil
 	}
 	return m.Migrator.MigrateColumnUnique(value, field, columnType)

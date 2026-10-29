@@ -9,6 +9,8 @@ DOCKER_IMAGE ?= quay.io/authorizer/authorizer:$(VERSION)
 GO_TEST_ALL := go test -p 1 -v ./...
 # Pinned to a release line so the suite does not move under us.
 COCKROACH_IMAGE := cockroachdb/cockroach:latest-v24.3
+MYSQL_IMAGE := mysql:8.0.40
+MARIADB_IMAGE := mariadb:11
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
@@ -130,10 +132,26 @@ test-postgres: test-cleanup-postgres
 # (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
 test-cockroachdb: test-cleanup-cockroachdb
 	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
-	sh scripts/wait-for-test-dbs.sh cockroachdb && \
+	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
 	{ go clean --testcache; TEST_DBS="cockroachdb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_cockroachdb; \
+	exit $$status
+
+test-mysql: test-cleanup-mysql
+	docker run -d --name authorizer_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=authorizer_test $(MYSQL_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_mysql mysql && \
+	{ go clean --testcache; TEST_DBS="mysql" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_mysql; \
+	exit $$status
+
+test-mariadb: test-cleanup-mariadb
+	docker run -d --name authorizer_mariadb -p 3307:3306 -e MARIADB_ROOT_PASSWORD=password -e MARIADB_DATABASE=authorizer_test $(MARIADB_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
+	{ go clean --testcache; TEST_DBS="mariadb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_mariadb; \
 	exit $$status
 
 test-sqlite:
@@ -237,7 +255,10 @@ test-all-db: test-cleanup test-docker-up
 	@# the && chain a probe failure is captured by status and still cleans up.
 	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
 	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
-	{ go clean --testcache; TEST_DBS="couchbase,postgres,cockroachdb,sqlite,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
+	sh scripts/wait-for-sql.sh authorizer_mysql mysql && \
+	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
+	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,cockroachdb,mysql,mariadb,sqlite,libsql,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -249,6 +270,8 @@ test-docker-up:
 	@# Only 26257 (SQL) is published. Cockroach's admin UI is on 8080, which is
 	@# the port `make dev` binds.
 	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
+	docker run -d --name authorizer_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=authorizer_test $(MYSQL_IMAGE)
+	docker run -d --name authorizer_mariadb -p 3307:3306 -e MARIADB_ROOT_PASSWORD=password -e MARIADB_DATABASE=authorizer_test $(MARIADB_IMAGE)
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
@@ -268,11 +291,16 @@ test-docker-up:
 	@# there costs nothing: the probe returns in 0s once CQL answers.
 	-sh scripts/wait-for-cql.sh authorizer_scylla_db
 	-sh scripts/wait-for-cql.sh authorizer_cassandra_db
+	-sh scripts/wait-for-sql.sh authorizer_mysql mysql
+	-sh scripts/wait-for-sql.sh authorizer_mariadb mariadb
+	-sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb
 
 # Remove all test database containers
 test-cleanup:
 	-docker rm -vf authorizer_postgres
 	-docker rm -vf authorizer_cockroachdb
+	-docker rm -vf authorizer_mysql
+	-docker rm -vf authorizer_mariadb
 	-docker rm -vf authorizer_scylla_db
 	-docker rm -vf authorizer_cassandra_db
 	-docker rm -vf authorizer_mongodb_db
@@ -285,6 +313,10 @@ test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
 test-cleanup-cockroachdb:
 	-docker rm -vf authorizer_cockroachdb
+test-cleanup-mysql:
+	-docker rm -vf authorizer_mysql
+test-cleanup-mariadb:
+	-docker rm -vf authorizer_mariadb
 test-cleanup-mongodb:
 	-docker rm -vf authorizer_mongodb_db
 test-cleanup-scylladb:

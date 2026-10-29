@@ -70,9 +70,12 @@ func sqlMigrationTestConfig(t *testing.T, dbType string) *config.Config {
 	case constants.DbTypeCockroachDB:
 		cfg.DatabaseURL = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 		skipIfTCPClosed(t, "localhost:26257")
-	case constants.DbTypeMysql, constants.DbTypeMariaDB:
+	case constants.DbTypeMysql:
 		cfg.DatabaseURL = "root:password@tcp(localhost:3306)/authorizer_test"
 		skipIfTCPClosed(t, "localhost:3306")
+	case constants.DbTypeMariaDB:
+		cfg.DatabaseURL = "root:password@tcp(localhost:3307)/authorizer_test"
+		skipIfTCPClosed(t, "localhost:3307")
 	default:
 		t.Skipf("unsupported SQL db type for migration test: %s", dbType)
 	}

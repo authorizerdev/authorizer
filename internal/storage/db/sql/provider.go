@@ -3,7 +3,6 @@ package sql
 import (
 	libsql "github.com/ekristen/gorm-libsql"
 	"github.com/rs/zerolog"
-	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
@@ -74,7 +73,9 @@ func NewProvider(
 	case constants.DbTypeLibSQL:
 		sqlDB, err = gorm.Open(libsql.Open(dbURL), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypePlanetScaleDB:
-		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
+		// MySQL wire protocol, but AutoMigrate needs two behaviours changed —
+		// see mysql.go.
+		sqlDB, err = gorm.Open(newMySQLDialector(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
 		sqlDB, err = gorm.Open(sqlserver.Open(dbURL), ormConfig)
 	}
