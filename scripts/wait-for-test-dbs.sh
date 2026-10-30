@@ -14,8 +14,10 @@ set -e
 TIMEOUT_SECONDS="${TEST_DB_WAIT_TIMEOUT:-120}"
 
 # name:port pairs. Couchbase is absent on purpose — scripts/couchbase-test.sh
-# already provisions and waits for it.
-ALL_SERVICES="redis:6380 postgres:5434 mongodb:27017 scylladb:9042 cassandradb:9142 arangodb:8529 dynamodb:8000"
+# already provisions and waits for it. For mysql, mariadb and cockroachdb this
+# probe is only a first gate: their ports open before they serve queries, so
+# scripts/wait-for-sql.sh is what actually has to pass before tests run.
+ALL_SERVICES="redis:6380 postgres:5434 cockroachdb:26257 mysql:3306 mariadb:3307 mongodb:27017 scylladb:9042 cassandradb:9142 arangodb:8529 dynamodb:8000"
 
 # With no arguments, wait for everything (make test-all-db). With arguments,
 # wait only for the named services, so a single-backend target does not block on

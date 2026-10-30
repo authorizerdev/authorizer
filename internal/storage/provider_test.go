@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -31,7 +32,14 @@ var allDBTypes = []string{
 	constants.DbTypeCassandraDB,
 	constants.DbTypeCouchbaseDB,
 	constants.DbTypeDynamoDB,
+	constants.DbTypeCockroachDB,
+	constants.DbTypeMysql,
+	constants.DbTypeMariaDB,
 }
+
+// sqlServerTestDSN points at the container `make test-sqlserver` starts. The
+// password is fixed because SQL Server rejects weak ones outright.
+const sqlServerTestDSN = "sqlserver://sa:Str0ng!Passw0rd@localhost:1433?database=authorizer_test"
 
 // getTestDBTypes returns the list of database types to test against.
 // Reads from TEST_DBS env var (comma-separated). Defaults to allDBTypes if not set.
@@ -63,6 +71,23 @@ func getTestDBConfig(dbType string) *config.Config {
 	switch dbType {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeSqlserver:
+		cfg.DatabaseURL = sqlServerTestDSN
+	case constants.DbTypeLibSQL:
+		// Local file, same as the sqlite case: libsql's embedded mode is a
+		// sqlite fork, so this exercises the dialect without a sqld server.
+		cfg.DatabaseURL = "file:" + filepath.Join(os.TempDir(), "authorizer_libsql_test.db")
+	case constants.DbTypeMysql:
+		cfg.DatabaseURL = "root:password@tcp(localhost:3306)/authorizer_test"
+	case constants.DbTypeMariaDB:
+		// A separate port from MySQL on purpose: one provider backs both DB
+		// types, so sharing a port would silently test one engine twice.
+		cfg.DatabaseURL = "root:password@tcp(localhost:3307)/authorizer_test"
+	case constants.DbTypeCockroachDB:
+		// CockroachDB speaks the Postgres wire protocol and runs through the same
+		// GORM provider; a separate port keeps it from being mistaken for (or
+		// colliding with) the Postgres container.
+		cfg.DatabaseURL = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 	case constants.DbTypeSqlite:
 		cfg.DatabaseURL = "test.db"
 	case constants.DbTypeMongoDB:
@@ -386,8 +411,30 @@ func testAnchoredSessionTokenDelete(t *testing.T, ctx context.Context, provider 
 	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, targetStored+"\n", "session_token_key")
 	assert.NoError(t, err, "a trailing newline makes the user id a different value; it must not be deleted")
 
+	// LIKE metacharacters in the id. The SQL provider matches the ":<userId>"
+	// suffix with LIKE, so "%" and "_" have to be escaped — and so does the
+	// escape character itself, or "!<char>" is read as an escape sequence and
+	// the row survives. Every other backend compares literally (Go string
+	// compare, AQL ==, QuoteMeta'd regex), so this case is what keeps the six
+	// equivalent rather than each engine's own idea of "literal".
+	metaUser := "m%_!" + suffix
+	metaStored := "auth_provider:" + metaUser
+	// Reachable only if "%" and "_" are treated as wildcards: "%" would swallow
+	// "ZZZ" and "_" would match "q".
+	metaDecoy := "auth_provider:mZZZq!" + suffix
+	addToken(metaStored)
+	addToken(metaDecoy)
+
+	require.NoError(t, provider.DeleteAllSessionTokensByUserID(ctx, metaUser))
+
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, metaStored, "session_token_key")
+	assert.Error(t, err, "a user id holding LIKE metacharacters must still have its token deleted")
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, metaDecoy, "session_token_key")
+	assert.NoError(t, err, "a user id that matches only when %% and _ act as wildcards must survive")
+
 	_ = provider.DeleteAllSessionTokensByUserID(ctx, otherUser)
 	_ = provider.DeleteAllSessionTokensByUserID(ctx, targetUser+"\n")
+	_ = provider.DeleteAllSessionTokensByUserID(ctx, "mZZZq!"+suffix)
 }
 
 // testUserSearchOperations verifies ListUsers' optional case-insensitive

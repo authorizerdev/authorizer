@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -31,10 +32,12 @@ func sqlTestDeps(t *testing.T) *Dependencies {
 // TEST_DBS=postgres to cover the engine where the original failure was reported.
 func sqlMigrationTestDBTypes() []string {
 	supported := map[string]bool{
-		constants.DbTypePostgres: true,
-		constants.DbTypeSqlite:   true,
-		constants.DbTypeMysql:    true,
-		constants.DbTypeMariaDB:  true,
+		constants.DbTypePostgres:    true,
+		constants.DbTypeCockroachDB: true,
+		constants.DbTypeSqlite:      true,
+		constants.DbTypeMysql:       true,
+		constants.DbTypeMariaDB:     true,
+		constants.DbTypeSqlserver:   true,
 	}
 	env := os.Getenv("TEST_DBS")
 	if env == "" {
@@ -65,9 +68,20 @@ func sqlMigrationTestConfig(t *testing.T, dbType string) *config.Config {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
 		skipIfTCPClosed(t, "localhost:5434")
-	case constants.DbTypeMysql, constants.DbTypeMariaDB:
+	case constants.DbTypeCockroachDB:
+		cfg.DatabaseURL = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
+		skipIfTCPClosed(t, "localhost:26257")
+	case constants.DbTypeMysql:
 		cfg.DatabaseURL = "root:password@tcp(localhost:3306)/authorizer_test"
 		skipIfTCPClosed(t, "localhost:3306")
+	case constants.DbTypeMariaDB:
+		cfg.DatabaseURL = "root:password@tcp(localhost:3307)/authorizer_test"
+		skipIfTCPClosed(t, "localhost:3307")
+	case constants.DbTypeSqlserver:
+		// Fixed password: SQL Server rejects weak ones outright. Matches the
+		// container `make test-sqlserver` starts.
+		cfg.DatabaseURL = "sqlserver://sa:Str0ng!Passw0rd@localhost:1433?database=authorizer_test"
+		skipIfTCPClosed(t, "localhost:1433")
 	default:
 		t.Skipf("unsupported SQL db type for migration test: %s", dbType)
 	}
@@ -175,7 +189,7 @@ func TestProviderEmailPhoneUpdatesAndUniqueness(t *testing.T) {
 // DDL; sqlite rebuilds tables and has no comparable failure mode.
 func TestStaleUniqueConstraintMigration(t *testing.T) {
 	for _, dbType := range sqlMigrationTestDBTypes() {
-		if dbType != constants.DbTypePostgres {
+		if dbType != constants.DbTypePostgres && dbType != constants.DbTypeCockroachDB {
 			continue
 		}
 		t.Run(dbType, func(t *testing.T) {
@@ -199,15 +213,31 @@ func TestStaleUniqueConstraintMigration(t *testing.T) {
 			//                          be dropped with DROP INDEX — field-reported case)
 			//   - otps.email:          standalone UNIQUE INDEX "idx_authorizer_otps_email"
 			// Idempotent so reruns against the shared test DB don't clash.
+			// CockroachDB rejects ALTER TABLE ... DROP CONSTRAINT for a UNIQUE
+			// constraint (SQLSTATE 0A000) because there it *is* an index, so the
+			// teardown half of each pair is written in the dialect's own terms —
+			// the same split the provider's cleanup has to make.
+			drop := func(table, name string) string {
+				if dbType == constants.DbTypeCockroachDB {
+					return fmt.Sprintf("DROP INDEX IF EXISTS %s@%s CASCADE", table, name)
+				}
+				return fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT IF EXISTS %s", table, name)
+			}
+			dropIndex := func(table, name string) string {
+				if dbType == constants.DbTypeCockroachDB {
+					return fmt.Sprintf("DROP INDEX IF EXISTS %s@%s CASCADE", table, name)
+				}
+				return fmt.Sprintf("DROP INDEX IF EXISTS %s", name)
+			}
 			for _, stmt := range []string{
-				`ALTER TABLE authorizer_users DROP CONSTRAINT IF EXISTS authorizer_users_email_key`,
+				drop("authorizer_users", "authorizer_users_email_key"),
 				`ALTER TABLE authorizer_users ADD CONSTRAINT authorizer_users_email_key UNIQUE (email)`,
-				`ALTER TABLE authorizer_users DROP CONSTRAINT IF EXISTS my_legacy_phone_uq`,
+				drop("authorizer_users", "my_legacy_phone_uq"),
 				`ALTER TABLE authorizer_users ADD CONSTRAINT my_legacy_phone_uq UNIQUE (phone_number)`,
-				`ALTER TABLE authorizer_otps DROP CONSTRAINT IF EXISTS idx_authorizer_otps_phone_number`,
-				`DROP INDEX IF EXISTS idx_authorizer_otps_phone_number`,
+				drop("authorizer_otps", "idx_authorizer_otps_phone_number"),
+				dropIndex("authorizer_otps", "idx_authorizer_otps_phone_number"),
 				`ALTER TABLE authorizer_otps ADD CONSTRAINT idx_authorizer_otps_phone_number UNIQUE (phone_number)`,
-				`DROP INDEX IF EXISTS idx_authorizer_otps_email`,
+				dropIndex("authorizer_otps", "idx_authorizer_otps_email"),
 				`CREATE UNIQUE INDEX idx_authorizer_otps_email ON authorizer_otps (email)`,
 			} {
 				require.NoError(t, p1.db.Exec(stmt).Error, stmt)
