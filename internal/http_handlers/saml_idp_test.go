@@ -278,6 +278,13 @@ func TestSAMLIssuanceDenyReason(t *testing.T) {
 	code, _ = samlIssuanceDenyReason(member, nil, sp, unverified)
 	assert.Equal(t, "email_not_verified", code)
 
+	// Denied: the membership row still exists but SCIM has deprovisioned it.
+	// The row is retained only so SCIM can report active:false and reverse it;
+	// it must not keep issuing SAML assertions for the org.
+	deprovisioned := &schemas.OrgMembership{ID: "m1", DeprovisionedAt: refs.NewInt64Ref(1)}
+	code, _ = samlIssuanceDenyReason(deprovisioned, nil, sp, verified)
+	assert.Equal(t, "forbidden", code, "a deprovisioned member must not receive an assertion")
+
 	// Allowed: member with unverified email but a NON-email NameID format
 	// (the email is never asserted, so verification is not required).
 	spPersistent := testSPRecord()

@@ -26,17 +26,22 @@ type fakeStore struct {
 	storage.Provider
 	endpoints   map[string]*schemas.ScimEndpoint // by id
 	users       map[string]*schemas.User         // by id
-	memberships map[string]bool                  // "orgID|userID"
-	groups      map[string]*schemas.ScimGroup    // by id
-	deletedTok  []string                         // user ids passed to DeleteAllSessionTokensByUserID
+	memberships map[string]bool                  // "orgID|userID" — presence
+	// membershipRecs carries the real row for the keys in memberships, so that
+	// DeprovisionedAt round-trips. Seeding via memberships[k]=true is still
+	// enough; the record is materialised on first read.
+	membershipRecs map[string]*schemas.OrgMembership
+	groups         map[string]*schemas.ScimGroup // by id
+	deletedTok     []string                      // user ids passed to DeleteAllSessionTokensByUserID
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{
-		endpoints:   map[string]*schemas.ScimEndpoint{},
-		users:       map[string]*schemas.User{},
-		memberships: map[string]bool{},
-		groups:      map[string]*schemas.ScimGroup{},
+		endpoints:      map[string]*schemas.ScimEndpoint{},
+		users:          map[string]*schemas.User{},
+		memberships:    map[string]bool{},
+		membershipRecs: map[string]*schemas.OrgMembership{},
+		groups:         map[string]*schemas.ScimGroup{},
 	}
 }
 
@@ -85,16 +90,73 @@ func (f *fakeStore) UpdateUser(_ context.Context, u *schemas.User) (*schemas.Use
 	return u, nil
 }
 
+// membershipRec returns the stored row for a seeded membership, materialising
+// one on first access so tests can seed with memberships[k]=true alone.
+func (f *fakeStore) membershipRec(orgID, userID string) *schemas.OrgMembership {
+	k := orgID + "|" + userID
+	if !f.memberships[k] {
+		return nil
+	}
+	if f.membershipRecs[k] == nil {
+		f.membershipRecs[k] = &schemas.OrgMembership{ID: k, OrgID: orgID, UserID: userID, CreatedAt: 1}
+	}
+	return f.membershipRecs[k]
+}
+
 func (f *fakeStore) GetOrgMembership(_ context.Context, orgID, userID string) (*schemas.OrgMembership, error) {
-	if f.memberships[orgID+"|"+userID] {
-		return &schemas.OrgMembership{OrgID: orgID, UserID: userID}, nil
+	if m := f.membershipRec(orgID, userID); m != nil {
+		cp := *m
+		return &cp, nil
 	}
 	return nil, errNotFound
 }
 
 func (f *fakeStore) AddOrgMembership(_ context.Context, m *schemas.OrgMembership) (*schemas.OrgMembership, error) {
-	f.memberships[m.OrgID+"|"+m.UserID] = true
+	k := m.OrgID + "|" + m.UserID
+	f.memberships[k] = true
+	cp := *m
+	if cp.ID == "" {
+		cp.ID = k
+	}
+	if cp.CreatedAt == 0 {
+		cp.CreatedAt = 1
+	}
+	f.membershipRecs[k] = &cp
 	return m, nil
+}
+
+func (f *fakeStore) UpdateOrgMembership(_ context.Context, m *schemas.OrgMembership) (*schemas.OrgMembership, error) {
+	if m.CreatedAt == 0 {
+		return nil, errors.New("UpdateOrgMembership: partial struct")
+	}
+	k := m.OrgID + "|" + m.UserID
+	if !f.memberships[k] {
+		return nil, errNotFound
+	}
+	cp := *m
+	f.membershipRecs[k] = &cp
+	return m, nil
+}
+
+// ListOrgMembershipsByUser backs the "is this user still active anywhere else?"
+// count in deprovisionInOrg.
+func (f *fakeStore) ListOrgMembershipsByUser(_ context.Context, userID string, _ *model.Pagination) ([]*schemas.OrgMembership, *model.Pagination, error) {
+	var keys []string
+	for k, ok := range f.memberships {
+		if ok && strings.HasSuffix(k, "|"+userID) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	var out []*schemas.OrgMembership
+	for _, k := range keys {
+		orgID := strings.SplitN(k, "|", 2)[0]
+		if m := f.membershipRec(orgID, userID); m != nil {
+			cp := *m
+			out = append(out, &cp)
+		}
+	}
+	return out, &model.Pagination{Total: int64(len(out))}, nil
 }
 
 func (f *fakeStore) DeleteAllSessionTokensByUserID(_ context.Context, userID string) error {
@@ -132,7 +194,13 @@ func (f *fakeStore) ListOrgMembershipsByOrg(_ context.Context, orgID string, p *
 	}
 	var out []*schemas.OrgMembership
 	for _, k := range keys[from:to] {
-		out = append(out, &schemas.OrgMembership{OrgID: orgID, UserID: strings.SplitN(k, "|", 2)[1]})
+		userID := strings.SplitN(k, "|", 2)[1]
+		if m := f.membershipRec(orgID, userID); m != nil {
+			cp := *m
+			out = append(out, &cp)
+			continue
+		}
+		out = append(out, &schemas.OrgMembership{OrgID: orgID, UserID: userID})
 	}
 	return out, &model.Pagination{Limit: p.Limit, Page: p.Page, Offset: p.Offset, Total: total}, nil
 }
@@ -558,4 +626,209 @@ func TestFindByUserName_OrgScoped(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, u.ID, got.ID)
+}
+
+// ---------------------------------------------------------------------------
+// Shared-user deprovisioning across organizations.
+//
+// A SCIM token is issued for ONE organization, but a user may belong to several.
+// Deprovisioning used to write the GLOBAL user row (is_active=false plus a
+// revocation marker) and delete every session keyed by user id, so org A's token
+// disabled sign-in for org B as well, without B authorizing anything. The target
+// could be one of B's own org admins.
+//
+// The rule these pin: A's token may only ever change A's membership. The global
+// account follows only when NO organization still has the user active.
+// ---------------------------------------------------------------------------
+
+// seedSharedUser provisions one user into both orgs and returns it.
+func seedSharedUser(t *testing.T, p *provider, store *fakeStore, orgA, orgB string) *schemas.User {
+	t.Helper()
+	ctx := context.Background()
+	user, _, err := p.CreateUser(ctx, orgA, User{ExternalID: "shared-1", UserName: "shared@corp.com", Active: true})
+	require.NoError(t, err)
+	store.memberships[orgB+"|"+user.ID] = true
+	require.True(t, store.membershipRec(orgB, user.ID).Active(), "org-b membership seeded active")
+	return user
+}
+
+func TestSetActive_SharedUserDeprovisionIsOrgScoped(t *testing.T) {
+	p, store, mem := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	// org-a deprovisions. This is the reported attack.
+	got, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+	assert.False(t, got.IsActive, "org-a must see the user as inactive")
+
+	t.Run("global account stays active", func(t *testing.T) {
+		stored := store.users[user.ID]
+		require.NotNil(t, stored)
+		assert.True(t, stored.IsActive, "org-a must not disable the shared global account")
+		assert.Nil(t, stored.RevokedTimestamp, "org-a must not set the global revocation marker")
+	})
+
+	t.Run("org-b sessions and tokens survive", func(t *testing.T) {
+		assert.Empty(t, mem.deleted, "org-a must not delete sessions org-b depends on")
+		assert.Empty(t, store.deletedTok, "org-a must not delete org-b's session tokens")
+	})
+
+	t.Run("org-b still sees an active member", func(t *testing.T) {
+		fromB, err := p.GetUser(ctx, "org-b", user.ID)
+		require.NoError(t, err)
+		assert.True(t, fromB.IsActive, "org-b did not authorize any deprovisioning")
+		assert.True(t, store.membershipRec("org-b", user.ID).Active())
+	})
+
+	t.Run("org-a membership is marked deprovisioned", func(t *testing.T) {
+		assert.False(t, store.membershipRec("org-a", user.ID).Active())
+		fromA, err := p.GetUser(ctx, "org-a", user.ID)
+		require.NoError(t, err)
+		assert.False(t, fromA.IsActive, "SCIM must report active:false to org-a")
+	})
+}
+
+// The last organization to deprovision DOES take the global account down — that
+// is what single-org deployments rely on, and what the pre-existing
+// TestDeactivateRevokesSessions covers for the one-org case.
+func TestSetActive_LastOrgDeprovisionDeactivatesGlobally(t *testing.T) {
+	p, store, mem := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+	require.True(t, store.users[user.ID].IsActive, "still active after the first org")
+
+	_, err = p.SetActive(ctx, "org-b", user.ID, false)
+	require.NoError(t, err)
+
+	stored := store.users[user.ID]
+	assert.False(t, stored.IsActive, "no org has the user active any more")
+	assert.NotNil(t, stored.RevokedTimestamp, "global revocation marker is set")
+	assert.Contains(t, mem.deleted, user.ID, "sessions revoked once nobody holds the user")
+	assert.Contains(t, store.deletedTok, user.ID)
+}
+
+func TestSetActive_ReactivationIsOrgScopedAndReversible(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+	_, err = p.SetActive(ctx, "org-a", user.ID, true)
+	require.NoError(t, err)
+
+	assert.True(t, store.membershipRec("org-a", user.ID).Active(), "org-a membership restored")
+	fromA, err := p.GetUser(ctx, "org-a", user.ID)
+	require.NoError(t, err)
+	assert.True(t, fromA.IsActive)
+
+	t.Run("reactivation after a global deactivation lifts both", func(t *testing.T) {
+		_, err := p.SetActive(ctx, "org-a", user.ID, false)
+		require.NoError(t, err)
+		_, err = p.SetActive(ctx, "org-b", user.ID, false)
+		require.NoError(t, err)
+		require.False(t, store.users[user.ID].IsActive)
+
+		_, err = p.SetActive(ctx, "org-b", user.ID, true)
+		require.NoError(t, err)
+		assert.True(t, store.users[user.ID].IsActive, "global account comes back")
+		assert.Nil(t, store.users[user.ID].RevokedTimestamp)
+		assert.False(t, store.membershipRec("org-a", user.ID).Active(), "org-a stays deprovisioned")
+	})
+}
+
+// DELETE /scim/v2/Users/{id} maps to SetActive(false), so it inherits the same
+// org scoping — this is the exact request in the report.
+func TestDeleteUser_SharedUserIsOrgScoped(t *testing.T) {
+	p, store, mem := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+
+	assert.True(t, store.users[user.ID].IsActive)
+	assert.Empty(t, mem.deleted)
+}
+
+func TestReplaceUser_SharedUserDeprovisionIsOrgScoped(t *testing.T) {
+	p, store, mem := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.ReplaceUser(ctx, "org-a", user.ID, User{UserName: "shared@corp.com", Active: false})
+	require.NoError(t, err)
+
+	assert.True(t, store.users[user.ID].IsActive, "PUT active:false must also be org-scoped")
+	assert.Empty(t, mem.deleted)
+	assert.False(t, store.membershipRec("org-a", user.ID).Active())
+	assert.True(t, store.membershipRec("org-b", user.ID).Active())
+}
+
+func TestPatchUser_SharedUserDeprovisionIsOrgScoped(t *testing.T) {
+	p, store, mem := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	inactive := false
+	_, err := p.PatchUser(ctx, "org-a", user.ID, UserPatch{Active: &inactive})
+	require.NoError(t, err)
+
+	assert.True(t, store.users[user.ID].IsActive, "PATCH active:false must also be org-scoped")
+	assert.Empty(t, mem.deleted)
+	assert.False(t, store.membershipRec("org-a", user.ID).Active())
+	assert.True(t, store.membershipRec("org-b", user.ID).Active())
+}
+
+// An `active` filter is answered per organization, so an IdP reconciling org A
+// sees the member it deprovisioned as inactive while org B still lists them.
+func TestListUsers_ActiveFilterIsOrgScoped(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+
+	inA, err := p.ListUsers(ctx, "org-a", UserFilter{Attribute: "active", Operator: "eq", Value: "false"})
+	require.NoError(t, err)
+	require.Len(t, inA, 1, "org-a lists the member it deprovisioned as inactive")
+	assert.False(t, inA[0].IsActive)
+
+	activeInB, err := p.ListUsers(ctx, "org-b", UserFilter{Attribute: "active", Operator: "eq", Value: "true"})
+	require.NoError(t, err)
+	require.Len(t, activeInB, 1, "org-b still lists the member as active")
+	assert.True(t, activeInB[0].IsActive)
+}
+
+// A deprovision must be RECORDED on the membership even when the global account
+// is already inactive for an unrelated reason. Keying idempotence on the global
+// flag let the write be skipped, so reactivating the account elsewhere silently
+// restored a membership this org had deprovisioned.
+func TestSetActive_DeprovisionRecordedWhenGlobalAccountAlreadyInactive(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	// Something outside SCIM disabled the account.
+	store.users[user.ID].IsActive = false
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+	assert.False(t, store.membershipRec("org-a", user.ID).Active(),
+		"org-a's deprovision must be recorded on the membership, not skipped")
+	assert.True(t, store.membershipRec("org-b", user.ID).Active(), "org-b untouched")
+
+	// When the account comes back, org-a's deprovision must still hold.
+	_, err = p.SetActive(ctx, "org-b", user.ID, true)
+	require.NoError(t, err)
+	require.True(t, store.users[user.ID].IsActive)
+
+	fromA, err := p.GetUser(ctx, "org-a", user.ID)
+	require.NoError(t, err)
+	assert.False(t, fromA.IsActive, "org-a's deprovision survives the account coming back")
 }

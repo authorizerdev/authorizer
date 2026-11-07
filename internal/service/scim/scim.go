@@ -388,7 +388,13 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 }
 
 func (p *provider) GetUser(ctx context.Context, orgID, userID string) (*schemas.User, error) {
-	return p.requireMember(ctx, orgID, userID)
+	user, err := p.requireMember(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	// A deprovisioned member is still returned — SCIM must be able to read
+	// active:false and PATCH it back — but `active` reflects THIS org.
+	return p.orgViewOf(ctx, orgID, user), nil
 }
 
 func (p *provider) FindByUserName(ctx context.Context, orgID, userName string) (*schemas.User, error) {
@@ -402,10 +408,11 @@ func (p *provider) FindByUserName(ctx context.Context, orgID, userName string) (
 	}
 	// Only surface the user if they belong to this org (H6): otherwise the probe
 	// would confirm another org's user exists.
-	if _, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID); err != nil {
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+	if err != nil {
 		return nil, nil
 	}
-	return user, nil
+	return orgView(user, membership), nil
 }
 
 func (p *provider) ReplaceUser(ctx context.Context, orgID, userID string, in User) (*schemas.User, error) {
@@ -413,7 +420,11 @@ func (p *provider) ReplaceUser(ctx context.Context, orgID, userID string, in Use
 	if err != nil {
 		return nil, err
 	}
-	wasActive := user.IsActive
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	wasActive := user.IsActive && membership.Active()
 	if in.GivenName != "" {
 		gn := in.GivenName
 		user.GivenName = &gn
@@ -422,23 +433,32 @@ func (p *provider) ReplaceUser(ctx context.Context, orgID, userID string, in Use
 		fn := in.FamilyName
 		user.FamilyName = &fn
 	}
-	user.IsActive = in.Active
-	if wasActive && !in.Active {
-		updated, err := p.deactivate(ctx, user)
-		if err == nil {
-			p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+	if membership.Active() && !in.Active {
+		// Deprovision in THIS org only; the global row goes down only if this was
+		// the last active membership. Gated on the membership rather than
+		// wasActive — see SetActive.
+		updated, err := p.deprovisionInOrg(ctx, orgID, user)
+		if err != nil {
+			return nil, err
 		}
-		return updated, err
+		p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+		return p.orgViewOf(ctx, orgID, updated), nil
 	}
 	if !wasActive && in.Active {
-		user.RevokedTimestamp = nil
+		updated, err := p.reprovisionInOrg(ctx, orgID, user)
+		if err != nil {
+			return nil, err
+		}
+		p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+		return p.orgViewOf(ctx, orgID, updated), nil
 	}
 	user.UpdatedAt = time.Now().Unix()
 	updated, err := p.StorageProvider.UpdateUser(ctx, user)
-	if err == nil {
-		p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	if err != nil {
+		return nil, err
 	}
-	return updated, err
+	p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	return orgView(updated, membership), nil
 }
 
 func (p *provider) SetActive(ctx context.Context, orgID, userID string, active bool) (*schemas.User, error) {
@@ -446,31 +466,160 @@ func (p *provider) SetActive(ctx context.Context, orgID, userID string, active b
 	if err != nil {
 		return nil, err
 	}
-	if !active {
-		if !user.IsActive {
-			// Already deprovisioned — idempotent no-op, no event.
-			return user, nil
-		}
-		user.IsActive = false
-		updated, err := p.deactivate(ctx, user)
-		if err == nil {
-			p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
-		}
-		return updated, err
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
 	}
-	// Reactivation: clear the revocation marker.
+	// Idempotence is judged on the ORG-effective state, not the global row: the
+	// account may well be active because another organization still uses it.
+	wasActive := user.IsActive && membership.Active()
+
+	if !active {
+		// Keyed on the membership, not on wasActive: if the global account is
+		// already inactive for an unrelated reason, this org's deprovision must
+		// still be recorded, or it silently un-does itself the moment the account
+		// is reactivated.
+		if !membership.Active() {
+			return orgView(user, membership), nil
+		}
+		updated, err := p.deprovisionInOrg(ctx, orgID, user)
+		if err != nil {
+			return nil, err
+		}
+		p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
+		return p.orgViewOf(ctx, orgID, updated), nil
+	}
+
+	if wasActive {
+		return orgView(user, membership), nil
+	}
+	updated, err := p.reprovisionInOrg(ctx, orgID, user)
+	if err != nil {
+		return nil, err
+	}
+	p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
+	return p.orgViewOf(ctx, orgID, updated), nil
+}
+
+// orgViewOf re-reads the membership and masks the user for the SCIM response.
+// Used after a write, when the in-hand membership struct is stale.
+func (p *provider) orgViewOf(ctx context.Context, orgID string, user *schemas.User) *schemas.User {
+	if user == nil {
+		return nil
+	}
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+	if err != nil {
+		// The membership was readable moments ago; treat an error here as the
+		// safer "deprovisioned" rather than reporting the user as active.
+		view := *user
+		view.IsActive = false
+		return &view
+	}
+	return orgView(user, membership)
+}
+
+// orgView returns a copy of user whose IsActive is the ORG-EFFECTIVE value: a
+// user deprovisioned from this organization reads as inactive here even while
+// their account stays live for another organization.
+//
+// It returns a COPY on purpose. The SCIM representation must show the per-org
+// state, but the global row must never be written from a masked struct, so this
+// is applied only to values on their way out to the transport.
+func orgView(user *schemas.User, membership *schemas.OrgMembership) *schemas.User {
+	if user == nil {
+		return nil
+	}
+	view := *user
+	view.IsActive = user.IsActive && membership.Active()
+	return &view
+}
+
+// activeMembershipsElsewhere counts the user's ACTIVE memberships outside orgID.
+//
+// ponytail: reads one page of 1000 memberships; a user in more than 1000
+// organizations would under-count, and the upgrade path is a storage-level
+// count. No deployment is near that, and under-counting only ever makes the
+// global deactivation MORE conservative, never less.
+func (p *provider) activeMembershipsElsewhere(ctx context.Context, orgID, userID string) (int, error) {
+	memberships, _, err := p.StorageProvider.ListOrgMembershipsByUser(ctx, userID, &model.Pagination{Limit: 1000})
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, m := range memberships {
+		if m.OrgID != orgID && m.Active() {
+			n++
+		}
+	}
+	return n, nil
+}
+
+// deprovisionInOrg deprovisions a user from ONE organization.
+//
+// The global account row is only touched when this was the user's last active
+// membership. That is the whole point: a SCIM token is issued per organization,
+// so org A deprovisioning a shared user must not disable the account — or delete
+// the sessions — that org B also relies on. Access to A stops at the membership
+// gate (schemas.OrgMembership.Active), which every org-scoped path checks.
+func (p *provider) deprovisionInOrg(ctx context.Context, orgID string, user *schemas.User) (*schemas.User, error) {
+	log := p.Log.With().Str("func", "scim.deprovisionInOrg").Str("org_id", orgID).Str("user_id", user.ID).Logger()
+
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if membership.Active() {
+		now := time.Now().Unix()
+		membership.DeprovisionedAt = &now
+		if _, err := p.StorageProvider.UpdateOrgMembership(ctx, membership); err != nil {
+			return nil, err
+		}
+	}
+
+	// Counted AFTER the membership write, never before: with a read-then-write
+	// ordering two organizations deprovisioning the same user at the same moment
+	// could each still see the other as active and leave a globally ACTIVE
+	// account with no active membership at all — a regression on today's
+	// behaviour.
+	//
+	// ponytail: not atomic across the six backends. The residual window is two
+	// concurrent deprovisions of the last two memberships; the upgrade path is a
+	// conditional update in the storage layer.
+	others, err := p.activeMembershipsElsewhere(ctx, orgID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if others > 0 {
+		log.Debug().Int("active_elsewhere", others).Msg("membership deprovisioned, global account left active")
+		return user, nil
+	}
+	if !user.IsActive {
+		return user, nil
+	}
+	return p.deactivate(ctx, user)
+}
+
+// reprovisionInOrg reverses deprovisionInOrg for one organization, and lifts the
+// global account back out of deactivation if it was the last membership that
+// took it down.
+func (p *provider) reprovisionInOrg(ctx context.Context, orgID string, user *schemas.User) (*schemas.User, error) {
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !membership.Active() {
+		membership.DeprovisionedAt = nil
+		if _, err := p.StorageProvider.UpdateOrgMembership(ctx, membership); err != nil {
+			return nil, err
+		}
+	}
 	if user.IsActive {
-		// Already active — idempotent no-op, no event.
 		return user, nil
 	}
 	user.IsActive = true
 	user.RevokedTimestamp = nil
 	user.UpdatedAt = time.Now().Unix()
-	updated, err := p.StorageProvider.UpdateUser(ctx, user)
-	if err == nil {
-		p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
-	}
-	return updated, err
+	return p.StorageProvider.UpdateUser(ctx, user)
 }
 
 // deactivate is the enterprise-offboarding path: mark the user inactive+revoked
@@ -523,10 +672,11 @@ func (p *provider) ListUsers(ctx context.Context, orgID string, f UserFilter) ([
 			if err != nil || user == nil {
 				return nil, nil
 			}
-			if _, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID); err != nil {
+			membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+			if err != nil {
 				return nil, nil
 			}
-			return []*schemas.User{user}, nil
+			return []*schemas.User{orgView(user, membership)}, nil
 		}
 	}
 
@@ -552,8 +702,12 @@ func (p *provider) ListUsers(ctx context.Context, orgID string, f UserFilter) ([
 			if err != nil || user == nil {
 				continue
 			}
-			if matchesFilter(orgID, user, f) {
-				matches = append(matches, user)
+			// Mask BEFORE the predicate: an `active eq false` filter must select
+			// the members deprovisioned from THIS org, not those whose global
+			// account happens to be down.
+			view := orgView(user, m)
+			if matchesFilter(orgID, view, f) {
+				matches = append(matches, view)
 			}
 		}
 		if len(memberships) < filterScanPage {
@@ -631,6 +785,12 @@ func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch Us
 	if err != nil {
 		return nil, err
 	}
+	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	// The org-effective state, not the global row — see SetActive.
+	wasActive := user.IsActive && membership.Active()
 	changed := false
 	if patch.GivenName != nil {
 		gn := strings.TrimSpace(*patch.GivenName)
@@ -686,32 +846,49 @@ func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch Us
 	}
 
 	deactivating := false
+	reactivating := false
 	if patch.Active != nil {
-		if user.IsActive && !*patch.Active {
+		if membership.Active() && !*patch.Active {
+			// Gated on the membership rather than wasActive — see SetActive.
 			deactivating = true
 			changed = true
-		} else if !user.IsActive && *patch.Active {
-			// Reactivation — clear the revocation marker; reported as an attribute
-			// change (scim_updated), not a distinct event.
-			user.IsActive = true
-			user.RevokedTimestamp = nil
+		} else if !wasActive && *patch.Active {
+			// Reactivation — reported as an attribute change (scim_updated), not a
+			// distinct event.
+			reactivating = true
 			changed = true
 		}
 	}
 
 	if !changed {
 		// Idempotent replay that changes nothing — no write, no event.
-		return user, nil
+		return orgView(user, membership), nil
 	}
 
-	if deactivating {
-		user.IsActive = false
-		updated, err := p.deactivate(ctx, user)
+	// An active-flag flip is org-scoped and owns the whole write, because it may
+	// also have to take the global row down or bring it back up.
+	if deactivating || reactivating {
+		// Persist any attribute edits that came in the same PATCH first, so they
+		// are not lost by the active-flag path below.
+		user.UpdatedAt = time.Now().Unix()
+		if _, err := p.StorageProvider.UpdateUser(ctx, user); err != nil {
+			return nil, err
+		}
+		var updated *schemas.User
+		if deactivating {
+			updated, err = p.deprovisionInOrg(ctx, orgID, user)
+		} else {
+			updated, err = p.reprovisionInOrg(ctx, orgID, user)
+		}
 		if err != nil {
 			return nil, err
 		}
-		p.fireUserEvent(ctx, constants.UserDeprovisionedWebhookEvent, updated)
-		return updated, nil
+		event := constants.UserScimUpdatedWebhookEvent
+		if deactivating {
+			event = constants.UserDeprovisionedWebhookEvent
+		}
+		p.fireUserEvent(ctx, event, updated)
+		return p.orgViewOf(ctx, orgID, updated), nil
 	}
 
 	user.UpdatedAt = time.Now().Unix()
@@ -720,7 +897,7 @@ func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch Us
 		return nil, err
 	}
 	p.fireUserEvent(ctx, constants.UserScimUpdatedWebhookEvent, updated)
-	return updated, nil
+	return orgView(updated, membership), nil
 }
 
 // fireUserEvent dispatches a user provisioning-lifecycle webhook off the request

@@ -2067,6 +2067,40 @@ func testOrgMembershipOperations(t *testing.T, ctx context.Context, provider Pro
 	require.NoError(t, err)
 	assert.Equal(t, []string{"admin", "billing"}, refetched.ParsedRoles(), "updated roles must persist")
 
+	// DeprovisionedAt round-trip, both directions. SCIM uses it to deprovision a
+	// user from ONE organization without disabling the shared global account, so
+	// it must both PERSIST and CLEAR identically on every backend.
+	//
+	// Clearing is the half that diverges: a nil pointer is simply omitted from
+	// DynamoDB's marshalled SET clause, so without an explicit REMOVE the old
+	// timestamp survives and the membership can never be reactivated — on that
+	// one backend only, while SQLite CI stays green.
+	assert.True(t, refetched.Active(), "a membership with no deprovisioned_at is active")
+
+	deprovisionedAt := int64(1700000000)
+	refetched.DeprovisionedAt = &deprovisionedAt
+	_, err = provider.UpdateOrgMembership(ctx, refetched)
+	require.NoError(t, err)
+	deprovisioned, err := provider.GetOrgMembership(ctx, orgAID, userID)
+	require.NoError(t, err)
+	require.NotNil(t, deprovisioned.DeprovisionedAt, "deprovisioned_at must persist")
+	assert.Equal(t, deprovisionedAt, *deprovisioned.DeprovisionedAt)
+	assert.False(t, deprovisioned.Active(), "a deprovisioned membership is not active")
+
+	// The other org's membership is untouched — this is the isolation the SCIM
+	// fix depends on.
+	otherOrg, err := provider.GetOrgMembership(ctx, orgBID, userID)
+	require.NoError(t, err)
+	assert.True(t, otherOrg.Active(), "deprovisioning in org A must not affect org B")
+
+	deprovisioned.DeprovisionedAt = nil
+	_, err = provider.UpdateOrgMembership(ctx, deprovisioned)
+	require.NoError(t, err)
+	reactivated, err := provider.GetOrgMembership(ctx, orgAID, userID)
+	require.NoError(t, err)
+	assert.Nil(t, reactivated.DeprovisionedAt, "deprovisioned_at must CLEAR, not survive, when set to nil")
+	assert.True(t, reactivated.Active(), "a reactivated membership is active again")
+
 	// Direct membership delete removes only the targeted membership.
 	require.NoError(t, provider.DeleteOrgMembership(ctx, memberA))
 	_, err = provider.GetOrgMembership(ctx, orgAID, userID)

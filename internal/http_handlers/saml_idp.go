@@ -379,7 +379,9 @@ func (h *httpProvider) authorizeSAMLIssuance(c *gin.Context, orgID, slug string,
 // today, but denying on nil too closes the class of a provider ever returning
 // (nil, nil).
 func samlIssuanceDenyReason(membership *schemas.OrgMembership, membershipErr error, sp *schemas.SAMLServiceProvider, user *schemas.User) (code, desc string) {
-	if membershipErr != nil || membership == nil {
+	// A deprovisioned membership is not a membership for access purposes: the row
+	// is retained only so SCIM can report and reverse it.
+	if membershipErr != nil || !membership.Active() {
 		return "forbidden", "not a member of this organization"
 	}
 	if samlNameIDWouldBeEmail(sp, user) && user.EmailVerifiedAt == nil {

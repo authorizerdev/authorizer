@@ -214,6 +214,13 @@ func (p *provider) requireOrgAdmin(ctx context.Context, meta RequestMetadata, or
 	if err != nil || membership == nil {
 		return Unauthenticated("unauthorized")
 	}
+	// A membership that SCIM has deprovisioned grants nothing. The row survives
+	// so SCIM can report active:false and reactivate it later, so existence is
+	// not authority — otherwise deprovisioning an org admin through SCIM would
+	// leave their admin rights over the org fully intact.
+	if !membership.Active() {
+		return Unauthenticated("unauthorized")
+	}
 	for _, role := range membership.ParsedRoles() {
 		if role == constants.OrgRoleAdmin {
 			return nil

@@ -356,9 +356,10 @@ func (p *provider) syncMembers(ctx context.Context, orgID, groupID string, add, 
 		if present[subj] {
 			continue
 		}
-		// Cross-tenant gate: only org members may be added to this org's group.
-		if _, err := p.StorageProvider.GetOrgMembership(ctx, orgID, uid); err != nil {
-			log.Debug().Str("user_id", uid).Msg("skipping member add: not a member of this org")
+		// Cross-tenant gate: only ACTIVE org members may be added to this org's
+		// group. A deprovisioned member must not pick up new group grants.
+		if membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, uid); err != nil || !membership.Active() {
+			log.Debug().Str("user_id", uid).Msg("skipping member add: not an active member of this org")
 			continue
 		}
 		writes = append(writes, engine.TupleKey{User: subj, Relation: groupMemberRelation, Object: obj})
