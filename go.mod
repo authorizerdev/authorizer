@@ -2,6 +2,8 @@ module github.com/authorizerdev/authorizer
 
 go 1.26.6
 
+toolchain go1.26.10
+
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.2.0
@@ -14,10 +16,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.8.37
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1
 	github.com/aws/smithy-go v1.24.3
-	github.com/beevik/etree v1.6.0
+	github.com/beevik/etree v1.8.1
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/couchbase/gocb/v2 v2.6.4
-	github.com/crewjam/saml v0.5.1
+	github.com/crewjam/saml v0.6.2
 	github.com/descope/virtualwebauthn v1.0.5
 	github.com/ekristen/gorm-libsql v0.0.0-20231101204708-6e113112bcc2
 	github.com/gin-gonic/gin v1.9.1
@@ -36,7 +38,7 @@ require (
 	github.com/redis/go-redis/v9 v9.6.3
 	github.com/robertkrimen/otto v0.2.1
 	github.com/rs/zerolog v1.33.0
-	github.com/russellhaering/goxmldsig v1.6.0
+	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/twilio/twilio-go v1.14.1
@@ -131,7 +133,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.7 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -139,7 +141,6 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/libsql/libsql-client-go v0.0.0-20231026052543-fce76c0f39a7 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 // indirect
-	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
