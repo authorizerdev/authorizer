@@ -300,4 +300,74 @@ func TestIsValidRedirectURI(t *testing.T) {
 		assert.True(t, IsValidRedirectURI("http://localhost:3000/cb", allowed, hostname))
 		assert.False(t, IsValidRedirectURI("https://attacker.com", allowed, hostname))
 	})
+
+	// A bare "*" mixed with explicit origins used to reach originMatches, which
+	// re-opens "*" as the regex [^.]* — matching EVERY dotless host and NO dotted
+	// one. A browser parses a dotless numeric host as an IPv4 address, so
+	// http://3405803783/ is 203.0.113.7: an attacker-controlled server that
+	// received the victim's access token from /authorize. The self-host branch
+	// only fired for a lone "*", so in a mixed list "*" meant neither "self only"
+	// nor "any origin", and the server's own origin was rejected as well.
+	t.Run("bare wildcard mixed with explicit origins stays self-only", func(t *testing.T) {
+		allowed := []string{"*", "https://app.example.com"}
+
+		assert.False(t, IsValidRedirectURI("http://3405803783/steal", allowed, hostname),
+			"decimal IPv4 203.0.113.7 must not pass as a dotless host")
+		assert.False(t, IsValidRedirectURI("http://0xcb007107/steal", allowed, hostname),
+			"hex IPv4 must not pass as a dotless host")
+		assert.False(t, IsValidRedirectURI("http://localhost/steal", allowed, hostname),
+			"single-label host must not pass")
+		assert.False(t, IsValidRedirectURI("https://attacker.com/steal", allowed, hostname))
+
+		// The explicit entry and the server's own origin still work.
+		assert.True(t, IsValidRedirectURI("https://app.example.com/cb", allowed, hostname))
+		assert.True(t, IsValidRedirectURI("https://myserver.com/app", allowed, hostname),
+			"own origin is allowed by the bare wildcard, as it is for a lone *")
+	})
+
+	t.Run("wildcard position in the list does not matter", func(t *testing.T) {
+		allowed := []string{"https://app.example.com", "*"}
+		assert.False(t, IsValidRedirectURI("http://3405803783/steal", allowed, hostname))
+		assert.True(t, IsValidRedirectURI("https://myserver.com/app", allowed, hostname))
+	})
+
+	t.Run("subdomain wildcard is unaffected", func(t *testing.T) {
+		allowed := []string{"*.acme.com", "*"}
+		assert.True(t, IsValidRedirectURI("https://login.acme.com/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://acme.com/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://evil-acme.com/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("http://3405803783/steal", allowed, hostname))
+	})
+}
+
+// A bare "*" in a mixed CORS list hit the same originMatches rewrite, so the
+// allowlist silently became "dotless hosts only": an operator who wrote "*"
+// alongside explicit origins got neither allow-all nor their explicit list, and
+// http://localhost / http://3405803783 passed the CORS check.
+func TestIsValidOrigin_BareWildcardMixedWithExplicitOrigins(t *testing.T) {
+	allowed := []string{"*", "https://app.example.com"}
+
+	t.Run("bare wildcard still means allow any origin", func(t *testing.T) {
+		assert.True(t, IsValidOrigin("https://attacker.com", allowed),
+			"a bare * is allow-all for CORS, as it is when it is the whole list")
+		assert.True(t, IsValidOrigin("https://app.example.com", allowed))
+		assert.True(t, IsValidOrigin("http://3405803783", allowed))
+	})
+
+	t.Run("without a wildcard the explicit list is still exact", func(t *testing.T) {
+		explicit := []string{"https://app.example.com"}
+		assert.True(t, IsValidOrigin("https://app.example.com", explicit))
+		assert.False(t, IsValidOrigin("http://3405803783", explicit))
+		assert.False(t, IsValidOrigin("http://localhost", explicit))
+		assert.False(t, IsValidOrigin("https://appXexample.com", explicit))
+	})
+}
+
+// originMatches must never be handed a bare "*": both callers special-case it
+// first, with different meanings. Pin that so a third caller cannot reintroduce
+// the [^.]* rewrite.
+func TestOriginMatches_RefusesBareWildcard(t *testing.T) {
+	assert.False(t, originMatches("*", "3405803783"))
+	assert.False(t, originMatches("*", "localhost"))
+	assert.False(t, originMatches("*", "app.example.com"))
 }

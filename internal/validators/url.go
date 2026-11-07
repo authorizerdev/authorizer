@@ -43,6 +43,16 @@ func normalizeOrigin(raw string) string {
 // copy-pasted matching blocks, which is how one of them came to escape dots
 // while the other did not.
 func originMatches(configured, candidate string) bool {
+	// A bare "*" never belongs here. Both callers special-case it BEFORE this
+	// point, with deliberately different meanings — allow-all for CORS,
+	// self-host-only for redirects — so there is no single answer this function
+	// could return. Letting it through rewrote it as the regex [^.]*, which
+	// matched every dotless host (http://3405803783 is 203.0.113.7 to a browser)
+	// and no dotted one. Refuse it so a third caller cannot reintroduce that.
+	if strings.TrimSpace(configured) == "*" {
+		return false
+	}
+
 	pattern := normalizeOrigin(configured)
 	if !strings.Contains(pattern, "*") {
 		return pattern == candidate
@@ -83,13 +93,19 @@ func IsValidRedirectURI(redirectURI string, allowedOrigins []string, hostname st
 
 	redirectOrigin := normalizeOrigin(redirectURI)
 
-	// When allowed_origins is wildcard, only allow redirects to the server's own hostname
-	if len(origins) == 1 && origins[0] == "*" {
-		return redirectOrigin == normalizeOrigin(hostname)
-	}
-
-	// Validate against explicit allowed origins (same logic as IsValidOrigin)
 	for _, origin := range origins {
+		// A bare "*" permits ONLY the server's own hostname, whether it is the
+		// whole list or sits beside explicit origins. This is checked per entry,
+		// not just for a one-element list: a mixed list used to send "*" into
+		// originMatches, where it became [^.]* and accepted any dotless host, so
+		// an attacker writing their IPv4 address as a single decimal number
+		// received the victim's tokens from /authorize.
+		if strings.TrimSpace(origin) == "*" {
+			if redirectOrigin == normalizeOrigin(hostname) {
+				return true
+			}
+			continue
+		}
 		if originMatches(origin, redirectOrigin) {
 			return true
 		}
@@ -104,13 +120,17 @@ func IsValidOrigin(inputURL string, allowedOriginsConfig []string) bool {
 	if len(allowedOrigins) == 0 {
 		allowedOrigins = []string{"*"}
 	}
-	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
-		return true
-	}
-
 	currentOrigin := normalizeOrigin(inputURL)
 
 	for _, origin := range allowedOrigins {
+		// A bare "*" is allow-all for CORS, whether it is the whole list or sits
+		// beside explicit origins. Checked per entry for the same reason as in
+		// IsValidRedirectURI: in a mixed list it used to reach originMatches and
+		// silently narrow the allowlist to dotless hosts only, which is neither
+		// what the operator wrote nor safe.
+		if strings.TrimSpace(origin) == "*" {
+			return true
+		}
 		if originMatches(origin, currentOrigin) {
 			return true
 		}
