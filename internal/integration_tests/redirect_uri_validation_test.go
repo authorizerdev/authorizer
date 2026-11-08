@@ -87,13 +87,13 @@ func TestRedirectURIWildcardOrigins(t *testing.T) {
 	})
 
 	t.Run("allows self-origin redirect_uri with wildcard origins", func(t *testing.T) {
-		selfURI := "http://" + ts.HttpServer.Listener.Addr().String() + "/app/reset-password"
+		selfURI := testAuthorizerHost(ts) + "/app/reset-password"
 		res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
 			Email:       refs.NewStringRef(email),
 			RedirectURI: refs.NewStringRef(selfURI),
 		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
+		require.NoError(t, err)
+		require.NotNil(t, res)
 		assert.NotEmpty(t, res.Message)
 	})
 
@@ -101,8 +101,8 @@ func TestRedirectURIWildcardOrigins(t *testing.T) {
 		res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef(email),
 		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
+		require.NoError(t, err)
+		require.NotNil(t, res)
 		assert.NotEmpty(t, res.Message)
 	})
 

@@ -166,7 +166,7 @@ func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
 
 	hitVerifyEmail := func(t *testing.T, token string) *http.Response {
 		t.Helper()
-		reqURL := ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(token) +
+		reqURL := testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(token) +
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback")
 		resp, err := httpClient.Get(reqURL)
 		require.NoError(t, err)
@@ -220,7 +220,7 @@ func TestVerifyEmailRESTEndpointMFAGate(t *testing.T) {
 		vreq, err := tsNoMFA.StorageProvider.GetVerificationRequestByEmail(ctxNoMFA, email, constants.VerificationTypeBasicAuthSignup)
 		require.NoError(t, err)
 
-		reqURL := tsNoMFA.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+		reqURL := testAuthorizerHost(tsNoMFA) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback")
 		resp, err := httpClient.Get(reqURL)
 		require.NoError(t, err)

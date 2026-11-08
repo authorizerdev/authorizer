@@ -221,7 +221,7 @@ func TestResetPassword(t *testing.T) {
 		assert.False(t, hasUserSession(), "all user sessions must be revoked before password reset returns")
 
 		// End-to-end: the pre-existing refresh token is now rejected.
-		issuer := "http://" + ts.HttpServer.Listener.Addr().String()
+		issuer := testAuthorizerHost(ts)
 		router := gin.New()
 		router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
 		form := url.Values{}
