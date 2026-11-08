@@ -34,7 +34,7 @@
 		"react-dropzone": "^14.3.8",
 		"react-email-editor": "^1.7.11",
 		"react-router-dom": "^7.0.2",
-		"sonner": "^1.7.1",
+		"sonner": "^2.0.8",
 		"tailwind-merge": "^2.6.0",
 		"urql": "^4.2.2"
 	},
