@@ -305,7 +305,13 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 	if in.ExternalID != "" {
 		if existing, err := p.StorageProvider.GetUserByExternalID(ctx, orgID, in.ExternalID); err == nil && existing != nil {
 			log.Debug().Msg("dedup by external_id")
-			return existing, true, nil
+			// orgViewOf, not the raw row: these two dedup returns were the only
+			// SCIM read paths that skipped masking. They reported active:true for
+			// a user this org had already deprovisioned (so a re-syncing connector
+			// concludes no PATCH is needed), and the answer differed depending on
+			// whether some OTHER org still had the user active — a cross-tenant
+			// membership oracle.
+			return p.orgViewOf(ctx, orgID, existing), true, nil
 		}
 	}
 
@@ -315,7 +321,7 @@ func (p *provider) CreateUser(ctx context.Context, orgID string, in User) (*sche
 	if existing, err := p.StorageProvider.GetUserByEmail(ctx, userName); err == nil && existing != nil {
 		if _, mErr := p.StorageProvider.GetOrgMembership(ctx, orgID, existing.ID); mErr == nil {
 			log.Debug().Msg("dedup by userName within org")
-			return existing, true, nil
+			return p.orgViewOf(ctx, orgID, existing), true, nil
 		}
 		// ponytail: accepted risk. Authorizer enforces global email uniqueness, so
 		// a userName already owned by another org cannot be re-provisioned here —
@@ -434,6 +440,17 @@ func (p *provider) ReplaceUser(ctx context.Context, orgID, userID string, in Use
 		user.FamilyName = &fn
 	}
 	if membership.Active() && !in.Active {
+		// Persist the attribute edits above BEFORE branching, the way PatchUser
+		// already does. deprovisionInOrg returns without writing the user row
+		// when another organization still has the member active, so a PUT that
+		// renames and deactivates in one request silently lost the rename — and
+		// only for multi-org users, which is why no existing test caught it.
+		user.UpdatedAt = time.Now().Unix()
+		saved, err := p.StorageProvider.UpdateUser(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+		user = saved
 		// Deprovision in THIS org only; the global row goes down only if this was
 		// the last active membership. Gated on the membership rather than
 		// wasActive — see SetActive.
@@ -538,8 +555,10 @@ func orgView(user *schemas.User, membership *schemas.OrgMembership) *schemas.Use
 //
 // ponytail: reads one page of 1000 memberships; a user in more than 1000
 // organizations would under-count, and the upgrade path is a storage-level
-// count. No deployment is near that, and under-counting only ever makes the
-// global deactivation MORE conservative, never less.
+// count. No deployment is near that. Note the direction of the risk:
+// under-counting reports FEWER active memberships elsewhere, so the global
+// account is deactivated MORE eagerly — which is the over-broad deactivation
+// this fix exists to prevent, not a safe failure.
 func (p *provider) activeMembershipsElsewhere(ctx context.Context, orgID, userID string) (int, error) {
 	memberships, _, err := p.StorageProvider.ListOrgMembershipsByUser(ctx, userID, &model.Pagination{Limit: 1000})
 	if err != nil {
@@ -559,8 +578,25 @@ func (p *provider) activeMembershipsElsewhere(ctx context.Context, orgID, userID
 // The global account row is only touched when this was the user's last active
 // membership. That is the whole point: a SCIM token is issued per organization,
 // so org A deprovisioning a shared user must not disable the account — or delete
-// the sessions — that org B also relies on. Access to A stops at the membership
-// gate (schemas.OrgMembership.Active), which every org-scoped path checks.
+// the sessions — that org B also relies on.
+//
+// Withholding the global revocation marker means this function has to end access
+// to THIS org by itself, because the marker is what the rest of the codebase
+// used to rely on. Two mechanisms, and both are needed:
+//
+//  1. The durable grants are deleted here: every FGA tuple naming this user
+//     inside this org. Those tuples are what check_permissions, list_permissions
+//     and required_relations answer from, and nothing else would ever remove
+//     them — leaving them is a live grant to a dead membership.
+//  2. The per-request gate, schemas.OrgMembership.Active, is checked by the
+//     org-scoped admin resolvers, SAML assertion issuance, SSO/JIT login and
+//     SCIM group writes.
+//
+// What is NOT covered, deliberately: an access token already issued for this org
+// keeps working until it expires (30 minutes by default), and schemas.Session /
+// SessionToken carry no org id, so a targeted revocation is impossible without a
+// schema change. Scoping tokens per org is the upgrade path; the advisory says so
+// rather than claiming an immediacy this does not have.
 func (p *provider) deprovisionInOrg(ctx context.Context, orgID string, user *schemas.User) (*schemas.User, error) {
 	log := p.Log.With().Str("func", "scim.deprovisionInOrg").Str("org_id", orgID).Str("user_id", user.ID).Logger()
 
@@ -574,6 +610,16 @@ func (p *provider) deprovisionInOrg(ctx context.Context, orgID string, user *sch
 		if _, err := p.StorageProvider.UpdateOrgMembership(ctx, membership); err != nil {
 			return nil, err
 		}
+	}
+
+	// Drop this org's authorization grants. Must run whether or not the
+	// membership was already deprovisioned, so a retried deprovision repairs a
+	// partial one: the membership write and this are not one transaction.
+	if err := p.purgeOrgFgaTuplesForUser(ctx, orgID, user.ID); err != nil {
+		// Hard failure, not a warning. If the grants survive, the user still has
+		// access to this org and the caller has been told they do not.
+		log.Error().Err(err).Msg("failed to purge org fga tuples on deprovision")
+		return nil, err
 	}
 
 	// Counted AFTER the membership write, never before: with a read-then-write
@@ -600,10 +646,32 @@ func (p *provider) deprovisionInOrg(ctx context.Context, orgID string, user *sch
 }
 
 // reprovisionInOrg reverses deprovisionInOrg for one organization, and lifts the
-// global account back out of deactivation if it was the last membership that
+// global account out of deactivation ONLY when this org's deprovision is what
 // took it down.
+//
+// It used to clear user.RevokedTimestamp unconditionally, which let ANY
+// organization's SCIM token undo a super-admin's global revocation — the same
+// defect class as the advisory this fix is for, in the reactivate direction. The
+// test is that the account had no active membership anywhere before this call:
+// deprovisionInOrg only ever deactivates when it is the last active membership,
+// so "nothing was active" is the state it leaves behind and the only state SCIM
+// is entitled to reverse. A user globally revoked by an admin while still an
+// active member somewhere is therefore left revoked, and the membership alone
+// comes back.
+//
+// ponytail: residual false positive — an admin who revokes a user whose every
+// membership also happens to be deprovisioned is indistinguishable from the SCIM
+// case without recording who revoked the account. A provenance column on the
+// user row is the upgrade path if that matters.
 func (p *provider) reprovisionInOrg(ctx context.Context, orgID string, user *schemas.User) (*schemas.User, error) {
 	membership, err := p.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	// Counted BEFORE the membership write, the opposite order to
+	// deprovisionInOrg: the question here is what the account looked like when
+	// SCIM found it, and reactivating this membership first would answer it.
+	activeElsewhere, err := p.activeMembershipsElsewhere(ctx, orgID, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -614,6 +682,16 @@ func (p *provider) reprovisionInOrg(ctx context.Context, orgID string, user *sch
 		}
 	}
 	if user.IsActive {
+		return user, nil
+	}
+	if activeElsewhere > 0 {
+		// Globally inactive while another org still had an active membership, so
+		// SCIM is not what deactivated it. Leave the global row alone: the
+		// membership is live again and this org's SCIM view reports active, but a
+		// super-admin's revocation stands until a super-admin lifts it.
+		p.Log.Debug().Str("func", "scim.reprovisionInOrg").Str("org_id", orgID).Str("user_id", user.ID).
+			Int("active_elsewhere", activeElsewhere).
+			Msg("membership reprovisioned, global revocation left in place")
 		return user, nil
 	}
 	user.IsActive = true

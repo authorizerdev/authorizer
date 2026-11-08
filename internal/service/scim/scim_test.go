@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -73,9 +74,13 @@ func (f *fakeStore) GetUserByEmail(_ context.Context, email string) (*schemas.Us
 	return nil, errNotFound
 }
 
+// Returns a COPY, like every real storage provider does. Handing back the live
+// map pointer made in-memory mutations look persisted, which hid a bug where
+// ReplaceUser dropped attribute edits it never wrote.
 func (f *fakeStore) GetUserByID(_ context.Context, id string) (*schemas.User, error) {
 	if u, ok := f.users[id]; ok {
-		return u, nil
+		cp := *u
+		return &cp, nil
 	}
 	return nil, errNotFound
 }
@@ -831,4 +836,78 @@ func TestSetActive_DeprovisionRecordedWhenGlobalAccountAlreadyInactive(t *testin
 	fromA, err := p.GetUser(ctx, "org-a", user.ID)
 	require.NoError(t, err)
 	assert.False(t, fromA.IsActive, "org-a's deprovision survives the account coming back")
+}
+
+// An org-scoped SCIM credential must not undo a GLOBAL revocation it did not
+// cause. reprovisionInOrg used to clear user.RevokedTimestamp unconditionally,
+// so a super-admin could disable an account for cause and any one of the user's
+// organizations could resurrect it with PATCH {"active": true} — the same defect
+// class as the advisory, in the reactivate direction.
+func TestReprovisionDoesNotLiftAnAdminRevocation(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	// A super-admin revokes the account for cause. Both orgs stay active members.
+	now := time.Now().Unix()
+	store.users[user.ID].IsActive = false
+	store.users[user.ID].RevokedTimestamp = &now
+
+	got, err := p.SetActive(ctx, "org-a", user.ID, true)
+	require.NoError(t, err)
+
+	stored := store.users[user.ID]
+	assert.False(t, stored.IsActive,
+		"org-a's SCIM token must not reactivate an account a super-admin disabled")
+	assert.NotNil(t, stored.RevokedTimestamp,
+		"the global revocation marker must survive an org-scoped reprovision")
+	assert.False(t, got.IsActive, "the per-org view must report the account as inactive")
+	assert.True(t, store.membershipRec("org-a", user.ID).Active(),
+		"the membership itself does come back — only the global row is left alone")
+}
+
+// The round trip SCIM IS entitled to reverse: it took the global account down
+// because this was the last active membership, so it may bring it back up.
+func TestReprovisionLiftsItsOwnDeactivation(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	u, _, err := p.CreateUser(ctx, "org-a", User{ExternalID: "solo-1", UserName: "solo@corp.com", Active: true})
+	require.NoError(t, err)
+
+	_, err = p.SetActive(ctx, "org-a", u.ID, false)
+	require.NoError(t, err)
+	require.False(t, store.users[u.ID].IsActive, "last membership down takes the account down")
+	require.NotNil(t, store.users[u.ID].RevokedTimestamp)
+
+	_, err = p.SetActive(ctx, "org-a", u.ID, true)
+	require.NoError(t, err)
+	assert.True(t, store.users[u.ID].IsActive, "SCIM may reverse its own deactivation")
+	assert.Nil(t, store.users[u.ID].RevokedTimestamp, "and must clear its own marker")
+}
+
+// CreateUser's two dedup returns were the only SCIM read paths that skipped
+// orgView. They reported active:true for a user this org had already
+// deprovisioned, and the answer depended on whether some OTHER org still had the
+// user active — a cross-tenant membership oracle.
+func TestCreateUserDedupReportsPerOrgState(t *testing.T) {
+	p, store, _ := newSvc(t)
+	ctx := context.Background()
+	user := seedSharedUser(t, p, store, "org-a", "org-b")
+
+	_, err := p.SetActive(ctx, "org-a", user.ID, false)
+	require.NoError(t, err)
+	require.True(t, store.users[user.ID].IsActive, "global row still active via org-b")
+
+	// The connector re-POSTs the same user it already deprovisioned.
+	byExternal, existed, err := p.CreateUser(ctx, "org-a", User{ExternalID: "shared-1", UserName: "shared@corp.com", Active: true})
+	require.NoError(t, err)
+	require.True(t, existed)
+	assert.False(t, byExternal.IsActive,
+		"dedup by externalId must report org-a's view, not the global row — "+
+			"reporting active:true tells the IdP no PATCH is needed and leaks org-b's state")
+
+	byName, existed, err := p.CreateUser(ctx, "org-a", User{UserName: "shared@corp.com", Active: true})
+	require.NoError(t, err)
+	require.True(t, existed)
+	assert.False(t, byName.IsActive, "dedup by userName must report org-a's view too")
 }
