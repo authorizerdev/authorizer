@@ -23,7 +23,7 @@ require (
 	github.com/descope/virtualwebauthn v1.0.5
 	github.com/ekristen/gorm-libsql v0.0.0-20231101204708-6e113112bcc2
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/go-webauthn/webauthn v0.17.4
 	github.com/gocql/gocql v1.6.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
