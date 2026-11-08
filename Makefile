@@ -407,7 +407,7 @@ proto-check-clients: proto-gen-clients
 # `make lint` in CI. golangci-lint is installed on demand if missing.
 # ----------------------------------------------------------------------------
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
-GOLANGCI_LINT_VERSION ?= v2.11.4
+GOLANGCI_LINT_VERSION ?= v2.15.0
 
 .PHONY: fmt fmt-go fmt-ts lint lint-go lint-ts lint-tools
 

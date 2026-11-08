@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var ambiguousTimeout error = gocb.ErrAmbiguousTimeout
+
 // A CREATE INDEX that outruns the client is the AMBIGUOUS timeout case — the
 // server may have accepted it. If that is not treated as transient, the retry
 // that would see "already exists" never runs, and a non-retried index error
@@ -23,7 +25,12 @@ func TestIsTransientQueryErr_CoversBothTimeoutKinds(t *testing.T) {
 	}{
 		{"ambiguous", gocb.ErrAmbiguousTimeout},
 		{"unambiguous", gocb.ErrUnambiguousTimeout},
-		{"wrapped ambiguous", fmt.Errorf("create index: %w", gocb.ErrAmbiguousTimeout)},
+		// gocbcore defines ErrAmbiguousTimeout as *dwError, with Error and
+		// Unwrap on the VALUE receiver. go1.27 vet flags that pointer under
+		// %w as "defeats errors.Is". It does not —
+		// TestGocbTimeoutSentinels_ShareParentButNotMessage below and this
+		// case both resolve — so bind to error and keep vet quiet.
+		{"wrapped ambiguous", fmt.Errorf("create index: %w", ambiguousTimeout)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.True(t, isTransientQueryErr(tc.err),
