@@ -217,7 +217,14 @@ func isWildcardOrigins(allowed []string) bool {
 		return true
 	}
 	for _, o := range allowed {
-		if o == "*" {
+		// validators.IsWildcardOrigin, not o == "*": pflag does not trim the
+		// elements of a comma-separated flag, so --allowed-origins
+		// "https://app.acme.com, *" yields " *". A raw comparison called that
+		// NOT a wildcard while validators called it one, so CORS took the
+		// explicit-allowlist branch and reflected any origin back with
+		// Access-Control-Allow-Credentials — the exact pairing this file exists
+		// to prevent. One shared predicate, one answer.
+		if validators.IsWildcardOrigin(o) {
 			return true
 		}
 	}

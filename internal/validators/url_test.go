@@ -371,3 +371,111 @@ func TestOriginMatches_RefusesBareWildcard(t *testing.T) {
 	assert.False(t, originMatches("*", "localhost"))
 	assert.False(t, originMatches("*", "app.example.com"))
 }
+
+// A configured entry is a wildcard by its NORMALISED value, not its raw text.
+// Every spelling below collapses to "*" once the scheme, path, default port and
+// surrounding space are stripped. The first fix guarded the raw string, so all
+// but the literal "*" reached the regex splice, became [^.]*, and matched any
+// dotless host — a browser reads http://3405803783 as 203.0.113.7, so an
+// attacker who writes their address as one decimal number received the victim's
+// tokens. Same CVE, different spelling.
+func TestWildcardSpellingsCannotReachTheRegex(t *testing.T) {
+	const evil = "http://3405803783/steal"
+	const host = "https://myserver.com"
+	for _, cfg := range []string{"*", " *", "* ", "https://*", "http://*", "*/", "*/callback", "*:80", "*:443"} {
+		t.Run(cfg, func(t *testing.T) {
+			assert.True(t, IsWildcardOrigin(cfg), "%q must be recognised as a wildcard", cfg)
+			assert.False(t, originMatches(cfg, normalizeOrigin(evil)),
+				"%q must never be spliced into a regex", cfg)
+			assert.False(t, IsValidRedirectURI(evil, []string{"https://app.example.com", cfg}, host),
+				"%q beside an explicit origin must not permit a dotless host", cfg)
+			assert.True(t, IsValidRedirectURI(host, []string{"https://app.example.com", cfg}, host),
+				"%q must still permit the server's own hostname", cfg)
+		})
+	}
+}
+
+// A wildcard with no literal dot to anchor it is refused outright. "**" and
+// "*:3000" are not spellings of "*" — they normalise to themselves — but they
+// splice to [^.]*[^.]* and [^.]*:3000, which match a dotless host just the same.
+func TestUnanchoredWildcardIsRefused(t *testing.T) {
+	const host = "https://myserver.com"
+	for cfg, candidate := range map[string]string{
+		"**":     "http://3405803783/steal",
+		"*:3000": "http://3405803783:3000/steal",
+		"*":      "http://3405803783/steal",
+	} {
+		assert.False(t, originMatches(cfg, normalizeOrigin(candidate)),
+			"%q must not match the dotless host %q", cfg, candidate)
+		assert.False(t, IsValidRedirectURI(candidate, []string{"https://app.example.com", cfg}, host),
+			"%q must not permit %q", cfg, candidate)
+	}
+}
+
+// The dot-anchoring rule must not narrow the wildcard forms the allowlist
+// documents and the rest of this suite relies on.
+func TestAnchoredWildcardsStillWork(t *testing.T) {
+	assert.True(t, originMatches("*.example.com", "sub.example.com"))
+	assert.True(t, originMatches("*.example.com:8080", "sub.example.com:8080"))
+	assert.True(t, originMatches("app*.acme.com", "app42.acme.com"))
+	assert.False(t, originMatches("*.example.com", "example.com"), "bare domain is not a subdomain")
+	assert.False(t, originMatches("*.example.com", "evil-example.com"), "dots must stay escaped")
+}
+
+// The wildcard predicate is shared with the CORS/CSRF middleware and the startup
+// warning. When each had its own `o == "*"`, pflag's untrimmed " *" made them
+// disagree: validators said allow-all while isWildcardOrigins said explicit
+// allowlist, so CORS reflected any origin WITH credentials. Pin that they agree.
+func TestWildcardPredicateIsUnambiguous(t *testing.T) {
+	for _, s := range []string{"*", " *", "* ", "\t*", "https://*", "*:443"} {
+		assert.True(t, IsWildcardOrigin(s), "%q is a wildcard", s)
+	}
+	for _, s := range []string{"https://app.acme.com", "*.acme.com", "**", "*:3000", ""} {
+		assert.False(t, IsWildcardOrigin(s), "%q is NOT a bare wildcard", s)
+	}
+}
+
+// Backward compatibility. The dot-anchoring rule above refuses a wildcard that
+// could match a dotless host, so it has to be shown NOT to narrow the configs
+// operators already run. Dotless hosts are legitimate and common — "localhost",
+// and in-cluster service names like "frontend" or "authorizer" — and they keep
+// working, because an entry with no "*" is compared as a literal string and
+// never goes near the regex. Only a WILDCARD that relied on matching a dotless
+// host changes, and that match is the vulnerability itself.
+func TestBackwardCompatibleConfigs(t *testing.T) {
+	const host = "https://auth.example.com"
+	for _, tc := range []struct {
+		cfg, candidate, why string
+	}{
+		{"http://localhost:3000", "http://localhost:3000/cb", "explicit localhost with port"},
+		{"localhost:3000", "http://localhost:3000/cb", "explicit localhost, schemeless entry"},
+		{"http://frontend:3000", "http://frontend:3000/cb", "in-cluster service name"},
+		{"http://authorizer", "http://authorizer/cb", "bare in-cluster name, default port"},
+		{"*.example.com", "https://app.example.com/cb", "subdomain wildcard"},
+		{"*.example.com:8080", "https://app.example.com:8080/cb", "subdomain wildcard with port"},
+		{"https://app*.acme.com", "https://app42.acme.com/cb", "mid-label wildcard"},
+		{"https://app.example.com", "https://app.example.com/cb", "exact origin"},
+	} {
+		t.Run(tc.why, func(t *testing.T) {
+			assert.True(t, IsValidRedirectURI(tc.candidate, []string{tc.cfg}, host),
+				"%q must still permit %q", tc.cfg, tc.candidate)
+			assert.True(t, IsValidRedirectURI(tc.candidate, []string{"https://other.example.com", tc.cfg}, host),
+				"%q must still permit %q beside another entry", tc.cfg, tc.candidate)
+			assert.True(t, IsValidOrigin(tc.candidate, []string{tc.cfg}),
+				"%q must still permit CORS from %q", tc.cfg, tc.candidate)
+		})
+	}
+}
+
+// The default config is untouched: "*" alone still means "redirects to my own
+// hostname only, CORS open". This is the behaviour the pre-fix one-element
+// special case gave, and most deployments run exactly this.
+func TestDefaultWildcardConfigUnchanged(t *testing.T) {
+	const host = "https://auth.example.com"
+	assert.True(t, IsValidRedirectURI("https://auth.example.com/cb", []string{"*"}, host))
+	assert.False(t, IsValidRedirectURI("https://evil.com/cb", []string{"*"}, host))
+	assert.True(t, IsValidOrigin("https://anything.example.net", []string{"*"}))
+	// An empty list is still treated as ["*"].
+	assert.True(t, IsValidRedirectURI("https://auth.example.com/cb", nil, host))
+	assert.False(t, IsValidRedirectURI("https://evil.com/cb", nil, host))
+}

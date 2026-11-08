@@ -26,6 +26,23 @@ func normalizeOrigin(raw string) string {
 	return host + ":" + port
 }
 
+// IsWildcardOrigin reports whether one configured allowlist entry means "any
+// host". It is THE single definition of that question: internal/http_handlers'
+// CORS and CSRF middleware and cmd's startup warning all call it, because when
+// they each had their own `o == "*"` the answers disagreed and the disagreement
+// was exploitable.
+//
+// It decides on the NORMALISED value, not the raw string, because the regex
+// splice below also works on the normalised value. "*", " *", "https://*",
+// "http://*", "*/", "*/callback", "*:80" and "*:443" are all spellings of the
+// same entry: normalizeOrigin strips the scheme, the path, a default port and
+// surrounding space, and every one of them collapses to "*". A guard that
+// compared the raw string let all but the first walk straight into the regex
+// and become [^.]*, which is the whole bug this file exists to fix.
+func IsWildcardOrigin(configured string) bool {
+	return normalizeOrigin(configured) == "*"
+}
+
 // originMatches reports whether candidate — an already-normalised host[:port] —
 // is permitted by one configured allowlist entry.
 //
@@ -49,13 +66,25 @@ func originMatches(configured, candidate string) bool {
 	// could return. Letting it through rewrote it as the regex [^.]*, which
 	// matched every dotless host (http://3405803783 is 203.0.113.7 to a browser)
 	// and no dotted one. Refuse it so a third caller cannot reintroduce that.
-	if strings.TrimSpace(configured) == "*" {
+	if IsWildcardOrigin(configured) {
 		return false
 	}
 
 	pattern := normalizeOrigin(configured)
 	if !strings.Contains(pattern, "*") {
 		return pattern == candidate
+	}
+
+	// A wildcard must be anchored by a literal dot somewhere in the entry.
+	// Without one the splice below produces a pattern made only of [^.]* and
+	// literals that contain no dot — "**" becomes [^.]*[^.]*, "*:3000" becomes
+	// [^.]*:3000 — and those match a dotless host, which is the same token-theft
+	// primitive as a bare "*": a browser reads http://3405803783 as 203.0.113.7.
+	// Every legitimate form keeps its dots ("*.example.com",
+	// "*.example.com:8080", "app*.acme.com"), so requiring one costs nothing and
+	// closes the whole family at once instead of enumerating spellings.
+	if !strings.Contains(pattern, ".") {
+		return false
 	}
 
 	quoted := regexp.QuoteMeta(pattern)
@@ -100,7 +129,7 @@ func IsValidRedirectURI(redirectURI string, allowedOrigins []string, hostname st
 		// originMatches, where it became [^.]* and accepted any dotless host, so
 		// an attacker writing their IPv4 address as a single decimal number
 		// received the victim's tokens from /authorize.
-		if strings.TrimSpace(origin) == "*" {
+		if IsWildcardOrigin(origin) {
 			if redirectOrigin == normalizeOrigin(hostname) {
 				return true
 			}
@@ -128,7 +157,7 @@ func IsValidOrigin(inputURL string, allowedOriginsConfig []string) bool {
 		// IsValidRedirectURI: in a mixed list it used to reach originMatches and
 		// silently narrow the allowlist to dotless hosts only, which is neither
 		// what the operator wrote nor safe.
-		if strings.TrimSpace(origin) == "*" {
+		if IsWildcardOrigin(origin) {
 			return true
 		}
 		if originMatches(origin, currentOrigin) {
