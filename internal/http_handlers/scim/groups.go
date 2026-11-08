@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	svcscim "github.com/authorizerdev/authorizer/internal/service/scim"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -70,19 +71,18 @@ func toGroupResource(orgID string, g *schemas.ScimGroup, memberIDs []string) sci
 	return res
 }
 
-// groupLocation builds the absolute SCIM location URI for a group, best-effort
-// from the request (scheme+host, /scim/v2 mount). Returns "" when the host is
-// unknown, in which case meta.location is omitted.
+// groupLocation builds the absolute SCIM location URI for a group
+// (scheme+host, /scim/v2 mount).
+//
+// The base comes from parsers.GetHostFromRequest, which returns --url when the
+// operator set one and only then falls back to request headers. This used to
+// read c.Request.Host and X-Forwarded-Proto directly, which made it the one
+// place in the server that still let a caller choose the host of a URL the
+// server hands back — a SCIM client sending its own Host got a meta.location
+// pointing at a host of its choosing, even on a deployment that had pinned
+// --url precisely to stop that.
 func groupLocation(c *gin.Context, id string) string {
-	host := c.Request.Host
-	if host == "" {
-		return ""
-	}
-	scheme := "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
-		scheme = "https"
-	}
-	return scheme + "://" + host + "/scim/v2/Groups/" + id
+	return parsers.GetHostFromRequest(c.Request) + "/scim/v2/Groups/" + id
 }
 
 // parseGroup decodes a SCIM Group create/replace body into the service input.

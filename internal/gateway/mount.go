@@ -212,26 +212,113 @@ func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientCo
 	return authorizerv1.RegisterAuthorizerAdminServiceHandler(ctx, mux, conn)
 }
 
+// refusedForwardingHeaders is the set of request headers a client must never be
+// able to put into gRPC metadata, keyed by textproto.CanonicalMIMEHeaderKey.
+//
+// Three of these are load-bearing today:
+//
+//   - X-Forwarded-For and X-Real-Ip decide the client IP used for rate
+//     limiting, the admin-secret lockout and audit logs
+//     (transport.clientIPFromGRPC reads them out of metadata).
+//   - X-Authorizer-Url decides the host of emailed password-reset and
+//     magic-link URLs and the `iss` claim of the tokens minted from them
+//     (transport.hostURLFromGRPC).
+//
+// X-Forwarded-Host is NOT one of them: hostURLFromGRPC reads x-authorizer-url,
+// and nothing in this repo reads x-forwarded-host. It is listed because
+// runtime.AnnotateContext writes it from the incoming header, making it the one
+// client-chosen value that does reach metadata — so the next reader looking for
+// "the request host" would find it sitting there.
+//
+// The rest are the standard vendor and proxy spellings of the same two claims.
+// Nothing in this repo reads them yet — gin's TrustedPlatform is unset, so even
+// gin's own ClientIP ignores them. They are listed because the cost of the list
+// is one map entry and the cost of omitting one is a silent spoof the next time
+// a handler, an interceptor or a logging field reaches for "the client IP" or
+// "the request host". A header a client can spell must not reach metadata at
+// all, so the decision cannot be made wrongly later.
+//
+// Add a key here rather than at the call site: incomingHeaderMatcher and its
+// test both read this map, so a new entry is exercised the moment it lands.
+var refusedForwardingHeaders = map[string]struct{}{
+	// Client-IP claims.
+	"X-Forwarded-For":          {},
+	"X-Real-Ip":                {},
+	"X-Client-Ip":              {},
+	"X-Cluster-Client-Ip":      {},
+	"X-Originating-Ip":         {},
+	"X-Original-Forwarded-For": {},
+	"X-Remote-Ip":              {},
+	"X-Remote-Addr":            {},
+	"True-Client-Ip":           {},
+	"Cf-Connecting-Ip":         {},
+	"Cf-Connecting-Ipv6":       {},
+	"Fastly-Client-Ip":         {},
+	"Fly-Client-Ip":            {},
+	"X-Azure-Clientip":         {},
+	"X-Azure-Socketip":         {},
+	"X-Appengine-User-Ip":      {},
+	"X-Envoy-External-Address": {},
+
+	// Host, scheme and port claims. These decide absolute URLs the server
+	// emails or returns, so they poison links rather than labels.
+	"X-Forwarded-Host":   {},
+	"X-Authorizer-Url":   {},
+	"X-Forwarded-Proto":  {},
+	"X-Forwarded-Scheme": {},
+	"X-Forwarded-Port":   {},
+	"X-Forwarded-Server": {},
+	"X-Original-Host":    {},
+	"X-Original-Url":     {},
+	"X-Rewrite-Url":      {},
+	"X-Host":             {},
+
+	// RFC 7239 and its pre-standard spelling carry both claims at once.
+	"Forwarded":   {},
+	"X-Forwarded": {},
+}
+
 // incomingHeaderMatcherOption builds the gateway's inbound header policy.
 //
 // Extracted as a named function so the test suite drives the REAL policy rather
 // than a copy that can drift — the drift is the vulnerability here.
 func incomingHeaderMatcherOption() runtime.ServeMuxOption {
-	return runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+	return runtime.WithIncomingHeaderMatcher(incomingHeaderMatcher(runtime.DefaultHeaderMatcher))
+}
+
+// incomingHeaderMatcher is the policy itself, over a fallback matcher.
+//
+// The fallback is a parameter for one reason. v2.33.0's DefaultHeaderMatcher
+// already refuses every non-permanent header, and none of the keys below is a
+// permanent header, so against that fallback the refusal list changes no byte of
+// metadata — a test driving only it passes even with the list emptied.
+// runtime.LegacyHeaderMatcher is the behaviour the list exists to survive and it
+// still ships, so the test drives BOTH. Keep it that way: a policy whose test
+// passes when the policy is deleted is not tested.
+func incomingHeaderMatcher(fallback func(string) (string, bool)) func(string) (string, bool) {
+	return func(key string) (string, bool) {
 
 		if strings.EqualFold(key, "x-authorizer-admin-secret") {
 			return key, true
 		}
-		// Refuse client-supplied forwarding headers outright.
+		// Refuse client-supplied forwarding headers outright. The full set is
+		// refusedForwardingHeaders, declared above this function.
 		//
-		// DefaultHeaderMatcher strips a "Grpc-Metadata-" prefix and forwards
-		// whatever follows (runtime/mux.go), so a REST client sending
-		// `Grpc-Metadata-X-Forwarded-For: 1.2.3.4` gets a real
+		// A matcher that strips a "Grpc-Metadata-" prefix and forwards
+		// whatever follows lets a REST client sending
+		// `Grpc-Metadata-X-Forwarded-For: 1.2.3.4` get a real
 		// `x-forwarded-for` metadata entry — placed BEFORE the authoritative
 		// chain AnnotateContext appends afterwards. That smuggled entry
 		// reinstated the exact spoof GHSA-93hc-xq3w-xw87 is about: the
 		// admin-secret lockout bucketed on an attacker-chosen value again,
 		// over REST, unauthenticated.
+		//
+		// That was DefaultHeaderMatcher's behaviour when this filter was
+		// written. v2.33.0 moved it to runtime.LegacyHeaderMatcher and made the
+		// default refuse every non-permanent header, so the vector is closed
+		// upstream as well. This filter is now the lock that survives the
+		// default changing back — which is why its test drives the legacy
+		// matcher too, not only the one that ships.
 		//
 		// The raw `X-Forwarded-For` header is already safe (AnnotateContext
 		// handles it itself and DefaultHeaderMatcher does not forward it,
@@ -253,11 +340,12 @@ func incomingHeaderMatcherOption() runtime.ServeMuxOption {
 		// injected via runtime.WithMetadata (above), a separate option which
 		// operates on the already-parsed request and never passes through this
 		// matcher.
-		switch textproto.CanonicalMIMEHeaderKey(strings.TrimPrefix(
-			textproto.CanonicalMIMEHeaderKey(key), runtime.MetadataHeaderPrefix)) {
-		case "X-Forwarded-For", "X-Real-Ip", "X-Forwarded-Host", "X-Authorizer-Url":
+		if _, refused := refusedForwardingHeaders[textproto.CanonicalMIMEHeaderKey(
+			strings.TrimPrefix(
+				textproto.CanonicalMIMEHeaderKey(key), runtime.MetadataHeaderPrefix),
+		)]; refused {
 			return "", false
 		}
-		return runtime.DefaultHeaderMatcher(key)
-	})
+		return fallback(key)
+	}
 }
