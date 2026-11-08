@@ -438,6 +438,12 @@ lint-tools:
 lint-go: lint-tools
 	golangci-lint run ./...
 
+# Scan the module for known vulnerabilities. Fails on any reachable finding that
+# .govulncheck-allow does not list; CI runs this exact target.
+.PHONY: vulncheck
+vulncheck: ## Run govulncheck, gated on the .govulncheck-allow allowlist
+	./scripts/govulncheck.sh
+
 # Prettier in --check mode: fails (non-zero) if any web source is unformatted.
 lint-ts:
 	cd web/app && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'
