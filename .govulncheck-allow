@@ -1,0 +1,37 @@
+# Vulnerabilities govulncheck may report without failing CI.
+#
+# Format: one OSV id per line, everything after # is a comment. scripts/
+# govulncheck.sh reads this file and fails on any reachable finding that is not
+# listed here.
+#
+# An entry states why the finding does not apply, how that was checked, and a
+# review date. Remove the entry as soon as the finding stops being reported.
+# An entry is never a way to carry a real vulnerability past CI: if the finding
+# applies, fix the dependency instead.
+
+GO-2026-6909
+#   Module:  github.com/crewjam/saml, reported against ParseXMLResponse, which
+#            internal/http_handlers/saml_sp.go does call.
+#   Status:  FALSE POSITIVE. Both vulnerabilities it describes are fixed in the
+#            v0.6.2 we build against. The OSV record is what is wrong: its
+#            affected range is `{"introduced": "0"}` with no `fixed` event, so
+#            govulncheck treats every published version as affected, while the
+#            advisory text itself says "through v0.5.1".
+#   Checked: read the two sites in the module cache, v0.5.1 against v0.6.2.
+#            1. Nil-pointer in validateAssertion: v0.5.1 declares
+#               `Issuer *Issuer` (schema.go) and dereferences
+#               `assertion.Issuer.Value` with no nil check
+#               (service_provider.go:1185). v0.6.2 declares `Issuer Issuer`, a
+#               value, so the dereference at service_provider.go:2124 cannot
+#               panic.
+#            2. Namespace-blind Subject.NameID: v0.5.1 declares
+#               `NameID *NameID` with NO xml tag (schema.go:799), so
+#               encoding/xml matches <NameID> in any namespace. v0.6.2 declares
+#               `NameID *NameID` tagged
+#               `xml:"urn:oasis:names:tc:SAML:2.0:assertion NameID"`
+#               (schema.go:1251), so a foreign-namespace element no longer
+#               populates it.
+#   Action:  the fix is upstream in the OSV data, not here. Report the missing
+#            `fixed` event on https://github.com/golang/vulndb/issues/6909 and
+#            drop this entry once the range is corrected.
+#   Review:  2026-12-08

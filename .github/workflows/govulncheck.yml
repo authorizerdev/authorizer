@@ -7,6 +7,8 @@ on:
       - go.mod
       - go.sum
       - "**/*.go"
+      - .govulncheck-allow
+      - scripts/govulncheck.sh
       - .github/workflows/govulncheck.yml
   push:
     branches: [main]
@@ -30,7 +32,9 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - uses: golang/govulncheck-action@v1
-        with:
-          go-version-file: go.mod
-          go-package: ./...
+      # Not golang/govulncheck-action: it has no allowlist, so one finding we
+      # cannot act on leaves this check permanently red. scripts/govulncheck.sh
+      # fails on any reachable finding that .govulncheck-allow does not list,
+      # with a written reason. `make vulncheck` runs the same script.
+      - name: Run govulncheck
+        run: make vulncheck
