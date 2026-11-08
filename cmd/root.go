@@ -41,6 +41,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Default values for flags (single source of truth for init and applyFlagDefaults).
@@ -478,7 +479,10 @@ func runRoot(c *cobra.Command, args []string) {
 	// friendly default but in production it pairs poorly with credentialed
 	// requests. Operators should set an explicit allowlist before deploying.
 	for _, o := range rootArgs.config.AllowedOrigins {
-		if o == "*" {
+		// Same shared predicate as the CORS/CSRF middleware, so the warning
+		// fires for every spelling that actually behaves as a wildcard (" *",
+		// "https://*", "*:443"), not just the literal one.
+		if validators.IsWildcardOrigin(o) {
 			log.Warn().Msg("AllowedOrigins contains \"*\" — this is unsafe for production. Set --allowed-origins to an explicit list of trusted origins. CSRF middleware will fall back to same-origin enforcement for state-changing requests.")
 			break
 		}
