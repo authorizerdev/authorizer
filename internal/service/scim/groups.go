@@ -2,6 +2,7 @@ package scim
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -353,12 +354,22 @@ func (p *provider) syncMembers(ctx context.Context, orgID, groupID string, add, 
 	var writes, deletes []engine.TupleKey
 	for _, uid := range dedupTrim(add) {
 		subj := userSubject(uid)
-		if present[subj] {
+		// Cross-tenant gate: only ACTIVE org members may hold this org's group
+		// grants. Checked BEFORE the present[subj] short-circuit, not after: a
+		// re-sync that re-lists a member it already has performs no write, so a
+		// gate behind the short-circuit never ran and a deprovisioned member
+		// survived every subsequent PUT /Groups/{id}. An inactive member that is
+		// already present is surplus — delete, do not merely skip.
+		membership, mErr := p.StorageProvider.GetOrgMembership(ctx, orgID, uid)
+		if mErr != nil || !membership.Active() {
+			log.Debug().Str("user_id", uid).Msg("member is not active in this org: refusing grant")
+			if present[subj] {
+				deletes = append(deletes, engine.TupleKey{User: subj, Relation: groupMemberRelation, Object: obj})
+				present[subj] = false
+			}
 			continue
 		}
-		// Cross-tenant gate: only org members may be added to this org's group.
-		if _, err := p.StorageProvider.GetOrgMembership(ctx, orgID, uid); err != nil {
-			log.Debug().Str("user_id", uid).Msg("skipping member add: not a member of this org")
+		if present[subj] {
 			continue
 		}
 		writes = append(writes, engine.TupleKey{User: subj, Relation: groupMemberRelation, Object: obj})
@@ -447,4 +458,92 @@ func dedupTrim(ids []string) []string {
 		out = append(out, id)
 	}
 	return out
+}
+
+// orgFgaPurgePageSize is the ReadTuples page size for purgeOrgFgaTuplesForUser.
+const orgFgaPurgePageSize = 100
+
+// purgeOrgFgaTuplesForUser deletes every FGA tuple that names this user inside
+// this ONE organization, and nothing outside it.
+//
+// This is what actually ends a SCIM-deprovisioned user's access to the org.
+// Deprovisioning used to work by stamping the global user.RevokedTimestamp, and
+// that single flag is what check_permissions, list_permissions and
+// required_relations were relying on. Now that the marker is deliberately
+// withheld for a user who is still active in another organization, the grants
+// themselves have to go, or the deprovision is cosmetic: the membership row says
+// inactive while the tuples keep answering "allowed".
+//
+// Tenant scoping is by the object's org prefix, the same boundary groupObject
+// builds: an org-scoped object id is always "<type>:<orgID>/<rest>", so
+// requiring that prefix cannot reach another org's objects. A tuple whose object
+// carries no org prefix is global and is left alone — it was not this org's
+// grant to give and is not this org's to take.
+func (p *provider) purgeOrgFgaTuplesForUser(ctx context.Context, orgID, userID string) error {
+	if p.AuthzEngine == nil {
+		return nil
+	}
+	orgID = strings.TrimSpace(orgID)
+	userID = strings.TrimSpace(userID)
+	if orgID == "" || userID == "" {
+		return nil
+	}
+	subject := userSubject(userID)
+	// "group:<org>/", "role:<org>/", … — match on the part after the type.
+	orgScope := orgID + "/"
+
+	var stale []engine.TupleKey
+	token := ""
+	for {
+		page, err := p.AuthzEngine.ReadTuples(ctx, engine.ReadTuplesFilter{
+			PageSize:          orgFgaPurgePageSize,
+			ContinuationToken: token,
+		})
+		if err != nil {
+			return fmt.Errorf("read tuples: %w", err)
+		}
+		for _, t := range page.Tuples {
+			// The user may appear on either side: as the subject of a grant, or
+			// as the object of one pointing at the account. Leaving either behind
+			// is a live grant to a dead membership.
+			if t.User != subject && t.Object != subject {
+				continue
+			}
+			other := t.Object
+			if t.Object == subject {
+				other = t.User
+			}
+			if objectOrgScope(other) == orgScope {
+				stale = append(stale, t)
+			}
+		}
+		if page.ContinuationToken == "" {
+			break
+		}
+		token = page.ContinuationToken
+	}
+	if len(stale) == 0 {
+		return nil
+	}
+	if err := p.AuthzEngine.DeleteTuples(ctx, stale); err != nil {
+		return fmt.Errorf("delete %d tuples: %w", len(stale), err)
+	}
+	p.Log.Debug().Str("func", "scim.purgeOrgFgaTuplesForUser").Str("org_id", orgID).
+		Str("user_id", userID).Int("deleted", len(stale)).Msg("purged org fga tuples")
+	return nil
+}
+
+// objectOrgScope returns the "<orgID>/" prefix of an FGA object id, or "" when
+// the id carries no org namespace. "group:acme/eng" -> "acme/"; a userset
+// suffix ("group:acme/eng#member") and a bare "user:u1" are both handled.
+func objectOrgScope(object string) string {
+	_, rest, ok := strings.Cut(object, ":")
+	if !ok {
+		return ""
+	}
+	org, _, ok := strings.Cut(rest, "/")
+	if !ok || org == "" {
+		return ""
+	}
+	return org + "/"
 }

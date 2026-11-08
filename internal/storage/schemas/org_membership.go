@@ -40,8 +40,31 @@ type OrgMembership struct {
 	// Roles is a comma-separated list of per-organization roles.
 	Roles string `json:"roles" bson:"roles" cql:"roles" dynamo:"roles"`
 
+	// DeprovisionedAt marks this membership as deprovisioned by SCIM, in unix
+	// seconds. nil means the membership is active.
+	//
+	// It is a nullable timestamp rather than an `IsActive bool` on purpose. A
+	// bool's zero value is false, and none of the six backends can backfill a
+	// new column for rows that already exist: SQL AutoMigrate adds it as NULL,
+	// Cassandra's ALTER TABLE leaves it unset, and the document stores simply
+	// have no such key. Every one of those decodes into Go as false, which with
+	// an `IsActive` field would read as "deprovisioned" and lock every existing
+	// member out of their organization on upgrade. Absent therefore has to mean
+	// active, and it mirrors User.RevokedTimestamp, which already works this way.
+	DeprovisionedAt *int64 `json:"deprovisioned_at" bson:"deprovisioned_at" cql:"deprovisioned_at" dynamo:"deprovisioned_at"`
+
 	CreatedAt int64 `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt int64 `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// Active reports whether this membership grants access to its organization.
+//
+// Every access-control path that resolves a membership must gate on this, not
+// merely on the membership existing: a deprovisioned row is kept so that SCIM
+// can report `active: false` and later reactivate it. Management paths (SCIM
+// GET/PATCH/PUT) deliberately still see deprovisioned rows.
+func (m *OrgMembership) Active() bool {
+	return m != nil && m.DeprovisionedAt == nil
 }
 
 // ParsedRoles returns Roles as a slice: comma-separated, whitespace trimmed,

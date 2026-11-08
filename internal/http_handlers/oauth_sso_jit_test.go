@@ -3,6 +3,7 @@ package http_handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 type jitStore struct {
 	storage.Provider
 	federated      map[string]*schemas.FederatedIdentity // key: org|issuer|sub
+	memberships    map[string]*schemas.OrgMembership     // key: org|user
 	usersByID      map[string]*schemas.User
 	usersByEmail   map[string]*schemas.User
 	addUserCalls   int
@@ -34,6 +36,7 @@ type jitStore struct {
 func newJITStore() *jitStore {
 	return &jitStore{
 		federated:    map[string]*schemas.FederatedIdentity{},
+		memberships:  map[string]*schemas.OrgMembership{},
 		usersByID:    map[string]*schemas.User{},
 		usersByEmail: map[string]*schemas.User{},
 	}
@@ -99,7 +102,20 @@ func (s *jitStore) AddOrgMembership(_ context.Context, m *schemas.OrgMembership)
 	if m.ID == "" {
 		m.ID = uuid.New().String()
 	}
+	// Recorded, because the real provider does: a returning federated principal
+	// is gated on an ACTIVE membership of the org, so a fake that forgot the
+	// membership it was just handed would make a legitimate re-login look denied.
+	s.memberships[m.OrgID+"|"+m.UserID] = m
 	return m, nil
+}
+
+func (s *jitStore) GetOrgMembership(_ context.Context, orgID, userID string) (*schemas.OrgMembership, error) {
+	if m, ok := s.memberships[orgID+"|"+userID]; ok {
+		return m, nil
+	}
+	// Any error denies: the gate is deliberately fail-closed, so an outage and
+	// an absent row both refuse the login rather than letting it through.
+	return nil, fmt.Errorf("org membership not found")
 }
 
 func newJITProvider(store *jitStore, signupEnabled bool) *httpProvider {
@@ -305,4 +321,40 @@ func TestFederatedMatrix_OrgScopesTheIdentity(t *testing.T) {
 	_, _, err = h.jitProvisionSSOUser(context.Background(), &ssoFlowState{OrgID: "org-2", ExpectedIssuer: ssoTestIssuer},
 		jitClaims("shared-subject", "user@corp.example.com"))
 	require.Error(t, err, "an identity is scoped to its org; org-2 must not resolve org-1's principal")
+}
+
+// A SCIM deprovision scoped to ONE organization deliberately leaves the global
+// user row untouched when the user is still active elsewhere, so
+// RevokedTimestamp is nil and can no longer carry the decision on its own. A
+// returning federated principal whose membership of THIS org was deprovisioned
+// must be refused here — otherwise they log straight back in at the org's own
+// SSO endpoint and are issued a fresh session carrying its derived roles, and
+// the deprovision the IdP asked for achieved nothing.
+func TestSSOJIT_DeprovisionedMemberCannotReturn(t *testing.T) {
+	store := newJITStore()
+	h := newJITProvider(store, true)
+	flow := jitFlow()
+
+	first, isSignUp, err := h.jitProvisionSSOUser(context.Background(), flow, jitClaims("upstream-3", "carol@corp.example.com"))
+	require.NoError(t, err)
+	require.True(t, isSignUp)
+
+	// Re-login works while the membership is active.
+	_, _, err = h.jitProvisionSSOUser(context.Background(), flow, jitClaims("upstream-3", "carol@corp.example.com"))
+	require.NoError(t, err, "precondition: an active member may return")
+
+	// The org's IdP deprovisions them. The GLOBAL row stays active, exactly as
+	// the advisory fix intends.
+	for _, m := range store.memberships {
+		now := time.Now().Unix()
+		m.DeprovisionedAt = &now
+	}
+	require.Nil(t, store.usersByID[first.ID].RevokedTimestamp,
+		"precondition: the global revocation marker is deliberately NOT set")
+
+	user, isSignUp, err := h.jitProvisionSSOUser(context.Background(), flow, jitClaims("upstream-3", "carol@corp.example.com"))
+	require.Error(t, err, "a deprovisioned member must not be able to log back in")
+	assert.Nil(t, user)
+	assert.False(t, isSignUp)
+	assert.Contains(t, err.Error(), "not an active member")
 }

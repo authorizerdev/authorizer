@@ -544,9 +544,15 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}
 
 	// OrgMembership table and indexes
-	orgMembershipCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, user_id text, roles text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgMembership)
+	orgMembershipCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, user_id text, roles text, deprovisioned_at bigint, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgMembership)
 	if err = session.Query(orgMembershipCollectionQuery).Exec(); err != nil {
 		return nil, err
+	}
+	// add deprovisioned_at on the org_membership table (SCIM per-org deprovision)
+	orgMembershipDeprovisionedAtAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD deprovisioned_at bigint`, KeySpace, schemas.Collections.OrgMembership)
+	if err = session.Query(orgMembershipDeprovisionedAtAlterQuery).Exec(); err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter table as deprovisioned_at column exists")
+		// continue
 	}
 	orgMembershipOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_org_membership_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.OrgMembership)
 	if err = session.Query(orgMembershipOrgIndex).Exec(); err != nil {
