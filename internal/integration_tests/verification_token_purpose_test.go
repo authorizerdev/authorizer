@@ -194,7 +194,7 @@ func TestVerificationTokenPurposeBindingREST(t *testing.T) {
 	}
 	hitVerifyEmail := func(t *testing.T, token string) *http.Response {
 		t.Helper()
-		resp, err := httpClient.Get(ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(token) +
+		resp, err := httpClient.Get(testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(token) +
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback"))
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = resp.Body.Close() })

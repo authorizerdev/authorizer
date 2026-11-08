@@ -61,7 +61,7 @@ func TestVerifyEmailDoesNotLeakTokensInRedirect(t *testing.T) {
 	require.NotNil(t, vreq)
 
 	resp, err := noRedirectClient().Get(
-		ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+		testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback"))
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
@@ -126,7 +126,7 @@ func TestVerifyEmailRejectsUnregisteredRedirect(t *testing.T) {
 
 	t.Run("a sibling path under the same origin is refused", func(t *testing.T) {
 		resp, err := noRedirectClient().Get(
-			ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+			testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 				"&redirect_uri=" + url.QueryEscape("http://localhost:3000/attacker-controlled-path"))
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
@@ -138,7 +138,7 @@ func TestVerifyEmailRejectsUnregisteredRedirect(t *testing.T) {
 
 	t.Run("the registered URI still works", func(t *testing.T) {
 		resp, err := noRedirectClient().Get(
-			ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+			testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 				"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback"))
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
@@ -173,7 +173,7 @@ func TestVerifyEmailWildcardOriginUnchanged(t *testing.T) {
 	require.NoError(t, err)
 
 	resp, err := noRedirectClient().Get(
-		ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+		testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 			"&redirect_uri=" + url.QueryEscape("https://evil.example.com/steal"))
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
@@ -223,7 +223,7 @@ func TestVerifyEmailStillDeliversCodeForAuthorizeFlow(t *testing.T) {
 	})))
 
 	resp, err := noRedirectClient().Get(
-		ts.HttpServer.URL + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
+		testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
 			"&state=" + url.QueryEscape(state) +
 			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback"))
 	require.NoError(t, err)

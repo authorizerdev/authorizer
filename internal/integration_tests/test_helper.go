@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -97,7 +98,7 @@ func (m *mockDNSResolver) LookupTXT(_ context.Context, name string) ([]string, e
 func createContext(s *testSetup) (*http.Request, context.Context) {
 	req, err := http.NewRequest(
 		http.MethodPost,
-		"http://"+s.HttpServer.Listener.Addr().String()+"/graphql",
+		testAuthorizerHost(s)+"/graphql",
 		nil,
 	)
 	if err != nil {
@@ -128,7 +129,21 @@ func testAccessToken(t *testing.T, ts *testSetup) string {
 
 // testAuthorizerHost returns the host URL tokens minted via testAccessToken use as iss.
 func testAuthorizerHost(ts *testSetup) string {
-	return "http://" + ts.HttpServer.Listener.Addr().String()
+	// "localhost", not the listener's literal 127.0.0.1. It resolves to the same
+	// loopback address, so requests still reach the test server, but a WebAuthn
+	// relying-party id MUST be a domain: go-webauthn v0.18.2 validates this and
+	// refuses an IP, which is what browsers have always enforced.
+	//
+	// createContext builds its request from this same helper on purpose. The two
+	// must agree: token `iss` and audience checks compare against the host the
+	// request was actually made to, so a helper that said "localhost" while the
+	// requests said "127.0.0.1" fails every audience test.
+	addr := ts.HttpServer.Listener.Addr().String()
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "http://" + addr
+	}
+	return "http://localhost:" + port
 }
 
 // restAccessToken signs up a user via the REST gateway and returns a bearer token.
