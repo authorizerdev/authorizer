@@ -28,7 +28,7 @@
 		"dayjs": "^1.11.13",
 		"graphql": "^16.9.0",
 		"lodash": "^4.17.21",
-		"lucide-react": "^0.469.0",
+		"lucide-react": "^1.70.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
 		"react-dropzone": "^14.3.8",
