@@ -5,6 +5,34 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.5] - 2026-11-14
+
+Security release. Closes two high-severity advisories reported through
+`SECURITY.md` and moves the build to Go 1.27.4 for a reachable `net/http` crash.
+**Upgrading from 2.4.4 is recommended for every deployment**, and is urgent for
+anyone running a mixed `--allowed-origins` list or SCIM across more than one
+organization. See the upgrade notes at the end: SCIM deprovisioning semantics
+change, and `org_memberships` gains one nullable column.
+
+### Security
+
+- **OAuth access tokens could still be redirected to an attacker through a dotless IPv4 `redirect_uri`** ([GHSA-f9fw-76m6-wc75](https://github.com/authorizerdev/authorizer/security/advisories/GHSA-f9fw-76m6-wc75), high; incomplete fix of [GHSA-h29v-hj44-q8cv](https://github.com/advisories/GHSA-h29v-hj44-q8cv) / CVE-2026-54072) ([#853](https://github.com/authorizerdev/authorizer/pull/853)). `IsValidRedirectURI` special-cased `*` only when it was the entire allowlist. In a mixed list such as `*,https://app.example.com` the bare `*` fell through to the origin matcher, which re-opened it as the regex `[^.]*` — matching every host without a dot and no dotted one. A browser reads `http://3405803783/` as `203.0.113.7`, so a crafted `/authorize` link delivered the signed-in user's access token to any IPv4 address; the same check guards the logout, password-reset and magic-link redirects. A bare `*` now means "this server's own origin" wherever it appears in the list, every spelling that normalises to `*` (`https://*`, `*:443`, `*/`) is caught by one shared predicate, and a wildcard entry with no literal dot (`**`, `*:3000`) is refused outright. Affected 2.1.0 through 2.4.4, only when `--allowed-origins` mixes a bare `*` with explicit origins and the client has no registered redirect URIs.
+- **One organization's SCIM token could deactivate a shared user in every organization** ([GHSA-93q4-j2hq-5qgg](https://github.com/authorizerdev/authorizer/security/advisories/GHSA-93q4-j2hq-5qgg), high) ([#854](https://github.com/authorizerdev/authorizer/pull/854)). SCIM tokens are issued per organization, but `DELETE /scim/v2/Users/{id}` and `PATCH active:false` wrote `is_active=false` and `revoked_timestamp` to the global user row and deleted every session and session token, so organization A could lock a user out of organization B — and `PATCH active:true` could lift B's lock in the other direction. Deprovisioning is now recorded on A's membership only; the global account is deactivated only when no other active membership remains. A deprovisioned membership also loses A's FGA grants and A's SSO sign-in, and membership existence alone no longer confers org-admin authority. Affected 2.3.0-rc.10 through 2.4.4.
+- **Client-chosen forwarding headers no longer reach gRPC metadata** ([#870](https://github.com/authorizerdev/authorizer/pull/870)). The REST gateway refused 4 of the ~29 standard client-IP and host headers. `X-Forwarded-For` / `X-Real-Ip` decide the client IP used for rate limiting, the admin-secret lockout and audit logs, and `X-Authorizer-Url` decides the host of emailed reset and magic-link URLs; all known spellings are now dropped before metadata is built. SCIM `meta.location` for groups now comes from `--url` rather than the request `Host`.
+- **Go toolchain 1.27.4** for [GO-2026-6859](https://pkg.go.dev/vuln/GO-2026-6859) (HTTP/1 server crash via a `MaxBytesReader` header race in `net/http`), via 1.27.3 for the advisories it patches. The release image builder is now pinned to `golang:1.27.4-alpine3.24` instead of the floating `golang:1.27-alpine3.23` ([#871](https://github.com/authorizerdev/authorizer/pull/871), [#890](https://github.com/authorizerdev/authorizer/pull/890)).
+- **crewjam/saml bumped from v0.5.1 to v0.6.3.** v0.5.1 let a signed assertion carry a `<NameID>` in a foreign namespace, which is the value SAML JIT provisioning keys on ([#828](https://github.com/authorizerdev/authorizer/pull/828), [#890](https://github.com/authorizerdev/authorizer/pull/890)). govulncheck still reports GO-2026-6909 against every version because its OSV record has no `fixed` event; that entry is a documented false positive in `.govulncheck-allow`.
+
+### Changed
+
+- **govulncheck gates CI** on a written allowlist (`.govulncheck-allow`, `make vulncheck`): any reachable finding not listed with a reason fails the build ([#872](https://github.com/authorizerdev/authorizer/pull/872)).
+- **Dependencies.** Go modules upgraded across the board (AWS SDK, pgx, goose, gRPC, storage drivers). The login app and dashboard move to React 19, Vite 8 and TypeScript 7, with `baseUrl` dropped from both tsconfigs ([#889](https://github.com/authorizerdev/authorizer/pull/889)). Alpine runtime image 3.24.3.
+
+### Upgrade notes
+
+- **SCIM deprovisioning is now per organization.** An IdP that deprovisions a user who also belongs to another organization will see that user stay globally active and keep their other sessions; the user loses access to the deprovisioning organization only. A user whose last active membership is deprovisioned is deactivated globally, as before. SCIM `GET` and `filter=active eq ...` report the membership's state, not the global account's.
+- **One new nullable column.** `org_memberships.deprovisioned_at` (unix seconds) is added by AutoMigrate on SQL backends and by `ALTER TABLE` on Cassandra/ScyllaDB; the document stores need nothing. Absent means active, so existing members are unaffected.
+- **Mixed `--allowed-origins` lists.** If you rely on `*` beside explicit origins, the `*` now admits only this server's own origin as a redirect target. Add any other legitimate redirect origins explicitly. CORS behaviour for a bare `*` is unchanged.
+
 ## [2.4.4] - 2026-10-30
 
 Four of the SQL backends in the supported list could not create their own schema,
