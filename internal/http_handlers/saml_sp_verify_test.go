@@ -37,7 +37,7 @@ const (
 	samlOrgBACSURL     = "https://auth.example.com/oauth/saml/org-b/acs"
 )
 
-// samlNow is the fixed "current" time the tests pin saml.TimeNow to.
+// samlNow is the fixed "current" time the tests pin the SP clock to.
 var samlNow = time.Date(2026, 7, 9, 12, 0, 0, 0, time.UTC)
 
 // samlIdP is a generated test IdP signing keypair + self-signed certificate.
@@ -54,8 +54,7 @@ func newSAMLIdP(t *testing.T) *samlIdP {
 	tmpl := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject:      pkix.Name{CommonName: "test-idp"},
-		// Wide validity window: goxmldsig checks the cert against the real wall
-		// clock (not saml.TimeNow), so this must bracket the actual test run time.
+		// Wide validity window: must bracket both samlNow and the real wall clock.
 		NotBefore: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		NotAfter:  time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
@@ -216,12 +215,9 @@ func samlTestConn(idp *samlIdP) *schemas.TrustedIssuer {
 // parseWith runs buildSAMLServiceProvider + ParseXMLResponse under pinned time.
 func parseWith(t *testing.T, conn *schemas.TrustedIssuer, rawXML string, requestIDs []string) (*saml.Assertion, error) {
 	t.Helper()
-	restore := saml.TimeNow
-	saml.TimeNow = func() time.Time { return samlNow }
-	defer func() { saml.TimeNow = restore }()
-
 	sp, err := buildSAMLServiceProvider(conn, samlTestHost, samlOrgASlug)
 	require.NoError(t, err)
+	sp.Clock = dsig.NewFakeClockAt(samlNow)
 	return sp.ParseXMLResponse([]byte(rawXML), requestIDs, sp.AcsURL)
 }
 
