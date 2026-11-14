@@ -269,7 +269,7 @@ func (h *httpProvider) resumeSAMLIDPFlow(c *gin.Context, orgID, slug, key string
 		HTTPRequest:   c.Request,
 		RequestBuffer: buf,
 		RelayState:    flow.RelayState,
-		Now:           saml.TimeNow(),
+		Now:           time.Now().UTC(),
 	}
 	if err := req.Validate(); err != nil {
 		metrics.RecordSecurityEvent("saml_idp_request_invalid", slug)
@@ -324,7 +324,7 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 		ServiceProviderMetadata: spMetadata,
 		SPSSODescriptor:         &spMetadata.SPSSODescriptors[0],
 		ACSEndpoint:             &spMetadata.SPSSODescriptors[0].AssertionConsumerServices[0],
-		Now:                     saml.TimeNow(),
+		Now:                     time.Now().UTC(),
 	}
 	session := buildSAMLSession(user, sp)
 	attrs, groups := h.mappedAttributesWithGroups(ctx, orgID, user, sp, log)
@@ -433,7 +433,7 @@ func buildSAMLSession(user *schemas.User, sp *schemas.SAMLServiceProvider) *saml
 	if samlNameIDWouldBeEmail(sp, user) {
 		nameID = email
 	}
-	now := saml.TimeNow()
+	now := time.Now().UTC()
 	return &saml.Session{
 		ID:            user.ID,
 		CreateTime:    now,
