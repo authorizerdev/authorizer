@@ -74,15 +74,22 @@ test.describe('Magic link login', () => {
     // redirects (307 Temporary Redirect) - even on error - instead of
     // returning a >=400 status, so a browser landing on the link never sees
     // a raw JSON error page; the error is carried back as a query param on
-    // the /app redirect instead. Confirmed live against this stack: a
-    // genuine first click's Location carries access_token=...; replaying the
-    // exact same link carries error=... instead, with the SAME 307 status
-    // both times. maxRedirects: 0 stops Playwright from auto-following so
-    // the Location header itself can be inspected.
+    // the /app redirect instead. A genuine first click signs the user in via
+    // the session cookie and carries NO tokens in the Location: since 2.4.2
+    // (#798, GHSA-44vr-f829-xfch) tokens never go in this redirect, because an
+    // emailed link's URL lands in mail history, browser history, proxy logs
+    // and Referer headers. Replaying the exact same link carries error=...
+    // instead, with the SAME 307 status both times. maxRedirects: 0 stops
+    // Playwright from auto-following so the Location header itself can be
+    // inspected.
     const first = await request.get(link, { maxRedirects: 0 });
     expect(first.status()).toBe(307);
     const firstLocation = first.headers()['location'];
-    expect(firstLocation).toContain('access_token=');
+    expect(firstLocation).not.toContain('error=');
+    for (const tokenParam of ['access_token=', 'id_token=', 'refresh_token=']) {
+      expect(firstLocation, `${tokenParam} must never be in the redirect`).not.toContain(tokenParam);
+    }
+    expect(first.headers()['set-cookie'] ?? '', 'the session is delivered as a cookie').toContain('_session=');
 
     const second = await request.get(link, { maxRedirects: 0 });
     expect(second.status()).toBe(307);

@@ -43,6 +43,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -260,8 +261,16 @@ func (h *httpProvider) SAMLACSHandler() gin.HandlerFunc {
 
 		assertion, err := sp.ParseXMLResponse(decoded, possibleRequestIDs, sp.AcsURL)
 		if err != nil {
-			// crewjam wraps the real cause in InvalidResponseError.PrivateErr.
-			log.Debug().Err(err).Msg("saml assertion validation failed")
+			// crewjam wraps the real cause in InvalidResponseError.PrivateErr;
+			// its Error() is a fixed "Authentication failed". Log the private
+			// cause (debug only — it can name certificate and timing details)
+			// so an operator can tell a clock skew from a bad signature.
+			ev := log.Debug().Err(err)
+			var ire *saml.InvalidResponseError
+			if errors.As(err, &ire) && ire.PrivateErr != nil {
+				ev = ev.AnErr("cause", ire.PrivateErr)
+			}
+			ev.Msg("saml assertion validation failed")
 			metrics.RecordSecurityEvent("saml_assertion_invalid", slug)
 			h.samlFail(c, &log, slug, "saml_assertion_invalid", "assertion validation failed")
 			return

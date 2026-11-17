@@ -13,7 +13,7 @@
 	"author": "Lakhan Samani",
 	"license": "Apache-2.0",
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "2.2.0",
+		"@authorizerdev/authorizer-react": "2.2.1",
 		"react": "^19.3.1",
 		"react-dom": "^19.3.1",
 		"react-is": "^19.3.1",
