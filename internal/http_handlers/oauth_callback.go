@@ -117,7 +117,11 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		stateValue := statePayload.State
 		redirectURL := statePayload.RedirectURI
 		hostname := parsers.GetHost(ctx)
-		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
+		// resumeAuthorize: the browser goes back to this server's /app, which
+		// replays the original request to /authorize. Nothing is delivered on
+		// this hop — no code and no appended parameters (see below).
+		resumeAuthorize := isAuthorizeResumeTarget(redirectURL, hostname)
+		if !resumeAuthorize && !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI in OAuth state")
 			ctx.JSON(400, gin.H{"error": "invalid redirect uri"})
 			return
@@ -455,6 +459,24 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Str("state", stateValue).Msg("Failed to get authorize state from store")
 		}
+		switch {
+		case resumeAuthorize:
+			// The resumed /authorize mints its own code after the consent
+			// gate, bound to the client's registered redirect_uri. Minting
+			// one here as well would issue a second, consent-free code for
+			// the same request. The pending entry is still consumed above so
+			// it cannot be redeemed later.
+			code, codeChallenge = "", ""
+		case code != "":
+			// Deprecated: an /authorize request completed by social login
+			// without returning through /authorize. Consent is not applied on
+			// this path, which is why redirect_uri is held to --allowed-origins
+			// here. A login page built on an @authorizerdev/authorizer-react
+			// that sends the client's callback instead of the /app URL still
+			// takes it; a future release refuses it.
+			log.Warn().Str("client_id", authorizeClientID).Str("provider", provider).
+				Msg("social login completed an /authorize request without resuming through /authorize; upgrade @authorizerdev/authorizer-react — this path will be refused in a future release")
+		}
 		if nonce == "" {
 			nonce = uuid.New().String()
 		}
@@ -559,10 +581,17 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				log.Debug().Err(err).Msg("Failed to add session")
 			}
 		})
-		if strings.Contains(redirectURL, "?") {
-			redirectURL = redirectURL + "&" + params
-		} else {
-			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
+		// On the resume path the /app URL already carries the original
+		// /authorize parameters, and /app forwards every one of them back to
+		// /authorize with later duplicates winning. Appending ours would
+		// replace the client's nonce with this callback's random one, so the
+		// redirect goes out exactly as /oauth_login received it.
+		if !resumeAuthorize {
+			if strings.Contains(redirectURL, "?") {
+				redirectURL = redirectURL + "&" + params
+			} else {
+				redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
+			}
 		}
 		// remove state from store
 		_ = h.MemoryStoreProvider.RemoveState(state)
