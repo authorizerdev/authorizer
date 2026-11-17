@@ -274,14 +274,19 @@ test.describe("DCR — dynamically registered clients", () => {
       data: INITIALIZE_RPC,
     });
     expect(init.status(), await init.text()).toBe(200);
-    const sessionId = init.headers()["mcp-session-id"];
-    expect(sessionId).toBeTruthy();
+    // The MCP surface is stateless by design (internal/mcp/server.go: no sticky
+    // sessions, so replicas scale horizontally), and since go-sdk v1.8.0 a
+    // stateless server no longer issues an Mcp-Session-Id at all (SEP-2567, the
+    // spec's sessionless direction). Session IDs are optional for servers, so a
+    // spec-conformant client simply sends none. Asserting the absence pins the
+    // design: if one ever appears, sessions were turned on and replicas would
+    // need session affinity.
+    expect(init.headers()["mcp-session-id"]).toBeUndefined();
 
     const tools = await request.post("/mcp", {
       headers: {
         ...MCP_HEADERS,
         Authorization: `Bearer ${tokens.access_token}`,
-        "Mcp-Session-Id": sessionId,
       },
       data: { jsonrpc: "2.0", id: 2, method: "tools/list" },
     });
@@ -304,11 +309,14 @@ test.describe("DCR — dynamically registered clients", () => {
     expect(refreshed.access_token).toBeTruthy();
     expect(refreshed.access_token).not.toBe(tokens.access_token);
 
+    // A client that still holds a session ID from an older server (before
+    // go-sdk v1.8.0 a stateless server issued one) must keep working: the ID
+    // is ignored, not rejected.
     const afterRefresh = await request.post("/mcp", {
       headers: {
         ...MCP_HEADERS,
         Authorization: `Bearer ${refreshed.access_token}`,
-        "Mcp-Session-Id": sessionId,
+        "Mcp-Session-Id": "issued-by-an-older-server",
       },
       data: { jsonrpc: "2.0", id: 3, method: "tools/list" },
     });
