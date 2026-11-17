@@ -18,6 +18,10 @@ const queryClient = createClient({
 		};
 	},
 	requestPolicy: 'network-only',
+	// The server serves GraphQL on POST only (internal/server/http_routes.go).
+	// @urql/core 6 sends queries as GET by default ("within-url-limit"), which
+	// 404s every query: no meta, no admin session, an empty dashboard.
+	preferGetMethod: false,
 	exchanges: [cacheExchange, fetchExchange],
 });
 
