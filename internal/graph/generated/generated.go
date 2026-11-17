@@ -253,33 +253,32 @@ type ComplexityRoot struct {
 	}
 
 	Meta struct {
-		ClientID                              func(childComplexity int) int
-		IsAppleLoginEnabled                   func(childComplexity int) int
-		IsBasicAuthenticationEnabled          func(childComplexity int) int
-		IsDiscordLoginEnabled                 func(childComplexity int) int
-		IsEmailOtpMfaEnabled                  func(childComplexity int) int
-		IsEmailVerificationEnabled            func(childComplexity int) int
-		IsFacebookLoginEnabled                func(childComplexity int) int
-		IsGithubLoginEnabled                  func(childComplexity int) int
-		IsGoogleLoginEnabled                  func(childComplexity int) int
-		IsLinkedinLoginEnabled                func(childComplexity int) int
-		IsMagicLinkLoginEnabled               func(childComplexity int) int
-		IsMfaEnforced                         func(childComplexity int) int
-		IsMicrosoftLoginEnabled               func(childComplexity int) int
-		IsMobileBasicAuthenticationEnabled    func(childComplexity int) int
-		IsMultiFactorAuthEnabled              func(childComplexity int) int
-		IsOrgDiscoveryEnabled                 func(childComplexity int) int
-		IsPhoneVerificationEnabled            func(childComplexity int) int
-		IsRobloxLoginEnabled                  func(childComplexity int) int
-		IsSignUpEnabled                       func(childComplexity int) int
-		IsSmsOtpMfaEnabled                    func(childComplexity int) int
-		IsSocialLoginAuthorizeResumeSupported func(childComplexity int) int
-		IsStrongPasswordEnabled               func(childComplexity int) int
-		IsTotpMfaEnabled                      func(childComplexity int) int
-		IsTwitchLoginEnabled                  func(childComplexity int) int
-		IsTwitterLoginEnabled                 func(childComplexity int) int
-		IsWebauthnEnabled                     func(childComplexity int) int
-		Version                               func(childComplexity int) int
+		ClientID                           func(childComplexity int) int
+		IsAppleLoginEnabled                func(childComplexity int) int
+		IsBasicAuthenticationEnabled       func(childComplexity int) int
+		IsDiscordLoginEnabled              func(childComplexity int) int
+		IsEmailOtpMfaEnabled               func(childComplexity int) int
+		IsEmailVerificationEnabled         func(childComplexity int) int
+		IsFacebookLoginEnabled             func(childComplexity int) int
+		IsGithubLoginEnabled               func(childComplexity int) int
+		IsGoogleLoginEnabled               func(childComplexity int) int
+		IsLinkedinLoginEnabled             func(childComplexity int) int
+		IsMagicLinkLoginEnabled            func(childComplexity int) int
+		IsMfaEnforced                      func(childComplexity int) int
+		IsMicrosoftLoginEnabled            func(childComplexity int) int
+		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
+		IsMultiFactorAuthEnabled           func(childComplexity int) int
+		IsOrgDiscoveryEnabled              func(childComplexity int) int
+		IsPhoneVerificationEnabled         func(childComplexity int) int
+		IsRobloxLoginEnabled               func(childComplexity int) int
+		IsSignUpEnabled                    func(childComplexity int) int
+		IsSmsOtpMfaEnabled                 func(childComplexity int) int
+		IsStrongPasswordEnabled            func(childComplexity int) int
+		IsTotpMfaEnabled                   func(childComplexity int) int
+		IsTwitchLoginEnabled               func(childComplexity int) int
+		IsTwitterLoginEnabled              func(childComplexity int) int
+		IsWebauthnEnabled                  func(childComplexity int) int
+		Version                            func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -1881,12 +1880,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Meta.IsSmsOtpMfaEnabled(childComplexity), true
-	case "Meta.is_social_login_authorize_resume_supported":
-		if e.ComplexityRoot.Meta.IsSocialLoginAuthorizeResumeSupported == nil {
-			break
-		}
-
-		return e.ComplexityRoot.Meta.IsSocialLoginAuthorizeResumeSupported(childComplexity), true
 	case "Meta.is_strong_password_enabled":
 		if e.ComplexityRoot.Meta.IsStrongPasswordEnabled == nil {
 			break
@@ -4489,13 +4482,6 @@ type Meta {
   # independently in webauthn_login_verify regardless of what the frontend
   # shows.
   is_mfa_enforced: Boolean!
-  # is_social_login_authorize_resume_supported is true when /oauth_login and
-  # /oauth_callback accept this server's own /app as redirect_uri, so a social
-  # login that belongs to an /authorize request can return to /app and resume
-  # through /authorize (client redirect_uri validation + consent). Login UIs
-  # use the resume path only when this is true, so a newer UI keeps working
-  # against an older server. Always true from 2.4.6.
-  is_social_login_authorize_resume_supported: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta
@@ -6638,8 +6624,6 @@ func (ec *executionContext) childFields_Meta(ctx context.Context, field graphql.
 		return ec.fieldContext_Meta_is_webauthn_enabled(ctx, field)
 	case "is_mfa_enforced":
 		return ec.fieldContext_Meta_is_mfa_enforced(ctx, field)
-	case "is_social_login_authorize_resume_supported":
-		return ec.fieldContext_Meta_is_social_login_authorize_resume_supported(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 }
@@ -13054,29 +13038,6 @@ func (ec *executionContext) _Meta_is_mfa_enforced(ctx context.Context, field gra
 	)
 }
 func (ec *executionContext) fieldContext_Meta_is_mfa_enforced(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	return graphql.NewScalarFieldContext("Meta", field, false, false, "Boolean")
-}
-
-func (ec *executionContext) _Meta_is_social_login_authorize_resume_supported(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return ec.fieldContext_Meta_is_social_login_authorize_resume_supported(ctx, field)
-		},
-		func(ctx context.Context) (any, error) {
-			return obj.IsSocialLoginAuthorizeResumeSupported, nil
-		},
-		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
-			return ec.marshalNBoolean2bool(ctx, selections, v)
-		},
-		true,
-		true,
-	)
-}
-func (ec *executionContext) fieldContext_Meta_is_social_login_authorize_resume_supported(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Meta", field, false, false, "Boolean")
 }
 
@@ -30828,11 +30789,6 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_mfa_enforced":
 			out.Values[i] = ec._Meta_is_mfa_enforced(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "is_social_login_authorize_resume_supported":
-			out.Values[i] = ec._Meta_is_social_login_authorize_resume_supported(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

@@ -256,6 +256,27 @@ func TestSocialLoginResumesThroughAuthorize(t *testing.T) {
 		assert.True(t, strings.HasPrefix(loc, legacyRedirect+"?"), "legacy direct redirect unchanged: %s", loc)
 		assert.Contains(t, loc, "state=", "legacy parameters are still appended")
 	})
+
+	t.Run("social login from the hosted /app with no /authorize request", func(t *testing.T) {
+		// A user signing in on /app directly (no client). Before this change the
+		// server's own /app was accepted only under a bare "*" and came back as
+		// /app?state=..&nonce=..; nothing on /app reads either. It is now
+		// accepted under any allowed-origins list and comes back unchanged,
+		// with the session established.
+		appURL := host + "/app"
+		w := do(t, http.MethodGet, "/oauth_login/github?"+url.Values{
+			"redirect_uri": {appURL}, "state": {"standalone-" + uuid.NewString()},
+		}.Encode(), nil)
+		require.Equal(t, http.StatusTemporaryRedirect, w.Code, w.Body.String())
+		idp, err := url.Parse(w.Header().Get("Location"))
+		require.NoError(t, err)
+		cb := do(t, http.MethodGet, "/oauth_callback/github?"+url.Values{
+			"state": {idp.Query().Get("state")}, "code": {"mock-provider-code"},
+		}.Encode(), nil, cookieNamed(w, constants.OAuthStateCookieName))
+		require.Equal(t, http.StatusFound, cb.Code, cb.Body.String())
+		assert.Equal(t, appURL, cb.Header().Get("Location"))
+		assert.NotNil(t, cookieNamed(cb, constants.AppCookieName+"_session"), "the user is signed in on /app")
+	})
 }
 
 func mustParseQuery(t *testing.T, raw string) url.Values {

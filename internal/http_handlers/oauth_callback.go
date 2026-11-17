@@ -471,9 +471,9 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			// Deprecated: an /authorize request completed by social login
 			// without returning through /authorize. Consent is not applied on
 			// this path, which is why redirect_uri is held to --allowed-origins
-			// here. Login pages built on an @authorizerdev/authorizer-react
-			// that predates is_social_login_authorize_resume_supported still
-			// take it; a future release refuses it.
+			// here. A login page built on an @authorizerdev/authorizer-react
+			// that sends the client's callback instead of the /app URL still
+			// takes it; a future release refuses it.
 			log.Warn().Str("client_id", authorizeClientID).Str("provider", provider).
 				Msg("social login completed an /authorize request without resuming through /authorize; upgrade @authorizerdev/authorizer-react — this path will be refused in a future release")
 		}

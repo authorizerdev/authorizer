@@ -49,13 +49,6 @@ type Meta {
   # independently in webauthn_login_verify regardless of what the frontend
   # shows.
   is_mfa_enforced: Boolean!
-  # is_social_login_authorize_resume_supported is true when /oauth_login and
-  # /oauth_callback accept this server's own /app as redirect_uri, so a social
-  # login that belongs to an /authorize request can return to /app and resume
-  # through /authorize (client redirect_uri validation + consent). Login UIs
-  # use the resume path only when this is true, so a newer UI keeps working
-  # against an older server. Always true from 2.4.6.
-  is_social_login_authorize_resume_supported: Boolean!
 }
 
 # AdminMeta is admin-only configuration metadata exposed via the _admin_meta

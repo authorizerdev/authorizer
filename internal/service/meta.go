@@ -41,8 +41,5 @@ func (p *provider) Meta(ctx context.Context, meta RequestMetadata) (*model.Meta,
 		// not affect WebAuthn/passkey as a primary login method.
 		IsWebauthnEnabled: c.EnableMFA && c.EnableWebauthnMFA,
 		IsMfaEnforced:     c.EnforceMFA,
-		// A capability of this build, not an operator setting: social login
-		// may return to /app and resume through /authorize (#855).
-		IsSocialLoginAuthorizeResumeSupported: true,
 	}, nil, nil
 }
