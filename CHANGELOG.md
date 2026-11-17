@@ -5,6 +5,41 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.6] - 2026-11-17
+
+Social login now works for clients whose callback is on another origin, and it
+goes through the consent screen like every other login method. **Upgrading is
+recommended for every deployment that offers social login to OAuth/OIDC
+clients**, and in particular for anyone who added client origins to
+`--allowed-origins` to make social login work. That workaround can now be
+removed. See the upgrade notes at the end.
+
+### Fixed
+
+- **Social login failed with `invalid redirect uri` for a client whose callback is on another origin** ([#855](https://github.com/authorizerdev/authorizer/issues/855), [#899](https://github.com/authorizerdev/authorizer/pull/899), [#901](https://github.com/authorizerdev/authorizer/pull/901)). `/authorize` and `/app` check `redirect_uri` against the client's registered redirect URIs, but `/oauth_login` and `/oauth_callback` checked it only against the global `--allowed-origins` and then sent the authorization code straight to the client. A client registered with `https://app.example.org/callback` therefore passed `/authorize`, reached the login page, and failed at "Continue with GitHub". The only workaround was adding the client's origin to `--allowed-origins`, which also loosens CORS, the CSRF origin check and the email-link redirects, for every client. Social login now ends the way password login already does: it returns to this server's own `/app`, which replays the request to `/authorize`. `/authorize` then checks the client's registered callback, shows consent if the client needs it, binds PKCE and issues the code. This is also how Auth0 and other providers treat social connections. `/oauth_login` and `/oauth_callback` accept this server's own `/app`, `/app/` or `/app/signup` (same scheme and host:port as `--url`, exact path, no fragment); on that hop the callback sets the session only, issues no code and appends nothing, so the client's `nonce` reaches the ID token. Thanks to @kurnias for the report.
+- **Social login skipped the consent screen for self-registered and CIMD clients** (same change). The consent gate lives in `/authorize`, and the old social path delivered the code without going through it. It was reachable only for a client whose callback origin was in `--allowed-origins`; that is the same restriction that caused the bug above, so fixing one could not be done by loosening it without opening the other.
+- **The hosted login page sends its own URL to `/oauth_login`.** `@authorizerdev/authorizer-react` 2.2.1 makes `AuthorizerSocialLogin`, on Authorizer's own login page during an `/authorize` request, send the page's `/app/` URL (with the `/authorize` parameters moved into the query string) instead of the client's callback ([authorizer-react#75](https://github.com/authorizerdev/authorizer-react/pull/75)). Everywhere else, including a login page on your own site, it sends the same `redirect_uri` as before.
+
+- **A rejected SAML assertion logged only "Authentication failed"** ([#901](https://github.com/authorizerdev/authorizer/pull/901)). `crewjam/saml` puts the real reason in `InvalidResponseError.PrivateErr` and returns a fixed public message. The ACS handler now logs that reason as `cause` at debug level (`--log-level=debug`), so an operator can tell a clock skew, a bad signature and a missing `AuthnStatement` apart. Nothing changes in the response.
+
+### Changed
+
+- **MCP: `/mcp` returns no `Mcp-Session-Id`, and `DELETE /mcp` returns 405** (since 2.4.5) ([#900](https://github.com/authorizerdev/authorizer/pull/900)). The MCP server has always run stateless, so replicas need no session affinity. 2.4.5's move to `modelcontextprotocol/go-sdk` v1.8.0 made a stateless server also stop issuing session IDs, per the spec's sessionless direction (SEP-2567). Session IDs are optional for MCP servers, so spec-conformant clients need no change; a 405 on `DELETE` is the spec's "server does not allow clients to terminate sessions"; and a session ID still held from an earlier server is ignored rather than rejected. This went unnoticed in 2.4.5 because only the browser suite checked the header; `internal/mcp` now pins it in CI.
+- **SAML SP: an assertion without an `<AuthnStatement>` is rejected** (since 2.4.5). `crewjam/saml` v0.6.2, which 2.4.5 moved to for its `<NameID>`-spoofing fix ([#828](https://github.com/authorizerdev/authorizer/pull/828)), enforces saml-profiles §4.1.4.2: a login assertion "MUST contain at least one `<AuthnStatement>`". Every mainstream IdP (Okta, Entra ID, ADFS, Google Workspace) sends one for browser SSO, so conformant IdPs are unaffected. A non-conformant IdP now fails at `/oauth/saml/<org>/acs` with `saml_assertion_invalid`; the debug log names the reason (below). The e2e mock IdP was itself non-conformant here and is fixed ([#901](https://github.com/authorizerdev/authorizer/pull/901)).
+- **Dependencies** ([#901](https://github.com/authorizerdev/authorizer/pull/901)). Alpine 3.24.4. Dashboard: `@urql/core` 6 with `urql` 5, `tailwind-merge` 3 (the dashboard is on Tailwind CSS v4), `vitest` 5, `jsdom` 31, plus minor/patch groups for both web apps.
+
+### Deprecated
+
+- **Completing an `/authorize` request by sending the client's callback straight to `/oauth_login`.** It still works when the callback's origin is in `--allowed-origins`, but it skips consent, and the server now logs `social login completed an /authorize request without resuming through /authorize` each time. A future release will refuse it. The hosted login page no longer does this; a customised login page should send its own `/app` URL instead — see [Social login inside an authorization request](https://docs.authorizer.dev/core/oauth2-oidc#social-login-inside-an-authorization-request).
+
+### Upgrade notes
+
+- **Hosted login page:** nothing to do. The page is built into the same image as the server.
+- **Remove the workaround.** If you added client origins to `--allowed-origins` only so social login would work, remove them after upgrading. Keep any origin your own front end needs for CORS.
+- **Customised login page** (your own build served by Authorizer at `/app`): send `redirect_uri` = the page's own `/app` URL with the `/authorize` parameters in the query string, then replay to `/authorize` once the session exists. If it is built on `@authorizerdev/authorizer-react`, upgrade to 2.2.1. Until you do, it keeps working as before, with the warning above.
+- **Social login started on `/app` with no client** now returns to `/app` without `state` and `nonce` appended, and is accepted under any `--allowed-origins` list (it used to need a bare `*`). Nothing on `/app` reads either parameter.
+- **`/oauth_login` and `/oauth_callback` called directly** (mobile apps, a "Sign in with GitHub" link on your own site): unchanged.
+
 ## [2.4.5] - 2026-11-14
 
 Security release. Closes two high-severity advisories reported through
