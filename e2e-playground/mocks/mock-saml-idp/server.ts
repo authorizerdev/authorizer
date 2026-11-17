@@ -105,12 +105,26 @@ app.get('/sso', async (req, res) => {
         NameIDFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:emailAddress',
         NameID: nextUser.email,
         InResponseTo: (requestInfo.extract.request as { id?: string }).id ?? '',
-        AuthnStatement: '',
         attrEmail: nextUser.email,
         attrFirstName: nextUser.givenName,
         attrLastName: nextUser.familyName,
       };
-      return { id: tvalue.ID as string, context: samlify.SamlLib.replaceTagsByValue(template, tvalue) };
+      // A login assertion MUST carry an AuthnStatement (saml-profiles
+      // §4.1.4.2), and crewjam/saml >= v0.6.2 rejects one without it
+      // ("assertion has no AuthnStatement"). Every real IdP sends it; this mock
+      // used to render the placeholder empty. It can't go in tvalue:
+      // replaceTagsByValue XML-escapes every value (samlify's injection
+      // guard), which would turn the element into text. So it is spliced in
+      // first — fixed markup plus a timestamp and a UUID, no request input.
+      // The template places it after <saml:Conditions>, the schema's required
+      // order, and it is signed with the rest of the assertion.
+      const authnStatement =
+        `<saml:AuthnStatement AuthnInstant="${now.toISOString()}" SessionIndex="_${crypto.randomUUID()}">` +
+        '<saml:AuthnContext><saml:AuthnContextClassRef>' +
+        'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport' +
+        '</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>';
+      const withAuthn = template.replace('{AuthnStatement}', authnStatement);
+      return { id: tvalue.ID as string, context: samlify.SamlLib.replaceTagsByValue(withAuthn, tvalue) };
     };
 
     const { context } = await idp.createLoginResponse(sp, requestInfo, 'post', nextUser, customTagReplacement);
