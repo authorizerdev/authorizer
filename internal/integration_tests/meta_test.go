@@ -20,6 +20,9 @@ func TestMeta(t *testing.T) {
 		assert.Equal(t, cfg.ClientID, meta.ClientID)
 		assert.True(t, meta.IsSignUpEnabled)
 		assert.True(t, meta.IsBasicAuthenticationEnabled)
+		// Login UIs switch social login to the /authorize resume path only
+		// when this is advertised (#855), so it must always be on.
+		assert.True(t, meta.IsSocialLoginAuthorizeResumeSupported)
 	})
 
 	t.Run("should reflect disabled signup", func(t *testing.T) {

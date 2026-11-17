@@ -137,4 +137,6 @@ message Meta {
   bool is_webauthn_enabled = 25;
   // Mirrors Meta.is_mfa_enforced in GraphQL.
   bool is_mfa_enforced = 26;
+  // Mirrors Meta.is_social_login_authorize_resume_supported in GraphQL.
+  bool is_social_login_authorize_resume_supported = 27;
 }

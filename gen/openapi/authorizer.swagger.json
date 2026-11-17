@@ -3678,6 +3678,10 @@
         "is_mfa_enforced": {
           "type": "boolean",
           "description": "Mirrors Meta.is_mfa_enforced in GraphQL."
+        },
+        "is_social_login_authorize_resume_supported": {
+          "type": "boolean",
+          "description": "Mirrors Meta.is_social_login_authorize_resume_supported in GraphQL."
         }
       },
       "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
