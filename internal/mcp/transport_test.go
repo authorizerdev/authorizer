@@ -69,6 +69,34 @@ func TestHandlerIsStateless(t *testing.T) {
 		assert.Contains(t, w.Header().Get("Content-Type"), "application/json",
 			"JSONResponse: one JSON response per POST, not an event stream")
 	})
+
+	// go-sdk v1.8.0 stopped issuing session IDs from a stateless server
+	// (SEP-2567). Session IDs are optional for MCP servers, so clients send
+	// none when none is issued. Pinned so a dependency bump that changes it
+	// again is noticed here, in CI, rather than in the browser suite.
+	t.Run("initialize issues no session id", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(initializeBody))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		s.Handler().ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+		assert.Empty(t, w.Header().Get("Mcp-Session-Id"),
+			"a stateless server has no session to identify; issuing an id would invite clients to expect affinity")
+	})
+
+	t.Run("DELETE is refused with an Allow header", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/mcp", nil)
+		req.Header.Set("Mcp-Session-Id", "held-from-an-older-server")
+		s.Handler().ServeHTTP(w, req)
+
+		// Streamable HTTP: the server MAY answer DELETE with 405 when it does
+		// not allow clients to terminate sessions; there is no session here.
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(t, "POST", w.Header().Get("Allow"), "RFC 9110 §15.5.6: a 405 MUST carry Allow")
+	})
 }
 
 // initializeBody is the MCP handshake every client sends first.
