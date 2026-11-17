@@ -15,6 +15,8 @@ func TestIsAuthorizeResumeTarget(t *testing.T) {
 		want     bool
 	}{
 		{"own /app", "https://auth.example.com/app?state=s&client_id=c", self, true},
+		// The URL a browser is actually on: the /app group 301s /app to /app/.
+		{"own /app/ (canonical)", "https://auth.example.com/app/?state=s&client_id=c", self, true},
 		{"own /app/signup", "https://auth.example.com/app/signup?state=s", self, true},
 		{"explicit default port", "https://auth.example.com:443/app", self, true},
 		{"host is case-insensitive", "https://AUTH.example.com/app", self, true},
@@ -27,7 +29,8 @@ func TestIsAuthorizeResumeTarget(t *testing.T) {
 		{"lookalike subdomain", "https://auth.example.com.evil.net/app", self, false},
 		{"other path", "https://auth.example.com/graphql", self, false},
 		{"path below /app", "https://auth.example.com/app/../graphql", self, false},
-		{"trailing slash path", "https://auth.example.com/app/", self, false},
+		{"signup with trailing slash", "https://auth.example.com/app/signup/", self, false},
+		{"other page under /app", "https://auth.example.com/app/settings", self, false},
 		{"fragment", "https://auth.example.com/app#state=s", self, false},
 		{"userinfo", "https://user@auth.example.com/app", self, false},
 		{"relative", "/app", self, false},

@@ -6,8 +6,8 @@ import (
 )
 
 // isAuthorizeResumeTarget reports whether redirectURI is this server's own
-// hosted login page (/app or /app/signup), which social login may always return
-// to (#855).
+// hosted login page (/app, /app/ or /app/signup), which social login may always
+// return to (#855).
 //
 // Why this exists: a social login started from an /authorize request must not
 // deliver the authorization response itself. That response belongs to
@@ -29,9 +29,11 @@ import (
 //   - scheme AND host:port must equal this server's own (hostname comes from
 //     --url via parsers.GetHost). This is stricter than the allowed-origins
 //     normaliser, which ignores the scheme.
-//   - the path must be exactly /app or /app/signup — not any path on this
-//     origin, so the session-carrying redirect cannot be pointed at an API
-//     route or another page.
+//   - the path must be exactly /app, /app/ or /app/signup — not any path on
+//     this origin, so the session-carrying redirect cannot be pointed at an
+//     API route or another page. Both spellings of /app are needed: /authorize
+//     redirects to /app, and the /app route group 301s that to /app/, which is
+//     the URL a browser is actually on when it renders the login page.
 //   - no userinfo and no fragment. A resuming client puts the /authorize
 //     parameters in the query, where the server can see them.
 func isAuthorizeResumeTarget(redirectURI, hostname string) bool {
@@ -52,7 +54,7 @@ func isAuthorizeResumeTarget(redirectURI, hostname string) bool {
 	if canonicalHostPort(target) != canonicalHostPort(self) {
 		return false
 	}
-	return target.Path == baseAppPath || target.Path == signupPath
+	return target.Path == baseAppPath || target.Path == baseAppPath+"/" || target.Path == signupPath
 }
 
 // canonicalHostPort returns u's host in lower case with the scheme's default

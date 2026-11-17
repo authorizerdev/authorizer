@@ -236,6 +236,14 @@ func TestSocialLoginResumesThroughAuthorize(t *testing.T) {
 			}.Encode(), nil)
 			assert.Equal(t, http.StatusBadRequest, w.Code, "must refuse %q", target)
 		}
+		// The canonical spelling a browser is actually on: the /app route
+		// group 301s /app to /app/, so the login page renders at /app/?….
+		for _, target := range []string{host + "/app/?client_id=c&response_type=code", host + "/app/signup?client_id=c"} {
+			w := do(t, http.MethodGet, "/oauth_login/github?"+url.Values{
+				"redirect_uri": {target}, "state": {"x"},
+			}.Encode(), nil)
+			assert.Equal(t, http.StatusTemporaryRedirect, w.Code, "must accept %q: %s", target, w.Body.String())
+		}
 	})
 
 	t.Run("backward compatible: an allowed origin still gets the code directly", func(t *testing.T) {
