@@ -53,6 +53,10 @@ const (
 	// re-fetch. Short enough to pick up an issuer key rotation, long enough to
 	// keep the token endpoint off the network on the hot path.
 	jwksCacheTTLSeconds = 600
+	// jwksRefetchIntervalSeconds rate-limits the refetch an unknown kid
+	// triggers (see assertionKeyfunc). Anyone can send an assertion naming a
+	// made-up kid, so without a limit each one would cost the issuer a fetch.
+	jwksRefetchIntervalSeconds = 60
 
 	// assertionClockSkew tolerates minor clock drift on exp/nbf comparisons.
 	assertionClockSkew = 60 * time.Second
@@ -360,6 +364,13 @@ func (p *provider) assertionKeyfunc(ctx context.Context, issuer *schemas.Trusted
 		if kid != "" {
 			keys := jwks.Key(kid)
 			if len(keys) == 0 {
+				// The issuer may have rotated or re-labelled its keys since the
+				// set was cached; refetch once rather than fail until it expires.
+				if fresh := p.refetchJWKSForUnknownKid(ctx, issuer); fresh != nil {
+					keys = fresh.Key(kid)
+				}
+			}
+			if len(keys) == 0 {
 				return nil, fmt.Errorf("no JWKS key for kid %q", kid)
 			}
 			return keys[0].Key, nil
@@ -372,20 +383,48 @@ func (p *provider) assertionKeyfunc(ctx context.Context, issuer *schemas.Trusted
 	}, nil
 }
 
+// refetchJWKSForUnknownKid bypasses the cache to fetch the issuer's current
+// JWKS, at most once per jwksRefetchIntervalSeconds per issuer, and returns
+// nil when rate-limited or the fetch fails. The limit is claimed with
+// SetCacheNX, so concurrent assertions with unknown kids — honest ones after
+// an issuer re-labels its keys, or an attacker's — share a single fetch.
+func (p *provider) refetchJWKSForUnknownKid(ctx context.Context, issuer *schemas.TrustedIssuer) *jose.JSONWebKeySet {
+	if p.MemoryStoreProvider == nil {
+		return nil
+	}
+	claimed, err := p.MemoryStoreProvider.SetCacheNX("jwks_refetch:"+issuer.ID, "1", jwksRefetchIntervalSeconds)
+	if err != nil || !claimed {
+		return nil
+	}
+	set, err := p.fetchAndCacheJWKS(ctx, issuer)
+	if err != nil {
+		return nil
+	}
+	return set
+}
+
 // loadJWKS returns the issuer's JWKS, using the shared cache keyed by the trust
 // row identity (H7) so a cached key set can never be attributed to a different
 // row that merely shares an issuer URL.
 func (p *provider) loadJWKS(ctx context.Context, issuer *schemas.TrustedIssuer) (*jose.JSONWebKeySet, error) {
-	cacheKey := "jwks_cache:" + issuer.ID
 	if p.MemoryStoreProvider != nil {
-		if cached, _ := p.MemoryStoreProvider.GetCache(cacheKey); cached != "" {
+		if cached, _ := p.MemoryStoreProvider.GetCache(jwksCacheKey(issuer)); cached != "" {
 			var set jose.JSONWebKeySet
 			if err := json.Unmarshal([]byte(cached), &set); err == nil && len(set.Keys) > 0 {
 				return &set, nil
 			}
 		}
 	}
+	return p.fetchAndCacheJWKS(ctx, issuer)
+}
 
+// jwksCacheKey is the shared-store key for an issuer's cached JWKS, keyed by
+// the trust row identity (H7).
+func jwksCacheKey(issuer *schemas.TrustedIssuer) string { return "jwks_cache:" + issuer.ID }
+
+// fetchAndCacheJWKS fetches the issuer's JWKS (SSRF-hardened), validates it and
+// caches it for jwksCacheTTLSeconds, replacing any cached copy.
+func (p *provider) fetchAndCacheJWKS(ctx context.Context, issuer *schemas.TrustedIssuer) (*jose.JSONWebKeySet, error) {
 	raw, err := p.fetchJWKSBytes(ctx, issuer)
 	if err != nil {
 		return nil, err
@@ -400,7 +439,7 @@ func (p *provider) loadJWKS(ctx context.Context, issuer *schemas.TrustedIssuer) 
 	if p.MemoryStoreProvider != nil {
 		// Cache the normalized JWKS JSON so the cached shape is stable.
 		if normalized, mErr := json.Marshal(&set); mErr == nil {
-			_ = p.MemoryStoreProvider.SetCache(cacheKey, string(normalized), jwksCacheTTLSeconds)
+			_ = p.MemoryStoreProvider.SetCache(jwksCacheKey(issuer), string(normalized), jwksCacheTTLSeconds)
 		}
 	}
 	return &set, nil
