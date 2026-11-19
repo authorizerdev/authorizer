@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
@@ -239,4 +241,51 @@ func TestAgentIntersectionListPermissions(t *testing.T) {
 	assert.Empty(t, res.Objects,
 		"the agent holds no grant, so enumeration must be empty — listing an object the "+
 			"agent cannot act on leaks the delegating user's resource names")
+}
+
+// TestAgentIntersectionListPermissionsTruncated guards the false negative where
+// each subject's enumeration is capped by the engine BEFORE the intersection.
+// Two capped, unordered slices of large sets overlap far less than the true
+// intersection, so the folded result fell under the service cap and
+// `truncated` came back false while most of the agent's reachable objects
+// were silently dropped.
+func TestAgentIntersectionListPermissionsTruncated(t *testing.T) {
+	cfg := getTestConfig()
+	ts, eng := initFGATestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	router := gin.New()
+	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+
+	setAdminCookie(t, ts)
+	_, err := ts.GraphQLProvider.FgaWriteModel(ctx, &model.FgaWriteModelInput{Dsl: fgaAgentModel})
+	require.NoError(t, err)
+
+	delegated, agentID, userID := mintDelegatedViaEndpoint(t, ts, router, testAuthorizerHost(ts))
+
+	// user: document:0..2999, agent: document:1000..3999. The true
+	// intersection is 2000 objects, well above the 1000 service cap.
+	batch := make([]engine.TupleKey, 0, 100)
+	write := func(user string, from, to int) {
+		for i := from; i < to; i++ {
+			batch = append(batch, engine.TupleKey{User: user, Relation: "viewer", Object: fmt.Sprintf("document:%d", i)})
+			if len(batch) == cap(batch) || i == to-1 {
+				require.NoError(t, eng.WriteTuples(ctx, batch))
+				batch = batch[:0]
+			}
+		}
+	}
+	write("user:"+userID, 0, 3000)
+	write("agent:"+agentID, 1000, 4000)
+
+	presentDelegatedToken(ts, delegated)
+	res, lErr := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
+		ObjectType: refs.NewStringRef("document"),
+		Relation:   refs.NewStringRef("viewer"),
+	})
+	require.NoError(t, lErr)
+	require.NotNil(t, res)
+	assert.True(t, res.Truncated,
+		"the true intersection (2000) exceeds the cap; a capped per-subject slice "+
+			"must be reported as truncated, not as a complete answer")
 }
