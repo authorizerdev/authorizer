@@ -230,7 +230,11 @@ func TestSchemaDDLMatchesModels(t *testing.T) {
 				if !assert.True(t, ok, "column %s.%s (field %s) is missing from schema.go — add a migration", ms.Table, f.DBName, f.Name) {
 					continue
 				}
-				assert.Equal(t, expectedType(f), col.typ, "type of %s.%s", ms.Table, f.DBName)
+				want := expectedType(f)
+				if f.NotNull && !f.PrimaryKey {
+					want += " not null"
+				}
+				assert.Equal(t, want, col.typ, "type (and NOT NULL) of %s.%s", ms.Table, f.DBName)
 				assert.Equal(t, unquote(f.DefaultValue), unquote(col.def),
 					"DEFAULT of %s.%s must match the model tag: GORM leaves zero-valued defaulted fields out of INSERTs", ms.Table, f.DBName)
 			}
@@ -242,8 +246,14 @@ func TestSchemaDDLMatchesModels(t *testing.T) {
 			// Every index and unique constraint GORM would have created.
 			want := map[string]ddlIndex{}
 			for _, idx := range ms.ParseIndexes() {
+				// The DDL format only expresses plain column lists. Fail
+				// loudly on anything richer rather than comparing it away.
+				assert.True(t, idx.Class == "" || idx.Class == "UNIQUE", "index %s: class %q not supported by schema.go", idx.Name, idx.Class)
+				assert.Empty(t, idx.Type+idx.Where+idx.Option, "index %s: type/where/option not supported by the parity test — extend it", idx.Name)
 				cols := make([]string, 0, len(idx.Fields))
 				for _, f := range idx.Fields {
+					assert.Empty(t, f.Expression+f.Sort+f.Collate, "index %s: expression/sort/collate not supported by the parity test — extend it", idx.Name)
+					assert.Zero(t, f.Length, "index %s: prefix length not supported by the parity test", idx.Name)
 					cols = append(cols, f.DBName)
 				}
 				want[idx.Name] = ddlIndex{unique: idx.Class == "UNIQUE", cols: cols}

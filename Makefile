@@ -132,7 +132,7 @@ test-postgres: test-cleanup-postgres
 
 test-serenedb: test-cleanup-serenedb
 	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres $(SERENEDB_IMAGE)
-	sh scripts/wait-for-test-dbs.sh serenedb && \
+	sh scripts/wait-for-sql.sh authorizer_serenedb serenedb && \
 	{ go clean --testcache; TEST_DBS="serenedb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_serenedb; \
@@ -269,6 +269,7 @@ test-all-db: test-cleanup test-docker-up
 	sh scripts/wait-for-sql.sh authorizer_mysql mysql && \
 	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
 	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
+	sh scripts/wait-for-sql.sh authorizer_serenedb serenedb && \
 	{ go clean --testcache; TEST_DBS="couchbase,postgres,serenedb,cockroachdb,mysql,mariadb,sqlite,libsql,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \

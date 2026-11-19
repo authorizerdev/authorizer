@@ -2,6 +2,7 @@ package serenedb
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"gorm.io/gorm"
@@ -41,13 +42,8 @@ func runMigrations(db *gorm.DB, list []migration) error {
 	if err := validateMigrations(list); err != nil {
 		return err
 	}
-	if err := db.Exec(`CREATE TABLE IF NOT EXISTS ` + migrationsTable + ` (
-		version bigint,
-		name text,
-		applied_at bigint,
-		PRIMARY KEY (version)
-	)`).Error; err != nil {
-		return fmt.Errorf("serenedb: create %s: %w", migrationsTable, err)
+	if err := createMigrationsTable(db); err != nil {
+		return err
 	}
 
 	applied, err := appliedVersions(db)
@@ -65,26 +61,48 @@ func runMigrations(db *gorm.DB, list []migration) error {
 	return nil
 }
 
+// createMigrationsTable creates the version table if it is missing. Two
+// instances creating it at the same moment can collide in the catalog (40001,
+// or 23505 as on PostgreSQL); IF NOT EXISTS makes the retry a no-op once the
+// other one has committed.
+func createMigrationsTable(db *gorm.DB) error {
+	var err error
+	for attempt := 0; attempt < maxMigrationAttempts; attempt++ {
+		err = db.Exec(`CREATE TABLE IF NOT EXISTS ` + migrationsTable + ` (
+			version bigint,
+			name text,
+			applied_at bigint,
+			PRIMARY KEY (version)
+		)`).Error
+		if err == nil || (!uniqueViolation(err) && !sqlState(err, "40001")) {
+			break
+		}
+		time.Sleep(migrationBackoff(attempt))
+	}
+	if err != nil {
+		return fmt.Errorf("serenedb: create %s: %w", migrationsTable, err)
+	}
+	return nil
+}
+
 // applyMigration runs one version and records it, in a single transaction.
 //
-// Another instance booting at the same moment makes this fail with a write
-// conflict (40001: both are creating the same catalog objects) or a duplicate
-// version row (23505). Neither is a real failure. Once the other instance
-// commits, the version is recorded and there is nothing left to do; until it
-// does, retrying is safe because every statement is idempotent.
+// Another instance booting at the same moment can make this fail, in one of
+// two ways, without anything being wrong:
+//
+//   - 40001: both are creating the same catalog objects. Until the other
+//     instance commits there is nothing to see, so wait and retry; every
+//     statement is idempotent, so the retry is harmless.
+//   - 23505: the other instance committed this version first and our version
+//     row collides with its row.
+//
+// Either way the version being recorded afterwards is the proof. A 23505 with
+// the version still unrecorded is a genuine failure, for example a
+// CREATE UNIQUE INDEX over duplicate data, and is returned at once rather
+// than retried.
 func applyMigration(db *gorm.DB, m migration) error {
 	var err error
 	for attempt := 0; attempt < maxMigrationAttempts; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(attempt) * 50 * time.Millisecond)
-			applied, rerr := appliedVersions(db)
-			if rerr != nil {
-				return rerr
-			}
-			if applied[m.version] {
-				return nil
-			}
-		}
 		err = db.Transaction(func(tx *gorm.DB) error {
 			for i, stmt := range m.statements {
 				if err := tx.Exec(stmt).Error; err != nil {
@@ -94,11 +112,34 @@ func applyMigration(db *gorm.DB, m migration) error {
 			return tx.Exec(`INSERT INTO `+migrationsTable+` (version, name, applied_at) VALUES (?, ?, ?)`,
 				m.version, m.name, time.Now().Unix()).Error
 		})
-		if err == nil || (!uniqueViolation(err) && !sqlState(err, "40001")) {
+		conflict := sqlState(err, "40001")
+		if err == nil || (!conflict && !uniqueViolation(err)) {
 			return err
+		}
+		if !conflict {
+			// 23505: only another instance's committed row explains it.
+			if applied, rerr := appliedVersions(db); rerr == nil && applied[m.version] {
+				return nil
+			}
+			return err
+		}
+		time.Sleep(migrationBackoff(attempt))
+		applied, rerr := appliedVersions(db)
+		if rerr != nil {
+			return rerr
+		}
+		if applied[m.version] {
+			return nil
 		}
 	}
 	return err
+}
+
+// migrationBackoff spaces out retries while another instance finishes a
+// migration: linear, with jitter so racing instances do not stay in step.
+func migrationBackoff(attempt int) time.Duration {
+	base := time.Duration(attempt+1) * 50 * time.Millisecond
+	return base + rand.N(base)
 }
 
 func appliedVersions(db *gorm.DB) (map[int]bool, error) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -91,6 +93,12 @@ func TestMigrateFreshDatabase(t *testing.T) {
 		}
 		for _, idx := range ms.ParseIndexes() {
 			assert.True(t, m.HasIndex(model, idx.Name), "index %s on %s", idx.Name, ms.Table)
+		}
+		for _, f := range ms.Fields {
+			if f.Unique && !f.PrimaryKey {
+				name := schema.NamingStrategy{}.UniqueName(ms.Table, f.DBName)
+				assert.True(t, m.HasConstraint(model, name), "unique constraint %s on %s", name, ms.Table)
+			}
 		}
 	}
 
@@ -217,4 +225,25 @@ func TestMigrateConcurrentBoot(t *testing.T) {
 		assert.NoError(t, err, "instance %d", i)
 	}
 	assert.Equal(t, allVersions(), recordedVersions(t, openRaw(t, url)))
+}
+
+// TestMigrateRealUniqueViolationFailsFast: a duplicate-key error that is not
+// another instance's version row — here a unique index over duplicate data —
+// is a genuine failure. It must be reported straight away, not retried as if
+// it were a concurrent boot.
+func TestMigrateRealUniqueViolationFailsFast(t *testing.T) {
+	db := openRaw(t, freshDatabase(t))
+	require.NoError(t, runMigrations(db, migrations))
+	require.NoError(t, db.Exec(`INSERT INTO authorizer_users (id, email) VALUES ('u1', 'dup@x.io'), ('u2', 'dup@x.io')`).Error)
+
+	bad := append(slices.Clone(migrations), migration{
+		version:    len(migrations) + 1,
+		name:       "test: unique over duplicates",
+		statements: []string{`CREATE UNIQUE INDEX IF NOT EXISTS uq_zz_email ON authorizer_users (email)`},
+	})
+	start := time.Now()
+	err := runMigrations(db, bad)
+	require.Error(t, err)
+	assert.Less(t, time.Since(start), 2*time.Second, "a real failure must not sit in the race-retry loop: %v", err)
+	assert.Equal(t, allVersions(), recordedVersions(t, db))
 }

@@ -128,7 +128,9 @@ func NewProviderWithOptions(
 			if rawDB, err = stdsql.Open("pgx", dbURL); err != nil {
 				return nil, err
 			}
-			sqlDB, err = gorm.Open(postgres.New(postgres.Config{Conn: opts.WrapPool(rawDB)}), ormConfig)
+			if sqlDB, err = gorm.Open(postgres.New(postgres.Config{Conn: opts.WrapPool(rawDB)}), ormConfig); err != nil {
+				_ = rawDB.Close()
+			}
 		} else {
 			sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 		}

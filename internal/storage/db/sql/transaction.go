@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"errors"
+	"math/rand/v2"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -18,7 +19,7 @@ const maxTransactionRetries = 8
 //
 // With Options.RetryTransactions set, a block that aborts with a
 // serialization failure (SQLSTATE 40001) is rolled back and run again from the
-// start, with a short backoff, up to maxTransactionRetries times. fn must
+// start, with a short jittered backoff, up to maxTransactionRetries times. fn must
 // therefore be safe to run more than once: it may only write through tx and
 // must have no side effects outside the transaction. Without the option fn
 // runs once and its error is returned unchanged.
@@ -31,9 +32,17 @@ func (p *provider) transaction(ctx context.Context, fn func(tx *gorm.DB) error) 
 		select {
 		case <-ctx.Done():
 			return err
-		case <-time.After(time.Duration(attempt+1) * 5 * time.Millisecond):
+		case <-time.After(txBackoff(attempt)):
 		}
 	}
+}
+
+// txBackoff is the wait before replay number attempt+1: linear, plus up to as
+// much again in jitter, so transactions that collided once do not collide
+// again on every replay.
+func txBackoff(attempt int) time.Duration {
+	base := time.Duration(attempt+1) * 5 * time.Millisecond
+	return base + rand.N(base)
 }
 
 // isSerializationFailure reports whether err is SQLSTATE 40001.

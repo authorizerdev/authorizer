@@ -4,6 +4,7 @@ import (
 	"context"
 	stdsql "database/sql"
 	"errors"
+	"math/rand/v2"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -50,15 +51,36 @@ type retryPool struct {
 // newRetryPool adapts a database/sql handle for gorm.
 func newRetryPool(db *stdsql.DB) gorm.ConnPool { return &retryPool{db: db} }
 
-func (p *retryPool) retry(fn func() error) error {
+func (p *retryPool) retry(ctx context.Context, fn func() error) error {
 	var err error
 	for attempt := 0; attempt < maxWriteConflictRetries; attempt++ {
 		if err = fn(); err == nil || !sqlState(err, "40001") {
 			return err
 		}
-		time.Sleep(time.Duration(attempt+1) * 5 * time.Millisecond)
+		if !sleepCtx(ctx, backoff(attempt)) {
+			return err
+		}
 	}
 	return err
+}
+
+// backoff is the wait before retry number attempt+1: linear, plus up to as
+// much again in jitter so contending writers do not retry in lockstep.
+func backoff(attempt int) time.Duration {
+	base := time.Duration(attempt+1) * 5 * time.Millisecond
+	return base + rand.N(base)
+}
+
+// sleepCtx waits for d, or reports false if ctx ends first.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
 }
 
 func (p *retryPool) PrepareContext(ctx context.Context, query string) (*stdsql.Stmt, error) {
@@ -67,7 +89,7 @@ func (p *retryPool) PrepareContext(ctx context.Context, query string) (*stdsql.S
 
 func (p *retryPool) ExecContext(ctx context.Context, query string, args ...any) (stdsql.Result, error) {
 	var res stdsql.Result
-	err := p.retry(func() error {
+	err := p.retry(ctx, func() error {
 		var err error
 		res, err = p.db.ExecContext(ctx, query, args...)
 		return err
@@ -77,7 +99,7 @@ func (p *retryPool) ExecContext(ctx context.Context, query string, args ...any) 
 
 func (p *retryPool) QueryContext(ctx context.Context, query string, args ...any) (*stdsql.Rows, error) {
 	var rows *stdsql.Rows
-	err := p.retry(func() error {
+	err := p.retry(ctx, func() error {
 		var err error
 		rows, err = p.db.QueryContext(ctx, query, args...)
 		return err
