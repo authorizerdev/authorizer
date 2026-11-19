@@ -92,7 +92,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	// Hard delete: the user row and every row keyed on their id go together, in
 	// one transaction, so a failure cannot leave orphans behind. See
 	// schemas.UserOwnedCollections for why an orphan here is a lockout.
-	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.transaction(ctx, func(tx *gorm.DB) error {
 		for _, m := range userOwnedModels {
 			if err := tx.Where("user_id = ?", user.ID).Delete(m).Error; err != nil {
 				return err

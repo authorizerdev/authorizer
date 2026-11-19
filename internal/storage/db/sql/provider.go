@@ -1,7 +1,10 @@
 package sql
 
 import (
+	stdsql "database/sql"
+
 	libsql "github.com/ekristen/gorm-libsql"
+	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver for the pool seam below
 	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,6 +26,8 @@ type provider struct {
 	config       *config.Config
 	dependencies *Dependencies
 	db           *gorm.DB
+	// retryTransactions mirrors Options.RetryTransactions; see transaction.
+	retryTransactions bool
 }
 
 /**
@@ -38,15 +43,71 @@ type indexInfo struct {
 }
 **/
 
+// Provider is the SQL storage provider. It is exported so wire-compatible
+// engines that need to override a handful of methods (see
+// internal/storage/db/serenedb) can embed it instead of duplicating the whole
+// backend.
+type Provider = provider
+
+// DB exposes the underlying GORM handle to embedders.
+func (p *provider) DB() *gorm.DB { return p.db }
+
+// Models is the full set of tables this provider owns, in migration order.
+// Kept in one place so alternative migrators cannot drift from AutoMigrate.
+func Models() []any {
+	return []any{&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{}}
+}
+
+// Options customise how the provider is built. They exist for engines that
+// speak a supported wire protocol but differ underneath; all are zero for every
+// database type this package handles directly, so the default path is
+// unchanged.
+type Options struct {
+	// Migrate replaces GORM AutoMigrate. SereneDB rejects the
+	// ALTER COLUMN ... TYPE that AutoMigrate re-issues on every boot, so it
+	// supplies its own hand-written, versioned DDL instead.
+	Migrate func(*gorm.DB) error
+	// WrapPool wraps the connection pool before GORM sees it. SereneDB uses it
+	// to retry write conflicts its optimistic MVCC raises. PostgreSQL family
+	// only.
+	WrapPool func(*stdsql.DB) gorm.ConnPool
+	// SkipDefaultTransaction turns off the transaction GORM wraps around every
+	// single Create/Update/Delete. Only SereneDB sets it: that implicit
+	// transaction routes every write through BeginTx, where a conflict aborts
+	// the whole transaction and cannot be retried statement-by-statement. The
+	// schemas here carry no GORM associations, so one write is one statement
+	// and the wrapper buys nothing to begin with. Explicit Transaction() blocks
+	// are unaffected.
+	SkipDefaultTransaction bool
+	// RetryTransactions replays an explicit transaction from the start when it
+	// aborts with a serialization failure (SQLSTATE 40001). Only SereneDB sets
+	// it: its optimistic MVCC aborts contended transactions instead of making
+	// them wait, and a statement cannot be retried inside an aborted
+	// transaction — only the whole block can. Every other backend keeps a
+	// single attempt, exactly as before.
+	RetryTransactions bool
+}
+
 // NewProvider returns a new SQL provider
 func NewProvider(
 	config *config.Config,
 	deps *Dependencies,
-) (*provider, error) {
+) (*Provider, error) {
+	return NewProviderWithOptions(config, deps, Options{})
+}
+
+// NewProviderWithOptions returns a new SQL provider with the given hooks
+// applied. See Options.
+func NewProviderWithOptions(
+	config *config.Config,
+	deps *Dependencies,
+	opts Options,
+) (*Provider, error) {
 	var sqlDB *gorm.DB
 	var err error
 
 	ormConfig := &gorm.Config{
+		SkipDefaultTransaction: opts.SkipDefaultTransaction,
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: schemas.Prefix,
 		},
@@ -61,8 +122,18 @@ func NewProvider(
 	dbURL := config.DatabaseURL
 
 	switch dbType {
-	case constants.DbTypePostgres, constants.DbTypeYugabyte:
-		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
+	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeSereneDB:
+		if opts.WrapPool != nil {
+			var rawDB *stdsql.DB
+			if rawDB, err = stdsql.Open("pgx", dbURL); err != nil {
+				return nil, err
+			}
+			if sqlDB, err = gorm.Open(postgres.New(postgres.Config{Conn: opts.WrapPool(rawDB)}), ormConfig); err != nil {
+				_ = rawDB.Close()
+			}
+		} else {
+			sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
+		}
 	case constants.DbTypeCockroachDB:
 		// Postgres wire protocol, but AutoMigrate needs one behaviour changed —
 		// see cockroachdb.go.
@@ -99,10 +170,15 @@ func NewProvider(
 	// or any custom name) — failing with "constraint does not exist" (Postgres
 	// SQLSTATE 42704) and aborting startup. Clear the legacy uniqueness up front,
 	// name-agnostically, before AutoMigrate runs.
-	clearLegacyColumnUniqueness(sqlDB, dbType, deps.Log)
+	migrate := opts.Migrate
+	if migrate == nil {
+		migrate = func(db *gorm.DB) error {
+			clearLegacyColumnUniqueness(db, dbType, deps.Log)
+			return db.AutoMigrate(Models()...)
+		}
+	}
 
-	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{})
-	if err != nil {
+	if err = migrate(sqlDB); err != nil {
 		return nil, err
 	}
 
@@ -133,9 +209,10 @@ func NewProvider(
 	// }
 
 	return &provider{
-		config:       config,
-		dependencies: deps,
-		db:           sqlDB,
+		config:            config,
+		dependencies:      deps,
+		db:                sqlDB,
+		retryTransactions: opts.RetryTransactions,
 	}, nil
 }
 

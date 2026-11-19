@@ -25,6 +25,7 @@ import (
 // allDBTypes is the full list of database types supported for storage tests.
 var allDBTypes = []string{
 	constants.DbTypePostgres,
+	constants.DbTypeSereneDB,
 	constants.DbTypeSqlite,
 	constants.DbTypeMongoDB,
 	constants.DbTypeArangoDB,
@@ -71,6 +72,8 @@ func getTestDBConfig(dbType string) *config.Config {
 	switch dbType {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeSereneDB:
+		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:7890/postgres"
 	case constants.DbTypeSqlserver:
 		cfg.DatabaseURL = sqlServerTestDSN
 	case constants.DbTypeLibSQL:

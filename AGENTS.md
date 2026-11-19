@@ -71,11 +71,12 @@ Run `make fmt` before committing; CI runs `make lint`.
 ```bash
 make test                 # Full module test run; TEST_DBS=sqlite (integration tests always SQLite)
 make test-sqlite          # Same as test — explicit SQLite-only, no Docker
-make test-all-db          # All 12 DBs via Docker (postgres, cockroachdb, mysql, mariadb, sqlite, libsql, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
+make test-all-db          # All 14 DBs via Docker (postgres, serenedb, cockroachdb, mysql, mariadb, sqlserver, sqlite, libsql, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
 make smoke                # Release e2e smoke tests (build tag `smoke`, 5m timeout)
 
 # Single-DB targets (each spins up Docker, runs tests, tears down)
 make test-postgres
+make test-serenedb
 make test-cockroachdb
 make test-mysql
 make test-mariadb
@@ -85,13 +86,12 @@ make test-cassandradb
 make test-arangodb
 make test-dynamodb
 make test-couchbase
-make test-sqlserver        # Not in test-all-db: 2 upsert tests are known-red
-                          # (driver builds MERGE from the PK, ignores OnConflict.Columns)
+make test-sqlserver
 
 # Docker helpers for test-all-db
 make test-docker-up       # Start all test DB containers + Redis
 make test-cleanup         # Remove all test containers
-make test-cleanup-postgres | test-cleanup-cockroachdb | test-cleanup-mysql | test-cleanup-mariadb
+make test-cleanup-postgres | test-cleanup-serenedb | test-cleanup-cockroachdb | test-cleanup-mysql | test-cleanup-mariadb
 make test-cleanup-mongodb | test-cleanup-scylladb | test-cleanup-cassandradb
 make test-cleanup-arangodb | test-cleanup-dynamodb | test-cleanup-couchbase
 make test-cleanup-sqlserver
@@ -194,7 +194,7 @@ Do **not** apply this mechanically to auth paths. Turning a lookup failure into 
 ## Critical Rules (Top of Mind)
 
 1. **Admin GraphQL ops prefixed with `_`** — not for public use. Same for `AuthorizerAdminService` gRPC.
-2. **Schema changes MUST update all 13+ database providers.**
+2. **Schema changes MUST update all 13+ database providers.** SereneDB does not use GORM AutoMigrate: a new model field also needs an appended migration in `internal/storage/db/serenedb/schema.go` (`TestSchemaDDLMatchesModels` fails in `make test` until it has one).
 3. **Run `make generate-graphql`** after editing `schema.graphqls`.
 4. **Run `make proto-gen`** (or `make proto-check`) after editing `proto/`; commit `gen/`.
 5. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.

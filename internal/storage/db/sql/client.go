@@ -52,7 +52,7 @@ func (p *provider) UpdateClient(ctx context.Context, sa *schemas.Client) (*schem
 // TrustedIssuers. Mirrors the webhook cascade-delete pattern. Both deletes run
 // in a single transaction so a failure cannot orphan trusted issuers.
 func (p *provider) DeleteClient(ctx context.Context, sa *schemas.Client) error {
-	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.transaction(ctx, func(tx *gorm.DB) error {
 		if err := tx.Where("client_id = ?", sa.ID).Delete(&schemas.TrustedIssuer{}).Error; err != nil {
 			return err
 		}

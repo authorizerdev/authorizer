@@ -29,8 +29,8 @@ func (c *Config) FGAStoreConfig() (store string, url string, enabled bool) {
 
 	// Derive from the main database when OpenFGA supports it. Postgres- and
 	// mysql-compatible variants beyond these (cockroachdb, yugabyte, libsql,
-	// planetscale) are intentionally NOT auto-mapped — they require an explicit
-	// --fga-store to avoid silent incompatibilities.
+	// planetscale, serenedb) are intentionally NOT auto-mapped — they require an
+	// explicit --fga-store to avoid silent incompatibilities.
 	switch c.DatabaseType {
 	case constants.DbTypePostgres:
 		return "postgres", c.DatabaseURL, true
