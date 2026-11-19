@@ -832,3 +832,49 @@ func TestFGAExplicitStoreOverrideForUnsupportedDB(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, allowed)
 }
+
+// TestFGAListPermissionsTruncated guards the regression where the embedded
+// engine's per-call ListObjects cap (OpenFGA default 1000) equalled the
+// service's maxFgaListResults: a single (type, relation) pair with more than
+// 1000 matches came back as exactly 1000 and `truncated` stayed false.
+func TestFGAListPermissionsTruncated(t *testing.T) {
+	cfg := getTestConfig()
+	ts, eng := initFGATestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "fga_trunc_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email: &email, Password: password, ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+	require.NoError(t, err)
+	userID := loginRes.User.ID
+	sessionToken := latestAppSessionCookie(ts)
+	require.NotEmpty(t, sessionToken)
+
+	_, err = eng.WriteModel(ctx, fgaTestModel)
+	require.NoError(t, err)
+
+	const granted = 1050 // > service cap (1000) and > engine cap (1001)
+	batch := make([]engine.TupleKey, 0, 100)
+	for i := 0; i < granted; i++ {
+		batch = append(batch, engine.TupleKey{User: "user:" + userID, Relation: "viewer", Object: fmt.Sprintf("document:%d", i)})
+		if len(batch) == cap(batch) || i == granted-1 {
+			require.NoError(t, eng.WriteTuples(ctx, batch))
+			batch = batch[:0]
+		}
+	}
+
+	clearCookies(ts)
+	ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+
+	res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
+		Relation: refs.NewStringRef("viewer"), ObjectType: refs.NewStringRef("document"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, 1000, len(res.Permissions), "result set is capped at maxFgaListResults")
+	assert.True(t, res.Truncated, "more than the cap exist, so truncated must be true")
+}
