@@ -21,10 +21,6 @@ func sqlState(err error, code string) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == code
 }
 
-// uniqueViolation reports whether err is a duplicate-key rejection from a
-// unique index. SereneDB returns the standard SQLSTATE 23505 for these.
-func uniqueViolation(err error) bool { return sqlState(err, "23505") }
-
 // retryPool retries statements SereneDB aborts with a write conflict.
 //
 // Its MVCC is optimistic: two transactions touching the same row abort one of
@@ -34,7 +30,7 @@ func uniqueViolation(err error) bool { return sqlState(err, "23505") }
 // callers: 20 simultaneous profile updates for one user produced 17 errors.
 //
 // The retry sits at the pool so every write path gets it, not just the ones
-// this package overrides. It applies only to autocommit statements: BeginTx
+// this package touches. It applies only to autocommit statements: BeginTx
 // hands back the raw *sql.Tx, because replaying one statement inside an already
 // aborted transaction is wrong — the whole transaction has to be replayed, and
 // GORM's Transaction() offers no hook for that. This is also why the provider

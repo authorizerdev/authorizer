@@ -63,10 +63,11 @@ func TestMigrateIsRepeatable(t *testing.T) {
 	}
 }
 
-// TestAddVerificationRequestUpsert covers the ON CONFLICT (email, identifier)
-// fallback: SereneDB rejects a unique index as a conflict target, so the second
-// request must be turned into an UPDATE off the 23505, not surface as an error
-// or leave a duplicate row.
+// TestAddVerificationRequestUpsert covers the SQL provider's
+// ON CONFLICT (email, identifier) upsert. SereneDB before 26.11 rejected a
+// CREATE UNIQUE INDEX as a conflict target, which needed a dedicated override;
+// this pins that the stock upsert now replaces the row instead of erroring or
+// leaving a duplicate.
 func TestAddVerificationRequestUpsert(t *testing.T) {
 	p := newTestProvider(t)
 	defer p.Close() //nolint:errcheck
@@ -115,7 +116,7 @@ func TestAddVerificationRequestUpsert(t *testing.T) {
 }
 
 // TestAddAuthenticatorConcurrentEnrollment covers the (user_id, method)
-// fallback. The check-then-insert in AddAuthenticator has a race; on PostgreSQL
+// upsert. The check-then-insert in AddAuthenticator has a race; on PostgreSQL
 // ON CONFLICT closes it. Concurrent enrollment must still leave exactly one
 // row, or GetAuthenticatorDetailsByUserId's First() returns an arbitrary one
 // and MFA fails intermittently.
@@ -157,7 +158,7 @@ func TestAddAuthenticatorConcurrentEnrollment(t *testing.T) {
 }
 
 // TestAuthenticatorUniqueIndexEnforced is the backstop for the create-only
-// migrator. AddAuthenticator's conflict fallback only works because the
+// migrator. AddAuthenticator's ON CONFLICT only works because the
 // (user_id, method) unique index exists and raises 23505 — if the migrator ever
 // stopped creating it, the concurrency test above would go quietly flaky
 // instead of failing. This writes the duplicate row directly, bypassing the
@@ -228,3 +229,7 @@ func TestDeleteUserCascadeStaysAtomic(t *testing.T) {
 		assert.Zero(t, count, "%s still holds rows for the deleted user", table)
 	}
 }
+
+// uniqueViolation reports whether err is a duplicate-key rejection from a
+// unique index. SereneDB returns the standard SQLSTATE 23505 for these.
+func uniqueViolation(err error) bool { return sqlState(err, "23505") }
