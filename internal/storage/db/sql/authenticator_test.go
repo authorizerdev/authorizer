@@ -2,6 +2,8 @@ package sql
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -73,6 +75,55 @@ func TestAddAuthenticatorUniqueUserMethod(t *testing.T) {
 				UpdatedAt: time.Now().Unix(),
 			}).Error
 			require.Error(t, err, "unique index on (user_id, method) should reject a duplicate insert")
+		})
+	}
+}
+
+// TestAddAuthenticatorConcurrentUpsert races several conflict-target upserts
+// of one (user_id, method). Every one must succeed and exactly one row must
+// remain. On SQL Server this is what MERGE ... WITH (HOLDLOCK) buys: without
+// the hint, concurrent MERGEs both take the NOT MATCHED branch and the loser
+// fails on the unique index.
+func TestAddAuthenticatorConcurrentUpsert(t *testing.T) {
+	for _, dbType := range sqlMigrationTestDBTypes() {
+		t.Run(dbType, func(t *testing.T) {
+			cfg := sqlMigrationTestConfig(t, dbType)
+			p, err := NewProvider(cfg, sqlTestDeps(t))
+			require.NoError(t, err)
+			defer func() { _ = p.Close() }()
+			ctx := context.Background()
+
+			for round := 0; round < 5; round++ {
+				userID := uuid.New().String()
+				const workers = 8
+				errs := make([]error, workers)
+				var wg sync.WaitGroup
+				for i := 0; i < workers; i++ {
+					wg.Add(1)
+					go func(i int) {
+						defer wg.Done()
+						errs[i] = p.db.WithContext(ctx).Clauses(clause.OnConflict{
+							UpdateAll: true,
+							Columns:   []clause.Column{{Name: "user_id"}, {Name: "method"}},
+						}).Create(&schemas.Authenticator{
+							ID:        uuid.New().String(),
+							Key:       uuid.New().String(),
+							UserID:    userID,
+							Method:    constants.EnvKeyTOTPAuthenticator,
+							Secret:    fmt.Sprintf("secret-%d", i),
+							CreatedAt: time.Now().Unix(),
+							UpdatedAt: time.Now().Unix(),
+						}).Error
+					}(i)
+				}
+				wg.Wait()
+				for i, err := range errs {
+					require.NoError(t, err, "round %d worker %d", round, i)
+				}
+				var count int64
+				require.NoError(t, p.db.Model(&schemas.Authenticator{}).Where("user_id = ?", userID).Count(&count).Error)
+				assert.Equal(t, int64(1), count, "round %d", round)
+			}
 		})
 	}
 }
