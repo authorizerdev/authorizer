@@ -194,7 +194,7 @@ Do **not** apply this mechanically to auth paths. Turning a lookup failure into 
 ## Critical Rules (Top of Mind)
 
 1. **Admin GraphQL ops prefixed with `_`** — not for public use. Same for `AuthorizerAdminService` gRPC.
-2. **Schema changes MUST update all 13+ database providers.**
+2. **Schema changes MUST update all 13+ database providers.** SereneDB does not use GORM AutoMigrate: a new model field also needs an appended migration in `internal/storage/db/serenedb/schema.go` (`TestSchemaDDLMatchesModels` fails in `make test` until it has one).
 3. **Run `make generate-graphql`** after editing `schema.graphqls`.
 4. **Run `make proto-gen`** (or `make proto-check`) after editing `proto/`; commit `gen/`.
 5. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.

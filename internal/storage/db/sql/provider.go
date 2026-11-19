@@ -26,6 +26,8 @@ type provider struct {
 	config       *config.Config
 	dependencies *Dependencies
 	db           *gorm.DB
+	// retryTransactions mirrors Options.RetryTransactions; see transaction.
+	retryTransactions bool
 }
 
 /**
@@ -56,14 +58,14 @@ func Models() []any {
 	return []any{&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Client{}, &schemas.TrustedIssuer{}, &schemas.Organization{}, &schemas.OrgMembership{}, &schemas.FederatedIdentity{}, &schemas.ScimEndpoint{}, &schemas.ScimGroup{}, &schemas.WebauthnCredential{}, &schemas.OrgDomain{}, &schemas.SAMLServiceProvider{}, &schemas.SAMLIDPKey{}}
 }
 
-// Options customise how the provider is built. Both hooks exist for engines
-// that speak a supported wire protocol but differ underneath; both are nil for
-// every database type this package handles directly, so the default path is
+// Options customise how the provider is built. They exist for engines that
+// speak a supported wire protocol but differ underneath; all are zero for every
+// database type this package handles directly, so the default path is
 // unchanged.
 type Options struct {
 	// Migrate replaces GORM AutoMigrate. SereneDB rejects the
 	// ALTER COLUMN ... TYPE that AutoMigrate re-issues on every boot, so it
-	// supplies a create-only migrator instead.
+	// supplies its own hand-written, versioned DDL instead.
 	Migrate func(*gorm.DB) error
 	// WrapPool wraps the connection pool before GORM sees it. SereneDB uses it
 	// to retry write conflicts its optimistic MVCC raises. PostgreSQL family
@@ -77,6 +79,13 @@ type Options struct {
 	// and the wrapper buys nothing to begin with. Explicit Transaction() blocks
 	// are unaffected.
 	SkipDefaultTransaction bool
+	// RetryTransactions replays an explicit transaction from the start when it
+	// aborts with a serialization failure (SQLSTATE 40001). Only SereneDB sets
+	// it: its optimistic MVCC aborts contended transactions instead of making
+	// them wait, and a statement cannot be retried inside an aborted
+	// transaction — only the whole block can. Every other backend keeps a
+	// single attempt, exactly as before.
+	RetryTransactions bool
 }
 
 // NewProvider returns a new SQL provider
@@ -198,9 +207,10 @@ func NewProviderWithOptions(
 	// }
 
 	return &provider{
-		config:       config,
-		dependencies: deps,
-		db:           sqlDB,
+		config:            config,
+		dependencies:      deps,
+		db:                sqlDB,
+		retryTransactions: opts.RetryTransactions,
 	}, nil
 }
 

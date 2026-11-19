@@ -23,11 +23,11 @@ import (
 
 const testDBURL = "postgres://postgres:postgres@localhost:7890/postgres"
 
-// newTestProvider connects to the SereneDB container started by
-// `make test-serenedb`. Gated on TEST_DBS first, the way the SQL migration
-// tests are, so `make test` (TEST_DBS=sqlite) stays Docker-free even on a
-// machine that happens to have something bound to :7890.
-func newTestProvider(t *testing.T) *provider {
+// requireSereneDB skips unless the SereneDB container started by
+// `make test-serenedb` is in play. Gated on TEST_DBS first, the way the SQL
+// migration tests are, so `make test` (TEST_DBS=sqlite) stays Docker-free even
+// on a machine that happens to have something bound to :7890.
+func requireSereneDB(t *testing.T) {
 	t.Helper()
 	if !slices.Contains(strings.Split(os.Getenv("TEST_DBS"), ","), constants.DbTypeSereneDB) {
 		t.Skip("set TEST_DBS=serenedb (make test-serenedb) to run SereneDB tests")
@@ -37,30 +37,26 @@ func newTestProvider(t *testing.T) *provider {
 		t.Skipf("skipping SereneDB tests: not reachable on localhost:7890: %v", err)
 	}
 	_ = conn.Close()
+}
 
+// newTestProvider connects to the shared test database.
+func newTestProvider(t *testing.T) *provider {
+	t.Helper()
+	requireSereneDB(t)
+	return newProviderAt(t, testDBURL)
+}
+
+func newProviderAt(t *testing.T, url string) *provider {
+	t.Helper()
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	p, err := NewProvider(&config.Config{
 		DatabaseType: constants.DbTypeSereneDB,
-		DatabaseURL:  testDBURL,
+		DatabaseURL:  url,
 		DatabaseName: "authorizer_test",
 	}, &Dependencies{Log: &logger})
 	require.NoError(t, err)
 	require.NotNil(t, p)
 	return p
-}
-
-// TestMigrateIsRepeatable is the restart path. GORM AutoMigrate fails here on
-// the second boot — SereneDB reports varchar(n) as text, so AutoMigrate tries
-// ALTER COLUMN ... TYPE and SereneDB refuses it on an indexed column. The
-// create-only migrator must be a no-op once the schema exists.
-func TestMigrateIsRepeatable(t *testing.T) {
-	p := newTestProvider(t)
-	require.NoError(t, p.Close())
-
-	for i := 0; i < 2; i++ {
-		p := newTestProvider(t)
-		require.NoError(t, p.Close())
-	}
 }
 
 // TestAddVerificationRequestUpsert covers the SQL provider's
@@ -230,6 +226,45 @@ func TestDeleteUserCascadeStaysAtomic(t *testing.T) {
 	}
 }
 
-// uniqueViolation reports whether err is a duplicate-key rejection from a
-// unique index. SereneDB returns the standard SQLSTATE 23505 for these.
-func uniqueViolation(err error) bool { return sqlState(err, "23505") }
+// TestCascadeDeleteSurvivesContention covers the explicit transactions. Their
+// statements cannot be retried individually once SereneDB aborts the
+// transaction with 40001, so the SQL provider replays the whole block
+// (sql.Options.RetryTransactions). Concurrent cascades over the same rows must
+// all succeed and leave nothing behind.
+func TestCascadeDeleteSurvivesContention(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close() //nolint:errcheck
+	ctx := context.Background()
+
+	for round := 0; round < 5; round++ {
+		user, err := p.AddUser(ctx, &schemas.User{
+			Email:         refs.NewStringRef(uuid.New().String() + "@authorizer.dev"),
+			SignupMethods: constants.AuthRecipeMethodBasicAuth,
+		})
+		require.NoError(t, err)
+		for i := 0; i < 5; i++ {
+			require.NoError(t, p.AddSession(ctx, &schemas.Session{UserID: user.ID}))
+		}
+
+		const workers = 8
+		errs := make([]error, workers)
+		var wg sync.WaitGroup
+		for i := 0; i < workers; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				errs[i] = p.DeleteUser(ctx, user)
+			}(i)
+		}
+		wg.Wait()
+		for i, err := range errs {
+			require.NoError(t, err, "round %d worker %d", round, i)
+		}
+
+		var count int64
+		require.NoError(t, p.DB().WithContext(ctx).Table("authorizer_sessions").Where("user_id = ?", user.ID).Count(&count).Error)
+		assert.Zero(t, count)
+		_, err = p.GetUserByID(ctx, user.ID)
+		assert.Error(t, err, "user must be gone")
+	}
+}

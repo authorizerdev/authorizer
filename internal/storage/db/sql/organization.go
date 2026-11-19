@@ -49,7 +49,7 @@ func (p *provider) UpdateOrganization(ctx context.Context, org *schemas.Organiza
 // single transaction so a mid-cascade failure cannot orphan memberships or
 // domains.
 func (p *provider) DeleteOrganization(ctx context.Context, org *schemas.Organization) error {
-	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.transaction(ctx, func(tx *gorm.DB) error {
 		if err := tx.Where("org_id = ?", org.ID).Delete(&schemas.OrgMembership{}).Error; err != nil {
 			return err
 		}

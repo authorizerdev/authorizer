@@ -21,6 +21,10 @@ func sqlState(err error, code string) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == code
 }
 
+// uniqueViolation reports whether err is a duplicate-key rejection from a
+// unique index. SereneDB returns the standard SQLSTATE 23505 for these.
+func uniqueViolation(err error) bool { return sqlState(err, "23505") }
+
 // retryPool retries statements SereneDB aborts with a write conflict.
 //
 // Its MVCC is optimistic: two transactions touching the same row abort one of

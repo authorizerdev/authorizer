@@ -87,7 +87,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
 	// Delete the webhook and its logs atomically so a failure cannot leave
 	// orphaned webhook_logs rows behind.
-	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := p.transaction(ctx, func(tx *gorm.DB) error {
 		if err := tx.Delete(&schemas.Webhook{ID: webhook.ID}).Error; err != nil {
 			return err
 		}
