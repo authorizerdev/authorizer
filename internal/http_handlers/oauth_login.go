@@ -44,7 +44,11 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 		}
 
 		hostname := parsers.GetHost(c)
-		if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
+		// This server's own /app is always a valid return target: a social
+		// login that belongs to an /authorize request comes back there and is
+		// resumed through /authorize, which validates the client's registered
+		// redirect_uri and applies consent (#855). See isAuthorizeResumeTarget.
+		if !isAuthorizeResumeTarget(redirectURI, hostname) && !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI")
 			c.JSON(400, gin.H{
 				"error": "invalid redirect uri",

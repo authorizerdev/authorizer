@@ -6,9 +6,7 @@ import (
 	libsql "github.com/ekristen/gorm-libsql"
 	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver for the pool seam below
 	"github.com/rs/zerolog"
-	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -115,7 +113,7 @@ func NewProviderWithOptions(
 	dbURL := config.DatabaseURL
 
 	switch dbType {
-	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB, constants.DbTypeSereneDB:
+	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeSereneDB:
 		if opts.WrapPool != nil {
 			var rawDB *stdsql.DB
 			if rawDB, err = stdsql.Open("pgx", dbURL); err != nil {
@@ -125,14 +123,22 @@ func NewProviderWithOptions(
 		} else {
 			sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 		}
+	case constants.DbTypeCockroachDB:
+		// Postgres wire protocol, but AutoMigrate needs one behaviour changed —
+		// see cockroachdb.go.
+		sqlDB, err = gorm.Open(newCockroachDialector(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
 	case constants.DbTypeLibSQL:
 		sqlDB, err = gorm.Open(libsql.Open(dbURL), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypePlanetScaleDB:
-		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
+		// MySQL wire protocol, but AutoMigrate needs two behaviours changed —
+		// see mysql.go.
+		sqlDB, err = gorm.Open(newMySQLDialector(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(dbURL), ormConfig)
+		// MS SQL wire protocol, but AutoMigrate needs one behaviour changed —
+		// see sqlserver.go.
+		sqlDB, err = gorm.Open(newSQLServerDialector(dbURL), ormConfig)
 	}
 
 	if err != nil {
@@ -156,7 +162,7 @@ func NewProviderWithOptions(
 	migrate := opts.Migrate
 	if migrate == nil {
 		migrate = func(db *gorm.DB) error {
-			clearLegacyColumnUniqueness(db, deps.Log)
+			clearLegacyColumnUniqueness(db, dbType, deps.Log)
 			return db.AutoMigrate(Models()...)
 		}
 	}
@@ -216,7 +222,7 @@ func (p *provider) Close() error {
 // why this must run before AutoMigrate. Best-effort and non-fatal: fresh
 // installs, and catalogs without information_schema (sqlite), simply find
 // nothing to drop.
-func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
+func clearLegacyColumnUniqueness(db *gorm.DB, dbType string, log *zerolog.Logger) {
 	// Run through a discarding GORM logger. The information_schema probe below
 	// intentionally errors on databases without that catalog (sqlite); GORM's
 	// default logger writes such errors to os.Stdout, which corrupts the MCP
@@ -262,7 +268,11 @@ func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
 			}
 			for name, cols := range columnsByConstraint {
 				if len(cols) == 1 && targets[cols[0]] {
-					if err := db.Migrator().DropConstraint(t.model, name); err != nil {
+					err := db.Migrator().DropConstraint(t.model, name)
+					if err != nil && dbType == constants.DbTypeCockroachDB {
+						err = dropUniqueConstraint(db, t.name, name)
+					}
+					if err != nil {
 						log.Debug().Err(err).Str("constraint", name).Msg("failed to drop legacy unique constraint")
 					}
 				}

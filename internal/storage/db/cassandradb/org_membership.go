@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-const orgMembershipColumns = "id, org_id, user_id, roles, created_at, updated_at"
+const orgMembershipColumns = "id, org_id, user_id, roles, deprovisioned_at, created_at, updated_at"
 
 // orgMembershipPK derives the membership's primary key deterministically from
 // (org_id, user_id). ScyllaDB secondary indexes are materialized-view backed
@@ -28,7 +28,7 @@ func orgMembershipPK(orgID, userID string) string {
 
 // scanOrgMembership maps the orgMembershipColumns projection onto a struct.
 func scanOrgMembership(scan func(...interface{}) error, membership *schemas.OrgMembership) error {
-	return scan(&membership.ID, &membership.OrgID, &membership.UserID, &membership.Roles, &membership.CreatedAt, &membership.UpdatedAt)
+	return scan(&membership.ID, &membership.OrgID, &membership.UserID, &membership.Roles, &membership.DeprovisionedAt, &membership.CreatedAt, &membership.UpdatedAt)
 }
 
 // AddOrgMembership creates a new membership. (org_id, user_id) is unique.
@@ -47,8 +47,8 @@ func (p *provider) AddOrgMembership(ctx context.Context, membership *schemas.Org
 	if existing, _ := p.GetOrgMembership(ctx, membership.OrgID, membership.UserID); existing != nil {
 		return nil, fmt.Errorf("membership for org_id %s and user_id %s already exists", membership.OrgID, membership.UserID)
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.OrgMembership, orgMembershipColumns)
-	err := p.db.Query(insertQuery, membership.ID, membership.OrgID, membership.UserID, membership.Roles, membership.CreatedAt, membership.UpdatedAt).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.OrgMembership, orgMembershipColumns)
+	err := p.db.Query(insertQuery, membership.ID, membership.OrgID, membership.UserID, membership.Roles, membership.DeprovisionedAt, membership.CreatedAt, membership.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}

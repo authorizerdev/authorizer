@@ -91,11 +91,22 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	return cursor.HasMore(), nil
 }
 
-// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
+//
+// The match is anchored: the exact value, or a ":<userId>" suffix. Stored
+// user_id is "[<loginMethod>:]<userID>" (memory_store SetUserSession), so the
+// user id is always the final segment.
+//
+// It used to be an unanchored substring match, which let a delete for "42"
+// also take out tokens belonging to "142" or "provider:427". The SQL provider
+// was anchored long ago; these backends kept the defect because the assertion
+// covering it lived inside a SQL-only subtest. It now runs on every backend as
+// "Anchored Session Token Delete".
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
-	query := fmt.Sprintf("FOR d IN %s FILTER CONTAINS(d.user_id, @user_id) REMOVE d IN %s", schemas.Collections.SessionToken, schemas.Collections.SessionToken)
+	query := fmt.Sprintf("FOR d IN %s FILTER d.user_id == @user_id OR RIGHT(d.user_id, LENGTH(@suffix)) == @suffix REMOVE d IN %s", schemas.Collections.SessionToken, schemas.Collections.SessionToken)
 	bindVars := map[string]interface{}{
 		"user_id": userId,
+		"suffix":  ":" + userId,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {

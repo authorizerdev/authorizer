@@ -1,9 +1,10 @@
 // Package authctx carries authentication principal details on context.Context.
 package authctx
 
-import "strings"
-
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 type principalContextKey struct{}
 
@@ -27,6 +28,15 @@ type Principal struct {
 	// enforce per-operation scope for delegated callers. See
 	// internal/delegatedscope.
 	Scope []string
+	// AuthMode records HOW a super-admin caller authenticated — one of
+	// constants.AuditAuthModeAdminSession or
+	// constants.AuditAuthModeSharedSecret. Empty for non-admin callers.
+	//
+	// Super-admin has no per-admin identity (one shared AdminSecret), so an
+	// audit record cannot name a person. This records which credential was
+	// used instead of leaving the question blank. Never the session handle
+	// itself.
+	AuthMode string
 }
 
 // IsDelegated reports whether this principal is an agent acting for a user.

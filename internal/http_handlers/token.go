@@ -73,7 +73,8 @@ func formURLDecodeOrKeep(s string) string {
 // entries. It can never collide with a token entry (those are
 // "<type>_<nonce>", e.g. "refresh_token_<nonce>") because the literal prefix
 // differs ("refresh_family_" vs "refresh_token_"). DeleteAllUserSessions still
-// sweeps it (substring/glob match on the user id), so logout/reset clear it.
+// sweeps it, because the sweep matches on the session key (the user id) and not
+// on the sub-key, so logout/reset clear it.
 const refreshFamilyKeyPrefix = "refresh_family_"
 
 // refreshReuseGraceWindow is how long after a rotation a replay of the

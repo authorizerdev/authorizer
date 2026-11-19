@@ -215,9 +215,21 @@ func annotateLikeGateway(t *testing.T, remoteAddr string, headers map[string]str
 func TestClientIPFromGRPC_GrpcMetadataPrefixCannotSmuggle(t *testing.T) {
 	require.NoError(t, utils.SetTrustedProxies(nil))
 
-	md := annotateLikeGateway(t, "198.51.100.10:40000", map[string]string{
+	// grpc-gateway v2.33.0 stopped forwarding a "Grpc-Metadata-"-prefixed
+	// X-Forwarded-For as a real x-forwarded-for entry, so the REAL gateway can no
+	// longer build the vulnerable shape at all. Assert that first — if the
+	// library ever starts smuggling again, this is the canary.
+	gwMD := annotateLikeGateway(t, "198.51.100.10:40000", map[string]string{
 		"Grpc-Metadata-X-Forwarded-For": "203.0.113.9",
 	})
+	assert.NotContains(t, gwMD.Get("x-forwarded-for"), "203.0.113.9",
+		"grpc-gateway regressed: a smuggled Grpc-Metadata-X-Forwarded-For reached the metadata")
+
+	// Then build the pre-filter shape BY HAND. This test exists to prove the
+	// resolver holds the line on its own, so it must not depend on the library
+	// still being willing to produce the attack: smuggled entry first, the
+	// gateway's own authoritative chain appended after it.
+	md := metadata.MD{"x-forwarded-for": []string{"203.0.113.9", "198.51.100.10"}}
 	require.Len(t, md.Get("x-forwarded-for"), 2,
 		"precondition: the smuggled entry must precede the gateway's own chain")
 
@@ -229,9 +241,9 @@ func TestClientIPFromGRPC_GrpcMetadataPrefixCannotSmuggle(t *testing.T) {
 	// The exploit shape: rotate the smuggled value, the bucket key must not move.
 	first := ""
 	for i := 1; i <= 5; i++ {
-		m := annotateLikeGateway(t, "198.51.100.10:40000", map[string]string{
-			"Grpc-Metadata-X-Forwarded-For": fmt.Sprintf("203.0.113.%d", i),
-		})
+		m := metadata.MD{"x-forwarded-for": []string{
+			fmt.Sprintf("203.0.113.%d", i), "198.51.100.10",
+		}}
 		c := peer.NewContext(metadata.NewIncomingContext(context.Background(), m),
 			&peer.Peer{Addr: bufconnAddr{}})
 		ip := MetaFromGRPC(c).IPAddress
@@ -242,9 +254,12 @@ func TestClientIPFromGRPC_GrpcMetadataPrefixCannotSmuggle(t *testing.T) {
 	}
 
 	// Same for X-Real-Ip.
-	md = annotateLikeGateway(t, "198.51.100.11:40000", map[string]string{
-		"Grpc-Metadata-X-Real-Ip": "203.0.113.9",
-	})
+	// Smuggled x-real-ip beside the gateway's own authoritative chain: the chain
+	// carries the true HTTP peer, and an untrusted x-real-ip must not displace it.
+	md = metadata.MD{
+		"x-real-ip":       []string{"203.0.113.9"},
+		"x-forwarded-for": []string{"198.51.100.11"},
+	}
 	ctx = peer.NewContext(metadata.NewIncomingContext(context.Background(), md),
 		&peer.Peer{Addr: bufconnAddr{}})
 	assert.Equal(t, "198.51.100.11", MetaFromGRPC(ctx).IPAddress,

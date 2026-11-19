@@ -269,7 +269,7 @@ func (h *httpProvider) resumeSAMLIDPFlow(c *gin.Context, orgID, slug, key string
 		HTTPRequest:   c.Request,
 		RequestBuffer: buf,
 		RelayState:    flow.RelayState,
-		Now:           saml.TimeNow(),
+		Now:           time.Now().UTC(),
 	}
 	if err := req.Validate(); err != nil {
 		metrics.RecordSecurityEvent("saml_idp_request_invalid", slug)
@@ -324,7 +324,7 @@ func (h *httpProvider) emitIDPInitiatedAssertion(c *gin.Context, idp *saml.Ident
 		ServiceProviderMetadata: spMetadata,
 		SPSSODescriptor:         &spMetadata.SPSSODescriptors[0],
 		ACSEndpoint:             &spMetadata.SPSSODescriptors[0].AssertionConsumerServices[0],
-		Now:                     saml.TimeNow(),
+		Now:                     time.Now().UTC(),
 	}
 	session := buildSAMLSession(user, sp)
 	attrs, groups := h.mappedAttributesWithGroups(ctx, orgID, user, sp, log)
@@ -379,7 +379,9 @@ func (h *httpProvider) authorizeSAMLIssuance(c *gin.Context, orgID, slug string,
 // today, but denying on nil too closes the class of a provider ever returning
 // (nil, nil).
 func samlIssuanceDenyReason(membership *schemas.OrgMembership, membershipErr error, sp *schemas.SAMLServiceProvider, user *schemas.User) (code, desc string) {
-	if membershipErr != nil || membership == nil {
+	// A deprovisioned membership is not a membership for access purposes: the row
+	// is retained only so SCIM can report and reverse it.
+	if membershipErr != nil || !membership.Active() {
 		return "forbidden", "not a member of this organization"
 	}
 	if samlNameIDWouldBeEmail(sp, user) && user.EmailVerifiedAt == nil {
@@ -431,7 +433,7 @@ func buildSAMLSession(user *schemas.User, sp *schemas.SAMLServiceProvider) *saml
 	if samlNameIDWouldBeEmail(sp, user) {
 		nameID = email
 	}
-	now := saml.TimeNow()
+	now := time.Now().UTC()
 	return &saml.Session{
 		ID:            user.ID,
 		CreateTime:    now,

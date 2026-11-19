@@ -7,6 +7,13 @@ DOCKER_IMAGE ?= quay.io/authorizer/authorizer:$(VERSION)
 # Integration tests and memory_store/db tests always use SQLite.
 # Redis memory_store tests run only when TEST_ENABLE_REDIS=1.
 GO_TEST_ALL := go test -p 1 -v ./...
+# Pinned to a release line so the suite does not move under us.
+COCKROACH_IMAGE := cockroachdb/cockroach:latest-v24.3
+MYSQL_IMAGE := mysql:8.0.40
+MARIADB_IMAGE := mariadb:11
+SQLSERVER_IMAGE := mcr.microsoft.com/mssql/server:2022-latest
+SERENEDB_IMAGE := serenedb/serenedb:26.11.2
+SQLSERVER_PASSWORD := Str0ng!Passw0rd
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
@@ -124,11 +131,38 @@ test-postgres: test-cleanup-postgres
 	exit $$status
 
 test-serenedb: test-cleanup-serenedb
-	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres serenedb/serenedb:26.08.2
+	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres $(SERENEDB_IMAGE)
 	sh scripts/wait-for-test-dbs.sh serenedb && \
 	{ go clean --testcache; TEST_DBS="serenedb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_serenedb; \
+	exit $$status
+
+# CockroachDB is Postgres-wire compatible and runs through the same GORM SQL
+# provider, so this target exists to prove that compatibility actually holds
+# (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
+test-cockroachdb: test-cleanup-cockroachdb
+	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
+	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
+	{ go clean --testcache; TEST_DBS="cockroachdb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_cockroachdb; \
+	exit $$status
+
+test-mysql: test-cleanup-mysql
+	docker run -d --name authorizer_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=authorizer_test $(MYSQL_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_mysql mysql && \
+	{ go clean --testcache; TEST_DBS="mysql" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_mysql; \
+	exit $$status
+
+test-mariadb: test-cleanup-mariadb
+	docker run -d --name authorizer_mariadb -p 3307:3306 -e MARIADB_ROOT_PASSWORD=password -e MARIADB_DATABASE=authorizer_test $(MARIADB_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
+	{ go clean --testcache; TEST_DBS="mariadb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_mariadb; \
 	exit $$status
 
 test-sqlite:
@@ -155,9 +189,24 @@ test-scylladb: test-cleanup-scylladb
 	@# recipe line, so a failing test aborted the recipe before teardown and left
 	@# the port bound, breaking the NEXT run for an unrelated reason.
 	sh scripts/wait-for-test-dbs.sh scylladb && \
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
 	{ go clean --testcache; TEST_DBS="scylladb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	docker rm -vf authorizer_scylla_db; \
+	exit $$status
+
+# The cassandradb and scylladb providers share one implementation but take
+# different keyspace-replication CQL, and only the ScyllaDB path was ever
+# tested. The first run of this target against real Apache Cassandra failed:
+# CQL LIKE needs a SASI index there, so three queries this provider issues were
+# rejected outright. Different port from scylladb on purpose, so both can run.
+test-cassandradb: test-cleanup-cassandradb
+	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
+	sh scripts/wait-for-test-dbs.sh cassandradb && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
+	{ go clean --testcache; TEST_DBS="cassandradb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_cassandra_db; \
 	exit $$status
 
 test-arangodb: test-cleanup-arangodb
@@ -210,8 +259,17 @@ test-all-db: test-cleanup test-docker-up
 	@# leaving ports 5434/27017/9042/8529/8000/8091 bound — so the NEXT run
 	@# failed to start them and produced a second, misleading failure. Same
 	@# capture-status-then-clean shape the e2e-playground target already uses.
-	go clean --testcache; \
-	TEST_DBS="couchbase,postgres,serenedb,sqlite,mongodb,arangodb,scylladb,dynamodb" $(GO_TEST_ALL); \
+	@# The CQL waits belong HERE and not in test-docker-up: that is a
+	@# prerequisite target, and a failure on one of its standalone recipe lines
+	@# aborts make before this recipe -- and $(MAKE) test-cleanup below -- ever
+	@# runs, leaking all eight containers and leaving every port bound. Inside
+	@# the && chain a probe failure is captured by status and still cleans up.
+	sh scripts/wait-for-cql.sh authorizer_scylla_db && \
+	sh scripts/wait-for-cql.sh authorizer_cassandra_db && \
+	sh scripts/wait-for-sql.sh authorizer_mysql mysql && \
+	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
+	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,serenedb,cockroachdb,mysql,mariadb,sqlite,libsql,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -220,20 +278,44 @@ test-all-db: test-cleanup test-docker-up
 test-docker-up:
 	docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
-	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres serenedb/serenedb:26.08.2
+	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres $(SERENEDB_IMAGE)
+	@# Only 26257 (SQL) is published. Cockroach's admin UI is on 8080, which is
+	@# the port `make dev` binds.
+	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
+	docker run -d --name authorizer_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=authorizer_test $(MYSQL_IMAGE)
+	docker run -d --name authorizer_mariadb -p 3307:3306 -e MARIADB_ROOT_PASSWORD=password -e MARIADB_DATABASE=authorizer_test $(MARIADB_IMAGE)
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
+	docker run -d --name authorizer_cassandra_db -p 9142:9042 -e MAX_HEAP_SIZE=512M -e HEAP_NEWSIZE=128M cassandra:4.1
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	sh scripts/wait-for-test-dbs.sh
+	@# Advisory here, authoritative inside test-all-db. `make test-docker-up` is
+	@# also a standalone target, so it has to leave the stack actually usable --
+	@# without these, a user running it and then `go test` gets a Cassandra that
+	@# is still booting, which is the flake the probe exists to prevent. But a
+	@# hard failure on a prerequisite recipe line aborts make before
+	@# test-all-db's cleanup runs, so the `-` keeps a slow boot from leaking
+	@# eight containers. The enforcing copy in test-all-db is inside the &&
+	@# chain, where a failure is captured and still cleans up. Re-running it
+	@# there costs nothing: the probe returns in 0s once CQL answers.
+	-sh scripts/wait-for-cql.sh authorizer_scylla_db
+	-sh scripts/wait-for-cql.sh authorizer_cassandra_db
+	-sh scripts/wait-for-sql.sh authorizer_mysql mysql
+	-sh scripts/wait-for-sql.sh authorizer_mariadb mariadb
+	-sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb
 
 # Remove all test database containers
 test-cleanup:
 	-docker rm -vf authorizer_postgres
 	-docker rm -vf authorizer_serenedb
+	-docker rm -vf authorizer_cockroachdb
+	-docker rm -vf authorizer_mysql
+	-docker rm -vf authorizer_mariadb
 	-docker rm -vf authorizer_scylla_db
+	-docker rm -vf authorizer_cassandra_db
 	-docker rm -vf authorizer_mongodb_db
 	-docker rm -vf authorizer_arangodb
 	-docker rm -vf authorizer_dynamodb
@@ -244,16 +326,42 @@ test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
 test-cleanup-serenedb:
 	-docker rm -vf authorizer_serenedb
+test-cleanup-cockroachdb:
+	-docker rm -vf authorizer_cockroachdb
+test-sqlserver: test-cleanup-sqlserver
+	@# Not part of test-all-db: two upsert tests are known-red on SQL Server
+	@# because gorm.io/driver/sqlserver builds its MERGE predicate from the
+	@# primary key and ignores clause.OnConflict.Columns, so an upsert keyed on
+	@# a composite unique index inserts a second row instead of replacing one.
+	@# Tracked separately from the AutoMigrate fixes; everything else passes.
+	docker run -d --name authorizer_sqlserver -p 1433:1433 \
+		-e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='$(SQLSERVER_PASSWORD)' $(SQLSERVER_IMAGE)
+	sh scripts/wait-for-sql.sh authorizer_sqlserver sqlserver && \
+	docker exec authorizer_sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa \
+		-P '$(SQLSERVER_PASSWORD)' -Q "CREATE DATABASE authorizer_test" && \
+	{ go clean --testcache; TEST_DBS="sqlserver" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_sqlserver; \
+	exit $$status
+
+test-cleanup-mysql:
+	-docker rm -vf authorizer_mysql
+test-cleanup-mariadb:
+	-docker rm -vf authorizer_mariadb
 test-cleanup-mongodb:
 	-docker rm -vf authorizer_mongodb_db
 test-cleanup-scylladb:
 	-docker rm -vf authorizer_scylla_db
+test-cleanup-cassandradb:
+	-docker rm -vf authorizer_cassandra_db
 test-cleanup-arangodb:
 	-docker rm -vf authorizer_arangodb
 test-cleanup-dynamodb:
 	-docker rm -vf authorizer_dynamodb
 test-cleanup-couchbase:
 	-docker rm -vf authorizer_couchbase
+test-cleanup-sqlserver:
+	-docker rm -vf authorizer_sqlserver
 generate-graphql:
 	go run github.com/99designs/gqlgen --verbose generate && go mod tidy
 generate-db-template:
@@ -312,7 +420,7 @@ proto-check-clients: proto-gen-clients
 # `make lint` in CI. golangci-lint is installed on demand if missing.
 # ----------------------------------------------------------------------------
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
-GOLANGCI_LINT_VERSION ?= v2.11.4
+GOLANGCI_LINT_VERSION ?= v2.15.0
 
 .PHONY: fmt fmt-go fmt-ts lint lint-go lint-ts lint-tools
 
@@ -342,6 +450,12 @@ lint-tools:
 # .golangci.yml.
 lint-go: lint-tools
 	golangci-lint run ./...
+
+# Scan the module for known vulnerabilities. Fails on any reachable finding that
+# .govulncheck-allow does not list; CI runs this exact target.
+.PHONY: vulncheck
+vulncheck: ## Run govulncheck, gated on the .govulncheck-allow allowlist
+	./scripts/govulncheck.sh
 
 # Prettier in --check mode: fails (non-zero) if any web source is unformatted.
 lint-ts:

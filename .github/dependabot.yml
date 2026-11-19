@@ -1,0 +1,89 @@
+---
+# Dependabot keeps module, action, npm and base-image versions current.
+# It does NOT bump the `go` directive in go.mod, so the Go toolchain itself
+# stays the job of .github/workflows/govulncheck.yml.
+version: 2
+
+updates:
+  # Go modules. Minor and patch updates are grouped into one PR per week,
+  # because this module has more than 300 dependencies. Major updates stay
+  # separate, because they can break the storage providers.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Database drivers land on their own, because CI runs SQLite only.
+      # Gate this PR on `make test-all-db` before merge.
+      storage-drivers:
+        patterns:
+          - "github.com/couchbase/*"
+          - "github.com/gocql/*"
+          - "github.com/arangodb/*"
+          - "github.com/aws/*"
+          - "go.mongodb.org/*"
+          - "gorm.io/*"
+          - "github.com/ekristen/gorm-libsql"
+          - "github.com/libsql/*"
+      go-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    commit-message:
+      prefix: chore
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The two React applications are built and released with the server binary.
+  - package-ecosystem: npm
+    directory: /web/app
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Base images in the Dockerfile.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    commit-message:
+      prefix: chore

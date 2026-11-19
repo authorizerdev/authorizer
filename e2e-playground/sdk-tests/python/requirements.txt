@@ -6,7 +6,7 @@
 authorizer-py==0.3.0rc3
 
 # Test runner.
-pytest==8.3.4
+pytest==9.0.3
 
 # TOTP code generation (RFC 6238) — the "authenticator app" side of the TOTP
 # ceremony. Mirrors otpauth in the Playwright suite.

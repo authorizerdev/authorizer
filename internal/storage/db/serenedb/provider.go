@@ -1,20 +1,23 @@
 // Package serenedb adapts the SQL storage provider to SereneDB, a search-OLAP
 // engine that speaks the PostgreSQL wire protocol. It reuses the SQL provider
-// wholesale and overrides only the two places where SereneDB's SQL differs from
-// PostgreSQL's:
+// wholesale and changes only two things:
 //
 //  1. Migration. GORM AutoMigrate reconciles column types on every boot, but
 //     SereneDB reports varchar(n) as text and refuses ALTER COLUMN ... TYPE on
 //     an indexed column, so the second startup fails. migrate below creates what
-//     is missing and never alters what exists.
-//  2. Upserts with an explicit conflict target (see upsert.go).
+//     is missing and never alters what exists. Still required as of 26.11.2.
+//  2. Write conflicts. SereneDB's MVCC is optimistic, so contended same-row
+//     writes abort with SQLSTATE 40001 instead of blocking. That is retried at
+//     the connection pool (see connpool.go) so every write path gets it — but
+//     only for autocommit statements. The SQL provider's four explicit
+//     Transaction() call sites still surface 40001 under sustained same-row
+//     contention. Still required as of 26.11.2.
 //
-// SereneDB's MVCC is optimistic, so contended same-row writes abort with
-// SQLSTATE 40001 instead of blocking. That is handled at the connection pool
-// (see connpool.go) so every write path gets it, not just the two overridden
-// here — but only for autocommit statements. The SQL provider's four explicit
-// Transaction() call sites still surface 40001 under sustained same-row
-// contention.
+// Releases before 26.11 also resolved ON CONFLICT (cols) only against an inline
+// UNIQUE constraint, never a CREATE UNIQUE INDEX, which needed overrides for the
+// two upserting methods. 26.11 fixed that, so the SQL provider's upserts run
+// unchanged; TestAddVerificationRequestUpsert and
+// TestAddAuthenticatorConcurrentEnrollment pin it.
 package serenedb
 
 import (
@@ -74,9 +77,9 @@ func migrate(db *gorm.DB) error {
 				}
 			}
 		}
-		for name := range stmt.Schema.ParseIndexes() {
-			if !m.HasIndex(model, name) {
-				if err := m.CreateIndex(model, name); err != nil {
+		for _, idx := range stmt.Schema.ParseIndexes() {
+			if !m.HasIndex(model, idx.Name) {
+				if err := m.CreateIndex(model, idx.Name); err != nil {
 					return err
 				}
 			}

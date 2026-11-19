@@ -219,6 +219,63 @@ func TestOrgScopedAdmin(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	// A membership row survives SCIM deprovisioning so that SCIM can report
+	// active:false and reverse it later. Existence must therefore not be
+	// authority: without this gate, deprovisioning an org admin through SCIM
+	// left their full authority over the org's SSO, SCIM, domains and
+	// membership completely intact.
+	t.Run("deprovisioned org-admin loses org authority", func(t *testing.T) {
+		orgID := createOrg("deprov")
+		userID, tok := signupUser()
+		addMember(orgID, userID, []string{constants.OrgRoleAdmin})
+
+		// Baseline: the org-admin can act.
+		asUser(tok)
+		_, err := ts.GraphQLProvider.CreateScimEndpoint(ctx, &model.CreateScimEndpointRequest{OrgID: orgID})
+		require.NoError(t, err, "org-admin must be able to act before deprovisioning")
+
+		// Deprovision the membership the way SCIM does.
+		membership, err := ts.StorageProvider.GetOrgMembership(ctx, orgID, userID)
+		require.NoError(t, err)
+		membership.DeprovisionedAt = refs.NewInt64Ref(time.Now().Unix())
+		_, err = ts.StorageProvider.UpdateOrgMembership(ctx, membership)
+		require.NoError(t, err)
+
+		// It must round-trip through storage, or the gate below passes for the
+		// wrong reason.
+		reloaded, err := ts.StorageProvider.GetOrgMembership(ctx, orgID, userID)
+		require.NoError(t, err)
+		require.False(t, reloaded.Active(), "deprovisioned_at must persist")
+
+		asUser(tok)
+		_, err = ts.GraphQLProvider.CreateScimEndpoint(ctx, &model.CreateScimEndpointRequest{OrgID: orgID})
+		require.Error(t, err, "a deprovisioned org-admin must be denied")
+		_, err = ts.GraphQLProvider.CreateOrgOidcConnection(ctx, &model.CreateOrgOIDCConnectionRequest{
+			OrgID:        orgID,
+			Name:         "x",
+			IssuerURL:    "https://deprov-" + uuid.NewString() + ".example.com",
+			ClientID:     "c",
+			ClientSecret: "s",
+		})
+		require.Error(t, err, "a deprovisioned org-admin must be denied")
+
+		// Reactivating restores authority.
+		reloaded.DeprovisionedAt = nil
+		_, err = ts.StorageProvider.UpdateOrgMembership(ctx, reloaded)
+		require.NoError(t, err)
+		asUser(tok)
+		// A fresh OIDC connection, not another SCIM endpoint — an org may hold
+		// only one of those and the baseline above already created it.
+		_, err = ts.GraphQLProvider.CreateOrgOidcConnection(ctx, &model.CreateOrgOIDCConnectionRequest{
+			OrgID:        orgID,
+			Name:         "after-reactivation",
+			IssuerURL:    "https://reactivated-" + uuid.NewString() + ".example.com",
+			ClientID:     "c",
+			ClientSecret: "s",
+		})
+		require.NoError(t, err, "reactivated org-admin can act again")
+	})
+
 	t.Run("plain member and non-member are denied", func(t *testing.T) {
 		orgID := createOrg("plain")
 		memberID, memberTok := signupUser()

@@ -27,7 +27,7 @@ func dynamoOmitEmpty(tag string) bool {
 
 func marshalStruct(v interface{}) (map[string]types.AttributeValue, error) {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
+	if rv.Kind() == reflect.Pointer {
 		if rv.IsNil() {
 			return nil, fmt.Errorf("nil value")
 		}
@@ -52,7 +52,7 @@ func marshalStruct(v interface{}) (map[string]types.AttributeValue, error) {
 		if dynamoOmitEmpty(tag) && isEmptyValue(fv) {
 			continue
 		}
-		if fv.Kind() == reflect.Ptr && fv.IsNil() {
+		if fv.Kind() == reflect.Pointer && fv.IsNil() {
 			continue
 		}
 		av, err := attributevalue.Marshal(fv.Interface())
@@ -77,7 +77,7 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.Uint() == 0
 	case reflect.Bool:
 		return !v.Bool()
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		return v.IsNil()
 	default:
 		return false
@@ -98,7 +98,7 @@ func marshalMapStringInterface(m map[string]interface{}) (map[string]types.Attri
 
 func unmarshalItem(av map[string]types.AttributeValue, out interface{}) error {
 	rv := reflect.ValueOf(out)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return fmt.Errorf("out must be non-nil pointer")
 	}
 	ev := rv.Elem()
@@ -124,7 +124,7 @@ func unmarshalItem(av map[string]types.AttributeValue, out interface{}) error {
 		if !field.CanSet() {
 			continue
 		}
-		if field.Kind() == reflect.Ptr {
+		if field.Kind() == reflect.Pointer {
 			if field.IsNil() {
 				field.Set(reflect.New(field.Type().Elem()))
 			}

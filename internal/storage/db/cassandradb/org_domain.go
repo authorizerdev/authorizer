@@ -87,7 +87,21 @@ func (p *provider) ListOrgDomainsByOrg(ctx context.Context, orgID string, pagina
 
 // DeleteOrgDomain removes a verified domain mapping by normalized domain.
 func (p *provider) DeleteOrgDomain(ctx context.Context, domain string) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OrgDomain)
+	// IF EXISTS makes this DELETE a lightweight transaction, like AddOrgDomain's
+	// insert. Not for the applied flag — it is discarded — but so that every write
+	// to this partition is ordered by the same Paxos machinery.
+	//
+	// AddOrgDomain must stay an LWT: the normalized domain is the partition key
+	// and first-writer-wins is the atomicity guarantee. But an LWT insert's row
+	// marker is derived from the Paxos ballot (server clock), while a plain DELETE
+	// writes a row tombstone carrying gocql's client-side timestamp
+	// (DefaultTimestamp defaults to true). A tombstone only shadows a row whose
+	// marker it exceeds, so when the server clock runs ahead the delete is
+	// discarded with no error — and the domain stays claimed permanently, because
+	// nothing ever re-writes it. Measured on scylladb/scylla with 50 insert-delete
+	// pairs: 46 of 50 plain deletes dropped, 0 of 50 with IF EXISTS. The cascade
+	// below carries IF EXISTS for the same reason.
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ? IF EXISTS", KeySpace+"."+schemas.Collections.OrgDomain)
 	return p.db.Query(query, domain).Exec()
 }
 
@@ -103,7 +117,7 @@ func (p *provider) DeleteOrgDomainsByOrg(ctx context.Context, orgID string) erro
 		}
 		ids = append(ids, id)
 	}
-	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OrgDomain)
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? IF EXISTS", KeySpace+"."+schemas.Collections.OrgDomain)
 	for _, id := range ids {
 		if err := p.db.Query(deleteQuery, id).Exec(); err != nil {
 			return err

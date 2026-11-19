@@ -3,7 +3,7 @@
 #
 # Alpine v3.23 main still ships busybox 1.37.0-r30 (e.g. CVE-2025-60876); edge/main has r31+.
 # Pin busybox from edge until the stable branch backports it. See alpine/aports work item #17940.
-FROM golang:1.26-alpine3.23 AS go-builder
+FROM golang:1.27.4-alpine3.24 AS go-builder
 ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
 RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 WORKDIR /authorizer
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -trimpath -mod=readonly -tags netgo -ldflags "-w -s -X github.com/authorizerdev/authorizer/internal/constants.VERSION=$VERSION" -o build/${GOOS}/${GOARCH}/authorizer . && \
     chmod 755 build/${GOOS}/${GOARCH}/authorizer
 
-FROM alpine:3.23.3 AS node-builder
+FROM alpine:3.24.4 AS node-builder
 ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
 RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 WORKDIR /authorizer
@@ -56,7 +56,7 @@ COPY web/app web/app
 COPY web/dashboard web/dashboard
 RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
-FROM alpine:3.23.3
+FROM alpine:3.24.4
 ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
 RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31" && \
     apk upgrade --no-cache

@@ -272,6 +272,44 @@ func (h *httpProvider) ConsentHandler() gin.HandlerFunc {
 			return
 		}
 
+		// A delegated (RFC 8693) token must never approve a consent grant.
+		//
+		// GetUserIDFromSessionOrAccessToken resolves a delegated token to the
+		// DELEGATING USER's sub, by design, so the identity check above passes
+		// for an agent acting on the user's behalf. That is the right answer for
+		// a caller that consults internal/delegatedscope — and the wrong one
+		// here, because this endpoint is a plain gin route behind neither of the
+		// two gates that enforce it (the gRPC interceptor and the GraphQL field
+		// middleware).
+		//
+		// Approving a consent grant is not attenuable, which is why there is no
+		// scope for it rather than a scope nobody has been granted: the approval
+		// confers whatever scope the THIRD-PARTY client asked for, which is
+		// unbounded by the agent's own ceiling. An agent capped at `openid`
+		// could hand a third party far more than `openid`, so a ceiling that
+		// permitted this would stop being a ceiling. Per delegatedscope's own
+		// documented default — an operation absent from the table is DENIED to
+		// delegated callers — this fails closed, mirroring
+		// enforceDelegatedScope's not-delegatable branch.
+		//
+		// A session cookie is checked BEFORE the bearer token in the resolver,
+		// and the session branch never sets ActorID, so an agent driving the
+		// user's own browser is unaffected: it presents the cookie and takes the
+		// first-party path. Only a cookie-less caller presenting a delegated
+		// bearer token is refused here.
+		//
+		// Human-in-the-loop approval for a headless agent is CIBA's job, not
+		// this endpoint's.
+		if strings.TrimSpace(tokenData.ActorID) != "" {
+			metrics.RecordSecurityEvent("delegated_insufficient_scope", "consent_not_delegatable")
+			log.Warn().Msg("consent rejected: a delegated token cannot approve a consent grant")
+			h.consentError(gc, http.StatusForbidden,
+				"Please approve this from your own session",
+				"This approval was submitted by an application acting on your behalf, which cannot grant another application access to your account.",
+				"Open this link in your own browser and approve it there.")
+			return
+		}
+
 		if gc.PostForm("action") != "approve" {
 			// RFC 6749 §4.1.2.1: a refusal is reported to the client at its
 			// registered redirect_uri, not rendered here — the client is waiting

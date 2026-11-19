@@ -44,8 +44,11 @@ import (
 // Namespace safety: cacheNamespace can never collide with a real session's
 // user_id, which is either a bare UUID or "<loginMethod>:<uuid>". It contains no
 // ":" so DeleteSessionTokensByNamespace (prefix "<ns>:") cannot match it, and
-// DeleteAllSessionTokensByUserID's substring match is driven by UUIDs, which are
-// never a substring of this literal.
+// DeleteAllSessionTokensByUserID matches only the exact user id or a
+// ":<userId>" suffix, neither of which this literal can satisfy. (That match
+// used to be an unanchored substring test, safe here only because real user ids
+// are UUIDs; it is now anchored on every backend, so the guarantee no longer
+// rests on that.)
 const (
 	// cacheNamespace is the reserved user_id under which every cache row lives.
 	cacheNamespace = "__authorizer_cache__"

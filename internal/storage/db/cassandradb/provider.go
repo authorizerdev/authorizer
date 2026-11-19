@@ -263,6 +263,14 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// No query uses this index any more: GetWebhookByEventName was its only
+	// consumer and now scans with a Go-side prefix match, because Apache
+	// Cassandra rejects CQL LIKE against a plain secondary index. Left in place
+	// deliberately — dropping it is a schema migration on live deployments, for
+	// an index whose only cost is write amplification on a table that holds a
+	// handful of rows. Remove it in a change that owns that migration.
+	// (authorizer_email_template_event_name is NOT dead: email_template.go
+	// still selects on event_name with =.)
 	webhookIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webhook_event_name ON %s.%s (event_name)", KeySpace, schemas.Collections.Webhook)
 	err = session.Query(webhookIndexQuery).Exec()
 	if err != nil {
@@ -415,15 +423,25 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	auditLogTimestampIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_created_at ON %s.%s (created_at)", KeySpace, schemas.Collections.AuditLog)
-	err = session.Query(auditLogTimestampIndex).Exec()
+	// No index on created_at, deliberately. A Cassandra secondary index serves
+	// equality only, and every query this table issues against created_at is a
+	// range — the bounds in ListAuditLogs and DeleteAuditLogsBefore, both of
+	// which take the ALLOW FILTERING scan path. The index could therefore never
+	// be used, while still costing a write on every row of the highest-write
+	// table in the schema. See buildAuditLogWhere in audit_log.go.
+	//
+	// Pre-existing deployments keep the index until it is dropped by hand:
+	//   DROP INDEX IF EXISTS authorizer.authorizer_audit_log_created_at;
+	auditLogResourceTypeIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_resource_type ON %s.%s (resource_type)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogResourceTypeIndex).Exec()
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously. Poll with a probe query
-	// that requires the actor_id index until it succeeds instead of a fixed sleep.
-	waitForCassandraIndexes(session, KeySpace, schemas.Collections.AuditLog, 30*time.Second)
-
+	auditLogResourceIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_resource_id ON %s.%s (resource_id)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogResourceIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
 	// Client table
 	clientCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, kind text, name text, description text, client_secret text, allowed_scopes text, redirect_uris text, grant_types text, token_endpoint_auth_method text, is_active boolean, org_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Client)
 	err = session.Query(clientCollectionQuery).Exec()
@@ -440,11 +458,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for the client_id
-	// index (used by GetClientByClientID and the boot-time reserved-client seed)
-	// to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Client, "client_id", 30*time.Second)
-
 	// TrustedIssuer table and indexes
 	trustedIssuerCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, client_id text, name text, issuer_url text, key_source_type text, jwks_url text, expected_aud text, subject_claim text, allowed_subjects text, issuer_type text, auth_method text, is_active boolean, enable_token_review boolean, kubernetes_api_server_url text, spiffe_refresh_hint_seconds bigint, trusted_proxy_header text, trusted_proxy_cidrs text, kind text, org_id text, sso_client_id text, sso_client_secret_enc text, sso_scopes text, sso_redirect_uri text, saml_sso_url text, saml_idp_cert_pem text, saml_sp_entity_id text, saml_acs_url text, saml_attribute_mapping text, saml_allow_idp_initiated boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.TrustedIssuer)
 	err = session.Query(trustedIssuerCollectionQuery).Exec()
@@ -482,10 +495,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for the issuer_url
-	// index (hot path for client_assertion validation) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.TrustedIssuer, "issuer_url", 30*time.Second)
-
 	// SAMLServiceProvider table and indexes (registered downstream SPs; Authorizer as IdP)
 	samlServiceProviderCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, name text, entity_id text, acs_url text, sp_cert_pem text, name_id_format text, mapped_attributes text, allow_idp_initiated boolean, is_active boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.SAMLServiceProvider)
 	if err = session.Query(samlServiceProviderCollectionQuery).Exec(); err != nil {
@@ -499,10 +508,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(samlServiceProviderEntityIDIndex).Exec(); err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for the org_id index
-	// (used to resolve an incoming AuthnRequest to its registered SP) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.SAMLServiceProvider, "org_id", 30*time.Second)
-
 	// SAMLIDPKey table and index (per-org signing keypairs with rotation)
 	samlIDPKeyCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, cert_pem text, private_key_enc text, algorithm text, status text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.SAMLIDPKey)
 	if err = session.Query(samlIDPKeyCollectionQuery).Exec(); err != nil {
@@ -512,10 +517,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(samlIDPKeyOrgIDIndex).Exec(); err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for the org_id index
-	// (used to enumerate an org's signing keys for metadata publishing) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.SAMLIDPKey, "org_id", 30*time.Second)
-
 	// WebauthnCredential table and indexes
 	webauthnCredentialCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, credential_id text, public_key text, sign_count bigint, flags bigint, transports text, aaguid text, name text, created_at bigint, updated_at bigint, last_used_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.WebauthnCredential)
 	err = session.Query(webauthnCredentialCollectionQuery).Exec()
@@ -532,10 +533,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for the credential_id
-	// index (hot path for usernameless login) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.WebauthnCredential, "credential_id", 30*time.Second)
-
 	// Organization table and index
 	organizationCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, display_name text, enabled boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Organization)
 	if err = session.Query(organizationCollectionQuery).Exec(); err != nil {
@@ -547,9 +544,15 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}
 
 	// OrgMembership table and indexes
-	orgMembershipCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, user_id text, roles text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgMembership)
+	orgMembershipCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, user_id text, roles text, deprovisioned_at bigint, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgMembership)
 	if err = session.Query(orgMembershipCollectionQuery).Exec(); err != nil {
 		return nil, err
+	}
+	// add deprovisioned_at on the org_membership table (SCIM per-org deprovision)
+	orgMembershipDeprovisionedAtAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD deprovisioned_at bigint`, KeySpace, schemas.Collections.OrgMembership)
+	if err = session.Query(orgMembershipDeprovisionedAtAlterQuery).Exec(); err != nil {
+		deps.Log.Debug().Err(err).Msg("Failed to alter table as deprovisioned_at column exists")
+		// continue
 	}
 	orgMembershipOrgIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_org_membership_org_id ON %s.%s (org_id)", KeySpace, schemas.Collections.OrgMembership)
 	if err = session.Query(orgMembershipOrgIndex).Exec(); err != nil {
@@ -574,14 +577,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
-	// ScyllaDB builds secondary indexes asynchronously; wait for the lookup
-	// columns used by the uniqueness guard and membership listings.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.Organization, "name", 30*time.Second)
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "org_id", 30*time.Second)
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgMembership, "user_id", 30*time.Second)
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.FederatedIdentity, "org_id", 30*time.Second)
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.FederatedIdentity, "user_id", 30*time.Second)
-
 	// ScimEndpoint table and index
 	scimEndpointCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, token_hash text, enabled boolean, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.ScimEndpoint)
 	if err = session.Query(scimEndpointCollectionQuery).Exec(); err != nil {
@@ -591,10 +586,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(scimEndpointOrgIndex).Exec(); err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for org_id (used by
-	// GetScimEndpointByOrgID and the uniqueness guard) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.ScimEndpoint, "org_id", 30*time.Second)
-
 	// ScimGroup table and index. Membership is NOT stored here (it lives in FGA);
 	// org_id indexes the displayName-eq lookup (org_id + display_name ALLOW FILTERING).
 	scimGroupCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, display_name text, external_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.ScimGroup)
@@ -605,8 +596,6 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(scimGroupOrgIndex).Exec(); err != nil {
 		return nil, err
 	}
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.ScimGroup, "org_id", 30*time.Second)
-
 	// OrgDomain table and index. The normalized domain is the partition key, so
 	// INSERT ... IF NOT EXISTS enforces first-writer-wins atomically (LWT).
 	orgDomainCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, org_id text, domain text, verified_at bigint, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OrgDomain)
@@ -617,9 +606,19 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	if err = session.Query(orgDomainOrgIndex).Exec(); err != nil {
 		return nil, err
 	}
-	// ScyllaDB builds secondary indexes asynchronously; wait for org_id (used by
-	// ListOrgDomainsByOrg and the cascade) to become queryable.
-	waitForCassandraSecondaryIndex(session, KeySpace, schemas.Collections.OrgDomain, "org_id", 30*time.Second)
+	// Every secondary index created above is probed here, once, against a single
+	// shared budget. ScyllaDB builds secondary indexes asynchronously and a query
+	// on an indexed column fails until the index is ready, so a provider that
+	// returns before they answer hands its first caller an intermittent
+	// index-unavailable error against a freshly provisioned keyspace.
+	//
+	// Consolidated at the end rather than one wait per table: the budget is then
+	// bounded for the whole of startup instead of per call site, and the indexes
+	// created earliest have had the longest to settle by the time they are
+	// probed. Nothing inside NewProvider queries an indexed column, so deferring
+	// costs nothing — the boot-time reserved-client seed runs in cmd/root.go,
+	// after this returns.
+	waitForCassandraIndexes(session, KeySpace, cassandraIndexProbes, 90*time.Second)
 
 	return &provider{
 		config:       cfg,
@@ -628,13 +627,44 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}, err
 }
 
-// waitForCassandraSecondaryIndex polls a probe query that requires the given
-// column's secondary index until it succeeds or the timeout is reached.
-// ScyllaDB builds secondary indexes asynchronously; queries on indexed columns
-// fail until the index is ready.
-func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, table, column string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1 ALLOW FILTERING", keyspace, table, column)
-	deadline := time.Now().Add(timeout)
+// indexProbe names one secondary index to wait on, as the (table, column) pair
+// its readiness probe queries.
+type indexProbe struct {
+	table  string
+	column string
+}
+
+// cassandraIndexProbes is every secondary index NewProvider waits on before
+// returning. It is the subset of created indexes that a caller can hit
+// immediately after startup, so a missing entry here is a startup race, not a
+// cosmetic omission.
+//
+// Indexes on bigint columns (audit_log.created_at, session_token.expires_at,
+// mfa_session.expires_at) are absent by necessity: the probe restricts on ”,
+// which only type-checks against a text column.
+var cassandraIndexProbes = []indexProbe{
+	{schemas.Collections.AuditLog, "actor_id"},
+	{schemas.Collections.AuditLog, "action"},
+	{schemas.Collections.AuditLog, "resource_type"},
+	{schemas.Collections.AuditLog, "resource_id"},
+	{schemas.Collections.Client, "client_id"},
+	{schemas.Collections.TrustedIssuer, "issuer_url"},
+	{schemas.Collections.SAMLServiceProvider, "org_id"},
+	{schemas.Collections.SAMLIDPKey, "org_id"},
+	{schemas.Collections.WebauthnCredential, "credential_id"},
+	{schemas.Collections.Organization, "name"},
+	{schemas.Collections.OrgMembership, "org_id"},
+	{schemas.Collections.OrgMembership, "user_id"},
+	{schemas.Collections.FederatedIdentity, "org_id"},
+	{schemas.Collections.FederatedIdentity, "user_id"},
+	{schemas.Collections.ScimEndpoint, "org_id"},
+	{schemas.Collections.ScimGroup, "org_id"},
+	{schemas.Collections.OrgDomain, "org_id"},
+}
+
+// pollUntilQuerySucceeds retries probe with a capped linear backoff until it
+// succeeds or deadline passes.
+func pollUntilQuerySucceeds(session *cansandraDriver.Session, probe string, deadline time.Time) {
 	delay := 500 * time.Millisecond
 	for {
 		if err := session.Query(probe).Exec(); err == nil {
@@ -650,25 +680,50 @@ func waitForCassandraSecondaryIndex(session *cansandraDriver.Session, keyspace, 
 	}
 }
 
-// waitForCassandraIndexes polls a probe query that requires the actor_id secondary
-// index until it succeeds or the timeout is reached. ScyllaDB builds secondary
-// indexes asynchronously; queries on indexed columns fail until the index is ready.
-func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace, table string, timeout time.Duration) {
-	probe := fmt.Sprintf("SELECT id FROM %s.%s WHERE actor_id='' LIMIT 1", keyspace, table)
-	deadline := time.Now().Add(timeout)
-	delay := 500 * time.Millisecond
-	for {
-		if err := session.Query(probe).Exec(); err == nil {
-			return
-		}
-		if time.Now().After(deadline) {
-			return
-		}
-		time.Sleep(delay)
-		if delay < 3*time.Second {
-			delay += 500 * time.Millisecond
-		}
+// waitForCassandraIndexes probes each secondary index until it answers, or until
+// that probe's share of the shared budget runs out. ScyllaDB builds secondary
+// indexes asynchronously and a query on an indexed column fails until the index
+// is ready.
+//
+// Every index is probed, not just one per table: Scylla builds them
+// concurrently, so the last one created is not necessarily the last one ready,
+// and waiting on a single column would let a query against another index run
+// before that index exists.
+//
+// The budget is split PER PROBE rather than shared as one deadline. With a
+// single shared deadline a slow first index consumes the whole budget and the
+// remaining probes never run at all — turning a startup race on one column into
+// a startup race on every other.
+//
+// What this detects: the probe fails until the index SCHEMA propagates, which
+// for a fresh keyspace is the same moment the (empty) index is usable. It is not
+// a view-build gate — an index added to a table that already holds rows answers
+// the probe while its backfill is still running. Readiness of a backfill is
+// system_distributed.view_build_status, deliberately not consulted here: a cold
+// start must not block on a backfill it does not need.
+//
+// Best-effort by design: this is startup smoothing, not a correctness gate, so an
+// expired probe is not an error.
+func waitForCassandraIndexes(session *cansandraDriver.Session, keyspace string, probes []indexProbe, timeout time.Duration) {
+	if len(probes) == 0 {
+		return
 	}
+	perProbe := timeout / time.Duration(len(probes))
+	for _, p := range probes {
+		pollUntilQuerySucceeds(session, indexProbeQuery(keyspace, p), time.Now().Add(perProbe))
+	}
+}
+
+// indexProbeQuery builds the readiness probe for one index.
+//
+// It carries NO ALLOW FILTERING, deliberately: that hint is exactly what lets
+// Cassandra answer a query on a NON-indexed column, so a probe carrying it
+// succeeds whether or not the index exists — the wait returns on its first
+// attempt having detected nothing, and every call site silently keeps the
+// startup race the wait was written to close. The probe has to be a query that
+// FAILS until the index is ready.
+func indexProbeQuery(keyspace string, p indexProbe) string {
+	return fmt.Sprintf("SELECT id FROM %s.%s WHERE %s='' LIMIT 1", keyspace, p.table, p.column)
 }
 
 // Close closes the Cassandra session.
@@ -731,7 +786,7 @@ func buildCQLColumnMap(v interface{}) map[string]interface{} {
 			}
 		}
 		fv := rv.Field(i)
-		if fv.Kind() == reflect.Ptr {
+		if fv.Kind() == reflect.Pointer {
 			if fv.IsNil() {
 				if omitempty {
 					continue
@@ -748,4 +803,26 @@ func buildCQLColumnMap(v interface{}) map[string]interface{} {
 		out[name] = fv.Interface()
 	}
 	return out
+}
+
+// serverDomainTables are the tables whose writes take the coordinator's clock
+// (gocql's DefaultTimestamp(false)) rather than this process's.
+//
+// They earn that because a lightweight transaction on them is load-bearing —
+// the `applied` flag of a `DELETE ... IF EXISTS` is the exactly-once arbiter
+// for consuming a session token, an OAuth state, or an authenticator recovery
+// code. An LWT is stamped from the Paxos ballot, so every other write to the
+// same partition must come from that same clock or the later write can carry
+// the earlier timestamp and be discarded with no error.
+//
+// This exists for writes issued from a generic loop, where the target table is
+// a variable and the call site cannot be read off the source: DeleteUser's
+// cascade over schemas.UserOwnedCollections. Direct call sites say
+// DefaultTimestamp(false) inline instead, which keeps the reason next to the
+// statement. TestEveryTableUsesOneTimestampDomain cross-checks this map against
+// the domains it detects, so the two cannot drift apart.
+var serverDomainTables = map[string]bool{
+	schemas.Collections.SessionToken:   true,
+	schemas.Collections.OAuthState:     true,
+	schemas.Collections.Authenticators: true,
 }

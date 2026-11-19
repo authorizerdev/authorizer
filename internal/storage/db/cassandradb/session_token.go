@@ -3,6 +3,7 @@ package cassandradb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -24,7 +25,21 @@ func (p *provider) AddSessionToken(ctx context.Context, token *schemas.SessionTo
 	}
 	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, token_value, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		KeySpace+"."+schemas.Collections.SessionToken)
-	return p.db.Query(query, token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt).Exec()
+	// DefaultTimestamp(false): the coordinator stamps this write, not gocql.
+	//
+	// DeleteSessionTokenByUserIDAndKey consumes a token with DELETE ... IF
+	// EXISTS and treats the applied flag as the exactly-once arbiter for
+	// refresh-token rotation. That LWT's timestamp comes from the Paxos ballot,
+	// i.e. the server clock, while a client-stamped insert comes from this
+	// process's clock. When the client clock runs ahead, the tombstone lands
+	// BELOW the insert: the row survives, yet Paxos saw it and returned
+	// applied=true — so a second claim of the same single-use token also
+	// returns applied=true. Measured on scylladb/scylla with the client clock
+	// 10ms ahead: 20 of 20 tokens claimed twice. Server-stamping puts the
+	// insert in the LWT's own domain and the double-claim goes to 0 of 20,
+	// without adding a Paxos round-trip to the login path.
+	return p.db.Query(query, token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt).
+		DefaultTimestamp(false).Exec()
 }
 
 // GetSessionTokenByUserIDAndKey retrieves a session token by user ID and key
@@ -42,7 +57,8 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 // DeleteSessionToken deletes a session token by ID
 func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-	return p.db.Query(query, id).Exec()
+	// Server-stamped, same timestamp domain as the LWT delete. See AddSessionToken.
+	return p.db.Query(query, id).DefaultTimestamp(false).Exec()
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
@@ -82,23 +98,34 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 	return deleted, nil
 }
 
-// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID.
+// The userId parameter can be just the user ID (e.g. "123") or the full stored
+// format (e.g. "auth_provider:123"), matching the SQL provider.
+//
+// The match is **anchored**: the exact value, or a ":<userId>" suffix. It used
+// to be an unanchored "%<userId>%" contains-match, which let a delete for "42"
+// take out tokens belonging to "142" or "provider:427" — the same defect the
+// SQL provider already fixed, left live here because no test covered it on this
+// backend.
+//
+// Matching happens in Go rather than with CQL LIKE: Apache Cassandra only
+// accepts LIKE on a SASI index and rejects it against the plain secondary index
+// this provider creates, so these two methods failed outright there. The query
+// already carried ALLOW FILTERING, i.e. a full table scan, so the scan cost is
+// unchanged — but the transfer cost is not: on ScyllaDB, where LIKE did work,
+// only matching rows crossed the wire and now every (id, user_id) pair does.
+// There is no cheaper option without a SASI index, and no CQL suffix operator,
+// so this is the price of a correct anchored match on this backend.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
-	var ids []string
-	likePattern := "%" + userId + "%"
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query, likePattern).Iter()
-	var id string
-	for iter.Scan(&id) {
-		ids = append(ids, id)
-	}
-	if err := iter.Close(); err != nil {
+	ids, err := p.sessionTokenIDsMatching(ctx, func(storedUserID string) bool {
+		return storedUserID == userId || strings.HasSuffix(storedUserID, ":"+userId)
+	})
+	if err != nil {
 		return err
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -106,22 +133,19 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 }
 
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
+// (e.g. "auth_provider"). A legitimate prefix match: stored user_id is
+// "<namespace>:<userID>". See DeleteAllSessionTokensByUserID for why the match
+// is done in Go instead of with CQL LIKE.
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
-	likePattern := namespace + ":%"
-	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken)
-	iter := p.db.Query(query, likePattern).Iter()
-	var id string
-	for iter.Scan(&id) {
-		ids = append(ids, id)
-	}
-	if err := iter.Close(); err != nil {
+	ids, err := p.sessionTokenIDsMatching(ctx, func(storedUserID string) bool {
+		return strings.HasPrefix(storedUserID, namespace+":")
+	})
+	if err != nil {
 		return err
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -144,7 +168,7 @@ func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 	}
 	for _, id := range ids {
 		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
-		if err := p.db.Query(delQuery, id).Exec(); err != nil {
+		if err := p.db.Query(delQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}
@@ -309,11 +333,23 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	}
 	_ = iter.Close()
 	for _, eid := range existingIDs {
-		_ = p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).Exec()
+		_ = p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).
+			DefaultTimestamp(false).Exec()
 	}
 	query := fmt.Sprintf(`INSERT INTO %s (id, state_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
 		KeySpace+"."+schemas.Collections.OAuthState)
-	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).Exec()
+	// Server-stamped: the single-use consumption of this row is an LWT delete.
+	// See AddSessionToken for the mechanism.
+	//
+	// Safe only because state.ID is freshly generated per call (memory_store
+	// SetState), so the DELETE above and this INSERT touch different partitions
+	// — id is the partition key — and cannot order against each other. If a
+	// caller ever supplies a stable state.ID (derived from state_key, say),
+	// they become a delete-then-insert on ONE partition, two server timestamps
+	// from possibly different coordinators, and the insert can be dropped
+	// silently. Keep the id fresh, or make that pair an LWT.
+	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).
+		DefaultTimestamp(false).Exec()
 }
 
 // GetOAuthStateByKey retrieves an OAuth state by key
@@ -382,4 +418,23 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 		return nil, err
 	}
 	return states, nil
+}
+
+// sessionTokenIDsMatching scans the session-token table and returns the ids
+// whose stored user_id satisfies match. One full scan, same as the ALLOW
+// FILTERING query it replaces.
+func (p *provider) sessionTokenIDsMatching(ctx context.Context, match func(storedUserID string) bool) ([]string, error) {
+	query := fmt.Sprintf(`SELECT id, user_id FROM %s`, KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query).WithContext(ctx).Iter()
+	var ids []string
+	var id, storedUserID string
+	for iter.Scan(&id, &storedUserID) {
+		if match(storedUserID) {
+			ids = append(ids, id)
+		}
+	}
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

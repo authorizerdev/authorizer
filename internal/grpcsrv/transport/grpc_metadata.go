@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/peer"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -37,7 +38,7 @@ func MetaFromGRPC(ctx context.Context) service.RequestMetadata {
 		protocol = constants.ProtocolREST
 	}
 	meta := service.RequestMetadata{
-		HostURL:             firstHeader(md, "x-authorizer-url", "grpcgateway-x-authorizer-url"),
+		HostURL:             hostURLFromGRPC(md),
 		IPAddress:           clientIPFromGRPC(ctx, md),
 		UserAgent:           firstHeader(md, "grpcgateway-user-agent", "user-agent"),
 		AuthorizationHeader: firstHeader(md, "authorization", "grpcgateway-authorization"),
@@ -101,6 +102,35 @@ const bufconnNetwork = "bufconn"
 //     left is the ordinary forwarded chain. Splitting it back apart hands
 //     utils.GetIP exactly the shape it would have seen on the gin path, so a
 //     REST call and the equivalent direct HTTP call resolve identically.
+//
+// hostURLFromGRPC resolves the authorizer host for a gRPC/REST call.
+//
+// The operator's --url wins over anything the caller sent, which is the whole
+// point: this value becomes the host of the emailed password-reset and
+// magic-link URLs and the `iss` claim of the tokens minted from them, so a
+// caller who can choose it can have a victim emailed a genuine reset link
+// pointing at a host the caller controls.
+//
+// parsers.GetHostFromRequest already enforced that for the gin path. This
+// transport never called it — it read the metadata key directly — so the pin
+// did not reach gRPC or the REST gateway in front of it, and the two surfaces
+// disagreed with the gin one about the same deployment's own address.
+//
+// The metadata fallback below is unreachable in a shipped binary: it refuses to
+// start without a usable --url (cmd.validateAuthorizerURL). It survives for
+// library embedders and tests, which construct a Config directly. There it uses
+// lastHeader, not firstHeader, for the same reason clientIPFromGRPC does: the
+// gateway appends its own authoritative value AFTER anything a client smuggled
+// in via the "Grpc-Metadata-X-Authorizer-Url" spelling, so the first value is
+// the caller's and the last is ours. gateway.Handler also refuses that key at
+// the boundary; this is the second lock.
+func hostURLFromGRPC(md metadata.MD) string {
+	if trusted := parsers.TrustedURL(); trusted != "" {
+		return trusted
+	}
+	return lastHeader(md, "x-authorizer-url", "grpcgateway-x-authorizer-url")
+}
+
 func clientIPFromGRPC(ctx context.Context, md metadata.MD) string {
 	// LAST value, not first. A metadata key can hold several values, and
 	// grpc-gateway appends its own authoritative chain (client XFF + the real

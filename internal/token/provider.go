@@ -75,6 +75,13 @@ type Provider interface {
 	GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenData, error)
 	// IsSuperAdmin checks if user is super admin
 	IsSuperAdmin(gc *gin.Context) bool
+	// AdminAuthMode reports HOW the caller authenticated as super admin:
+	// constants.AuditAuthModeAdminSession, constants.AuditAuthModeSharedSecret,
+	// or "" when the caller is not a super admin at all.
+	//
+	// IsSuperAdmin is defined as AdminAuthMode(gc) != "", so the two cannot
+	// disagree about who is an admin.
+	AdminAuthMode(gc *gin.Context) string
 	// ParseJWTToken parses jwt token
 	ParseJWTToken(token string) (jwt.MapClaims, error)
 	// SignJWTToken signs jwt token

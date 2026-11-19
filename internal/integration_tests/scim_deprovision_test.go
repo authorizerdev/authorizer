@@ -47,7 +47,7 @@ func TestDeprovisionedUserRevocation(t *testing.T) {
 	require.NotNil(t, loginRes.RefreshToken)
 	require.NotNil(t, loginRes.AccessToken)
 
-	issuer := "http://" + ts.HttpServer.Listener.Addr().String()
+	issuer := testAuthorizerHost(ts)
 
 	router := gin.New()
 	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
@@ -170,7 +170,7 @@ func TestDeprovisionedUserRevocation_AccessTokenBlockedEvenIfSessionDeleteMissed
 	w := httptest.NewRecorder()
 	introspectReq, _ := http.NewRequest(http.MethodPost, "/oauth/introspect", strings.NewReader(form.Encode()))
 	introspectReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	introspectReq.Header.Set("X-Authorizer-URL", "http://"+ts.HttpServer.Listener.Addr().String())
+	introspectReq.Header.Set("X-Authorizer-URL", testAuthorizerHost(ts))
 	router.ServeHTTP(w, introspectReq)
 	require.Equal(t, http.StatusOK, w.Code)
 	var body map[string]interface{}

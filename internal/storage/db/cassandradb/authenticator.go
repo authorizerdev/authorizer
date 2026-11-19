@@ -89,7 +89,11 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 
 	updateValues = append(updateValues, authenticators.ID)
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.Authenticators, updateFields)
-	err := p.db.Query(query, updateValues...).Exec()
+	// Server-stamped: AddAuthenticator and the two conditional updates on this
+	// partition are lightweight transactions, whose timestamps come from the
+	// Paxos ballot. A client-stamped write here would sit in a different clock
+	// domain and could be dropped silently. See AddSessionToken.
+	err := p.db.Query(query, updateValues...).DefaultTimestamp(false).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +163,8 @@ func (p *provider) DeleteAuthenticatorsByUserID(ctx context.Context, userID stri
 	}
 	for _, id := range ids {
 		deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.Authenticators)
-		if err := p.db.Query(deleteQuery, id).Exec(); err != nil {
+		// Server-stamped; see UpdateAuthenticator above.
+		if err := p.db.Query(deleteQuery, id).DefaultTimestamp(false).Exec(); err != nil {
 			return err
 		}
 	}

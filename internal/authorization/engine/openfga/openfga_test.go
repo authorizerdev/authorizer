@@ -2,6 +2,7 @@ package openfga
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -226,4 +227,45 @@ func TestOpenFGAEngine_CheckBeforeModelFailsClosed(t *testing.T) {
 	allowed, err := eng.Check(ctx, "user:alice", "can_view", "document:1")
 	assert.Error(t, err, "checking before a model is written must error")
 	assert.False(t, allowed, "must fail closed")
+}
+
+// TestOpenFGAEngine_ListAboveServiceCap guards the regression where the
+// embedded server's default ListObjects/ListUsers cap (1000) equalled
+// service.maxFgaListResults, so a pair with more matches came back as exactly
+// 1000 and the service could never observe a 1001st to set `truncated`. The
+// engine must return at least maxListResults (service cap + 1).
+func TestOpenFGAEngine_ListAboveServiceCap(t *testing.T) {
+	ctx := context.Background()
+	eng, _ := newTestEngine(t)
+
+	_, err := eng.WriteModel(ctx, testModel)
+	require.NoError(t, err)
+
+	const n = maxListResults + 50
+	batch := make([]engine.TupleKey, 0, 100)
+	flush := func() {
+		require.NoError(t, eng.WriteTuples(ctx, batch))
+		batch = batch[:0]
+	}
+	for i := 0; i < n; i++ {
+		// alice views n documents; n users view document:shared.
+		batch = append(batch,
+			engine.TupleKey{User: "user:alice", Relation: "viewer", Object: fmt.Sprintf("document:d%d", i)},
+			engine.TupleKey{User: fmt.Sprintf("user:u%d", i), Relation: "viewer", Object: "document:shared"},
+		)
+		if len(batch) >= 100 {
+			flush()
+		}
+	}
+	if len(batch) > 0 {
+		flush()
+	}
+
+	objects, err := eng.ListObjects(ctx, "user:alice", "viewer", "document")
+	require.NoError(t, err)
+	assert.Equal(t, maxListResults, len(objects), "ListObjects must return one past the service cap")
+
+	users, err := eng.ListUsers(ctx, "document:shared", "viewer", "user")
+	require.NoError(t, err)
+	assert.Equal(t, maxListResults, len(users), "ListUsers must return one past the service cap")
 }

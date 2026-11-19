@@ -490,7 +490,12 @@ func (p *provider) orgHasAdminOtherThan(ctx context.Context, orgID, excludeUserI
 			if m.UserID == excludeUserID {
 				continue
 			}
-			if orgMembershipHasRole(m, constants.OrgRoleAdmin) {
+			// m.Active() as well as the role: requireOrgAdmin refuses a
+			// deprovisioned membership, so counting one here as "another admin
+			// exists" lets the last ACTIVE admin remove themselves and leaves the
+			// org with nobody who can administer it. The two predicates have to
+			// agree on what an admin is.
+			if m.Active() && orgMembershipHasRole(m, constants.OrgRoleAdmin) {
 				return true, nil
 			}
 		}

@@ -134,7 +134,7 @@ func TestMCPTokenResolver(t *testing.T) {
 // that resolver is the ONLY way in.
 //
 // Two paths in the interceptor authenticate without consulting any resolver —
-// tp.IsSuperAdmin (an admin cookie or the x-authorizer-admin-secret header) and
+// tp.AdminAuthMode (an admin cookie or the x-authorizer-admin-secret header) and
 // the Session RPC's cookie-only branch. transport.MetaFromGRPC reconstructs
 // cookies from gRPC metadata, so on the MCP server those would be reachable the
 // moment the HTTP bridge forwarded request headers. Before this guard the

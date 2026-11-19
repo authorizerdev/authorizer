@@ -40,6 +40,20 @@ type Provider interface {
 	// LogEvent asynchronously records an audit log entry.
 	// It is fire-and-forget: errors are logged but not propagated.
 	LogEvent(event Event)
+
+	// LogEventSync records an audit log entry synchronously and returns the
+	// storage error.
+	//
+	// For operations where the audit record is part of the contract, not a
+	// side effect: an authorization change that is not evidenced is a change
+	// nobody can account for. Everything else — logins, token issuance —
+	// keeps LogEvent, so the audit table stays off those hot paths.
+	//
+	// The caller decides what a failure means. For authorization changes the
+	// convention is to return the error and NOT compensate: by the time this
+	// is called the change has already been applied, so the error means
+	// "applied but unevidenced", not "nothing happened".
+	LogEventSync(ctx context.Context, event Event) error
 }
 
 type provider struct {
@@ -84,23 +98,34 @@ func metadataWithProtocol(meta, protocol string) string {
 	return string(b)
 }
 
+// buildAuditLog converts an Event into its storage row. Shared by LogEvent and
+// LogEventSync so the two can never disagree about how a record is shaped —
+// in particular, both fold Protocol into Metadata via metadataWithProtocol.
+func buildAuditLog(event Event) *schemas.AuditLog {
+	return &schemas.AuditLog{
+		ActorID:      event.ActorID,
+		ActorType:    event.ActorType,
+		ActorEmail:   event.ActorEmail,
+		Action:       event.Action,
+		ResourceType: event.ResourceType,
+		ResourceID:   event.ResourceID,
+		IPAddress:    event.IPAddress,
+		UserAgent:    event.UserAgent,
+		Metadata:     metadataWithProtocol(event.Metadata, event.Protocol),
+	}
+}
+
 // LogEvent asynchronously records an audit log entry.
 func (p *provider) LogEvent(event Event) {
 	asyncutil.Go(p.deps.Log, func() {
 		log := p.deps.Log.With().Str("func", "LogEvent").Logger()
-		auditLog := &schemas.AuditLog{
-			ActorID:      event.ActorID,
-			ActorType:    event.ActorType,
-			ActorEmail:   event.ActorEmail,
-			Action:       event.Action,
-			ResourceType: event.ResourceType,
-			ResourceID:   event.ResourceID,
-			IPAddress:    event.IPAddress,
-			UserAgent:    event.UserAgent,
-			Metadata:     metadataWithProtocol(event.Metadata, event.Protocol),
-		}
-		if err := p.deps.StorageProvider.AddAuditLog(context.Background(), auditLog); err != nil {
+		if err := p.deps.StorageProvider.AddAuditLog(context.Background(), buildAuditLog(event)); err != nil {
 			log.Debug().Err(err).Str("action", event.Action).Msg("Failed to add audit log")
 		}
 	})
+}
+
+// LogEventSync records an audit log entry synchronously.
+func (p *provider) LogEventSync(ctx context.Context, event Event) error {
+	return p.deps.StorageProvider.AddAuditLog(ctx, buildAuditLog(event))
 }

@@ -69,6 +69,19 @@ func TestProfileSecurityEventsAreAuditedSeparately(t *testing.T) {
 		awaitAudit(t, constants.AuditPasswordChangedEvent, user.ID)
 		// The generic event still fires, so nothing consuming it today breaks.
 		awaitAudit(t, constants.AuditProfileUpdatedEvent, user.ID)
+
+		// A password change now revokes every pre-existing session
+		// (GHSA-qx8r-9p3g-vcp4), so the token this test authenticated with is
+		// dead from here on. Re-authenticate with the NEW password: the subtest
+		// below is about audit events, not session lifetime, and silently
+		// relying on a session surviving a password change is the behaviour
+		// that advisory was about.
+		reLogin, lErr := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+			Email: &email, Password: newPassword,
+		})
+		require.NoError(t, lErr)
+		require.NotNil(t, reLogin.AccessToken)
+		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*reLogin.AccessToken)
 	})
 
 	t.Run("disabling MFA is recorded as its own event", func(t *testing.T) {

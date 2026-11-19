@@ -44,10 +44,26 @@ func (p *provider) UpdateOrgMembership(ctx context.Context, membership *schemas.
 		return nil, fmt.Errorf("UpdateOrgMembership: caller must load record before updating (CreatedAt is zero — partial struct detected)")
 	}
 	membership.UpdatedAt = time.Now().Unix()
-	if err := p.updateByHashKey(ctx, schemas.Collections.OrgMembership, "id", membership.ID, membership); err != nil {
+	if err := p.updateByHashKeyWithRemoves(ctx, schemas.Collections.OrgMembership, "id", membership.ID, membership, orgMembershipDynamoRemoveAttrsIfNil(membership)); err != nil {
 		return nil, err
 	}
 	return membership, nil
+}
+
+// orgMembershipDynamoRemoveAttrsIfNil lists the nullable attributes that must be
+// REMOVEd when their pointer is nil. A nil pointer is omitted from the marshalled
+// SET clause, so without this the stored value survives and reactivating a
+// membership would leave it deprovisioned on DynamoDB only — green on SQLite CI,
+// broken in production. Mirrors userDynamoRemoveAttrsIfNil in user.go.
+func orgMembershipDynamoRemoveAttrsIfNil(m *schemas.OrgMembership) []string {
+	if m == nil {
+		return nil
+	}
+	var remove []string
+	if m.DeprovisionedAt == nil {
+		remove = append(remove, "deprovisioned_at")
+	}
+	return remove
 }
 
 // DeleteOrgMembership removes a membership record.

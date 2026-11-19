@@ -44,6 +44,13 @@ const (
 // check requests closed.
 const maxBatchCheckSize = 100
 
+// maxListResults is the per-call ListObjects/ListUsers cap. It must be one more
+// than service.maxFgaListResults (1000): the service reports `truncated` only
+// when it sees a result beyond its own cap. OpenFGA defaults both engine caps
+// to 1000, so an engine cap equal to the service cap truncates silently with
+// `truncated: false`.
+const maxListResults = 1001
+
 // Config holds the parameters needed to construct the embedded OpenFGA engine.
 //
 // StoreID and ModelID are the OpenFGA-assigned ULIDs. They normally stay
@@ -149,6 +156,8 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 	srv, err := server.NewServerWithOpts(
 		server.WithDatastore(ds),
 		server.WithMaxChecksPerBatchCheck(maxBatchCheckSize),
+		server.WithListObjectsMaxResults(maxListResults),
+		server.WithListUsersMaxResults(maxListResults),
 	)
 	if err != nil {
 		ds.Close()

@@ -10,9 +10,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
+// likeEscapeChar is the ESCAPE character for every LIKE pattern built here.
+//
+// It is deliberately not a backslash. MySQL treats a backslash as an escape
+// character inside string literals, so the literal `ESCAPE '\'` is unterminated
+// there and the statement is rejected outright — `Error 1064 (42000): You have
+// an error in your SQL syntax ... near ”\”` — while PostgreSQL and SQLite
+// accept it. Session-token revocation ran through these two statements, so on
+// MySQL it failed instead of revoking.
+//
+// Naming the escape character explicitly also makes a backslash in a value
+// literal on every engine, which is why it is not escaped below: MySQL's LIKE
+// otherwise treats backslash as an escape even with no ESCAPE clause.
+const likeEscapeChar = "!"
+
 // likeEscaper escapes LIKE metacharacters so a value is matched literally when
-// used with an explicit ESCAPE '\' clause.
-var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+// used with an explicit ESCAPE clause.
+var likeEscaper = strings.NewReplacer(`!`, `!!`, `%`, `!%`, `_`, `!_`)
 
 func escapeLike(s string) string {
 	return likeEscaper.Replace(s)
@@ -68,7 +82,7 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 // in an id are treated literally.
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	escaped := escapeLike(userId)
-	return p.db.WithContext(ctx).Where(`user_id = ? OR user_id LIKE ? ESCAPE '\'`, userId, "%:"+escaped).Delete(&schemas.SessionToken{}).Error
+	return p.db.WithContext(ctx).Where(`user_id = ? OR user_id LIKE ? ESCAPE '`+likeEscapeChar+`'`, userId, "%:"+escaped).Delete(&schemas.SessionToken{}).Error
 }
 
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace (e.g., "auth_provider").
@@ -76,7 +90,7 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 // The namespace is escaped so its metacharacters (auth-recipe names contain "_")
 // are matched literally rather than as LIKE wildcards.
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
-	return p.db.WithContext(ctx).Where(`user_id LIKE ? ESCAPE '\'`, escapeLike(namespace)+":%").Delete(&schemas.SessionToken{}).Error
+	return p.db.WithContext(ctx).Where(`user_id LIKE ? ESCAPE '`+likeEscapeChar+`'`, escapeLike(namespace)+":%").Delete(&schemas.SessionToken{}).Error
 }
 
 // CleanExpiredSessionTokens removes expired session tokens from the database

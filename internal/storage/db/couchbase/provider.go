@@ -143,6 +143,17 @@ func isTransientQueryErr(err error) bool {
 	if err == nil {
 		return false
 	}
+	// errors.Is on the shared parent, not a substring match on the message.
+	// gocbcore defines ErrAmbiguousTimeout as "ambiguous timeout" and
+	// ErrUnambiguousTimeout as "unambiguous timeout", both wrapping ErrTimeout.
+	// A substring test for "unambiguous timeout" therefore MISSES the ambiguous
+	// one — and a CREATE INDEX that outruns the client is precisely the
+	// ambiguous case, because the server may well have accepted it. Missing it
+	// meant no retry, and a non-retried index error aborts provider
+	// construction, i.e. the server does not start.
+	if errors.Is(err, gocb.ErrTimeout) {
+		return true
+	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "eof") ||
 		strings.Contains(msg, "connection reset") ||
@@ -155,11 +166,31 @@ func isTransientQueryErr(err error) bool {
 }
 
 // execIndexQuery runs a CREATE INDEX statement with retries for transient query-service errors.
+//
+// The per-attempt timeout is bounded to a third of the overall budget, and is
+// passed explicitly rather than left to gocb's default. gocb's default
+// QueryTimeout is 75s while this budget defaults to 30s, so a single attempt
+// could outrun the whole deadline and return past it — the retry that would
+// then see "already exists" never ran, and the resulting error aborts provider
+// construction (the caller does `return nil, err`), so the server fails to
+// boot.
+//
+// That is not hypothetical on upgrade: Couchbase CREATE INDEX without
+// defer_build is synchronous, and a newly added index on a collection that
+// already holds months of audit rows builds over all of them. Timing out the
+// attempt is harmless — the index definition is registered server-side and the
+// build continues — so the next attempt returns "already exists" and startup
+// proceeds while the backfill finishes in the background. That matches the
+// async DDL behaviour the Cassandra provider already relies on.
 func execIndexQuery(scope *gocb.Scope, query string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
+	perAttempt := timeout / 3
+	if perAttempt <= 0 {
+		perAttempt = timeout
+	}
 	delay := 500 * time.Millisecond
 	for {
-		_, err := scope.Query(query, nil)
+		_, err := scope.Query(query, &gocb.QueryOptions{Timeout: perAttempt})
 		if err == nil {
 			return nil
 		}
@@ -287,7 +318,14 @@ func getIndex(scopeName string) map[string][]string {
 	auditLogIndex1 := fmt.Sprintf("CREATE INDEX AuditLogActorIdIndex ON %s.%s(actor_id)", scopeName, schemas.Collections.AuditLog)
 	auditLogIndex2 := fmt.Sprintf("CREATE INDEX AuditLogActionIndex ON %s.%s(action)", scopeName, schemas.Collections.AuditLog)
 	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogCreatedAtIndex ON %s.%s(created_at)", scopeName, schemas.Collections.AuditLog)
-	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3}
+	// resource_type / resource_id are filterable via ListAuditLogs. Without these
+	// the predicates still return correct rows, but N1QL falls back to the
+	// CREATE PRIMARY INDEX scan of the fastest-growing collection in the scope,
+	// while Cassandra serves the same filter from an index — the "O(1) in one
+	// backend, full scan in another" parity bug AGENTS.md calls out.
+	auditLogIndex4 := fmt.Sprintf("CREATE INDEX AuditLogResourceTypeIndex ON %s.%s(resource_type)", scopeName, schemas.Collections.AuditLog)
+	auditLogIndex5 := fmt.Sprintf("CREATE INDEX AuditLogResourceIdIndex ON %s.%s(resource_id)", scopeName, schemas.Collections.AuditLog)
+	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3, auditLogIndex4, auditLogIndex5}
 
 	// TrustedIssuer indexes
 	trustedIssuerIndex1 := fmt.Sprintf("CREATE INDEX TrustedIssuerIssuerURLIndex ON %s.%s(issuer_url)", scopeName, schemas.Collections.TrustedIssuer)

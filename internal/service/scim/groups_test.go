@@ -252,3 +252,66 @@ func TestGroupsUnavailableWithoutEngine(t *testing.T) {
 	_, _, err := p.CreateGroup(context.Background(), "org-a", Group{DisplayName: "X"})
 	assert.ErrorIs(t, err, ErrGroupsUnavailable)
 }
+
+// The advisory fix withholds the GLOBAL revocation marker for a user who is
+// still active in another organization. That marker is what check_permissions,
+// list_permissions and required_relations were relying on, so the org's own
+// grants must be deleted on deprovision — otherwise the membership row reads
+// "inactive" while FGA keeps answering "allowed", and the deprovision is
+// cosmetic for the one org that asked for it.
+func TestDeprovisionPurgesThisOrgsGrantsOnly(t *testing.T) {
+	p, store := newGroupSvc(t)
+	ctx := context.Background()
+	const orgA, orgB = "org-a", "org-b"
+
+	user := seedSharedUser(t, p, store, orgA, orgB)
+	subj := userSubject(user.ID)
+
+	// A group in each org, with the shared user in both.
+	gA, _, err := p.CreateGroup(ctx, orgA, Group{DisplayName: "eng-a", Members: []string{user.ID}})
+	require.NoError(t, err)
+	gB, _, err := p.CreateGroup(ctx, orgB, Group{DisplayName: "eng-b", Members: []string{user.ID}})
+	require.NoError(t, err)
+
+	check := func(org, gid string) bool {
+		ok, cerr := p.AuthzEngine.Check(ctx, subj, groupMemberRelation, groupObject(org, gid))
+		require.NoError(t, cerr)
+		return ok
+	}
+	require.True(t, check(orgA, gA.ID), "precondition: member of org-a group")
+	require.True(t, check(orgB, gB.ID), "precondition: member of org-b group")
+
+	_, err = p.SetActive(ctx, orgA, user.ID, false)
+	require.NoError(t, err)
+
+	assert.False(t, check(orgA, gA.ID),
+		"org-a's grant must be gone: without the global revocation marker this is "+
+			"the only thing that stops check_permissions answering allowed for org-a")
+	assert.True(t, check(orgB, gB.ID),
+		"org-b's grant must survive — scoping the purge to one org is the whole point")
+}
+
+// A PUT /Groups/{id} that re-lists a member the group already has performs no
+// write, so a gate placed behind the present[] short-circuit never ran and a
+// deprovisioned member survived every re-sync.
+func TestGroupResyncDropsDeprovisionedMember(t *testing.T) {
+	p, store := newGroupSvc(t)
+	ctx := context.Background()
+	const orgA, orgB = "org-a", "org-b"
+
+	user := seedSharedUser(t, p, store, orgA, orgB)
+	subj := userSubject(user.ID)
+	g, _, err := p.CreateGroup(ctx, orgA, Group{DisplayName: "eng", Members: []string{user.ID}})
+	require.NoError(t, err)
+
+	_, err = p.SetActive(ctx, orgA, user.ID, false)
+	require.NoError(t, err)
+
+	// The IdP re-syncs the group, still listing the deprovisioned user.
+	_, err = p.ReplaceGroup(ctx, orgA, g.ID, Group{DisplayName: "eng", Members: []string{user.ID}})
+	require.NoError(t, err)
+
+	ok, err := p.AuthzEngine.Check(ctx, subj, groupMemberRelation, groupObject(orgA, g.ID))
+	require.NoError(t, err)
+	assert.False(t, ok, "a re-sync must not revive a deprovisioned member's grant")
+}

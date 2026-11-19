@@ -15,6 +15,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -76,6 +77,8 @@ type inviteToken struct {
 
 func (inviteToken) IsSuperAdmin(_ *gin.Context) bool { return true }
 
+func (inviteToken) AdminAuthMode(_ *gin.Context) string { return constants.AuditAuthModeAdminSession }
+
 func (tp inviteToken) CreateVerificationToken(cfg *token.AuthTokenConfig, _ string, _ string) (string, error) {
 	if tp.createVerificationToken != nil {
 		return tp.createVerificationToken(cfg)
@@ -90,6 +93,8 @@ func (inviteEmail) SendEmail(_ []string, _ string, _ map[string]interface{}) err
 type inviteAudit struct{ audit.Provider }
 
 func (inviteAudit) LogEvent(_ audit.Event) {}
+
+func (inviteAudit) LogEventSync(_ context.Context, _ audit.Event) error { return nil }
 
 func newInviteProvider(cfg *config.Config, st storage.Provider, tp token.Provider) *provider {
 	log := zerolog.Nop()

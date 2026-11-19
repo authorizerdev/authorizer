@@ -111,12 +111,24 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 
 	// Fold to one object set per pair. With a single subject this is a copy and
 	// the outcome is identical to the pre-delegation behaviour.
+	//
+	// A raw slice longer than the service cap means the engine hit its own cap
+	// (maxFgaListResults + 1) and more objects exist. Record that BEFORE
+	// intersecting: two capped, unordered slices can overlap far less than the
+	// true intersection, so the folded result may fall under the cap and would
+	// otherwise be reported as complete.
 	results := make([][]string, len(pairs))
+	truncated := false
 	if egErr == nil {
 		for i := range pairs {
 			results[i] = perSubject[0][i]
 			for s := 1; s < len(subjects); s++ {
 				results[i] = intersectObjects(results[i], perSubject[s][i])
+			}
+			for s := range subjects {
+				if len(perSubject[s][i]) > maxFgaListResults {
+					truncated = true
+				}
 			}
 		}
 	}
@@ -132,11 +144,11 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 	permissions := make([]*model.Permission, 0)
 	objects := make([]string, 0)
 	seen := make(map[string]struct{})
-	truncated := false
+	full := false
 	for i, objs := range results {
 		for _, obj := range objs {
 			if len(permissions) >= maxFgaListResults {
-				truncated = true
+				truncated, full = true, true
 				break
 			}
 			permissions = append(permissions, &model.Permission{Object: obj, Relation: pairs[i].relation})
@@ -145,7 +157,7 @@ func (p *provider) ListPermissions(ctx context.Context, meta RequestMetadata, pa
 				objects = append(objects, obj)
 			}
 		}
-		if truncated {
+		if full {
 			break
 		}
 	}

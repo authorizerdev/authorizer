@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -45,15 +46,21 @@ func TestDeleteUserCascadesAllUserOwnedRows(t *testing.T) {
 			defer func() { _ = p.Close() }()
 
 			ctx := context.Background()
+
+			// Everything the test writes is suffixed so a rerun against a
+			// persistent database (make test-postgres reuses its container only
+			// within one run, but a developer's local DB does not) starts clean
+			// instead of colliding with the previous run's fixtures.
+			uniq := uuid.New().String()
 			user, err := p.AddUser(ctx, &schemas.User{
-				Email:         refs.NewStringRef("cascade-" + dbType + "@example.com"),
+				Email:         refs.NewStringRef("cascade-" + dbType + "-" + uniq + "@example.com"),
 				SignupMethods: "basic_auth",
 			})
 			require.NoError(t, err)
 
-			const orgID = "org-cascade"
-			const issuer = "https://idp.example.com"
-			const subject = "upstream-subject-1"
+			orgID := "org-cascade-" + uniq
+			issuer := "https://idp.example.com"
+			subject := "upstream-subject-" + uniq
 
 			require.NoError(t, p.AddSession(ctx, &schemas.Session{UserID: user.ID}))
 			_, err = p.AddFederatedIdentity(ctx, &schemas.FederatedIdentity{
@@ -65,7 +72,7 @@ func TestDeleteUserCascadesAllUserOwnedRows(t *testing.T) {
 			_, err = p.AddAuthenticator(ctx, &schemas.Authenticator{UserID: user.ID, Method: "totp", Secret: "s3cret"})
 			require.NoError(t, err)
 			_, err = p.AddWebauthnCredential(ctx, &schemas.WebauthnCredential{
-				UserID: user.ID, CredentialID: "cred-" + dbType, PublicKey: "pk", Name: "laptop",
+				UserID: user.ID, CredentialID: "cred-" + dbType + "-" + uniq, PublicKey: "pk", Name: "laptop",
 			})
 			require.NoError(t, err)
 			require.NoError(t, p.AddSessionToken(ctx, &schemas.SessionToken{UserID: user.ID, KeyName: "access", Token: "t"}))
@@ -87,7 +94,7 @@ func TestDeleteUserCascadesAllUserOwnedRows(t *testing.T) {
 			_, err = p.GetFederatedIdentity(ctx, orgID, issuer, subject)
 			require.Error(t, err, "federated identity must be gone after the user is deleted")
 			fresh, err := p.AddUser(ctx, &schemas.User{
-				Email:         refs.NewStringRef("cascade-reprovision-" + dbType + "@example.com"),
+				Email:         refs.NewStringRef("cascade-reprovision-" + dbType + "-" + uniq + "@example.com"),
 				SignupMethods: "basic_auth",
 			})
 			require.NoError(t, err)
@@ -95,6 +102,10 @@ func TestDeleteUserCascadesAllUserOwnedRows(t *testing.T) {
 				OrgID: orgID, Issuer: issuer, Subject: subject, UserID: fresh.ID,
 			})
 			require.NoError(t, err, "re-provisioning the same (org, issuer, subject) must succeed")
+
+			// Leave nothing behind: the cascade just proven above is what clears
+			// the re-provisioned identity too.
+			require.NoError(t, p.DeleteUser(ctx, fresh))
 		})
 	}
 }

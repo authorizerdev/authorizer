@@ -659,7 +659,7 @@ func TestRefreshTokenNonceNoTrailingSeparator(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		// Match the issuer the token was created with (test server address)
-		req.Header.Set("X-Authorizer-URL", "http://"+ts.HttpServer.Listener.Addr().String())
+		req.Header.Set("X-Authorizer-URL", testAuthorizerHost(ts))
 		router.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusOK, w.Code, "refresh_token grant should succeed")

@@ -562,6 +562,16 @@ func (h *httpProvider) jitProvisionFederatedUser(ctx context.Context, orgID, iss
 		if user.RevokedTimestamp != nil {
 			return nil, false, fmt.Errorf("user access has been revoked")
 		}
+		// RevokedTimestamp is no longer sufficient on its own. A SCIM deprovision
+		// scoped to ONE organization deliberately leaves the global row untouched
+		// when the user is still active elsewhere, so a returning principal whose
+		// membership of THIS org was deprovisioned would otherwise log straight
+		// back in here and be issued a fresh session for it — carrying this org's
+		// group-derived roles. The membership is the authority for org access.
+		membership, mErr := h.StorageProvider.GetOrgMembership(ctx, orgID, user.ID)
+		if mErr != nil || !membership.Active() {
+			return nil, false, fmt.Errorf("user is not an active member of this organization")
+		}
 		return user, false, nil
 	}
 
