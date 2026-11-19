@@ -8,27 +8,36 @@ import (
 	"github.com/authorizerdev/authorizer/internal/crypto"
 )
 
-// generateJWKFromKey generates a JWK for the given algorithm + public
-// key + client ID. HMAC (symmetric) keys are never exposed; returns an
-// empty string in that case. Kept as a pure function so both the primary
-// and secondary keys can be processed uniformly.
-func generateJWKFromKey(algo, jwtPublicKey, kidSuffix, clientID string) (string, error) {
-	// HMAC keys must never be exposed via JWKS.
-	if crypto.IsRSA(algo) {
-		publicKeyInstance, err := crypto.ParseRsaPublicKeyFromPemStr(jwtPublicKey)
+// generateJWKFromKey generates the JWK for the given algorithm and public
+// key. HMAC (symmetric) keys are never exposed; returns an empty string in
+// that case. The kid is the key's RFC 7638 thumbprint (crypto.KeyID), the
+// same value the signer stamps into the token header, so kid-strict JWKS
+// consumers can select the key. Kept as a pure function so both the primary
+// and secondary keys are processed uniformly.
+func generateJWKFromKey(algo, jwtPublicKey string) (string, error) {
+	var publicKey any
+	switch {
+	case crypto.IsRSA(algo):
+		key, err := crypto.ParseRsaPublicKeyFromPemStr(jwtPublicKey)
 		if err != nil {
 			return "", err
 		}
-		return crypto.GetPubJWK(algo, clientID+kidSuffix, publicKeyInstance)
-	}
-	if crypto.IsECDSA(algo) {
-		publicKeyInstance, err := crypto.ParseEcdsaPublicKeyFromPemStr(jwtPublicKey)
+		publicKey = key
+	case crypto.IsECDSA(algo):
+		key, err := crypto.ParseEcdsaPublicKeyFromPemStr(jwtPublicKey)
 		if err != nil {
 			return "", err
 		}
-		return crypto.GetPubJWK(algo, clientID+kidSuffix, publicKeyInstance)
+		publicKey = key
+	default:
+		// HMAC keys must never be exposed via JWKS.
+		return "", nil
 	}
-	return "", nil
+	kid, err := crypto.KeyID(publicKey)
+	if err != nil {
+		return "", err
+	}
+	return crypto.GetPubJWK(algo, kid, publicKey)
 }
 
 func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
@@ -37,7 +46,7 @@ func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 		var keys []map[string]string
 
 		// Primary key.
-		primaryJWK, err := generateJWKFromKey(h.JWTType, h.JWTPublicKey, "", h.ClientID)
+		primaryJWK, err := generateJWKFromKey(h.JWTType, h.JWTPublicKey)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error generating primary JWK")
 			c.JSON(500, gin.H{"error": err.Error()})
@@ -57,9 +66,9 @@ func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 		// and public key are configured. HMAC secondary keys are
 		// silently dropped by generateJWKFromKey.
 		if h.JWTSecondaryType != "" && h.JWTSecondaryPublicKey != "" {
-			// Append "-secondary" to the kid to guarantee uniqueness even
-			// when primary and secondary use the same algorithm + client ID.
-			secondaryJWK, err := generateJWKFromKey(h.JWTSecondaryType, h.JWTSecondaryPublicKey, "-secondary", h.ClientID)
+			// The kid is the key's thumbprint, so primary and secondary are
+			// distinct whenever they are different keys.
+			secondaryJWK, err := generateJWKFromKey(h.JWTSecondaryType, h.JWTSecondaryPublicKey)
 			if err != nil {
 				log.Debug().Err(err).Msg("Error generating secondary JWK - ignoring secondary")
 			} else if secondaryJWK != "" {
