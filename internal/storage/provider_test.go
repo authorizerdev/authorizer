@@ -29,6 +29,7 @@ var allDBTypes = []string{
 	constants.DbTypeSqlite,
 	constants.DbTypeMongoDB,
 	constants.DbTypeArangoDB,
+	constants.DbTypeSurrealDB,
 	constants.DbTypeScyllaDB,
 	constants.DbTypeCassandraDB,
 	constants.DbTypeCouchbaseDB,
@@ -97,6 +98,11 @@ func getTestDBConfig(dbType string) *config.Config {
 		cfg.DatabaseURL = "mongodb://localhost:27017"
 	case constants.DbTypeArangoDB:
 		cfg.DatabaseURL = "http://localhost:8529"
+	case constants.DbTypeSurrealDB:
+		cfg.DatabaseURL = "http://localhost:8002"
+		cfg.DatabaseUsername = "root"
+		cfg.DatabasePassword = "root"
+		cfg.SurrealDBNamespace = "authorizer_test"
 	case constants.DbTypeScyllaDB:
 		cfg.DatabaseURL = "127.0.0.1:9042"
 	case constants.DbTypeCassandraDB:
@@ -759,8 +765,8 @@ func testVerificationRequestOperations(t *testing.T, ctx context.Context, provid
 		Nonce:       uuid.New().String(),
 		RedirectURI: "https://app.example.com/callback",
 	})
-	if isSQLTestDB(dbType) {
-		assert.NoError(t, dupErr, "SQL upserts a duplicate (email, identifier) request rather than erroring")
+	if isSQLTestDB(dbType) || dbType == constants.DbTypeSurrealDB {
+		assert.NoError(t, dupErr, "SQL (and SurrealDB) upsert a duplicate (email, identifier) request rather than erroring")
 		refetched, err := provider.GetVerificationRequestByEmail(ctx, vr.Email, vr.Identifier)
 		require.NoError(t, err)
 		assert.Equal(t, dupToken, refetched.Token, "upsert must replace the pending request, not add a second one")

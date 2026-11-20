@@ -30,6 +30,7 @@ func TestDeleteUserCascadeIsUniform(t *testing.T) {
 		"cassandradb": "UserOwnedCollections",
 		"dynamodb":    "UserOwnedCollections",
 		"couchbase":   "UserOwnedCollections",
+		"surrealdb":   "UserOwnedCollections",
 	}
 
 	for _, backend := range backends {
