@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/storage/db/arangodb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/dynamodb"
+	"github.com/authorizerdev/authorizer/internal/storage/db/surrealdb"
 )
 
 // TestIsNotFoundRecognisesEveryBackend pins that the predicate actually matches
@@ -30,6 +31,7 @@ func TestIsNotFoundRecognisesEveryBackend(t *testing.T) {
 		{"couchbase", gocb.ErrDocumentNotFound},
 		{"arangodb", arangodb.ErrNotFound},
 		{"dynamodb", dynamodb.ErrNotFound},
+		{"surrealdb", surrealdb.ErrNotFound},
 	}
 	for _, tc := range cases {
 		t.Run(tc.backend, func(t *testing.T) {

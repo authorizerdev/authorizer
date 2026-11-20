@@ -167,6 +167,9 @@ type Config struct {
 	DatabaseUsername string
 	// DatabasePassword is the password for the database
 	DatabasePassword string
+	// SurrealDBNamespace is the SurrealDB namespace holding DatabaseName
+	// (SurrealDB has both levels; every other backend has one).
+	SurrealDBNamespace string
 	// DatabaseHost is the host for the database
 	DatabaseHost string
 	// DatabasePort is the port for the database

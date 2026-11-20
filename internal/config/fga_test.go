@@ -23,6 +23,7 @@ func TestFGADisabledForUnsupportedDatabasesWithoutOverride(t *testing.T) {
 		constants.DbTypeCockroachDB,
 		constants.DbTypeYugabyte,
 		constants.DbTypePlanetScaleDB,
+		constants.DbTypeSurrealDB,
 	}
 
 	for _, dbType := range unsupported {

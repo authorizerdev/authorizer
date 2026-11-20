@@ -13,6 +13,7 @@ MYSQL_IMAGE := mysql:8.0.40
 MARIADB_IMAGE := mariadb:11
 SQLSERVER_IMAGE := mcr.microsoft.com/mssql/server:2022-latest
 SERENEDB_IMAGE := serenedb/serenedb:26.11.2
+SURREALDB_IMAGE := surrealdb/surrealdb:v4.0.1
 SQLSERVER_PASSWORD := Str0ng!Passw0rd
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
@@ -141,6 +142,14 @@ test-serenedb: test-cleanup-serenedb
 # CockroachDB is Postgres-wire compatible and runs through the same GORM SQL
 # provider, so this target exists to prove that compatibility actually holds
 # (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
+test-surrealdb: test-cleanup-surrealdb
+	docker run -d --name authorizer_surrealdb -p 8002:8000 $(SURREALDB_IMAGE) start --user root --pass root rocksdb:/tmp/authorizer.db
+	sh scripts/wait-for-sql.sh authorizer_surrealdb surrealdb && \
+	{ go clean --testcache; TEST_DBS="surrealdb" $(GO_TEST_ALL); }; \
+	status=$$?; \
+	docker rm -vf authorizer_surrealdb; \
+	exit $$status
+
 test-cockroachdb: test-cleanup-cockroachdb
 	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
 	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
@@ -270,10 +279,11 @@ test-all-db: test-cleanup test-docker-up
 	sh scripts/wait-for-sql.sh authorizer_mariadb mariadb && \
 	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \
 	sh scripts/wait-for-sql.sh authorizer_serenedb serenedb && \
+	sh scripts/wait-for-sql.sh authorizer_surrealdb surrealdb && \
 	sh scripts/wait-for-sql.sh authorizer_sqlserver sqlserver && \
 	docker exec authorizer_sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa \
 		-P '$(SQLSERVER_PASSWORD)' -Q "IF DB_ID('authorizer_test') IS NULL CREATE DATABASE authorizer_test" && \
-	{ go clean --testcache; TEST_DBS="couchbase,postgres,serenedb,cockroachdb,mysql,mariadb,sqlserver,sqlite,libsql,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
+	{ go clean --testcache; TEST_DBS="couchbase,postgres,serenedb,surrealdb,cockroachdb,mysql,mariadb,sqlserver,sqlite,libsql,mongodb,arangodb,scylladb,cassandradb,dynamodb" $(GO_TEST_ALL); }; \
 	status=$$?; \
 	$(MAKE) test-cleanup; \
 	exit $$status
@@ -283,6 +293,7 @@ test-docker-up:
 	docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	docker run -d --name authorizer_serenedb -p 7890:7890 -e POSTGRES_PASSWORD=postgres $(SERENEDB_IMAGE)
+	docker run -d --name authorizer_surrealdb -p 8002:8000 $(SURREALDB_IMAGE) start --user root --pass root rocksdb:/tmp/authorizer.db
 	@# Only 26257 (SQL) is published. Cockroach's admin UI is on 8080, which is
 	@# the port `make dev` binds.
 	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
@@ -313,6 +324,7 @@ test-docker-up:
 	-sh scripts/wait-for-sql.sh authorizer_mariadb mariadb
 	-sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb
 	-sh scripts/wait-for-sql.sh authorizer_serenedb serenedb
+	-sh scripts/wait-for-sql.sh authorizer_surrealdb surrealdb
 	-sh scripts/wait-for-sql.sh authorizer_sqlserver sqlserver
 	@# The mssql image has no MSSQL_DATABASE equivalent; create the test DB.
 	-docker exec authorizer_sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa \
@@ -322,6 +334,7 @@ test-docker-up:
 test-cleanup:
 	-docker rm -vf authorizer_postgres
 	-docker rm -vf authorizer_serenedb
+	-docker rm -vf authorizer_surrealdb
 	-docker rm -vf authorizer_cockroachdb
 	-docker rm -vf authorizer_mysql
 	-docker rm -vf authorizer_mariadb
@@ -338,6 +351,8 @@ test-cleanup-postgres:
 	-docker rm -vf authorizer_postgres
 test-cleanup-serenedb:
 	-docker rm -vf authorizer_serenedb
+test-cleanup-surrealdb:
+	-docker rm -vf authorizer_surrealdb
 test-cleanup-cockroachdb:
 	-docker rm -vf authorizer_cockroachdb
 test-sqlserver: test-cleanup-sqlserver
