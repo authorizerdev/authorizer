@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -370,4 +371,54 @@ func TestClientAssertion_InactiveClientRejected(t *testing.T) {
 	r.StorageProvider.(*assertionStore).clientsByID[testSAClientPK].IsActive = false
 	_, err := r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, testKID, validClaims())))
 	assert.ErrorIs(t, err, ErrInvalidClient)
+}
+
+// An issuer can re-label its keys while our copy of its JWKS is cached —
+// Authorizer itself did so when it moved its JWKS kids from the client ID to
+// key thumbprints. An assertion naming a kid the cached set lacks must trigger
+// one refetch rather than fail until the cache entry expires.
+func TestClientAssertion_UnknownKidRefetchesJWKS(t *testing.T) {
+	key := genKey(t)
+	r := buildResolver(t, nil, testSubject)
+	served := jwksBytes(t, &key.PublicKey, "old-label")
+	var fetches int
+	r.fetchURL = func(_ context.Context, _ string) ([]byte, error) { fetches++; return served, nil }
+
+	// Warm the cache under the old label.
+	_, err := r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, "old-label", validClaims())))
+	require.NoError(t, err)
+	require.Equal(t, 1, fetches)
+
+	// The issuer upgrades: same key, new kid.
+	served = jwksBytes(t, &key.PublicKey, "new-thumbprint")
+	_, err = r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, "new-thumbprint", validClaims())))
+	require.NoError(t, err, "an unknown kid must refetch the JWKS, not wait out the cache")
+	assert.Equal(t, 2, fetches)
+
+	// The refreshed set is cached: the next assertion needs no fetch.
+	_, err = r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, "new-thumbprint", validClaims())))
+	require.NoError(t, err)
+	assert.Equal(t, 2, fetches)
+}
+
+// The unknown-kid refetch is attacker-triggerable — anyone can send an
+// assertion with a made-up kid — so it is rate-limited per issuer: a flood of
+// bogus kids costs the issuer at most one extra fetch per interval.
+func TestClientAssertion_UnknownKidRefetchIsRateLimited(t *testing.T) {
+	key := genKey(t)
+	r := buildResolver(t, nil, testSubject)
+	served := jwksBytes(t, &key.PublicKey, testKID)
+	var fetches int
+	r.fetchURL = func(_ context.Context, _ string) ([]byte, error) { fetches++; return served, nil }
+
+	for i := 0; i < 20; i++ {
+		_, err := r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, fmt.Sprintf("bogus-%d", i), validClaims())))
+		require.ErrorIs(t, err, ErrInvalidClient)
+	}
+	assert.Equal(t, 2, fetches, "one initial fetch plus at most one refetch per interval")
+
+	// A legitimate assertion still verifies from the cache.
+	_, err := r.ResolveClient(context.Background(), assertionParams(signRS256(t, key, testKID, validClaims())))
+	require.NoError(t, err)
+	assert.Equal(t, 2, fetches)
 }

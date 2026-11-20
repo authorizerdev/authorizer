@@ -40,13 +40,18 @@ func (p *provider) signJWTToken(jwtclaims jwt.MapClaims, typ string) (string, er
 		if err != nil {
 			return "", err
 		}
+		if err := setKeyID(t, &key.PublicKey); err != nil {
+			return "", err
+		}
 		return t.SignedString(key)
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(p.config.JWTPrivateKey)
 		if err != nil {
 			return "", err
 		}
-
+		if err := setKeyID(t, &key.PublicKey); err != nil {
+			return "", err
+		}
 		return t.SignedString(key)
 	default:
 		return "", errors.New("unsupported signing method")
@@ -184,4 +189,20 @@ func (p *provider) ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenC
 		return false, errors.New("invalid subject")
 	}
 	return true, nil
+}
+
+// setKeyID stamps the `kid` header that names the signing key in
+// /.well-known/jwks.json. JWKS consumers that select the verification key by
+// kid — SurrealDB's DEFINE ACCESS ... WITH JWT URL among them — reject a token
+// without one. The kid is derived from the signing key's own public half
+// (crypto.KeyID), so it matches the JWKS entry by construction and survives a
+// primary/secondary rotation. HMAC tokens get none: their key is never
+// published.
+func setKeyID(t *jwt.Token, publicKey any) error {
+	kid, err := crypto.KeyID(publicKey)
+	if err != nil {
+		return err
+	}
+	t.Header["kid"] = kid
+	return nil
 }

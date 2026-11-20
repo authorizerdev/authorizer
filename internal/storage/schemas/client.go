@@ -38,8 +38,10 @@ type Client struct {
 	// UNIQUE across the registry. ClientID is IMMUTABLE after creation.
 	//
 	// For the reserved interactive client seeded at boot, ClientID equals the
-	// deployment's Config.ClientID verbatim (BC1) — every token aud, JWKS kid,
-	// and introspection client_id continues to key on that exact string.
+	// deployment's Config.ClientID verbatim (BC1) — every token aud and
+	// introspection client_id continues to key on that exact string. (JWKS kids
+	// no longer do: since the kid header fix they are key thumbprints; see
+	// crypto.KeyID.)
 	//
 	// When left empty on create, every provider defaults ClientID to ID so the
 	// unique index always holds and lookups keep working for admin-created
