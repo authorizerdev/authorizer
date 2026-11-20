@@ -6,8 +6,6 @@ import (
 	"math/rand/v2"
 	"strings"
 	"time"
-
-	surrealdb "github.com/surrealdb/surrealdb.go/v2"
 )
 
 // migrationsTable records which versions of the schema in schema.go a
@@ -82,7 +80,7 @@ func (p *provider) applyMigration(ctx context.Context, m migration) error {
 }
 
 func (p *provider) migrationApplied(ctx context.Context, version int) (bool, error) {
-	res, err := surrealdb.Query[bool](ctx, p.db, "RETURN record::exists(type::record($mt, $v));",
+	res, err := run[bool](ctx, p, "RETURN record::exists(type::record($mt, $v));",
 		map[string]any{"mt": migrationsTable, "v": version})
 	if err != nil {
 		return false, fmt.Errorf("surrealdb: read %s: %w", migrationsTable, err)

@@ -32,9 +32,12 @@ func requireSurrealDB(t *testing.T) {
 	if !slices.Contains(strings.Split(os.Getenv("TEST_DBS"), ","), constants.DbTypeSurrealDB) {
 		t.Skip("set TEST_DBS=surrealdb (make test-surrealdb) to run SurrealDB tests")
 	}
+	// TEST_DBS asked for SurrealDB, so an unreachable server is a failure, not
+	// a skip: otherwise `make test-surrealdb` would pass with no coverage when
+	// the container fails to start.
 	conn, err := net.DialTimeout("tcp", "localhost:8002", 2*time.Second)
 	if err != nil {
-		t.Skipf("skipping SurrealDB tests: not reachable on localhost:8002: %v", err)
+		t.Fatalf("TEST_DBS includes surrealdb but it is not reachable on localhost:8002: %v", err)
 	}
 	_ = conn.Close()
 }
@@ -47,7 +50,11 @@ func newTestProvider(t *testing.T, ns string) *provider {
 	t.Helper()
 	p, err := newProviderAt(ns)
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = p.Close() })
+	t.Cleanup(func() {
+		// Drop the test's namespace; harmless if another cleanup already did.
+		_, _ = surrealdb.Query[any](context.Background(), p.db, "REMOVE NAMESPACE IF EXISTS "+ident(ns)+";", nil)
+		_ = p.Close()
+	})
 	return p
 }
 
@@ -297,4 +304,45 @@ func TestConsumeOnce(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, 1, states, "exactly one caller may consume an OAuth state")
 	assert.Equal(t, 1, codes, "exactly one caller may consume a recovery code")
+}
+
+// TestReauthenticatesAfterTokenExpiry: a system user's sign-in token expires
+// (1h by default). Over HTTP every request carries it, so once it lapses every
+// query is refused with 401 — a server that has been up for an hour stops
+// working. The provider must sign in again and carry on, on both engines.
+func TestReauthenticatesAfterTokenExpiry(t *testing.T) {
+	requireSurrealDB(t)
+	ns := freshNamespace()
+	root := newTestProvider(t, ns)
+	ctx := context.Background()
+	require.NoError(t, root.exec(ctx, "DEFINE USER shortlived ON NAMESPACE PASSWORD 'shortlived-pass' ROLES OWNER DURATION FOR TOKEN 2s, FOR SESSION NONE;", nil))
+
+	for _, url := range []string{testURL, strings.Replace(testURL, "http://", "ws://", 1)} {
+		t.Run(url, func(t *testing.T) {
+			logger := zerolog.Nop()
+			p, err := NewProvider(&config.Config{
+				DatabaseType: constants.DbTypeSurrealDB, DatabaseURL: url,
+				DatabaseUsername: "shortlived", DatabasePassword: "shortlived-pass",
+				DatabaseName: "authorizer", SurrealDBNamespace: ns,
+			}, &Dependencies{Log: &logger})
+			require.NoError(t, err)
+			defer p.Close() //nolint:errcheck
+
+			user, err := p.AddUser(ctx, &schemas.User{Email: refs.NewStringRef(uuid.NewString() + "@x.io"), SignupMethods: "basic_auth"})
+			require.NoError(t, err)
+
+			time.Sleep(3 * time.Second) // past the token's lifetime
+
+			if strings.HasPrefix(url, "http") {
+				_, rawErr := surrealdb.Query[any](ctx, p.db, "RETURN 1;", nil)
+				require.Error(t, rawErr, "the token must really have expired for this test to mean anything")
+				require.True(t, isAuthExpired(rawErr), "expired-token error not recognised: %v", rawErr)
+			}
+			got, err := p.GetUserByID(ctx, user.ID)
+			require.NoError(t, err, "the provider must re-authenticate after its token expires")
+			assert.Equal(t, user.ID, got.ID)
+			_, err = p.AddUser(ctx, &schemas.User{Email: refs.NewStringRef(uuid.NewString() + "@x.io"), SignupMethods: "basic_auth"})
+			require.NoError(t, err)
+		})
+	}
 }

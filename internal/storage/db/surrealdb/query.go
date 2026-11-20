@@ -20,13 +20,27 @@ import (
 // them.
 const selectFields = "SELECT *, record::id(id) AS _id OMIT id FROM "
 
+// run executes sql. If the server refuses the session's credentials — the
+// sign-in token expired — it signs in again and runs sql once more. Rejected
+// requests never execute, so the retry cannot apply a statement twice.
+func run[T any](ctx context.Context, p *provider, sql string, vars map[string]any) (*[]surrealdb.QueryResult[T], error) {
+	res, err := surrealdb.Query[T](ctx, p.db, sql, vars)
+	if !isAuthExpired(err) || p.config.DatabaseUsername == "" {
+		return res, err
+	}
+	if rerr := p.reauthenticate(ctx); rerr != nil {
+		return res, fmt.Errorf("%w (re-authentication failed: %v)", err, rerr)
+	}
+	return surrealdb.Query[T](ctx, p.db, sql, vars)
+}
+
 // queryAll runs sql and decodes the result of its last statement into []T.
 //
 // Rows are fetched as maps and decoded through decodeRow, so fields tagged
 // `json:"-"` (password hashes, client secrets, encrypted keys — kept out of
 // API JSON) are read back from their stored names too.
 func queryAll[T any](ctx context.Context, p *provider, sql string, vars map[string]any) ([]T, error) {
-	res, err := surrealdb.Query[[]map[string]any](ctx, p.db, sql, vars)
+	res, err := run[[]map[string]any](ctx, p, sql, vars)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +82,7 @@ func queryOne[T any](ctx context.Context, p *provider, what, sql string, vars ma
 // real cause — a conflict, a duplicate, a bad statement — on just one of them,
 // often the COMMIT. exec returns that root cause, so callers can classify it.
 func (p *provider) exec(ctx context.Context, sql string, vars map[string]any) error {
-	res, err := surrealdb.Query[any](ctx, p.db, sql, vars)
+	res, err := run[any](ctx, p, sql, vars)
 	if res == nil || len(*res) == 0 {
 		return err
 	}
@@ -103,7 +117,13 @@ func isPlaceholder(msg string) bool {
 const maxTransactionAttempts = 8
 
 // transaction runs statements as one BEGIN ... COMMIT and replays the whole
-// block when SurrealDB aborts it with a retryable conflict. Statements must be
+// block when SurrealDB aborts it with a retryable conflict.
+//
+// Single statements outside a transaction are not retried: SurrealDB
+// serialises them itself. 1,000 concurrent single-statement writes to one row
+// (full updates, MERGE updates, consume-once deletes, compare-and-set) raised
+// no conflict on SurrealDB 4.0.1, while multi-statement transactions over the
+// same rows conflict routinely (TestErrorClassifiersMatchServer). Statements must be
 // safe to run again: every caller here only deletes or writes absolute values.
 func (p *provider) transaction(ctx context.Context, statements string, vars map[string]any) error {
 	sql := "BEGIN TRANSACTION;\n" + statements + "\nCOMMIT TRANSACTION;"
