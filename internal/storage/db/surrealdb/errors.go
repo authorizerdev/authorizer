@@ -49,6 +49,19 @@ func isRecordExists(err error) bool {
 	return ok && strings.Contains(msg, recordMarker) && strings.Contains(msg, existsMarker)
 }
 
+// isAuthExpired reports whether the server refused the session's
+// credentials: an expired token (HTTP answers 401) or an invalid session.
+func isAuthExpired(err error) bool {
+	if err == nil {
+		return false
+	}
+	if surrealdb.IsTokenExpired(err) || surrealdb.IsInvalidAuth(err) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "401 Unauthorized") || strings.Contains(msg, "problem with authentication")
+}
+
 // isConflict reports whether err is a retryable transaction conflict.
 func isConflict(err error) bool {
 	if surrealdb.IsTransactionConflict(err) {

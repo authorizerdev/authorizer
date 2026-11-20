@@ -139,9 +139,6 @@ test-serenedb: test-cleanup-serenedb
 	docker rm -vf authorizer_serenedb; \
 	exit $$status
 
-# CockroachDB is Postgres-wire compatible and runs through the same GORM SQL
-# provider, so this target exists to prove that compatibility actually holds
-# (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
 test-surrealdb: test-cleanup-surrealdb
 	docker run -d --name authorizer_surrealdb -p 8002:8000 $(SURREALDB_IMAGE) start --user root --pass root rocksdb:/tmp/authorizer.db
 	sh scripts/wait-for-sql.sh authorizer_surrealdb surrealdb && \
@@ -150,6 +147,9 @@ test-surrealdb: test-cleanup-surrealdb
 	docker rm -vf authorizer_surrealdb; \
 	exit $$status
 
+# CockroachDB is Postgres-wire compatible and runs through the same GORM SQL
+# provider, so this target exists to prove that compatibility actually holds
+# (AutoMigrate, transactions, LIKE anchoring) rather than being assumed.
 test-cockroachdb: test-cleanup-cockroachdb
 	docker run -d --name authorizer_cockroachdb -p 26257:26257 $(COCKROACH_IMAGE) start-single-node --insecure
 	sh scripts/wait-for-sql.sh authorizer_cockroachdb cockroachdb && \

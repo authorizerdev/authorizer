@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/rs/zerolog"
 	surrealdb "github.com/surrealdb/surrealdb.go/v2"
@@ -38,6 +39,10 @@ type provider struct {
 	config       *config.Config
 	dependencies *Dependencies
 	db           *surrealdb.DB
+	// ns and dbName are the namespace and database the session uses.
+	ns, dbName string
+	// authMu serialises re-authentication (see reauthenticate).
+	authMu sync.Mutex
 }
 
 // NewProvider connects to SurrealDB, selects the namespace and database, and
@@ -56,7 +61,9 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, errors.New("surrealdb: --database-name is required")
 	}
 
-	db, err := surrealdb.FromEndpointURLStringWithOptions(ctx, cfg.DatabaseURL, surrealdb.WithTokenRenewal(true))
+	// No WithTokenRenewal: it only renews token pairs from SignInWithRefresh,
+	// which system users do not get. Expiry is handled by reauthenticate.
+	db, err := surrealdb.FromEndpointURLString(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("surrealdb: connect: %w", err)
 	}
@@ -75,7 +82,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, fmt.Errorf("surrealdb: use %s/%s: %w", ns, dbName, err)
 	}
 
-	p := &provider{config: cfg, dependencies: deps, db: db}
+	p := &provider{config: cfg, dependencies: deps, db: db, ns: ns, dbName: dbName}
 	if err := p.migrate(ctx, migrations); err != nil {
 		_ = db.Close(ctx)
 		return nil, err
@@ -104,6 +111,22 @@ func signIn(ctx context.Context, db *surrealdb.DB, cfg *config.Config, ns, dbNam
 		}
 	}
 	return fmt.Errorf("surrealdb: sign in as %q: %w", user, lastErr)
+}
+
+// reauthenticate signs in again with the configured credentials. A system
+// user's sign-in token expires (after 1h by default). Over WebSocket the
+// session outlives it, but over HTTP every request carries the token, so once
+// it expires every query is refused with 401. The SDK's token renewal only
+// covers sign-ins that return a refresh token, which system users do not get.
+// Serialised so a burst of requests hitting the expiry signs in once each in
+// turn rather than all at once.
+func (p *provider) reauthenticate(ctx context.Context) error {
+	p.authMu.Lock()
+	defer p.authMu.Unlock()
+	if err := signIn(ctx, p.db, p.config, p.ns, p.dbName); err != nil {
+		return err
+	}
+	return p.db.Use(ctx, p.ns, p.dbName)
 }
 
 // ident quotes a namespace or database name for DDL, where SurrealQL takes
