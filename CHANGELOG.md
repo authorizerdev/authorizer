@@ -5,6 +5,29 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.7] - 2026-11-20
+
+Adds [SereneDB](https://www.serenedb.com/) as a storage backend, fixes two
+upserts that failed on SQL Server, and makes `list_permissions` report
+truncation correctly. Nothing to do on upgrade for existing deployments.
+
+### Added
+
+- **SereneDB storage backend** ([#792](https://github.com/authorizerdev/authorizer/pull/792)). `--database-type=serenedb` with a PostgreSQL-style `--database-url` (SereneDB listens on `7890` by default). Requires SereneDB 26.11 or later; tested against 26.11.2. Queries run through the existing SQL provider unchanged; two things differ underneath:
+  - **Schema.** SereneDB reports `varchar(n)` as `text`, so GORM's automatic migration issued an `ALTER COLUMN ... TYPE` on every restart, which SereneDB refuses on an indexed column. The schema is instead created and upgraded by hand-written, versioned migrations, recorded in a new `authorizer_schema_migrations` table. Each version runs in one transaction with its record, so a failed migration leaves nothing behind. Instances that boot at the same time can't conflict.
+  - **Write conflicts.** SereneDB aborts contended writes with SQLSTATE 40001 instead of making them wait. Single statements are retried, and the four cascade deletes (user, client, organization, webhook) are re-run as a whole. No other backend changes behaviour: the retry is enabled only for SereneDB.
+
+  SereneDB is not an OpenFGA datastore, so FGA needs an explicit `--fga-store`. See [Databases](https://docs.authorizer.dev/core/databases).
+
+### Fixed
+
+- **SQL Server: re-requesting a verification email, or enrolling an MFA method a second time, failed with a duplicate-key error** ([#792](https://github.com/authorizerdev/authorizer/pull/792)). `gorm.io/driver/sqlserver` builds every upsert's `MERGE` from the primary key and ignores the conflict columns, so `AddVerificationRequest` (keyed on email + identifier) and `AddAuthenticator` (keyed on user + method) never matched the existing row and failed on the unique index (`mssql ... (2601)`). Every other SQL backend replaced the row. SQL Server now builds the `MERGE` on the conflict columns, with `WITH (HOLDLOCK)` so two concurrent upserts of the same key cannot both insert. These were the two SQL Server tests known to fail; SQL Server is now part of `make test-all-db`.
+- **`list_permissions` returned `truncated: false` while dropping results** ([#903](https://github.com/authorizerdev/authorizer/pull/903)). The embedded OpenFGA engine capped each list call at 1000 results, the same as the service's own cap. A relation with more matches came back as exactly 1000 with no signal that more existed. The engine cap is now one above the service cap, so `truncated` is set. For an RFC 8693 delegated caller, the agent's and the user's results are capped separately before they are intersected, so the response is now also marked truncated when either side hit the cap.
+
+### Changed
+
+- **Documentation:** CockroachDB must be configured as `--database-type=cockroachdb`. The docs previously showed `postgres`, which skips CockroachDB's migration fixes. No code change.
+
 ## [2.4.6] - 2026-11-17
 
 Social login now works for clients whose callback is on another origin, and it
