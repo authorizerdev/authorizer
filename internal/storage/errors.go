@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/db/dynamodb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/mongodb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/sql"
+	"github.com/authorizerdev/authorizer/internal/storage/db/surrealdb"
 )
 
 // IsNotFound reports whether err means "the row does not exist", as opposed to
@@ -48,5 +49,6 @@ func IsNotFound(err error) bool {
 		arangodb.IsNotFound(err) ||
 		cassandradb.IsNotFound(err) ||
 		dynamodb.IsNotFound(err) ||
-		couchbase.IsNotFound(err)
+		couchbase.IsNotFound(err) ||
+		surrealdb.IsNotFound(err)
 }

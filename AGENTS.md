@@ -71,12 +71,13 @@ Run `make fmt` before committing; CI runs `make lint`.
 ```bash
 make test                 # Full module test run; TEST_DBS=sqlite (integration tests always SQLite)
 make test-sqlite          # Same as test — explicit SQLite-only, no Docker
-make test-all-db          # All 14 DBs via Docker (postgres, serenedb, cockroachdb, mysql, mariadb, sqlserver, sqlite, libsql, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
+make test-all-db          # All 15 DBs via Docker (postgres, serenedb, surrealdb, cockroachdb, mysql, mariadb, sqlserver, sqlite, libsql, mongodb, arangodb, scylladb, cassandradb, dynamodb, couchbase)
 make smoke                # Release e2e smoke tests (build tag `smoke`, 5m timeout)
 
 # Single-DB targets (each spins up Docker, runs tests, tears down)
 make test-postgres
 make test-serenedb
+make test-surrealdb
 make test-cockroachdb
 make test-mysql
 make test-mariadb
@@ -91,7 +92,7 @@ make test-sqlserver
 # Docker helpers for test-all-db
 make test-docker-up       # Start all test DB containers + Redis
 make test-cleanup         # Remove all test containers
-make test-cleanup-postgres | test-cleanup-serenedb | test-cleanup-cockroachdb | test-cleanup-mysql | test-cleanup-mariadb
+make test-cleanup-postgres | test-cleanup-serenedb | test-cleanup-surrealdb | test-cleanup-cockroachdb | test-cleanup-mysql | test-cleanup-mariadb
 make test-cleanup-mongodb | test-cleanup-scylladb | test-cleanup-cassandradb
 make test-cleanup-arangodb | test-cleanup-dynamodb | test-cleanup-couchbase
 make test-cleanup-sqlserver
@@ -130,7 +131,7 @@ Use `-p 1` for integration tests (shared state). Storage tests honour `TEST_DBS`
 - gRPC: `proto/authorizer/v1/` → `gen/` | Server: `internal/grpcsrv/` | REST via grpc-gateway
 - gRPC auth docs: authorizer-docs repo, `specs/GRPC_REST_API_SPEC.md` (§2.3 client metadata)
 - Request principal (gRPC interceptor): `internal/authctx/`
-- Storage interface: `internal/storage/provider.go` | SQL: `internal/storage/db/sql/` | NoSQL: `mongodb/`, `arangodb/`, `cassandradb/`, `dynamodb/`, `couchbase/`
+- Storage interface: `internal/storage/provider.go` | SQL: `internal/storage/db/sql/` | NoSQL: `mongodb/`, `arangodb/`, `cassandradb/`, `dynamodb/`, `couchbase/`, `surrealdb/`
 - FGA engine: `internal/authorization/`
 - OAuth/OIDC endpoints: `internal/http_handlers/`
 - Token management: `internal/token/`
@@ -161,7 +162,7 @@ When the background closure needs a context, use `context.WithoutCancel(ctx)` (n
 - Any indexed lookup added to one provider (e.g. `GetUserByExternalID`) needs the matching index/equivalent in every other provider — a method that's O(1) in one backend and a full collection/table scan in another is a parity bug, not a perf nit.
 - Never build a query by string-concatenating or `fmt.Sprintf`-ing request-derived values into a WHERE/SET/CQL clause, even for NoSQL backends — always parameterize/bind, and never let a map of column names sourced from a request reach a query builder without an explicit allow-list.
 
-### The not-found contract (all 6 backends must agree)
+### The not-found contract (all 7 backends must agree)
 
 "The row does not exist" and "the query failed" are **different outcomes** and must stay distinguishable. Getting this wrong has already caused two classes of production bug in this repo: a nil-dereference panic on one backend only, and a database outage being reported to end users as an invalid credential.
 
@@ -171,7 +172,7 @@ When the background closure needs a context, use `context.WithoutCancel(ctx)` (n
 - **Never return `(nil, nil)` from a single-entity getter.** Callers branch on `err` and then dereference the pointer, so `(nil, nil)` panics — and because it usually diverges on only one backend, CI (SQLite-only) stays green while production crashes. This is exactly how three DynamoDB methods broke the TOTP and email-verification paths.
 - `List*` methods return `(nil, nil)` for an empty result. A nil slice ranges zero times, so no caller guard is needed.
 - The single documented exception is `GetClientByClientID`, which **must** return `(nil, nil)` — its callers distinguish absent from unavailable by `err` alone. Treat it as legacy, not as a pattern to copy; new code uses the error form.
-- Implement the same behaviour in **all six** backends. `TestNotFoundContractIsUniform` (`internal/storage`) compares them statically and fails on divergence, so a one-backend slip is caught without needing all six databases running.
+- Implement the same behaviour in **all seven** backends (SQL, MongoDB, ArangoDB, Cassandra/ScyllaDB, DynamoDB, Couchbase, SurrealDB). `TestNotFoundContractIsUniform` (`internal/storage`) compares them statically and fails on divergence, so a one-backend slip is caught without needing all six databases running.
 
 **Consuming a storage method:**
 
@@ -194,12 +195,12 @@ Do **not** apply this mechanically to auth paths. Turning a lookup failure into 
 ## Critical Rules (Top of Mind)
 
 1. **Admin GraphQL ops prefixed with `_`** — not for public use. Same for `AuthorizerAdminService` gRPC.
-2. **Schema changes MUST update all 13+ database providers.** SereneDB does not use GORM AutoMigrate: a new model field also needs an appended migration in `internal/storage/db/serenedb/schema.go` (`TestSchemaDDLMatchesModels` fails in `make test` until it has one).
+2. **Schema changes MUST update all 13+ database providers.** SereneDB does not use GORM AutoMigrate: a new model field also needs an appended migration in `internal/storage/db/serenedb/schema.go` (`TestSchemaDDLMatchesModels` fails in `make test` until it has one). SurrealDB is schemaless, but a new GORM index needs a matching migration in `internal/storage/db/surrealdb/schema.go` (`TestSchemaMatchesSQLIndexes`).
 3. **Run `make generate-graphql`** after editing `schema.graphqls`.
 4. **Run `make proto-gen`** (or `make proto-check`) after editing `proto/`; commit `gen/`.
 5. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.
 6. **Fire-and-forget side effects go through `asyncutil.Go`, never a bare `go func()`** — see Background Work above.
-7. **Never return `(nil, nil)` from a single-entity storage getter**, and use `storage.IsNotFound(err)` rather than `err != nil` when absent and unavailable should differ — see [The not-found contract](#the-not-found-contract-all-6-backends-must-agree).
+7. **Never return `(nil, nil)` from a single-entity storage getter**, and use `storage.IsNotFound(err)` rather than `err != nil` when absent and unavailable should differ — see [The not-found contract](#the-not-found-contract-all-7-backends-must-agree).
 
 Detailed rules load via skills (see below) — don't restate them here.
 

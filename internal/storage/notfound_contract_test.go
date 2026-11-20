@@ -12,7 +12,7 @@ import (
 
 // backends are the storage implementations that must agree on the not-found
 // contract documented on Provider.
-var backends = []string{"sql", "mongodb", "arangodb", "cassandradb", "dynamodb", "couchbase"}
+var backends = []string{"sql", "mongodb", "arangodb", "cassandradb", "dynamodb", "couchbase", "surrealdb"}
 
 // listReturnsNilNil are the List* methods that legitimately return (nil, nil)
 // for an empty result (rule 2 on Provider), plus the one documented

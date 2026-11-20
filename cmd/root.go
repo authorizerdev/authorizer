@@ -197,6 +197,7 @@ func init() {
 	f.StringVar(&rootArgs.config.CouchBaseBucket, "couchbase-bucket", "", "Bucket for the database")
 	f.StringVar(&rootArgs.config.CouchBaseRamQuota, "couchbase-ram-quota", "", "RAM quota for the database")
 	f.StringVar(&rootArgs.config.CouchBaseScope, "couchbase-scope", "", "Scope for the database")
+	f.StringVar(&rootArgs.config.SurrealDBNamespace, "surrealdb-namespace", "authorizer", "SurrealDB namespace that holds --database-name (surrealdb only)")
 	f.StringVar(&rootArgs.config.AWSRegion, "aws-region", "", "Region for the dynamodb database")
 	f.StringVar(&rootArgs.config.AWSAccessKeyID, "aws-access-key-id", "", "Access key ID for the dynamodb database")
 	f.StringVar(&rootArgs.config.AWSSecretAccessKey, "aws-secret-access-key", "", "Secret access key for the dynamodb database")

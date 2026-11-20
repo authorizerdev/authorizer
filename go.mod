@@ -42,6 +42,7 @@ require (
 	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
+	github.com/surrealdb/surrealdb.go/v2 v2.0.1
 	github.com/twilio/twilio-go v1.33.0
 	github.com/vektah/gqlparser/v2 v2.5.64
 	go.mongodb.org/mongo-driver v1.17.10
@@ -114,6 +115,7 @@ require (
 	github.com/go-webauthn/x v0.3.1 // indirect
 	github.com/goccy/go-json v0.12.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
