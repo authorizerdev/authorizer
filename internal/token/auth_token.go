@@ -450,13 +450,25 @@ func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64
 		"scope":        cfg.Scope,
 		"login_method": cfg.LoginMethod,
 		// RFC 9068 §2.2: the client that authenticated at /oauth/token.
-		"client_id": p.audience(cfg),
+		"client_id": machineClientID(cfg),
 	}
 	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
 	return token, expiresAt, nil
+}
+
+// machineClientID is the client_id claim of a machine token: the service
+// account's public client_id, else its row id (AddClient defaults an empty
+// ClientID to the row id in every backend). It never falls back to the
+// deployment's client_id, which
+// would label a service account as the first-party app.
+func machineClientID(cfg *AuthTokenConfig) string {
+	if cfg.ClientID != "" {
+		return cfg.ClientID
+	}
+	return cfg.ServiceAccountID
 }
 
 // machineAccessTokenAudience is accessTokenAudience for client_credentials
@@ -794,6 +806,11 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 		"login_method":        cfg.LoginMethod,
 		p.config.JWTRoleClaim: cfg.Roles,
 	}
+	// OIDC Core §2: azp is the client the ID token was issued to. aud is a
+	// single client here, so azp always equals it. Not in reservedClaims:
+	// CustomAccessTokenScript could set azp before this claim existed, and
+	// reserving it would silently drop that output.
+	customClaims["azp"] = p.audience(cfg)
 	// OIDC Core §3.1.3.6 / §3.2.2.10:
 	//   at_hash REQUIRED whenever the response includes an access_token
 	//           in the same flow. CreateAuthToken always issues an
