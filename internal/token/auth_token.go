@@ -389,6 +389,11 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 		"roles":         cfg.Roles,
 		"login_method":  cfg.LoginMethod,
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
+		// RFC 9068 §2.2: the OAuth client the token was issued to. aud cannot
+		// carry this once an RFC 8707 resource replaces it, so a resource
+		// server accepting tokens from several clients (e.g. MCP clients)
+		// could not tell them apart. Reserved from CustomAccessTokenScript.
+		"client_id": p.audience(cfg),
 	}
 	// check for the extra access token script
 	if p.config.CustomAccessTokenScript != "" {
@@ -433,7 +438,10 @@ func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64
 		// server loses its cheapest rejection. Omitted `resource` keeps the
 		// previous global-client_id audience, so existing single-audience
 		// deployments are unaffected.
-		"aud":          p.accessTokenAudience(cfg),
+		// cfg.ClientID is deliberately not used for the fallback audience: it
+		// names the service account's client (for client_id below), and
+		// machine tokens without a resource keep the global client_id aud.
+		"aud":          p.machineAccessTokenAudience(cfg),
 		"nonce":        cfg.Nonce,
 		"sub":          cfg.ServiceAccountID,
 		"exp":          expiresAt,
@@ -441,12 +449,24 @@ func (p *provider) createMachineAccessToken(cfg *AuthTokenConfig) (string, int64
 		"token_type":   constants.TokenTypeAccessToken,
 		"scope":        cfg.Scope,
 		"login_method": cfg.LoginMethod,
+		// RFC 9068 §2.2: the client that authenticated at /oauth/token.
+		"client_id": p.audience(cfg),
 	}
 	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
 	return token, expiresAt, nil
+}
+
+// machineAccessTokenAudience is accessTokenAudience for client_credentials
+// tokens: the RFC 8707 resource when given, otherwise the deployment's global
+// client_id, regardless of cfg.ClientID.
+func (p *provider) machineAccessTokenAudience(cfg *AuthTokenConfig) string {
+	if cfg.Resource != "" {
+		return cfg.Resource
+	}
+	return p.config.ClientID
 }
 
 // CreateMachineAuthToken issues a stateful OAuth2 access token for a service

@@ -1144,6 +1144,7 @@ func (h *httpProvider) handleClientCredentialsGrant(gc *gin.Context, sa *schemas
 	// deployment's global client ID (previous behavior).
 	authToken, err := h.TokenProvider.CreateMachineAuthToken(&token.AuthTokenConfig{
 		ServiceAccountID: sa.ID,
+		ClientID:         sa.ClientID,
 		Scope:            grantedScopes,
 		Nonce:            nonce,
 		LoginMethod:      constants.AuthRecipeMethodServiceAccount,
