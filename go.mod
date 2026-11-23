@@ -6,7 +6,7 @@ toolchain go1.27.4
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2
-	buf.build/go/protovalidate v1.4.0
+	buf.build/go/protovalidate v1.4.1
 	github.com/99designs/gqlgen v0.17.98
 	github.com/arangodb/go-driver v1.6.9
 	github.com/aws/aws-sdk-go-v2 v1.48.0
@@ -28,7 +28,7 @@ require (
 	github.com/gocql/gocql v1.7.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.33.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.34.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/openfga/api/proto v0.0.0-20260928071936-c0650ce2169b
@@ -42,11 +42,11 @@ require (
 	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	github.com/twilio/twilio-go v1.33.0
+	github.com/twilio/twilio-go v1.33.1
 	github.com/vektah/gqlparser/v2 v2.5.64
 	go.mongodb.org/mongo-driver v1.17.10
 	golang.org/x/crypto v0.59.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sync v0.25.0
 	golang.org/x/time v0.16.0
