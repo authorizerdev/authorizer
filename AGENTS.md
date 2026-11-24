@@ -8,7 +8,7 @@ Detailed conventions live in `.claude/skills/authorizer-*/SKILL.md` and load on 
 
 Open-source, self-hosted authentication and authorization server. Supports 13+ databases, OAuth2/OIDC, social logins, MFA, magic links, role-based access, webhooks, and email templating.
 
-**Stack**: Go 1.24+, Gin, gqlgen, GORM, zerolog, Cobra CLI, JWT, OAuth2/OIDC, gRPC (+ grpc-gateway REST), buf/protobuf.
+**Stack**: Go 1.27+, Gin, gqlgen, GORM, zerolog, Cobra CLI, JWT, OAuth2/OIDC, gRPC (+ grpc-gateway REST), buf/protobuf.
 **v2**: CLI flags for all config — no `.env` or OS env vars.
 
 ## Make Commands
