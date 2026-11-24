@@ -46,6 +46,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    ignore:
+      # v2.6.0's runtime image points at deleted manifests on ghcr.io and
+      # cannot be pulled (ossf/scorecard-action#1752). A later release is
+      # still proposed; drop this once it ships.
+      - dependency-name: ossf/scorecard-action
+        versions: ["2.6.0"]
 
   # The two React applications are built and released with the server binary.
   - package-ecosystem: npm
