@@ -72,7 +72,7 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"token_endpoint":           issuer + "/oauth/token",
 			"userinfo_endpoint":        issuer + "/userinfo",
 			"scopes_supported":         supportedScopes,
-			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
+			"claims_supported":         []string{"aud", "azp", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
 			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
 			"grant_types_supported":    grantTypes,
 			// "none" is supported for public clients that use PKCE (RFC 7636)
