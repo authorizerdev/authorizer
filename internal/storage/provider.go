@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/db/mongodb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/serenedb"
 	"github.com/authorizerdev/authorizer/internal/storage/db/sql"
+	"github.com/authorizerdev/authorizer/internal/storage/db/surrealdb"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -61,7 +62,7 @@ type Dependencies struct {
 //
 // When adding a method, follow rule 1 unless there is a documented reason not
 // to, and implement the same behaviour in all backends
-// (internal/storage/db/{sql,mongodb,arangodb,cassandradb,dynamodb,couchbase}).
+// (internal/storage/db/{sql,mongodb,arangodb,cassandradb,dynamodb,couchbase,surrealdb}).
 type Provider interface {
 	// AddUser to save user information in database
 	AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error)
@@ -551,6 +552,10 @@ func New(config *config.Config, deps *Dependencies) (Provider, error) {
 		})
 	case constants.DbTypeMongoDB:
 		provider, err = mongodb.NewProvider(config, &mongodb.Dependencies{
+			Log: deps.Log,
+		})
+	case constants.DbTypeSurrealDB:
+		provider, err = surrealdb.NewProvider(config, &surrealdb.Dependencies{
 			Log: deps.Log,
 		})
 	case constants.DbTypeArangoDB:

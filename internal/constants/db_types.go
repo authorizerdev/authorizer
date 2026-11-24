@@ -22,6 +22,9 @@ const (
 	// DbTypeSereneDB is the serenedb database type (PostgreSQL wire protocol)
 	DbTypeSereneDB = "serenedb"
 
+	// DbTypeSurrealDB is the surrealdb database type
+	DbTypeSurrealDB = "surrealdb"
+
 	// DbTypeArangoDB is the arangodb database type
 	DbTypeArangoDB = "arangodb"
 

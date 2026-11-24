@@ -15,7 +15,7 @@ ENGINE="$2"
 TIMEOUT_SECONDS="${TEST_SQL_WAIT_TIMEOUT:-180}"
 
 if [ -z "$CONTAINER" ] || [ -z "$ENGINE" ]; then
-  echo "usage: wait-for-sql.sh <container-name> <mysql|mariadb|cockroachdb|serenedb|sqlserver>" >&2
+  echo "usage: wait-for-sql.sh <container-name> <mysql|mariadb|cockroachdb|serenedb|surrealdb|sqlserver>" >&2
   exit 2
 fi
 
@@ -38,6 +38,10 @@ probe() {
     cockroachdb)
       docker exec "$CONTAINER" ./cockroach sql --insecure -e 'SELECT 1' >/dev/null 2>&1
       ;;
+    surrealdb)
+      # The image has no shell; its own CLI checks the server answers.
+      docker exec "$CONTAINER" /surreal isready --endpoint http://localhost:8000 >/dev/null 2>&1
+      ;;
     serenedb)
       # The image ships psql. SereneDB listens on 7890, not 5432.
       docker exec -e PGPASSWORD=postgres "$CONTAINER" psql -h localhost -p 7890 -U postgres \
@@ -51,7 +55,7 @@ probe() {
         -U sa -P "${SQLSERVER_PASSWORD:-Str0ng!Passw0rd}" -Q 'SELECT 1' >/dev/null 2>&1
       ;;
     *)
-      echo "unknown engine '$ENGINE' (known: mysql, mariadb, cockroachdb, serenedb, sqlserver)" >&2
+      echo "unknown engine '$ENGINE' (known: mysql, mariadb, cockroachdb, serenedb, surrealdb, sqlserver)" >&2
       exit 2
       ;;
   esac
