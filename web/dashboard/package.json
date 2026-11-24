@@ -26,7 +26,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"dayjs": "^1.11.13",
-		"graphql": "^16.9.0",
+		"graphql": "^17.1.0",
 		"lodash": "^4.17.21",
 		"lucide-react": "^1.70.0",
 		"react": "^19.3.1",
