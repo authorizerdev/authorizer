@@ -193,10 +193,11 @@ func assertIssuedTo(t *testing.T, body map[string]interface{}, clientID, accessA
 	assert.Equal(t, clientID, id["aud"], "id token aud")
 }
 
-// TestClientIDAndAzpWithCustomAccessTokenScript pins backward compatibility
-// for CustomAccessTokenScript: client_id was already reserved, so a script
-// still cannot forge it; azp was not reserved, so a script that set it before
-// these claims existed keeps its output in both tokens.
+// TestClientIDAndAzpWithCustomAccessTokenScript pins CustomAccessTokenScript
+// behaviour: client_id was already reserved, so a script still cannot forge
+// it. azp is not reserved, so a script that set it before these claims existed
+// keeps its value in the access token; in the ID token the server's azp wins,
+// so azp cannot disagree with aud (OIDC Core §3.1.3.7).
 func TestClientIDAndAzpWithCustomAccessTokenScript(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.CustomAccessTokenScript = `function(user, tokenPayload) {
@@ -222,5 +223,6 @@ func TestClientIDAndAzpWithCustomAccessTokenScript(t *testing.T) {
 	assert.Equal(t, "kept", access["custom_claim"])
 
 	id := decodeJWTPayloadUnverified(t, *res.IDToken)
-	assert.Equal(t, "from-script", id["azp"], "a script-set azp is kept, as before")
+	assert.Equal(t, cfg.ClientID, id["azp"], "the server's azp wins in the ID token")
+	assert.Equal(t, id["aud"], id["azp"], "ID token azp must equal aud")
 }

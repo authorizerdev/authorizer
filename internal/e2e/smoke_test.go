@@ -354,6 +354,14 @@ func TestReleaseSmoke(t *testing.T) {
 		require.NotEmpty(t, tokens.IDToken, "an openid scope must yield an id_token")
 		assert.Equal(t, "Bearer", tokens.TokenType)
 
+		// RFC 9068 §2.2 / OIDC Core §2: both tokens name the client they were
+		// issued to.
+		assert.Equal(t, smokeClientID, jwtPayload(t, tokens.AccessToken)["client_id"],
+			"access token must carry the requesting client's client_id")
+		idClaims := jwtPayload(t, tokens.IDToken)
+		assert.Equal(t, smokeClientID, idClaims["azp"], "id_token must carry azp")
+		assert.Equal(t, smokeClientID, idClaims["aud"], "id_token aud is unchanged")
+
 		// A second exchange of the same code must fail: authorization codes are
 		// single-use (RFC 6749 §4.1.2), and a replay is the classic attack.
 		replay, err := http.Post(baseURL+"/oauth/token",
@@ -518,6 +526,10 @@ func TestReleaseSmoke(t *testing.T) {
 		ccForm.Set("client_id", agentID)
 		ccForm.Set("client_secret", agentSecret)
 		actorToken := postForm(ccForm)["access_token"].(string)
+		// RFC 9068 §2.2: a client_credentials token names its own client. The
+		// exchange below proves the new claim does not disturb token exchange.
+		assert.Equal(t, agentID, jwtPayload(t, actorToken)["client_id"],
+			"client_credentials token must carry the service account's client_id")
 
 		exchange := func(res string) string {
 			form := url.Values{}
@@ -658,6 +670,19 @@ const mcpInitializeRPC = `{"jsonrpc":"2.0","id":1,"method":"initialize","params"
 // buildBinary compiles the authorizer binary into a temp dir and returns its
 // path. Building from source guarantees the smoke run tests exactly the code
 // under release, not a stale artifact.
+// jwtPayload decodes a JWT's claims without verifying it; the token came
+// straight from the server under test.
+func jwtPayload(t *testing.T, tok string) map[string]any {
+	t.Helper()
+	parts := strings.Split(tok, ".")
+	require.Len(t, parts, 3, "not a JWT")
+	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
+	require.NoError(t, err)
+	var claims map[string]any
+	require.NoError(t, json.Unmarshal(raw, &claims))
+	return claims
+}
+
 func buildBinary(t *testing.T) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "authorizer")
