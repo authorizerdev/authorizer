@@ -376,3 +376,14 @@ func TestDiscoveryStillRequiresAuth(t *testing.T) {
 	w := do(r, http.MethodGet, "/scim/v2/ServiceProviderConfig", "", "")
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+// GHSA-p7g3-2258-8wmp: a refused change to a shared user's identifier is a
+// SCIM 400 "mutability" error, not a 500.
+func TestPatchSharedIdentifierMapsTo400Mutability(t *testing.T) {
+	svc := &fakeService{authOrg: "org-a", setErr: svcscim.ErrSharedIdentifier}
+	r := newTestServer(svc)
+	body := `{"Operations":[{"op":"replace","path":"userName","value":"attacker@evil.test"}]}`
+	w := do(r, http.MethodPatch, "/scim/v2/Users/shared", "ep.secret", body)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), `"mutability"`)
+}

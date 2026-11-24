@@ -129,6 +129,9 @@ func mapServiceError(c *gin.Context, err error) {
 		writeError(c, http.StatusConflict, "uniqueness", "userName already exists")
 	case errors.Is(err, svcscim.ErrGroupConflict):
 		writeError(c, http.StatusConflict, "uniqueness", "a group with this displayName already exists")
+	case errors.Is(err, svcscim.ErrSharedIdentifier):
+		// RFC 7644 §3.12: 400 with scimType "mutability".
+		writeError(c, http.StatusBadRequest, "mutability", "email and phone of a user shared with another organization cannot be changed")
 	case errors.Is(err, svcscim.ErrInvalid):
 		writeError(c, http.StatusBadRequest, "invalidValue", "invalid request")
 	case errors.Is(err, svcscim.ErrUnauthorized):

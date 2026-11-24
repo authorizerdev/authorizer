@@ -55,6 +55,11 @@ var (
 	// displayName in the org (RFC 7644 §3.3 uniqueness). Map to 409/uniqueness.
 	// Distinct from ErrConflict, whose message names userName.
 	ErrGroupConflict = errors.New("scim: displayName already exists")
+	// ErrSharedIdentifier — a PATCH tried to change the email or phone of a user
+	// who is also a member of another organization. Those are global login and
+	// recovery identifiers, so one org's SCIM token must not rewrite them for an
+	// account another org relies on (GHSA-p7g3-2258-8wmp). Map to 400/mutability.
+	ErrSharedIdentifier = errors.New("scim: email and phone of a user shared with another organization cannot be changed")
 )
 
 // tokenCost is the bcrypt cost for SCIM bearer-token secrets. Matches the
@@ -573,6 +578,26 @@ func (p *provider) activeMembershipsElsewhere(ctx context.Context, orgID, userID
 	return n, nil
 }
 
+// requireSoleMembership rejects a change to a global login/recovery identifier
+// (email, phone) when the user belongs to any organization other than orgID.
+// Email and phone live on the global user row and drive password recovery, so
+// letting org A's SCIM token rewrite them would let A redirect a reset for an
+// account org B also relies on (GHSA-p7g3-2258-8wmp). Inactive memberships
+// count too: a deprovisioned B membership can be reactivated later, and the
+// redirected identifier would come back with it.
+func (p *provider) requireSoleMembership(ctx context.Context, orgID, userID string) error {
+	memberships, _, err := p.StorageProvider.ListOrgMembershipsByUser(ctx, userID, &model.Pagination{Limit: 1000})
+	if err != nil {
+		return err
+	}
+	for _, m := range memberships {
+		if m.OrgID != orgID {
+			return ErrSharedIdentifier
+		}
+	}
+	return nil
+}
+
 // deprovisionInOrg deprovisions a user from ONE organization.
 //
 // The global account row is only touched when this was the user's last active
@@ -895,6 +920,13 @@ func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch Us
 			if existing, err := p.StorageProvider.GetUserByEmail(ctx, email); err == nil && existing != nil && existing.ID != user.ID {
 				return nil, ErrConflict
 			}
+			// A case-only change is the same mailbox, so it stays allowed for
+			// shared users (an IdP normalising case must not start failing sync).
+			if !strings.EqualFold(email, refs.StringValue(user.Email)) {
+				if err := p.requireSoleMembership(ctx, orgID, userID); err != nil {
+					return nil, err
+				}
+			}
 			user.Email = &email
 			changed = true
 		}
@@ -907,6 +939,9 @@ func (p *provider) PatchUser(ctx context.Context, orgID, userID string, patch Us
 		if phone != refs.StringValue(user.PhoneNumber) {
 			if existing, err := p.StorageProvider.GetUserByPhoneNumber(ctx, phone); err == nil && existing != nil && existing.ID != user.ID {
 				return nil, ErrConflict
+			}
+			if err := p.requireSoleMembership(ctx, orgID, userID); err != nil {
+				return nil, err
 			}
 			user.PhoneNumber = &phone
 			changed = true

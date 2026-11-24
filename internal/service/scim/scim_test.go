@@ -911,3 +911,73 @@ func TestCreateUserDedupReportsPerOrgState(t *testing.T) {
 	require.True(t, existed)
 	assert.False(t, byName.IsActive, "dedup by userName must report org-a's view too")
 }
+
+// GHSA-p7g3-2258-8wmp: org A's SCIM token rewrote the global email of a user
+// shared with org B, then a password reset to that address took over the
+// account in B. Email and phone of a shared user must not change via one org.
+func TestPatchUser_SharedUserIdentifiersAreImmutable(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("email change rejected and B's view unchanged", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u := seedSharedUser(t, p, store, "org-a", "org-b")
+		evil := "attacker@evil.test"
+		_, err := p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &evil})
+		require.ErrorIs(t, err, ErrSharedIdentifier)
+		viewB, err := p.GetUser(ctx, "org-b", u.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "shared@corp.com", *viewB.Email)
+	})
+
+	t.Run("phone change rejected", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u := seedSharedUser(t, p, store, "org-a", "org-b")
+		phone := "+15550000000"
+		_, err := p.PatchUser(ctx, "org-a", u.ID, UserPatch{PhoneNumber: &phone})
+		require.ErrorIs(t, err, ErrSharedIdentifier)
+		assert.Nil(t, store.users[u.ID].PhoneNumber)
+	})
+
+	t.Run("rejected PATCH is atomic: other attributes not written", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u := seedSharedUser(t, p, store, "org-a", "org-b")
+		evil, gn := "attacker@evil.test", "Mallory"
+		_, err := p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &evil, GivenName: &gn})
+		require.ErrorIs(t, err, ErrSharedIdentifier)
+		assert.Nil(t, store.users[u.ID].GivenName)
+	})
+
+	t.Run("deprovisioned B membership still blocks", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u := seedSharedUser(t, p, store, "org-a", "org-b")
+		_, err := p.SetActive(ctx, "org-b", u.ID, false)
+		require.NoError(t, err)
+		evil := "attacker@evil.test"
+		_, err = p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &evil})
+		require.ErrorIs(t, err, ErrSharedIdentifier, "B could reactivate the membership later")
+	})
+
+	t.Run("backward compatible: unchanged or case-only email and name edits still work", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u := seedSharedUser(t, p, store, "org-a", "org-b")
+		same, upper, gn := "shared@corp.com", "Shared@Corp.com", "Sam"
+		_, err := p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &same, GivenName: &gn})
+		require.NoError(t, err, "a full-attribute replay with the same email must keep syncing")
+		_, err = p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &upper})
+		require.NoError(t, err, "case-only email change is the same mailbox")
+		assert.Equal(t, "Sam", *store.users[u.ID].GivenName)
+	})
+
+	t.Run("backward compatible: single-org user email change keeps verification", func(t *testing.T) {
+		p, store, _ := newSvc(t)
+		u, _, err := p.CreateUser(ctx, "org-a", User{UserName: "solo@corp.com", Active: true})
+		require.NoError(t, err)
+		verified := int64(1)
+		store.users[u.ID].EmailVerifiedAt = &verified
+		email := "solo.renamed@corp.com"
+		got, err := p.PatchUser(ctx, "org-a", u.ID, UserPatch{Email: &email})
+		require.NoError(t, err)
+		assert.Equal(t, email, *got.Email)
+		assert.NotNil(t, store.users[u.ID].EmailVerifiedAt)
+	})
+}
