@@ -232,8 +232,6 @@ github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6
 github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v1.0.0 h1:Oy607GVXHs7RtbggtPBnr2RmDArIsAefDwvrdWvRhGs=
 github.com/golang/snappy v1.0.0/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
-github.com/google/cel-go v0.31.0 h1:H0bhpFTqOvmHrBGrWKp7ZlhBm5Hh8PYUEXnwxT1LL7A=
-github.com/google/cel-go v0.31.0/go.mod h1:X0bD6iVNR8pkROSOoHVdgTkzmRcosof7WQqCD6wcMc8=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
@@ -348,8 +346,8 @@ github.com/openfga/api/proto v0.0.0-20260928071936-c0650ce2169b h1:TisFP2FTpsUDL
 github.com/openfga/api/proto v0.0.0-20260928071936-c0650ce2169b/go.mod h1:jjiX0r3dLFCFqKy/mvO5TaMnzsoVvdpqJn3lET0A16k=
 github.com/openfga/language/pkg/go v0.3.2 h1:QN/cBYzL50RzEh46e+7ILvFeBs0exge7Sia0B6uXjms=
 github.com/openfga/language/pkg/go v0.3.2/go.mod h1:Ia3Luc0WcZdLogjjnFFKbce8+427wwlDaUG3dREZVCY=
-github.com/openfga/openfga v1.22.1 h1:gl5DiX841ZK3GSTAbgUUYEpiAfAK4EZFMQYW1NQmK8U=
-github.com/openfga/openfga v1.22.1/go.mod h1:ADkdHo5JIIEcQ3j0CBUdWqACT3ddwOx9zk7BujM6kCg=
+github.com/openfga/openfga v1.23.0 h1:qYx1FfQ6ZZZzYX89HLW73G+jgcCf5jXgYdM4OTIW/+Y=
+github.com/openfga/openfga v1.23.0/go.mod h1:0a7wx2Zy4ZQ/bH4oTKrEogGrtxTleGhKj5La0NIwI4M=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pandatix/go-abnf v0.5.5 h1:EXex5KkRQx4Dm6GnpAcQnIMBs9KiK0uf8p/wq+4t9PM=
 github.com/pandatix/go-abnf v0.5.5/go.mod h1:AE0KD3/VNoCjGzc1gqetRKshbI4SYErXQ/8kPenR5mc=
@@ -690,3 +688,5 @@ modernc.org/strutil v1.2.1 h1:UneZBkQA+DX2Rp35KcM69cSsNES9ly8mQWD71HKlOA0=
 modernc.org/strutil v1.2.1/go.mod h1:EHkiggD70koQxjVdSBM3JKM7k6L0FbGE5eymy9i3B9A=
 modernc.org/token v1.1.0 h1:Xl7Ap9dKaEs5kLoOQeQmPWevfnk/DM5qcLcYlA8ys6Y=
 modernc.org/token v1.1.0/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
+sigs.k8s.io/yaml v1.6.0 h1:G8fkbMSAFqgEFgh4b1wmtzDnioxFCUgTZhlbj5P9QYs=
+sigs.k8s.io/yaml v1.6.0/go.mod h1:796bPqUfzR/0jLAl6XjHl3Ck7MiyVv8dbTdyT3/pMf4=
