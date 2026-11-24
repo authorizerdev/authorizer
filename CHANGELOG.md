@@ -5,6 +5,32 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.8] - 2026-11-24
+
+Fixes a cross-organization account takeover through SCIM, adds
+[SurrealDB](https://surrealdb.com/) as a storage backend, and adds a `kid`
+header to signed JWTs so JWKS consumers that select keys by `kid` can verify
+them. **Upgrading is recommended for every deployment where a user can belong
+to more than one organization and SCIM provisioning is enabled.** Nothing to do
+on upgrade for existing deployments.
+
+### Security
+
+- **One organization's SCIM token could redirect a shared user's password reset and take over the account in another organization** ([GHSA-p7g3-2258-8wmp](https://github.com/authorizerdev/authorizer/security/advisories/GHSA-p7g3-2258-8wmp), high; same class as [GHSA-93q4-j2hq-5qgg](https://github.com/authorizerdev/authorizer/security/advisories/GHSA-93q4-j2hq-5qgg), whose fix covered only the `active` flag). SCIM tokens are issued per organization, but `PATCH /scim/v2/Users/{id}` wrote `userName` / `emails` / `phoneNumbers` to the global user row and kept the existing email-verified marker. For a user who is also a member of organization B, organization A could set the email to an address it controls, request a password reset to it, and sign in as that user in B. A PATCH that changes the email or phone of a user with any membership outside the calling organization (deprovisioned ones included) is now refused with `400` and `scimType: "mutability"`, and nothing in that PatchOp is written. Single-organization users keep full directory sync, and a shared user's unchanged or case-only email still syncs. Affected 2.4.0-rc.5 through 2.4.7. Found by Liam Giannini (`@Liam-G`).
+
+### Added
+
+- **SurrealDB storage backend** ([#906](https://github.com/authorizerdev/authorizer/pull/906)). `--database-type=surrealdb` for SurrealDB 4.0 or later, over `http(s)` or `ws(s)`, with `--surrealdb-namespace` (default `authorizer`). The schema is created and upgraded by versioned migrations; cascade deletes run as one transaction and are retried as a whole on SurrealDB's write conflicts. The connection signs in again when its token expires, so a long-running server does not start refusing queries after an hour. See [Databases](https://docs.authorizer.dev/core/databases).
+- **`client_id` claim in access tokens (RFC 9068) and `azp` in ID tokens (OIDC Core)** ([#913](https://github.com/authorizerdev/authorizer/pull/913)). Access tokens from the `authorization_code`, `refresh_token` and `client_credentials` grants now name the client they were issued to, so a resource server can tell clients apart even when an RFC 8707 `resource` replaces `aud`. ID tokens carry `azp`, always equal to `aud`. Additive: no existing claim changes.
+
+### Fixed
+
+- **JWTs had no `kid` header, so JWKS consumers that pick the key by `kid` rejected them** ([#904](https://github.com/authorizerdev/authorizer/pull/904)). For example, SurrealDB's `DEFINE ACCESS ... WITH JWT URL` failed with `Missing token header 'kid'`. RS/ES-signed tokens now carry a `kid` equal to the key's RFC 7638 thumbprint, which `/.well-known/jwks.json` publishes under the same value. The kid follows the key, so tokens signed before a primary-to-secondary rotation still name a published key. HMAC-signed tokens get no `kid`, since their key is never published. The `kid` values in the JWKS change from the client-ID-based labels to thumbprints; a client that hard-coded the old `kid` must refetch the JWKS. The client-assertion verifier now refetches a trusted issuer's JWKS once (rate-limited to one per issuer per minute) when it meets an unknown `kid`.
+
+### Changed
+
+- Bumped `github.com/openfga/openfga` from 1.22.1 to 1.23.0 ([#915](https://github.com/authorizerdev/authorizer/pull/915)).
+
 ## [2.4.7] - 2026-11-20
 
 Adds [SereneDB](https://www.serenedb.com/) as a storage backend, fixes two
