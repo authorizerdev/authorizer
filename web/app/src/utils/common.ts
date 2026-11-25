@@ -22,3 +22,14 @@ export const createQueryParams = (params: any) => {
 };
 
 export const hasWindow = (): boolean => typeof window !== 'undefined';
+
+/**
+ * True when the params carry an OAuth/OIDC /authorize request the login UI
+ * should resume after sign-in (see Root.tsx). Shared with the reset-password
+ * page so a password reset started mid-authorize returns to the same flow.
+ */
+export const isAuthorizeContextParams = (params: URLSearchParams): boolean =>
+	(params.get('redirect_uri') || params.get('redirectURL') || '') !== '' &&
+	['state', 'response_type', 'response_mode', 'client_id', 'scope'].some(
+		(k) => (params.get(k) || '') !== '',
+	);

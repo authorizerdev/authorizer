@@ -7,7 +7,11 @@ import {
 } from '@authorizerdev/authorizer-react';
 import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
-import { hasWindow, createRandomString } from './utils/common';
+import {
+	hasWindow,
+	createRandomString,
+	isAuthorizeContextParams,
+} from './utils/common';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
@@ -121,13 +125,7 @@ export default function Root({
 	urlProps.isOrgDiscoveryEnabled =
 		(globalState as Record<string, unknown>).isOrgDiscoveryEnabled === true;
 
-	const isAuthorizeContext =
-		rawRedirectURL !== '' &&
-		(getParam('state') !== '' ||
-			getParam('response_type') !== '' ||
-			getParam('response_mode') !== '' ||
-			getParam('client_id') !== '' ||
-			getParam('scope') !== '');
+	const isAuthorizeContext = isAuthorizeContextParams(combinedParams);
 
 	// Two mutually exclusive post-login resumption mechanisms, merged into one
 	// effect so they can never both fire off the same render (two separate
@@ -256,7 +254,17 @@ export default function Root({
 	return (
 		<Suspense fallback={<></>}>
 			<Routes>
-				<Route path="/app" element={<Login urlProps={urlProps} />} />
+				<Route
+					path="/app"
+					element={
+						<Login
+							urlProps={urlProps}
+							authorizeQuery={
+								isAuthorizeContext ? combinedParams.toString() : ''
+							}
+						/>
+					}
+				/>
 				<Route path="/app/signup" element={<SignUp urlProps={urlProps} />} />
 				<Route path="/app/reset-password" element={<ResetPassword />} />
 				<Route path="/app/setup-password" element={<SetupPassword />} />

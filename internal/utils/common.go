@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/url"
 	"reflect"
 
 	"github.com/authorizerdev/authorizer/internal/config"
@@ -73,10 +74,22 @@ func GetOrganization(cfg *config.Config) map[string]interface{} {
 	return organization
 }
 
-// GetForgotPasswordURL to get url for given token and hostname
+// GetForgotPasswordURL returns the password-reset link: redirectURI with the
+// reset token added to its query. The token is merged into any query string
+// the redirect URI already carries (e.g. the original /authorize parameters
+// the login UI forwards so the OAuth flow can resume after the reset, issue
+// #344) instead of blindly appending "?token=", which produced a malformed
+// "...?a=b?token=" link. Set (not Add) so a caller-supplied "token" parameter
+// can never shadow the real one.
 func GetForgotPasswordURL(token, redirectURI string) string {
-	verificationURL := redirectURI + "?token=" + token
-	return verificationURL
+	u, err := url.Parse(redirectURI)
+	if err != nil {
+		return redirectURI + "?token=" + url.QueryEscape(token)
+	}
+	q := u.Query()
+	q.Set("token", token)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // GetInviteVerificationURL to get url for invite email verification
