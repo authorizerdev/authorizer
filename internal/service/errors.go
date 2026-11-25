@@ -1,5 +1,13 @@
 package service
 
+import (
+	"crypto/rand"
+	"errors"
+	"fmt"
+
+	"github.com/authorizerdev/authorizer/internal/storage"
+)
+
 // Transport-agnostic typed errors. The service layer must not import gRPC or
 // HTTP packages, yet callers across transports (gRPC, REST gateway, GraphQL)
 // need to distinguish a client mistake (400) from an auth failure (401/403)
@@ -14,7 +22,9 @@ package service
 // Only client-facing (4xx-class) errors need to be wrapped with these
 // constructors. Anything returned bare (storage failures, token-creation
 // failures, etc.) is treated as internal by the mapper, which is the correct
-// default.
+// default. Errors that came out of the storage layer are additionally masked
+// by every transport (see MaskInternalError), so raw driver text never reaches
+// a client.
 
 // ErrorKind classifies a service error independently of any transport.
 type ErrorKind int
@@ -107,4 +117,33 @@ func TooManyRequests(msg string) error {
 // AlreadyExists reports a request that violates a uniqueness constraint.
 func AlreadyExists(msg string) error {
 	return &Error{Kind: KindAlreadyExists, msg: msg}
+}
+
+// MaskInternalError decides whether err must be hidden from API clients. It
+// returns masked=true for an error that originated in the storage layer
+// (storage.IsStorageError) and was not deliberately classified with one of the
+// typed constructors above: such an error carries backend text (driver
+// messages, SQL, constraint names) that is useful in logs but must never be
+// shown to a caller.
+//
+// When masked, publicMsg is a generic message carrying errorID, a random
+// reference the transport must log next to the original error so an operator
+// can correlate a client report with the server-side cause.
+//
+// Every other error is left alone (masked=false): many intentionally
+// user-facing messages are still returned untyped, and masking those would
+// change existing API behaviour.
+func MaskInternalError(err error) (publicMsg, errorID string, masked bool) {
+	if err == nil {
+		return "", "", false
+	}
+	var se *Error
+	if errors.As(err, &se) {
+		return "", "", false
+	}
+	if !storage.IsStorageError(err) {
+		return "", "", false
+	}
+	errorID = rand.Text()
+	return fmt.Sprintf("internal server error (error_id: %s)", errorID), errorID, true
 }
