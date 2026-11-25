@@ -3,9 +3,12 @@ package integration_tests
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -18,9 +21,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
-// formPostSessionRouter returns an /authorize router with the real templates
-// loaded (as the embedded production router has) plus a live browser session
-// cookie value, so the authorization response is exercised end to end.
+// formPostSessionRouter returns an /authorize router with the real response
+// templates loaded plus a live browser session cookie value, so the
+// authorization response is exercised end to end. Production loads every
+// template via LoadHTMLGlob after registering a "json" func
+// (internal/server/http_routes.go); the func is registered here too so these
+// templates keep parsing if they start using it.
 func formPostSessionRouter(t *testing.T, ts *testSetup) (http.Handler, string) {
 	t.Helper()
 	_, ctx := createContext(ts)
@@ -52,6 +58,12 @@ func formPostSessionRouter(t *testing.T, ts *testSetup) (http.Handler, string) {
 		sessionKey, constants.TokenTypeSessionToken+"_"+sessionData.Nonce, sessionToken, sessionExpiresAt))
 
 	router := gin.New()
+	router.SetFuncMap(template.FuncMap{
+		"json": func(v interface{}) template.JS {
+			b, _ := json.Marshal(v)
+			return template.JS(b)
+		},
+	})
 	router.LoadHTMLFiles(
 		"../../web/templates/authorize_form_post.tmpl",
 		"../../web/templates/authorize_web_message.tmpl",
@@ -60,6 +72,18 @@ func formPostSessionRouter(t *testing.T, ts *testSetup) (http.Handler, string) {
 	router.GET("/authorize", ts.HttpProvider.AuthorizeHandler())
 	return router, sessionToken
 }
+
+// formPostHiddenValue returns the value of the hidden input named name in the
+// rendered authorize_form_post template, or "" if it is absent.
+func formPostHiddenValue(body, name string) string {
+	m := regexp.MustCompile(`<input type="hidden" key="` + regexp.QuoteMeta(name) + `" value="([^"]*)"`).FindStringSubmatch(body)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+var scriptNonceRE = regexp.MustCompile(`<script nonce="([^"]+)">`)
 
 func formPostAuthorizeGet(router http.Handler, qs url.Values, sessionToken string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
@@ -117,10 +141,18 @@ func TestAuthorizeFormPostDeliversAutoSubmitForm(t *testing.T) {
 				"the form_post template must be rendered")
 			assert.Contains(t, body, `action="http://localhost:3000/callback"`,
 				"the form must post to the client redirect_uri")
-			assert.Contains(t, body, `name="code"`,
-				"the authorization code must be a hidden form field")
-			assert.Contains(t, body, `name="state"`,
-				"the state must be a hidden form field")
+			assert.NotEmpty(t, formPostHiddenValue(body, "code"),
+				"the authorization code must be a non-empty hidden form field")
+			assert.Equal(t, "formpost-state", formPostHiddenValue(body, "state"),
+				"the state must be echoed unchanged as a hidden form field")
+
+			// The auto-submit script only runs if its nonce is the one the
+			// CSP header allows; a mismatch renders the form but browsers
+			// block the submit, which is the user-visible failure in #469.
+			m := scriptNonceRE.FindStringSubmatch(body)
+			require.NotNil(t, m, "the auto-submit script must carry a CSP nonce")
+			assert.Contains(t, w.Header().Get("Content-Security-Policy"), "'nonce-"+m[1]+"'",
+				"the CSP header must allow the auto-submit script's nonce")
 		})
 	}
 }
