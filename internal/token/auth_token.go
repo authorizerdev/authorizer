@@ -243,6 +243,16 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 	return res, nil
 }
 
+// userWithEffectiveRoles returns a copy of user whose Roles holds only the
+// roles still configured (issue #425), for the user object handed to
+// CUSTOM_ACCESS_TOKEN_SCRIPT and merged into the ID token. The stored record
+// is not modified.
+func (p *provider) userWithEffectiveRoles(user *schemas.User) *schemas.User {
+	u := *user
+	u.Roles = strings.Join(p.config.EffectiveUserRoles(user.Roles), ",")
+	return &u
+}
+
 // CreateSessionToken creates a new session token
 func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
 	expiresAt := time.Now().Add(24 * time.Hour).Unix()
@@ -252,7 +262,7 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 	}
 	fingerPrintMap := &SessionData{
 		Nonce:       cfg.Nonce,
-		Roles:       cfg.Roles,
+		Roles:       p.config.WithoutStaleUserRoles(cfg.Roles, cfg.User.Roles),
 		Subject:     cfg.User.ID,
 		Scope:       cfg.Scope,
 		LoginMethod: cfg.LoginMethod,
@@ -325,11 +335,11 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"iat":           time.Now().Unix(),
 		"auth_time":     authTime,
 		"token_type":    constants.TokenTypeRefreshToken,
-		"roles":         cfg.Roles,
+		"roles":         p.config.WithoutStaleUserRoles(cfg.Roles, cfg.User.Roles),
 		"scope":         cfg.Scope,
 		"nonce":         cfg.Nonce,
 		"login_method":  cfg.LoginMethod,
-		"allowed_roles": strings.Split(cfg.User.Roles, ","),
+		"allowed_roles": p.config.EffectiveUserRoles(cfg.User.Roles),
 		"client_id":     cfg.ClientID,
 		"family_id":     familyID,
 	}
@@ -386,9 +396,9 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 		"iat":           time.Now().Unix(),
 		"token_type":    constants.TokenTypeAccessToken,
 		"scope":         cfg.Scope,
-		"roles":         cfg.Roles,
+		"roles":         p.config.WithoutStaleUserRoles(cfg.Roles, cfg.User.Roles),
 		"login_method":  cfg.LoginMethod,
-		"allowed_roles": strings.Split(cfg.User.Roles, ","),
+		"allowed_roles": p.config.EffectiveUserRoles(cfg.User.Roles),
 		// RFC 9068 §2.2: the OAuth client the token was issued to. aud cannot
 		// carry this once an RFC 8707 resource replaces it, so a resource
 		// server accepting tokens from several clients (e.g. MCP clients)
@@ -397,7 +407,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 	}
 	// check for the extra access token script
 	if p.config.CustomAccessTokenScript != "" {
-		resUser := cfg.User.AsAPIUser()
+		resUser := p.userWithEffectiveRoles(cfg.User).AsAPIUser()
 		userBytes, _ := json.Marshal(&resUser)
 		var userMap map[string]interface{}
 		_ = json.Unmarshal(userBytes, &userMap)
@@ -790,7 +800,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 		expiryBound = time.Minute * 30
 	}
 	expiresAt := time.Now().Add(expiryBound).Unix()
-	resUser := cfg.User.AsAPIUser()
+	resUser := p.userWithEffectiveRoles(cfg.User).AsAPIUser()
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	_ = json.Unmarshal(userBytes, &userMap)
@@ -802,9 +812,9 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 		"exp":                 expiresAt,
 		"iat":                 time.Now().Unix(),
 		"token_type":          constants.TokenTypeIdentityToken,
-		"allowed_roles":       strings.Split(cfg.User.Roles, ","),
+		"allowed_roles":       p.config.EffectiveUserRoles(cfg.User.Roles),
 		"login_method":        cfg.LoginMethod,
-		p.config.JWTRoleClaim: cfg.Roles,
+		p.config.JWTRoleClaim: p.config.WithoutStaleUserRoles(cfg.Roles, cfg.User.Roles),
 	}
 	// OIDC Core §3.1.3.6 / §3.2.2.10:
 	//   at_hash REQUIRED whenever the response includes an access_token

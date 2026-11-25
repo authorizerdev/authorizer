@@ -53,7 +53,9 @@ func (p *provider) ValidateSession(ctx context.Context, meta RequestMetadata, pa
 		return nil, nil, err
 	}
 
-	claimRoles := append([]string{}, claims.Roles...)
+	// A session minted before a role was removed from --roles still lists it;
+	// drop roles the user record holds that are no longer configured (#425).
+	claimRoles := p.Config.WithoutStaleUserRoles(append([]string{}, claims.Roles...), user.Roles)
 	if params != nil && len(params.Roles) > 0 {
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
