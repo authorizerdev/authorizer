@@ -237,6 +237,11 @@ export default function Root({
 			/>
 		);
 	}
+	// The resumption effect above is about to navigate away; rendering the
+	// signed-in dashboard here would flash it for a frame first (#269).
+	if (token && (isAuthorizeContext || isSamlIdpContinueURL(rawRedirectURL))) {
+		return <h1>Loading...</h1>;
+	}
 	if (token) {
 		return (
 			<Suspense fallback={<></>}>
