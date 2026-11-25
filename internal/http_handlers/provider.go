@@ -95,16 +95,16 @@ var _ Provider = &httpProvider{}
 
 // Provider is the interface that provides the methods to interact with the http handlers.
 type Provider interface {
-	// AppHandler is the main handler that handels all the app requests
+	// AppHandler is the main handler that handles all the app requests
 	AppHandler() gin.HandlerFunc
 	// OrgDiscoveryHandler serves the public home-realm-discovery endpoint that
 	// maps a login email's verified domain to the owning org's SSO login URL.
 	OrgDiscoveryHandler() gin.HandlerFunc
-	// AuthorizeHandler is the main handler that handels all the authorize requests
+	// AuthorizeHandler is the main handler that handles all the authorize requests
 	AuthorizeHandler() gin.HandlerFunc
-	// DashboardHandler is the main handler that handels all the dashboard requests
+	// DashboardHandler is the main handler that handles all the dashboard requests
 	DashboardHandler() gin.HandlerFunc
-	// GraphqlHandler is the main handler that handels all the graphql requests
+	// GraphqlHandler is the main handler that handles all the graphql requests
 	GraphqlHandler() gin.HandlerFunc
 	// HealthHandler is the handler for the /healthz liveness probe
 	HealthHandler() gin.HandlerFunc
@@ -112,13 +112,13 @@ type Provider interface {
 	ReadyHandler() gin.HandlerFunc
 	// IntrospectHandler is the main handler for RFC 7662 Token Introspection
 	IntrospectHandler() gin.HandlerFunc
-	// JWKsHandler is the main handler that handels all the jwks requests
+	// JWKsHandler is the main handler that handles all the jwks requests
 	JWKsHandler() gin.HandlerFunc
-	// LogoutHandler is the main handler that handels all the logout requests
+	// LogoutHandler is the main handler that handles all the logout requests
 	LogoutHandler() gin.HandlerFunc
-	// OAuthCallbackHandler is the main handler that handels all the oauth callback requests
+	// OAuthCallbackHandler is the main handler that handles all the oauth callback requests
 	OAuthCallbackHandler() gin.HandlerFunc
-	// OAuthLoginHandler is the main handler that handels all the oauth login requests
+	// OAuthLoginHandler is the main handler that handles all the oauth login requests
 	OAuthLoginHandler() gin.HandlerFunc
 	// SSOLoginHandler starts a per-org enterprise OIDC SSO broker login.
 	SSOLoginHandler() gin.HandlerFunc
@@ -137,7 +137,7 @@ type Provider interface {
 	SAMLIDPSSOHandler() gin.HandlerFunc
 	// SAMLIDPInitiatedHandler handles IdP-initiated SAML SSO to a registered SP.
 	SAMLIDPInitiatedHandler() gin.HandlerFunc
-	// OpenIDConfigurationHandler is the main handler that handels all the openid configuration requests
+	// OpenIDConfigurationHandler is the main handler that handles all the openid configuration requests
 	OpenIDConfigurationHandler() gin.HandlerFunc
 	// ProtectedResourceMetadataHandler serves RFC 9728 OAuth 2.0 Protected
 	// Resource Metadata for the MCP surface. Registered only when MCP is enabled.
@@ -150,17 +150,17 @@ type Provider interface {
 	// RegisterClientHandler implements RFC 7591 dynamic client registration.
 	// Only routed when EnableDynamicClientRegistration is set.
 	RegisterClientHandler() gin.HandlerFunc
-	// PlaygroundHandler is the main handler that handels all the playground requests
+	// PlaygroundHandler is the main handler that handles all the playground requests
 	PlaygroundHandler() gin.HandlerFunc
-	// RevokeRefreshTokenHandler is the main handler that handels all the revoke refresh token requests
+	// RevokeRefreshTokenHandler is the main handler that handles all the revoke refresh token requests
 	RevokeRefreshTokenHandler() gin.HandlerFunc
-	// RootHandler is the main handler that handels all the root requests
+	// RootHandler is the main handler that handles all the root requests
 	RootHandler() gin.HandlerFunc
-	// TokenHandler is the main handler that handels all the token requests
+	// TokenHandler is the main handler that handles all the token requests
 	TokenHandler() gin.HandlerFunc
-	// UserInfoHandler is the main handler that handels all the user info requests
+	// UserInfoHandler is the main handler that handles all the user info requests
 	UserInfoHandler() gin.HandlerFunc
-	// VerifyEmailHandler is the main handler that handels all the verify email requests
+	// VerifyEmailHandler is the main handler that handles all the verify email requests
 	VerifyEmailHandler() gin.HandlerFunc
 
 	// ClientCheckMiddleware is the middleware that checks if the client is valid

@@ -27,7 +27,7 @@ type Provider interface {
 	Generate(ctx context.Context, id string) (*ac.AuthenticatorConfig, error)
 	// Validate totp: user passcode with secret stored in our db
 	Validate(ctx context.Context, passcode string, userID string) (bool, error)
-	// ValidateRecoveryCode totp: allows user to validate using recovery code incase if they lost their device
+	// ValidateRecoveryCode totp: allows user to validate using recovery code in case they lost their device
 	ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error)
 }
 

@@ -1373,7 +1373,7 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 		return nil, false, fmt.Errorf("twitter response missing data field")
 	}
 
-	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
+	// Twitter API does not return E-Mail addresses by default. For that case special privileges have
 	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
 	//
 	// Without an email, the signup-vs-login check in OAuthCallbackHandler
