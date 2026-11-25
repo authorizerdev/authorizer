@@ -50,7 +50,7 @@ func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetada
 		return nil, err
 	}
 	expiresAt := time.Now().Add(3 * time.Minute).Unix()
-	if err := p.setMFASession(meta, side, user.ID, expiresAt); err != nil {
+	if err := p.setMFASession(meta, side, user.ID, expiresAt, nil); err != nil {
 		return nil, err
 	}
 	return user, nil

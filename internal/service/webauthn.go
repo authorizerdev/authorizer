@@ -142,14 +142,15 @@ func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestM
 	}
 	// Single-use: drop the session so a captured cookie cannot be replayed.
 	gc := &gin.Context{Request: meta.Request}
-	// Resolve the carried scope BEFORE dropping the session — consumeMFAScope
-	// is keyed by the same session id.
-	var carriedScope []string
+	// Resolve the carried scope and roles BEFORE dropping the session —
+	// consumeMFAScope/consumeMFARoles are keyed by the same session id.
+	var carriedScope, carriedRoles []string
 	if mfaSession, sErr := cookie.GetMfaSession(gc); sErr == nil {
 		carriedScope = p.consumeMFAScope(mfaSession)
+		carriedRoles = p.consumeMFARoles(mfaSession)
 		_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 	}
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false, carriedScope)
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false, carriedScope, carriedRoles)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,7 +267,22 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 		UserAgent:    meta.UserAgent,
 	})
 
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Logged in successfully with passkey.", params.State, false, nil)
+	// When this assertion completes a password login's MFA step (passkey
+	// offered as the second factor), honour the scope and roles that login
+	// carried, exactly as verify_otp does for a TOTP/OTP second factor. Only a
+	// Verified session owned by THIS user counts — a stray cookie, or one
+	// belonging to another account, is ignored and the passkey login proceeds
+	// with the defaults. The session is spent either way it is redeemed here.
+	var carriedScope, carriedRoles []string
+	if mfaSession, sErr := cookie.GetMfaSession(&gin.Context{Request: meta.Request}); sErr == nil {
+		if purpose, gErr := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); gErr == nil && purpose == constants.MFASessionPurposeVerified {
+			carriedScope = p.consumeMFAScope(mfaSession)
+			carriedRoles = p.consumeMFARoles(mfaSession)
+			_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+		}
+	}
+
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Logged in successfully with passkey.", params.State, false, carriedScope, carriedRoles)
 	if err != nil {
 		return nil, nil, err
 	}
