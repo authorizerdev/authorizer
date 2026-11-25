@@ -747,45 +747,48 @@ func testVerificationRequestOperations(t *testing.T, ctx context.Context, provid
 	assert.Equal(t, vr.RedirectURI, listed.RedirectURI)
 	assert.Equal(t, vr.ExpiresAt, listed.ExpiresAt)
 
-	// A second AddVerificationRequest for the same (email, identifier) - the
-	// normal resend-verification-email flow always deletes the old request
-	// first (see resend_verify_email.go), so this exercises what happens if
-	// that invariant is ever violated (e.g. a caller bug, or a race between
-	// two concurrent resends). Backend behavior intentionally differs here:
-	// SQL upserts on conflict (clause.OnConflict...DoUpdates, so the second
-	// call succeeds and replaces the pending request in place); Mongo has no
-	// such upsert logic, so its unique index must hard-reject instead, or a
-	// second silent row would accumulate.
+	// A second AddVerificationRequest for the same (email, identifier) must be
+	// an upsert on every backend: it succeeds and replaces the pending request
+	// in place, leaving exactly one row. forgot_password (like most flows that
+	// mint a request) calls AddVerificationRequest without deleting the
+	// previous one first, so a backend that rejected the duplicate leaked a
+	// raw duplicate-key database error on the second "forgot password" click
+	// (issue #273), and a backend that accepted it silently accumulated a
+	// second pending row for the same identity.
 	dupToken := uuid.New().String()
+	dupNonce := uuid.New().String()
 	dup, dupErr := provider.AddVerificationRequest(ctx, &schemas.VerificationRequest{
 		Token:       dupToken,
 		Email:       vr.Email,
-		ExpiresAt:   time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt:   time.Now().Add(48 * time.Hour).Unix(),
 		Identifier:  vr.Identifier,
-		Nonce:       uuid.New().String(),
-		RedirectURI: "https://app.example.com/callback",
+		Nonce:       dupNonce,
+		RedirectURI: "https://app.example.com/callback-2",
 	})
-	if isSQLTestDB(dbType) || dbType == constants.DbTypeSurrealDB {
-		assert.NoError(t, dupErr, "SQL (and SurrealDB) upsert a duplicate (email, identifier) request rather than erroring")
-		refetched, err := provider.GetVerificationRequestByEmail(ctx, vr.Email, vr.Identifier)
-		require.NoError(t, err)
-		assert.Equal(t, dupToken, refetched.Token, "upsert must replace the pending request, not add a second one")
-	} else if dbType == constants.DbTypeMongoDB {
-		// Regression guard: this compound index used a multi-key bson.M, which
-		// the driver silently rejects at CreateIndexes time - the constraint
-		// was never actually created, so this duplicate would have been
-		// accepted, leaving two pending requests for the same identity.
-		assert.Error(t, dupErr, "duplicate (email, identifier) verification request must be rejected")
-	} else if dupErr == nil {
-		// Cassandra/DynamoDB/ArangoDB/Couchbase: neither upsert nor a unique
-		// constraint exist yet for this pair - known gap, not fixed here.
-		// Clean up the extra row so it doesn't leak into other subtests.
-		_ = provider.DeleteVerificationRequest(ctx, dup)
+	require.NoError(t, dupErr, "a duplicate (email, identifier) request must upsert, not error")
+	require.NotNil(t, dup)
+	refetched, err := provider.GetVerificationRequestByEmail(ctx, vr.Email, vr.Identifier)
+	require.NoError(t, err)
+	assert.Equal(t, dupToken, refetched.Token, "upsert must replace the pending request's token")
+	assert.Equal(t, dupNonce, refetched.Nonce)
+	assert.Equal(t, "https://app.example.com/callback-2", refetched.RedirectURI)
+	_, err = provider.GetVerificationRequestByToken(ctx, vr.Token)
+	assert.True(t, IsNotFound(err), "the superseded token must no longer resolve, got %v", err)
+	all, _, err := provider.ListVerificationRequests(ctx, &model.Pagination{Limit: 1000, Offset: 0})
+	require.NoError(t, err)
+	matching := 0
+	for _, r := range all {
+		if r.Email == vr.Email && r.Identifier == vr.Identifier {
+			matching++
+		}
 	}
+	assert.Equal(t, 1, matching, "upsert must leave exactly one row per (email, identifier)")
 
-	// Test DeleteVerificationRequest
-	err = provider.DeleteVerificationRequest(ctx, vr)
+	// Test DeleteVerificationRequest. Delete the row the store actually holds.
+	err = provider.DeleteVerificationRequest(ctx, refetched)
 	assert.NoError(t, err)
+	_, err = provider.GetVerificationRequestByEmail(ctx, vr.Email, vr.Identifier)
+	assert.True(t, IsNotFound(err), "deleted request must be gone, got %v", err)
 }
 
 func testSessionOperations(t *testing.T, ctx context.Context, provider Provider) {

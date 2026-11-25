@@ -13,15 +13,27 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request, replacing any pending
+// request for the same (email, identifier).
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
+	verificationRequest.CreatedAt = time.Now().Unix()
+	verificationRequest.UpdatedAt = time.Now().Unix()
+	// Upsert on (email, identifier), matching every other backend. The table
+	// is keyed by id only, so reuse the pending request's id when one exists:
+	// PutItem on an existing key replaces that item in place.
+	existing, err := p.GetVerificationRequestByEmail(ctx, verificationRequest.Email, verificationRequest.Identifier)
+	switch {
+	case err == nil:
+		verificationRequest.ID = existing.ID
+		verificationRequest.CreatedAt = existing.CreatedAt
+	case !IsNotFound(err):
+		return nil, err
+	}
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
-		verificationRequest.CreatedAt = time.Now().Unix()
-		verificationRequest.UpdatedAt = time.Now().Unix()
-		if err := p.putItem(ctx, schemas.Collections.VerificationRequest, verificationRequest); err != nil {
-			return nil, err
-		}
+	}
+	if err := p.putItem(ctx, schemas.Collections.VerificationRequest, verificationRequest); err != nil {
+		return nil, err
 	}
 	return verificationRequest, nil
 }
