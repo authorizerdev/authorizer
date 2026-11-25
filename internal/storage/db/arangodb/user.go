@@ -96,8 +96,10 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return err
 }
 
-// ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
+// ListUsers to get list of users from database, filtered by opts and ordered
+// by created_at. Every value is bound; the sort direction is one of two fixed
+// literals.
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
 	var users []*schemas.User
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
@@ -106,12 +108,24 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 		"limit":  pagination.Limit,
 	}
 	filter := ""
-	if q := strings.TrimSpace(query); q != "" {
+	if q := strings.TrimSpace(opts.Query); q != "" {
 		// LIKE(..., true) is case-insensitive; %term% matches substrings.
 		filter = "FILTER LIKE(d._id, @q, true) OR LIKE(d.email, @q, true) OR LIKE(d.given_name, @q, true) OR LIKE(d.family_name, @q, true) OR LIKE(d.nickname, @q, true) "
 		bindVars["q"] = "%" + q + "%"
 	}
-	aql := fmt.Sprintf("FOR d in %s %sSORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.User, filter)
+	if opts.EmailVerified != nil {
+		// A second FILTER statement ANDs with the first.
+		if *opts.EmailVerified {
+			filter += "FILTER d.email_verified_at != null "
+		} else {
+			filter += "FILTER d.email_verified_at == null "
+		}
+	}
+	sortDir := "DESC"
+	if opts.CreatedAtAsc {
+		sortDir = "ASC"
+	}
+	aql := fmt.Sprintf("FOR d in %s %sSORT d.created_at %s, d._key ASC LIMIT @offset, @limit RETURN d", schemas.Collections.User, filter, sortDir)
 	cursor, err := p.db.Query(sctx, aql, bindVars)
 	if err != nil {
 		return nil, nil, err

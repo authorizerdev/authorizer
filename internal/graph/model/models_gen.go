@@ -2,6 +2,13 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type AddEmailTemplateRequest struct {
 	EventName string  `json:"event_name"`
 	Subject   string  `json:"subject"`
@@ -448,8 +455,10 @@ type ListTrustedIssuersRequest struct {
 }
 
 type ListUsersRequest struct {
-	Pagination *PaginationRequest `json:"pagination,omitempty"`
-	Query      *string            `json:"query,omitempty"`
+	Pagination     *PaginationRequest `json:"pagination,omitempty"`
+	Query          *string            `json:"query,omitempty"`
+	EmailVerified  *bool              `json:"email_verified,omitempty"`
+	CreatedAtOrder *SortOrder         `json:"created_at_order,omitempty"`
 }
 
 type ListWebhookLogRequest struct {
@@ -1190,4 +1199,59 @@ type WebhookRequest struct {
 type Webhooks struct {
 	Pagination *Pagination `json:"pagination"`
 	Webhooks   []*Webhook  `json:"webhooks"`
+}
+
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "ASC"
+	SortOrderDesc SortOrder = "DESC"
+)
+
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
+}
+
+func (e SortOrder) IsValid() bool {
+	switch e {
+	case SortOrderAsc, SortOrderDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortOrder) String() string {
+	return string(e)
+}
+
+func (e *SortOrder) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortOrder", str)
+	}
+	return nil
+}
+
+func (e SortOrder) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortOrder) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortOrder) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

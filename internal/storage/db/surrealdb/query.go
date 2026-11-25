@@ -273,6 +273,12 @@ func listNewestFirst[T any](ctx context.Context, p *provider, table, where strin
 // page returns one page of table matching where, newest first, and the
 // pagination with Total set to the number of matching records.
 func page[T any](ctx context.Context, p *provider, table, where string, vars map[string]any, pagination *model.Pagination) ([]T, *model.Pagination, error) {
+	return pageOrdered[T](ctx, p, table, where, "created_at DESC", vars, pagination)
+}
+
+// pageOrdered is page with an explicit ORDER BY clause. orderBy must be a
+// fixed literal chosen by the caller, never request-derived text.
+func pageOrdered[T any](ctx context.Context, p *provider, table, where, orderBy string, vars map[string]any, pagination *model.Pagination) ([]T, *model.Pagination, error) {
 	if vars == nil {
 		vars = map[string]any{}
 	}
@@ -283,7 +289,7 @@ func page[T any](ctx context.Context, p *provider, table, where string, vars map
 	if where != "" {
 		cond = " WHERE " + where
 	}
-	rows, err := queryAll[T](ctx, p, selectFields+"type::table($tb)"+cond+" ORDER BY created_at DESC LIMIT $limit START $offset;", vars)
+	rows, err := queryAll[T](ctx, p, selectFields+"type::table($tb)"+cond+" ORDER BY "+orderBy+" LIMIT $limit START $offset;", vars)
 	if err != nil {
 		return nil, nil, err
 	}

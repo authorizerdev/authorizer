@@ -116,4 +116,41 @@ func TestUsers(t *testing.T) {
 		assert.Equal(t, int64(0), empty.Pagination.Total)
 		assert.Len(t, empty.Users, 0)
 	})
+
+	t.Run("should filter by email_verified and order by created_at", func(t *testing.T) {
+		h, err := newAdminSessionToken(ts)
+		require.NoError(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
+
+		all, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{})
+		require.NoError(t, err)
+
+		var total int64
+		for _, verified := range []bool{true, false} {
+			v := verified
+			res, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{EmailVerified: &v})
+			require.NoError(t, err)
+			for _, u := range res.Users {
+				assert.Equal(t, verified, u.EmailVerified, "user %s violates email_verified=%v", u.ID, verified)
+			}
+			total += res.Pagination.Total
+		}
+		// verified + unverified partitions the full list.
+		assert.Equal(t, all.Pagination.Total, total)
+
+		for _, order := range []model.SortOrder{model.SortOrderAsc, model.SortOrderDesc} {
+			o := order
+			res, err := ts.GraphQLProvider.Users(ctx, &model.ListUsersRequest{CreatedAtOrder: &o})
+			require.NoError(t, err)
+			require.NotEmpty(t, res.Users)
+			for i := 1; i < len(res.Users); i++ {
+				prev, cur := *res.Users[i-1].CreatedAt, *res.Users[i].CreatedAt
+				if order == model.SortOrderAsc {
+					assert.LessOrEqual(t, prev, cur)
+				} else {
+					assert.GreaterOrEqual(t, prev, cur)
+				}
+			}
+		}
+	})
 }

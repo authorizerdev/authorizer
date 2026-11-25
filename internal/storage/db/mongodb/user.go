@@ -82,25 +82,38 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return err
 }
 
-// ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
+// ListUsers to get list of users from database, filtered by opts and ordered
+// by created_at (ties broken by _id).
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
 	var users []*schemas.User
-	opts := options.Find()
-	opts.SetLimit(pagination.Limit)
-	opts.SetSkip(pagination.Offset)
-	opts.SetSort(bson.M{"created_at": -1})
+	findOpts := options.Find()
+	findOpts.SetLimit(pagination.Limit)
+	findOpts.SetSkip(pagination.Offset)
+	sortDir := -1
+	if opts.CreatedAtAsc {
+		sortDir = 1
+	}
+	findOpts.SetSort(bson.D{{Key: "created_at", Value: sortDir}, {Key: "_id", Value: 1}})
 	paginationClone := pagination
 	filter := bson.M{}
-	if q := strings.TrimSpace(query); q != "" {
+	if q := strings.TrimSpace(opts.Query); q != "" {
 		// QuoteMeta so user input is treated as a literal substring, not a regex.
 		rx := bson.M{"$regex": regexp.QuoteMeta(q), "$options": "i"}
-		filter = bson.M{"$or": []bson.M{
+		filter["$or"] = []bson.M{
 			{"_id": rx},
 			{"email": rx},
 			{"given_name": rx},
 			{"family_name": rx},
 			{"nickname": rx},
-		}}
+		}
+	}
+	if opts.EmailVerified != nil {
+		// {$ne: null} excludes both null and missing; {$eq: null} matches both.
+		if *opts.EmailVerified {
+			filter["email_verified_at"] = bson.M{"$ne": nil}
+		} else {
+			filter["email_verified_at"] = nil
+		}
 	}
 	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	count, err := userCollection.CountDocuments(ctx, filter, options.Count())
@@ -108,7 +121,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 		return nil, nil, err
 	}
 	paginationClone.Total = count
-	cursor, err := userCollection.Find(ctx, filter, opts)
+	cursor, err := userCollection.Find(ctx, filter, findOpts)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -969,12 +969,23 @@ input PaginationRequest {
   page: Int64
 }
 
+# SortOrder is the direction of a list ordering.
+enum SortOrder {
+  ASC
+  DESC
+}
+
 # ListUsersRequest is the admin _users query input. query is an optional
 # case-insensitive substring filter matched against email, given_name,
 # family_name and nickname. Empty/absent means no filter (full list).
+# email_verified, when set, keeps only verified (true) or unverified (false)
+# users. created_at_order orders by created_at; absent means DESC (newest
+# first). pagination.total counts the filtered set.
 input ListUsersRequest {
   pagination: PaginationRequest
   query: String
+  email_verified: Boolean
+  created_at_order: SortOrder
 }
 
 # UserOrganizationsRequest is the admin _user_organizations query input. It

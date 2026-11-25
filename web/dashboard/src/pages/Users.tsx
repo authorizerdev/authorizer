@@ -11,6 +11,8 @@ import {
 	AlertCircle,
 	Copy,
 	Search,
+	ArrowUp,
+	ArrowDown,
 } from 'lucide-react';
 import { UserDetailsQuery, AdminRolesQuery } from '../graphql/queries';
 import {
@@ -93,6 +95,13 @@ export default function Users() {
 	// debouncedSearch is what actually drives the server query — the raw input
 	// is debounced (~300ms) so we don't fire a request on every keystroke.
 	const [debouncedSearch, setDebouncedSearch] = React.useState('');
+	// Server-side filter on email verification and created_at sort direction.
+	const [emailVerifiedFilter, setEmailVerifiedFilter] = React.useState<
+		'all' | 'verified' | 'unverified'
+	>('all');
+	const [createdAtOrder, setCreatedAtOrder] = React.useState<'ASC' | 'DESC'>(
+		'DESC',
+	);
 	const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 	// User whose FGA permissions are being inspected (Users table → dropdown).
 	const [permissionsUser, setPermissionsUser] = React.useState<User | null>(
@@ -136,6 +145,11 @@ export default function Users() {
 						page: paginationProps.page,
 					},
 					query: debouncedSearch || undefined,
+					email_verified:
+						emailVerifiedFilter === 'all'
+							? undefined
+							: emailVerifiedFilter === 'verified',
+					created_at_order: createdAtOrder,
 				},
 			})
 			.toPromise();
@@ -157,6 +171,10 @@ export default function Users() {
 						maxPages,
 						page: 1,
 					});
+				} else {
+					// No match on the first page (e.g. a filter excludes every
+					// user): clear the list rather than showing stale rows.
+					setUserList([]);
 				}
 			}
 		}
@@ -177,7 +195,19 @@ export default function Users() {
 
 	React.useEffect(() => {
 		updateUserList();
-	}, [paginationProps.page, paginationProps.limit, debouncedSearch]);
+	}, [
+		paginationProps.page,
+		paginationProps.limit,
+		debouncedSearch,
+		emailVerifiedFilter,
+		createdAtOrder,
+	]);
+
+	// Filter/sort changes restart from the first page.
+	const resetToFirstPage = () =>
+		setPaginationProps((prev) =>
+			prev.page === 1 ? prev : { ...prev, page: 1 },
+		);
 
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
@@ -322,6 +352,21 @@ export default function Users() {
 						className="pl-9"
 					/>
 				</div>
+				<Select
+					aria-label="Filter by email verification"
+					value={emailVerifiedFilter}
+					onChange={(e) => {
+						setEmailVerifiedFilter(
+							e.target.value as 'all' | 'verified' | 'unverified',
+						);
+						resetToFirstPage();
+					}}
+					className="w-48"
+				>
+					<option value="all">All emails</option>
+					<option value="verified">Email verified</option>
+					<option value="unverified">Email not verified</option>
+				</Select>
 			</div>
 			{loading ? (
 				<div className="min-h-[25vh] space-y-3">
@@ -335,7 +380,30 @@ export default function Users() {
 						<TableHeader>
 							<TableRow>
 								<TableHead>Email / Phone</TableHead>
-								<TableHead>Created At</TableHead>
+								<TableHead>
+									<button
+										type="button"
+										className="inline-flex items-center gap-1 hover:text-gray-900"
+										onClick={() => {
+											setCreatedAtOrder((prev) =>
+												prev === 'DESC' ? 'ASC' : 'DESC',
+											);
+											resetToFirstPage();
+										}}
+										title={
+											createdAtOrder === 'DESC'
+												? 'Newest first — click for oldest first'
+												: 'Oldest first — click for newest first'
+										}
+									>
+										Created At
+										{createdAtOrder === 'DESC' ? (
+											<ArrowDown className="h-3 w-3" />
+										) : (
+											<ArrowUp className="h-3 w-3" />
+										)}
+									</button>
+								</TableHead>
 								<TableHead>Signup Methods</TableHead>
 								<TableHead>Roles</TableHead>
 								<TableHead>Verified</TableHead>

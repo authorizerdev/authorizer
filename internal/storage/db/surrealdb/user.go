@@ -68,21 +68,34 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return p.transaction(ctx, stmts.String(), vars)
 }
 
-// ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
-	where := ""
+// ListUsers to get list of users from database, filtered by opts and ordered
+// by created_at. Every value is bound; the order is one of two fixed literals.
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
+	conds := []string{}
 	vars := map[string]any{}
-	if q := strings.TrimSpace(query); q != "" {
+	if q := strings.TrimSpace(opts.Query); q != "" {
 		// Case-insensitive substring match; the input is bound and matched
 		// literally, so there are no wildcards to escape.
-		where = `string::contains(string::lowercase(record::id(id)), $q)
+		conds = append(conds, `(string::contains(string::lowercase(record::id(id)), $q)
 			OR string::contains(string::lowercase(email ?? ""), $q)
 			OR string::contains(string::lowercase(given_name ?? ""), $q)
 			OR string::contains(string::lowercase(family_name ?? ""), $q)
-			OR string::contains(string::lowercase(nickname ?? ""), $q)`
+			OR string::contains(string::lowercase(nickname ?? ""), $q))`)
 		vars["q"] = strings.ToLower(q)
 	}
-	rows, pag, err := page[schemas.User](ctx, p, schemas.Collections.User, where, vars, pagination)
+	if opts.EmailVerified != nil {
+		// ?? folds both NULL and NONE (absent) to NONE.
+		if *opts.EmailVerified {
+			conds = append(conds, "(email_verified_at ?? NONE) != NONE")
+		} else {
+			conds = append(conds, "(email_verified_at ?? NONE) = NONE")
+		}
+	}
+	orderBy := "created_at DESC, id ASC"
+	if opts.CreatedAtAsc {
+		orderBy = "created_at ASC, id ASC"
+	}
+	rows, pag, err := pageOrdered[schemas.User](ctx, p, schemas.Collections.User, strings.Join(conds, " AND "), orderBy, vars, pagination)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -6134,6 +6134,16 @@
         }
       }
     },
+    "v1SortOrder": {
+      "type": "string",
+      "enum": [
+        "SORT_ORDER_UNSPECIFIED",
+        "SORT_ORDER_ASC",
+        "SORT_ORDER_DESC"
+      ],
+      "default": "SORT_ORDER_UNSPECIFIED",
+      "description": "SortOrder is the direction of a list ordering."
+    },
     "v1TestEndpointRequest": {
       "type": "object",
       "properties": {
@@ -6741,6 +6751,14 @@
         "query": {
           "type": "string",
           "description": "query is an optional case-insensitive substring filter matched against\nemail, given_name, family_name and nickname. Empty means no filter."
+        },
+        "email_verified": {
+          "type": "boolean",
+          "description": "email_verified, when set, keeps only verified (true) or unverified\n(false) users. Unset means no filter."
+        },
+        "created_at_order": {
+          "$ref": "#/definitions/v1SortOrder",
+          "description": "created_at_order orders the list by created_at. Unspecified means\ndescending (newest first)."
         }
       }
     },

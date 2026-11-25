@@ -97,7 +97,6 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return err
 }
 
-// ListUsers to get list of users from database
 // countUsers returns the total user count, honouring the optional WHERE filter
 // used by ListUsers search. When whereClause is empty it delegates to the
 // unfiltered GetTotalDocs; otherwise it runs a filtered COUNT with the same
@@ -120,21 +119,39 @@ func (p *provider) countUsers(ctx context.Context, whereClause string, params []
 	return totalDocs.Total, nil
 }
 
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
+// ListUsers to get list of users from database, filtered by opts and ordered
+// by created_at. Every value is a positional parameter; the sort direction is
+// one of two fixed literals.
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
 	users := []*schemas.User{}
 	paginationClone := pagination
 
-	// Build an optional case-insensitive substring filter. Positional
-	// parameter indices are computed dynamically so offset/limit shift when the
-	// search pattern occupies $1.
-	whereClause := ""
+	// Build the optional filters. Positional parameter indices are computed
+	// dynamically so offset/limit shift when the search pattern occupies $1.
+	conds := []string{}
 	params := []interface{}{}
-	if q := strings.TrimSpace(query); q != "" {
-		whereClause = " WHERE LOWER(_id) LIKE $1 OR LOWER(email) LIKE $1 OR LOWER(given_name) LIKE $1 OR LOWER(family_name) LIKE $1 OR LOWER(nickname) LIKE $1"
+	if q := strings.TrimSpace(opts.Query); q != "" {
+		conds = append(conds, "(LOWER(_id) LIKE $1 OR LOWER(email) LIKE $1 OR LOWER(given_name) LIKE $1 OR LOWER(family_name) LIKE $1 OR LOWER(nickname) LIKE $1)")
 		params = append(params, "%"+strings.ToLower(q)+"%")
 	}
+	if opts.EmailVerified != nil {
+		// IS VALUED is false for both NULL and MISSING.
+		if *opts.EmailVerified {
+			conds = append(conds, "email_verified_at IS VALUED")
+		} else {
+			conds = append(conds, "email_verified_at IS NOT VALUED")
+		}
+	}
+	whereClause := ""
+	if len(conds) > 0 {
+		whereClause = " WHERE " + strings.Join(conds, " AND ")
+	}
+	sortDir := "DESC"
+	if opts.CreatedAtAsc {
+		sortDir = "ASC"
+	}
 
-	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, mfa_locked_at, app_data, is_active, external_id, created_at, updated_at FROM %s.%s%s ORDER BY id OFFSET $%d LIMIT $%d", p.scopeName, schemas.Collections.User, whereClause, len(params)+1, len(params)+2)
+	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, `roles`, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, mfa_locked_at, app_data, is_active, external_id, created_at, updated_at FROM %s.%s%s ORDER BY created_at %s, _id ASC OFFSET $%d LIMIT $%d", p.scopeName, schemas.Collections.User, whereClause, sortDir, len(params)+1, len(params)+2)
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,

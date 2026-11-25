@@ -73,10 +73,20 @@ func (h *AdminHandler) AdminMeta(ctx context.Context, _ *authorizerv1.AdminMetaR
 // super-admin auth.
 func (h *AdminHandler) Users(ctx context.Context, req *authorizerv1.UsersRequest) (*authorizerv1.UsersResponse, error) {
 	query := req.GetQuery()
-	res, _, err := h.Service.Users(ctx, transport.MetaFromGRPC(ctx), &model.ListUsersRequest{
-		Pagination: modelPaginationRequest(req.GetPagination()),
-		Query:      &query,
-	})
+	params := &model.ListUsersRequest{
+		Pagination:    modelPaginationRequest(req.GetPagination()),
+		Query:         &query,
+		EmailVerified: req.EmailVerified,
+	}
+	switch req.GetCreatedAtOrder() {
+	case authorizerv1.SortOrder_SORT_ORDER_ASC:
+		order := model.SortOrderAsc
+		params.CreatedAtOrder = &order
+	case authorizerv1.SortOrder_SORT_ORDER_DESC:
+		order := model.SortOrderDesc
+		params.CreatedAtOrder = &order
+	}
+	res, _, err := h.Service.Users(ctx, transport.MetaFromGRPC(ctx), params)
 	if err != nil {
 		return nil, err
 	}
