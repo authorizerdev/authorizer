@@ -26,13 +26,18 @@ import (
 // records the user session in the memory store, and fires the login/signup
 // webhooks. Callers remain responsible for their own audit-log entry, which is
 // flow-specific.
-func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User, loginMethod, message string, state *string, isSignUp bool, scope []string) (*model.AuthResponse, error) {
+func (p *provider) issueAuthResponse(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, user *schemas.User, loginMethod, message string, state *string, isSignUp bool, scope, roles []string) (*model.AuthResponse, error) {
 	log := p.Log.With().Str("func", "issueAuthResponse").Logger()
 	// TokenProvider.CreateAuthToken takes *gin.Context but doesn't read from it;
 	// reuse the request-wrapping shim so the call works for every transport.
 	gc := &gin.Context{Request: meta.Request}
 
-	roles := strings.Split(user.Roles, ",")
+	// Roles carried across an MFA interruption (see setMFASession/
+	// consumeMFARoles) are the ones the first factor already validated; nil
+	// means the flow carried none, which keeps the user's stored roles.
+	if roles == nil {
+		roles = strings.Split(user.Roles, ",")
+	}
 	// Default set, used when the caller requested nothing specific. A scope
 	// carried across an MFA interruption (see setMFASession/consumeMFAScope)
 	// overrides it — otherwise completing MFA silently downgraded the token to

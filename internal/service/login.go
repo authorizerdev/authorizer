@@ -74,20 +74,122 @@ func mfaScopeKey(mfaSession string) string {
 // missing or unreadable entry yields nil, and the caller falls back to the
 // default scope — losing scope must never block a legitimate login.
 func (p *provider) consumeMFAScope(mfaSession string) []string {
+	scope := p.loadMFAScope(mfaSession)
+	if scope != nil {
+		_ = p.MemoryStoreProvider.DeleteCacheByPrefix(mfaScopeKey(mfaSession))
+	}
+	return scope
+}
+
+// loadMFAScope is consumeMFAScope without clearing the entry, for callers
+// that hand the scope on to a new session rather than spend it.
+func (p *provider) loadMFAScope(mfaSession string) []string {
 	if mfaSession == "" {
 		return nil
 	}
-	key := mfaScopeKey(mfaSession)
-	blob, err := p.MemoryStoreProvider.GetCache(key)
+	blob, err := p.MemoryStoreProvider.GetCache(mfaScopeKey(mfaSession))
 	if err != nil || blob == "" {
 		return nil
 	}
-	_ = p.MemoryStoreProvider.DeleteCacheByPrefix(key)
 	var scope []string
 	if err := json.Unmarshal([]byte(blob), &scope); err != nil {
 		return nil
 	}
 	return scope
+}
+
+// mfaRolesKey namespaces the roles carried across an MFA interruption, keyed
+// by the MFA session id so it expires with it. Kept separate from
+// mfaScopeKey so neither stored format changes.
+func mfaRolesKey(mfaSession string) string {
+	return "mfa_roles:" + mfaSession
+}
+
+// loadMFARoles returns the roles REQUEST carried with mfaSession by
+// setMFASession, without clearing it. carried is false when the flow that
+// armed the session carried nothing (signup, magic link, OAuth, resend_otp…);
+// issuance then keeps the user's stored roles, as before. When carried, an
+// empty request means "none requested" and resolves to the default roles.
+//
+// The value is the raw request, resolved against the user only at completion
+// (resolveCarriedRoles) — after the code is proven — so login's
+// unverified-contact OTP branches can carry it without revealing whether it
+// is valid, and a role revoked during the MFA window is re-checked.
+//
+// A store read error is returned, not treated as "nothing carried": that
+// fallback is every role on the user, so it must never stand in for a
+// failure. (The DB-backed memory store cannot tell a failed read from a miss
+// — see memory_store/db GetCache — so on that backend a read fault still
+// looks like "nothing carried"; closing that needs the cross-provider
+// miss/error contract tracked there.)
+func (p *provider) loadMFARoles(mfaSession string) (requested []string, carried bool, err error) {
+	if mfaSession == "" {
+		return nil, false, nil
+	}
+	blob, err := p.MemoryStoreProvider.GetCache(mfaRolesKey(mfaSession))
+	if err != nil {
+		return nil, false, err
+	}
+	if blob == "" {
+		return nil, false, nil
+	}
+	if err := json.Unmarshal([]byte(blob), &requested); err != nil {
+		return nil, false, err
+	}
+	if requested == nil {
+		requested = []string{}
+	}
+	return requested, true, nil
+}
+
+// resolveCarriedRoles turns a request loaded by loadMFARoles into the roles to
+// issue, exactly as login resolves them. nil means none were carried (keep the
+// user's stored roles). A request the user no longer satisfies is rejected —
+// only ever reported after the second factor is proven.
+func (p *provider) resolveCarriedRoles(user *schemas.User, requested []string, carried bool) ([]string, error) {
+	if !carried {
+		return nil, nil
+	}
+	roles, ok := p.resolveLoginRoles(user, requested)
+	if !ok {
+		return nil, InvalidArgument(`invalid roles`)
+	}
+	return roles, nil
+}
+
+// carriedMFARoles is loadMFARoles + resolveCarriedRoles for completion
+// endpoints that have already proven the second factor when they call it.
+func (p *provider) carriedMFARoles(mfaSession string, user *schemas.User) ([]string, error) {
+	requested, carried, err := p.loadMFARoles(mfaSession)
+	if err != nil {
+		return nil, err
+	}
+	return p.resolveCarriedRoles(user, requested, carried)
+}
+
+// dropMFARoles clears the roles carried with mfaSession so a captured cookie
+// cannot replay them once the session is spent.
+func (p *provider) dropMFARoles(mfaSession string) {
+	if mfaSession == "" {
+		return
+	}
+	_ = p.MemoryStoreProvider.DeleteCacheByPrefix(mfaRolesKey(mfaSession))
+}
+
+// resolveLoginRoles returns the roles a password login issues: the requested
+// roles when every one of them is held by user, or the configured default
+// roles when none were requested. ok is false when a requested role is not
+// held by user.
+func (p *provider) resolveLoginRoles(user *schemas.User, requested []string) (roles []string, ok bool) {
+	if len(requested) == 0 {
+		return p.Config.DefaultRoles, true
+	}
+	// Only roles still configured count: a role removed from --roles stays on
+	// the stored record but must no longer be grantable (#425).
+	if !validators.IsValidRoles(requested, p.Config.EffectiveUserRoles(user.Roles)) {
+		return nil, false
+	}
+	return requested, true
 }
 
 // setMFASession arms a short-lived MFA session (memory-store entry + cookie)
@@ -96,9 +198,12 @@ func (p *provider) consumeMFAScope(mfaSession string) []string {
 // require this session before they'll act. Shared by Login's TOTP branch and
 // WebauthnLoginVerify's EnforceMFA gate.
 //
-// The optional scope is the caller's requested OAuth scope, carried across
-// the interruption so the deferred token issuance can honour it.
-func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64, scope ...string) error {
+// roles, when non-nil, is login's roles REQUEST (empty = none requested),
+// resolved against the user at completion — see loadMFARoles. nil carries
+// nothing. The optional scope is the caller's requested OAuth scope. Both are
+// carried across the interruption so the deferred token issuance mints
+// exactly what the uninterrupted flow would have.
+func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64, roles []string, scope ...string) error {
 	mfaSession := uuid.NewString()
 	// Every caller of this helper (login, webauthn-verify, oauth callback) has
 	// already confirmed a first factor for userID, so the session is Verified —
@@ -123,16 +228,33 @@ func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects
 	// scope column and adding one means a migration across all six storage
 	// backends, for state that is transient and already expires with the
 	// session. Same pattern as the pending-TOTP-secret and OTP-lockout keys.
-	if len(scope) > 0 {
-		ttl := expiresAt - time.Now().Unix()
-		if ttl > 0 {
-			if blob, err := json.Marshal(scope); err == nil {
-				if err := p.MemoryStoreProvider.SetCache(mfaScopeKey(mfaSession), string(blob), ttl); err != nil {
-					// Non-fatal: losing the scope degrades to the default set
-					// rather than blocking a legitimate login.
-					p.Log.Debug().Err(err).Msg("failed to persist mfa session scope")
-				}
+	ttl := expiresAt - time.Now().Unix()
+	if len(scope) > 0 && ttl > 0 {
+		if blob, err := json.Marshal(scope); err == nil {
+			if err := p.MemoryStoreProvider.SetCache(mfaScopeKey(mfaSession), string(blob), ttl); err != nil {
+				// Non-fatal: losing the scope degrades to the default set
+				// rather than blocking a legitimate login.
+				p.Log.Debug().Err(err).Msg("failed to persist mfa session scope")
 			}
+		}
+	}
+	// Carry the roles the same way, for the same reasons (issue #301): the
+	// completion endpoints never see login's `roles` input, so issuance fell
+	// back to every role on the user and an MFA login got a different role
+	// set than the identical non-MFA login. Only the request login received is
+	// stored, and it is re-validated against the user at completion; no
+	// completion endpoint accepts roles from the client.
+	//
+	// Unlike scope, a failed write is fatal: the fallback (every role on the
+	// user) is broader than what was requested, so degrading silently would
+	// widen the token instead of narrowing it.
+	if roles != nil && ttl > 0 {
+		blob, err := json.Marshal(roles)
+		if err != nil {
+			return err
+		}
+		if err := p.MemoryStoreProvider.SetCache(mfaRolesKey(mfaSession), string(blob), ttl); err != nil {
+			return err
 		}
 	}
 	for _, c := range cookie.BuildMfaSessionCookies(meta.HostURL, mfaSession, p.Config.AppCookieSecure, expiresAt) {
@@ -247,6 +369,17 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	}
 	isEmailServiceEnabled := p.Config.IsEmailServiceEnabled
 	isSMSServiceEnabled := p.Config.IsSMSServiceEnabled
+	// The roles request carried by every MFA branch below (issue #301). It is
+	// the raw request, resolved by the completion endpoint once the code is
+	// proven (see loadMFARoles), so the unverified-contact OTP branches never
+	// report "invalid roles" — or behave differently for valid vs invalid
+	// roles — to a caller who has not yet proven they own the account's
+	// email/phone. Non-nil even when empty, so "none requested" is carried
+	// too and resolves to the default roles, as a non-MFA login does.
+	rolesRequest := params.Roles
+	if rolesRequest == nil {
+		rolesRequest = []string{}
+	}
 	if isEmailLogin {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 			log.Debug().Str("reason", "wrong_signup_method").Msg("login failed")
@@ -284,7 +417,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -325,7 +458,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+				if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -396,16 +529,10 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 	if cErr := p.MemoryStoreProvider.DeleteCacheByPrefix(loginLockKey); cErr != nil {
 		log.Debug().Err(cErr).Msg("Failed to reset login failed-attempt counter")
 	}
-	roles := p.Config.DefaultRoles
-	// Only roles still configured count: a role removed from --roles stays on
-	// the stored record but must no longer be grantable (#425).
-	currentRoles := p.Config.EffectiveUserRoles(user.Roles)
-	if len(params.Roles) > 0 {
-		if !validators.IsValidRoles(params.Roles, currentRoles) {
-			log.Debug().Msg("Invalid roles")
-			return nil, nil, InvalidArgument(`invalid roles`)
-		}
-		roles = params.Roles
+	roles, rolesOK := p.resolveLoginRoles(user, params.Roles)
+	if !rolesOK {
+		log.Debug().Msg("Invalid roles")
+		return nil, nil, InvalidArgument(`invalid roles`)
 	}
 	scope := []string{"openid", "email", "profile"}
 	if len(params.Scope) > 0 {
@@ -451,7 +578,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -489,7 +616,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			log.Debug().Msg("Failed to generate otp")
 			return nil, nil, err
 		}
-		if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+		if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 			log.Debug().Msg("Failed to set mfa session")
 			return nil, nil, err
 		}
@@ -534,7 +661,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		switch gate {
 		case mfaGateBlockVerify:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -552,7 +679,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return res, side, nil
 		case mfaGateBlockEnroll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
@@ -576,7 +703,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 			return res, side, nil
 		case mfaGateOfferAll:
 			expiresAt := time.Now().Add(3 * time.Minute).Unix()
-			if err := p.setMFASession(meta, side, user.ID, expiresAt, params.Scope...); err != nil {
+			if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
 				log.Debug().Msg("Failed to set mfa session")
 				return nil, nil, err
 			}
