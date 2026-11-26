@@ -16,7 +16,10 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
 					alt={`${branding.name} logo`}
 					className="h-12"
 				/>
-				<span className="ml-3 text-xl uppercase tracking-widest font-semibold text-gray-800">
+				<span
+					className="ml-3 max-w-xs truncate text-xl uppercase tracking-widest font-semibold text-gray-800"
+					title={branding.name}
+				>
 					{branding.name}
 				</span>
 			</div>

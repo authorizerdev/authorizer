@@ -113,6 +113,7 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 	const { setIsLoggedIn } = useAuthContext();
 	const navigate = useNavigate();
 	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+	const branding = getOrganizationBranding();
 
 	const handleLogout = async () => {
 		await logout({});
@@ -124,14 +125,17 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 		<div className="fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-gray-200 bg-white">
 			{/* Logo */}
 			<div className="flex h-16 items-center px-4">
-				<NavLink to="/" className="flex items-center" onClick={onClose}>
+				<NavLink to="/" className="flex min-w-0 items-center" onClick={onClose}>
 					<img
-						src={getOrganizationBranding().logo}
-						alt={`${getOrganizationBranding().name} logo`}
-						className="h-9"
+						src={branding.logo}
+						alt={`${branding.name} logo`}
+						className="h-9 shrink-0"
 					/>
-					<span className="ml-2 text-lg uppercase tracking-widest font-semibold text-gray-800">
-						{getOrganizationBranding().name}
+					<span
+						className="ml-2 truncate text-lg uppercase tracking-widest font-semibold text-gray-800"
+						title={branding.name}
+					>
+						{branding.name}
 					</span>
 				</NavLink>
 			</div>
@@ -260,6 +264,7 @@ interface MobileNavProps {
 }
 
 export const MobileNav = ({ onOpen }: MobileNavProps) => {
+	const branding = getOrganizationBranding();
 	return (
 		<div className="fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:left-64">
 			<button
@@ -271,8 +276,8 @@ export const MobileNav = ({ onOpen }: MobileNavProps) => {
 			</button>
 
 			<img
-				src={getOrganizationBranding().logo}
-				alt={`${getOrganizationBranding().name} logo`}
+				src={branding.logo}
+				alt={`${branding.name} logo`}
 				className="h-9 md:hidden"
 			/>
 

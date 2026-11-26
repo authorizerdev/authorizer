@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -25,12 +24,8 @@ func getDashboard(t *testing.T, cfg *config.Config) (map[string]any, string) {
 	h := &httpProvider{Config: cfg, Dependencies: Dependencies{Log: &logger}}
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.SetFuncMap(template.FuncMap{
-		"json": func(v any) template.JS {
-			a, _ := json.Marshal(v)
-			return template.JS(strings.ReplaceAll(string(a), "</", `<\/`))
-		},
-	})
+	// The exact FuncMap the production router uses (internal/server).
+	router.SetFuncMap(TemplateFuncMap())
 	router.LoadHTMLFiles("../../web/templates/dashboard.tmpl")
 	router.GET("/dashboard", h.DashboardHandler())
 	rec := httptest.NewRecorder()
@@ -59,12 +54,33 @@ func TestDashboardHandlerInjectsOrganizationBranding(t *testing.T) {
 }
 
 // The values come from operator flags, but they are rendered inside an inline
-// <script>; a name containing "</script>" must not terminate it.
+// <script>; a hostile name must not terminate the script element or open an
+// HTML comment in the rendered page.
 func TestDashboardHandlerBrandingCannotBreakOutOfScript(t *testing.T) {
+	const hostile = `Evil</script><script>alert(1)</script><!--`
 	data, body := getDashboard(t, &config.Config{
-		OrganizationName: `Evil</script><script>alert(1)</script>`,
+		OrganizationName: hostile,
 		OrganizationLogo: "https://acme.example/logo.png",
 	})
-	assert.Equal(t, `Evil</script><script>alert(1)</script>`, data["organizationName"])
-	assert.NotContains(t, body, "<script>alert(1)")
+	assert.Equal(t, hostile, data["organizationName"], "value must round-trip intact")
+	assert.NotContains(t, body, "</script><script>alert(1)")
+	assert.NotContains(t, body, "alert(1)</script>")
+	assert.NotContains(t, body, "<!--", "no HTML comment may be opened by injected data")
+}
+
+// TestTemplateJSONFuncNeverEmitsRawAngleBrackets pins the production json
+// template func's contract directly: whatever the input, its output contains
+// no raw "<", so it can't close a <script> or open a comment.
+func TestTemplateJSONFuncNeverEmitsRawAngleBrackets(t *testing.T) {
+	jsonFn, ok := TemplateFuncMap()["json"].(func(interface{}) template.JS)
+	require.True(t, ok, "json template func has an unexpected signature")
+	for _, in := range []any{
+		"</script>", "<!--", "<script>alert(1)</script>",
+		map[string]any{"k": "</ScRiPt>"}, []string{"<", ">", "&"},
+	} {
+		out := string(jsonFn(in))
+		assert.NotContains(t, out, "<", "input %v", in)
+		var back any
+		require.NoError(t, json.Unmarshal([]byte(out), &back), "output must stay valid JSON for %v", in)
+	}
 }

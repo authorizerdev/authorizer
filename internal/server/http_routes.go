@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"html/template"
 	"net/http"
 	"path"
 	"strings"
@@ -10,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/gen/openapi"
+	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
@@ -206,17 +205,9 @@ func (s *server) NewRouter() *gin.Engine {
 		})
 	}
 
-	// Set up template functions for JSON encoding.
-	// Escape </script> and <!-- to prevent script injection in <script> blocks.
-	router.SetFuncMap(template.FuncMap{
-		"json": func(v interface{}) template.JS {
-			a, _ := json.Marshal(v)
-			s := string(a)
-			s = strings.ReplaceAll(s, "</", `<\/`)
-			s = strings.ReplaceAll(s, "<!--", `<\!--`)
-			return template.JS(s)
-		},
-	})
+	// Template functions (json escaping for inline <script> blocks); shared
+	// with the handler tests so they exercise the production escaping.
+	router.SetFuncMap(http_handlers.TemplateFuncMap())
 	router.LoadHTMLGlob("web/templates/*")
 	// // login page app related routes.
 	app := router.Group("/app")
