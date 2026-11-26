@@ -275,6 +275,10 @@ func TestStorageProvider(t *testing.T) {
 				testAnchoredSessionTokenDelete(t, ctx, provider)
 			})
 
+			t.Run("AddUser Uniqueness With Email And Phone", func(t *testing.T) {
+				testAddUserUniquenessWithEmailAndPhone(t, ctx, provider)
+			})
+
 			if isSQLTestDB(dbType) {
 				t.Run("SQL CRUD Correctness Fixes", func(t *testing.T) {
 					testSQLCRUDCorrectnessFixes(t, ctx, provider)
@@ -361,6 +365,58 @@ func testSQLCRUDCorrectnessFixes(t *testing.T, ctx context.Context, provider Pro
 	assert.Equal(t, "user", refetched.Roles, "roles must be preserved")
 
 	require.NoError(t, provider.DeleteUser(ctx, refetched))
+}
+
+// testAddUserUniquenessWithEmailAndPhone asserts AddUser checks email and
+// phone uniqueness independently when a user carries both. ArangoDB, DynamoDB,
+// Cassandra/ScyllaDB and Couchbase chained the two checks with else-if, so a
+// phone number on the new user skipped the email check and a duplicate email
+// was inserted. It runs on every backend: the SQL-only copy of this assertion
+// is why the NoSQL divergence went unnoticed.
+func testAddUserUniquenessWithEmailAndPhone(t *testing.T, ctx context.Context, provider Provider) {
+	suffix := uuid.New().String()
+	existing := &schemas.User{
+		ID:            uuid.New().String(),
+		Email:         refs.NewStringRef("uniq_" + suffix + "@test.com"),
+		PhoneNumber:   refs.NewStringRef("+1555" + suffix[:8]),
+		Password:      refs.NewStringRef("hash"),
+		SignupMethods: "basic_auth",
+	}
+	_, err := provider.AddUser(ctx, existing)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = provider.DeleteUser(ctx, existing) })
+
+	t.Run("duplicate email with a different phone is rejected", func(t *testing.T) {
+		dup := &schemas.User{
+			ID:            uuid.New().String(),
+			Email:         refs.NewStringRef(refs.StringValue(existing.Email)),
+			PhoneNumber:   refs.NewStringRef("+1666" + suffix[:8]),
+			Password:      refs.NewStringRef("hash"),
+			SignupMethods: "basic_auth",
+		}
+		_, err := provider.AddUser(ctx, dup)
+		if err == nil {
+			_ = provider.DeleteUser(ctx, dup)
+		}
+		require.Error(t, err, "duplicate email must be rejected even when the phone differs")
+		assert.Contains(t, err.Error(), "user with given email already exists")
+	})
+
+	t.Run("duplicate phone with a different email is rejected", func(t *testing.T) {
+		dup := &schemas.User{
+			ID:            uuid.New().String(),
+			Email:         refs.NewStringRef("uniq_other_" + suffix + "@test.com"),
+			PhoneNumber:   refs.NewStringRef(refs.StringValue(existing.PhoneNumber)),
+			Password:      refs.NewStringRef("hash"),
+			SignupMethods: "basic_auth",
+		}
+		_, err := provider.AddUser(ctx, dup)
+		if err == nil {
+			_ = provider.DeleteUser(ctx, dup)
+		}
+		require.Error(t, err, "duplicate phone must be rejected even when the email differs")
+		assert.Contains(t, err.Error(), "user with given phone number already exists")
+	})
 }
 
 // testAnchoredSessionTokenDelete asserts DeleteAllSessionTokensByUserID deletes
