@@ -304,7 +304,7 @@ func (h *httpProvider) SSOCallbackHandler() gin.HandlerFunc {
 		user, isSignUp, err := h.jitProvisionSSOUser(ctx, &flow, claims)
 		if err != nil {
 			log.Debug().Err(err).Msg("sso JIT provisioning rejected")
-			ssoFail(c, &log, "sso_provisioning_failed", err.Error())
+			ssoFail(c, &log, "sso_provisioning_failed", publicErrorMessage(&log, err))
 			return
 		}
 

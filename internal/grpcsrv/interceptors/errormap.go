@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,11 +44,13 @@ func kindToCode(kind service.ErrorKind) codes.Code {
 // Placement: this MUST be the last (innermost) interceptor in the chain so it
 // wraps the handler directly. Validation failures produced by the protovalidate
 // interceptor live one level out and already carry InvalidArgument, so they
-// never reach here. Any error that is already a gRPC status (e.g. the
-// Unimplemented stubs) is passed through untouched; typed service.Error values
-// are mapped by Kind; everything else is treated as Internal.
-func ErrorMap() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+// never reach here. Typed service.Error values are mapped by Kind; errors that
+// originated in the storage layer are masked (generic message + error_id, with
+// the original logged under that error_id); any error that is already a gRPC
+// status (e.g. the Unimplemented stubs) is passed through untouched;
+// everything else is treated as Internal.
+func ErrorMap(log *zerolog.Logger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		resp, err := handler(ctx, req)
 		if err == nil {
 			return resp, nil
@@ -58,6 +61,14 @@ func ErrorMap() grpc.UnaryServerInterceptor {
 		var se *service.Error
 		if errors.As(err, &se) {
 			return resp, status.Error(kindToCode(se.Kind), se.Error())
+		}
+
+		// Storage-layer error: never forward driver text to the client.
+		// Checked before the status pass-through so a driver error that
+		// happens to carry a gRPC status cannot slip past.
+		if msg, errorID, masked := service.MaskInternalError(err); masked {
+			service.MaskedErrorEvent(log, err, errorID).Str("method", info.FullMethod).Msg("grpc: masked internal error")
+			return resp, status.Error(codes.Internal, msg)
 		}
 
 		// Already a gRPC status error (Unimplemented stubs, or a status

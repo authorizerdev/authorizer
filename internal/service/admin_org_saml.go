@@ -96,7 +96,7 @@ func (p *provider) CreateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 		return nil, nil, InvalidArgument("org_id, name, idp_entity_id, idp_sso_url and idp_certificate are required")
 	}
 	if err := validateSAMLHTTPSURL(idpSSOURL); err != nil {
-		return nil, nil, fmt.Errorf("idp_sso_url %w", err)
+		return nil, nil, InvalidArgument("idp_sso_url " + err.Error())
 	}
 	if err := validateSAMLCertPEM(idpCert); err != nil {
 		return nil, nil, err
@@ -165,7 +165,7 @@ func validateOptionalSAMLFields(spEntityID, acsURL, attrMap *string) (*string, *
 		v := strings.TrimSpace(*spEntityID)
 		if v != "" {
 			if err := validateSAMLHTTPSURL(v); err != nil {
-				return nil, nil, nil, fmt.Errorf("sp_entity_id %w", err)
+				return nil, nil, nil, InvalidArgument("sp_entity_id " + err.Error())
 			}
 			outSP = refs.NewStringRef(v)
 		}
@@ -174,7 +174,7 @@ func validateOptionalSAMLFields(spEntityID, acsURL, attrMap *string) (*string, *
 		v := strings.TrimSpace(*acsURL)
 		if v != "" {
 			if err := validateSAMLHTTPSURL(v); err != nil {
-				return nil, nil, nil, fmt.Errorf("acs_url %w", err)
+				return nil, nil, nil, InvalidArgument("acs_url " + err.Error())
 			}
 			outACS = refs.NewStringRef(v)
 		}
@@ -230,7 +230,7 @@ func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 	if params.IdpSsoURL != nil {
 		v := strings.TrimSpace(*params.IdpSsoURL)
 		if err := validateSAMLHTTPSURL(v); err != nil {
-			return nil, nil, fmt.Errorf("idp_sso_url %w", err)
+			return nil, nil, InvalidArgument("idp_sso_url " + err.Error())
 		}
 		issuer.SAMLSSOURL = refs.NewStringRef(v)
 	}
@@ -245,7 +245,7 @@ func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 		v := strings.TrimSpace(*params.SpEntityID)
 		if v != "" {
 			if err := validateSAMLHTTPSURL(v); err != nil {
-				return nil, nil, fmt.Errorf("sp_entity_id %w", err)
+				return nil, nil, InvalidArgument("sp_entity_id " + err.Error())
 			}
 			issuer.SAMLSPEntityID = refs.NewStringRef(v)
 		} else {
@@ -256,7 +256,7 @@ func (p *provider) UpdateOrgSAMLConnection(ctx context.Context, meta RequestMeta
 		v := strings.TrimSpace(*params.AcsURL)
 		if v != "" {
 			if err := validateSAMLHTTPSURL(v); err != nil {
-				return nil, nil, fmt.Errorf("acs_url %w", err)
+				return nil, nil, InvalidArgument("acs_url " + err.Error())
 			}
 			issuer.SAMLACSURL = refs.NewStringRef(v)
 		} else {

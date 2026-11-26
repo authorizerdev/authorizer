@@ -588,5 +588,7 @@ func New(config *config.Config, deps *Dependencies) (Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return provider, nil
+	// Mark every error the backend returns as a storage error so transports
+	// can keep raw driver text away from clients (see error_boundary.go).
+	return &errorBoundary{next: provider}, nil
 }

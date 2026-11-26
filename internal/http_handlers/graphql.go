@@ -17,6 +17,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
@@ -35,9 +36,9 @@ import (
 // extensions.code string, mirroring the gRPC code names used by
 // grpcsrv/interceptors.ErrorMap so clients only need to learn one vocabulary
 // across transports. Only errors explicitly constructed via the service
-// package's typed constructors (InvalidArgument, TooManyRequests, ...) reach
-// this — every other error is left with no code, exactly preserving today's
-// GraphQL behaviour for the vast majority of unclassified/internal errors.
+// package's typed constructors (InvalidArgument, TooManyRequests, ...) and
+// masked storage errors (INTERNAL) reach this — every other error is left with
+// no code, preserving today's GraphQL behaviour for unclassified errors.
 func kindToGraphQLCode(kind service.ErrorKind) string {
 	switch kind {
 	case service.KindInvalidArgument:
@@ -60,18 +61,39 @@ func kindToGraphQLCode(kind service.ErrorKind) string {
 }
 
 // graphQLErrorPresenter wraps gqlgen's default presenter to attach
-// extensions.code for typed service errors, without altering message text or
-// touching errors that aren't service.Error (preserving existing behaviour).
-func graphQLErrorPresenter(ctx context.Context, e error) *gqlerror.Error {
-	gqlErr := gql.DefaultErrorPresenter(ctx, e)
-	var svcErr *service.Error
-	if errors.As(e, &svcErr) {
-		if gqlErr.Extensions == nil {
-			gqlErr.Extensions = map[string]interface{}{}
+// extensions.code for typed service errors, without altering their message
+// text. Errors that originated in the storage layer and were not classified
+// by the service are masked: the client gets a generic message carrying an
+// error_id and code INTERNAL, and the original error is logged under that
+// error_id so the two can be correlated. Any other error is left untouched.
+func graphQLErrorPresenter(log *zerolog.Logger) gql.ErrorPresenterFunc {
+	return func(ctx context.Context, e error) *gqlerror.Error {
+		gqlErr := gql.DefaultErrorPresenter(ctx, e)
+		var svcErr *service.Error
+		if errors.As(e, &svcErr) {
+			if gqlErr.Extensions == nil {
+				gqlErr.Extensions = map[string]interface{}{}
+			}
+			gqlErr.Extensions["code"] = kindToGraphQLCode(svcErr.Kind)
+			// Only the typed message, never text from anything wrapped
+			// around or under it — matches gRPC ErrorMap.
+			gqlErr.Message = svcErr.Error()
+			return gqlErr
 		}
-		gqlErr.Extensions["code"] = kindToGraphQLCode(svcErr.Kind)
+		if msg, errorID, masked := service.MaskInternalError(e); masked {
+			evt := service.MaskedErrorEvent(log, e, errorID).Str("path", gqlErr.Path.String())
+			if gql.HasOperationContext(ctx) {
+				evt = evt.Str("operation", gql.GetOperationContext(ctx).OperationName)
+			}
+			evt.Msg("graphql: masked internal error")
+			gqlErr.Message = msg
+			if gqlErr.Extensions == nil {
+				gqlErr.Extensions = map[string]interface{}{}
+			}
+			gqlErr.Extensions["code"] = kindToGraphQLCode(service.KindInternal)
+		}
+		return gqlErr
 	}
-	return gqlErr
 }
 
 // queryLimits is a gqlgen handler extension that enforces depth, alias, and
@@ -375,7 +397,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 		GraphQLProvider: gqlProvider,
 	}}))
 
-	srv.SetErrorPresenter(graphQLErrorPresenter)
+	srv.SetErrorPresenter(graphQLErrorPresenter(h.Log))
 
 	srv.AddTransport(transport.Options{})
 	// transport.GET is intentionally omitted: GraphQL queries (and especially

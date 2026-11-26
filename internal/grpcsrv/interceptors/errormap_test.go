@@ -1,24 +1,78 @@
 package interceptors
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
+
+var nopLog = zerolog.Nop()
+
+// TestErrorMap_MasksStorageError is the regression guard for issue #356: raw
+// driver text from the storage layer must never reach a gRPC (or, through the
+// gateway, REST) client. The client gets codes.Internal with a generic message
+// and error_id; the original error is logged under the same error_id.
+func TestErrorMap_MasksStorageError(t *testing.T) {
+	const driverMsg = "mssql: Cannot insert duplicate key row in object 'dbo.authorizer_users' with unique index 'idx_email'"
+	var buf bytes.Buffer
+	log := zerolog.New(&buf)
+	mw := ErrorMap(&log)
+	_, err := mw(context.Background(), nil, info("/authorizer.v1.AuthorizerService/Signup"), func(_ context.Context, _ any) (any, error) {
+		return nil, fmt.Errorf("signup: %w", &storage.Error{Err: errors.New(driverMsg)})
+	})
+
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.Internal, st.Code())
+	assert.NotContains(t, st.Message(), "mssql")
+	assert.Regexp(t, `^internal server error \(error_id: \S+\)$`, st.Message())
+
+	logged := buf.String()
+	assert.Contains(t, logged, driverMsg, "original error must be logged server-side")
+	assert.Contains(t, logged, "/authorizer.v1.AuthorizerService/Signup")
+	id := st.Message()[len("internal server error (error_id: ") : len(st.Message())-1]
+	assert.Contains(t, logged, `"error_id":"`+id+`"`)
+}
+
+// TestErrorMap_StorageNotFoundLogsAtWarn: an unclassified not-found is masked
+// but logged at warn, not error — it is not an outage.
+func TestErrorMap_StorageNotFoundLogsAtWarn(t *testing.T) {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf)
+	_, err := ErrorMap(&log)(context.Background(), nil, info("/svc/M"), func(_ context.Context, _ any) (any, error) {
+		return nil, &storage.Error{Err: gorm.ErrRecordNotFound}
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+	assert.Contains(t, buf.String(), `"level":"warn"`)
+}
+
+// TestErrorMap_TypedErrorWrappingStorageErrorKeepsMessage: a service that
+// deliberately classified a storage failure keeps its chosen message.
+func TestErrorMap_TypedErrorWrappingStorageErrorKeepsMessage(t *testing.T) {
+	err := runErrorMap(t, fmt.Errorf("%w: %w", service.NotFound("user not found"), &storage.Error{Err: errors.New("record not found")}))
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.NotFound, st.Code())
+	assert.Equal(t, "user not found", st.Message())
+}
 
 // runErrorMap feeds handlerErr through the ErrorMap interceptor and returns the
 // mapped error, exactly as a gRPC/REST client would receive it.
 func runErrorMap(t *testing.T, handlerErr error) error {
 	t.Helper()
-	mw := ErrorMap()
+	mw := ErrorMap(&nopLog)
 	_, err := mw(context.Background(), nil, info("/authorizer.v1.AuthorizerAdminService/CreateOrganization"), func(_ context.Context, _ any) (any, error) {
 		return nil, handlerErr
 	})
@@ -85,7 +139,7 @@ func TestErrorMap_BareErrorIsInternal(t *testing.T) {
 
 // TestErrorMap_NilPassesThrough confirms the happy path is untouched.
 func TestErrorMap_NilPassesThrough(t *testing.T) {
-	mw := ErrorMap()
+	mw := ErrorMap(&nopLog)
 	resp, err := mw(context.Background(), nil, info("/svc/M"), func(_ context.Context, _ any) (any, error) {
 		return "ok", nil
 	})

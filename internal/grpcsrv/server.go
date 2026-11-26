@@ -72,7 +72,7 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 			// Innermost: wraps the handler directly so it can translate typed
 			// service.Error values into proper gRPC status codes. Must stay
 			// last — see interceptors.ErrorMap docs.
-			interceptors.ErrorMap(),
+			interceptors.ErrorMap(deps.Log),
 		),
 	)
 
