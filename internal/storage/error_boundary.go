@@ -67,8 +67,8 @@ func (p *errorBoundary) DeleteUser(ctx context.Context, user *schemas.User) erro
 	return wrapErr(p.next.DeleteUser(ctx, user))
 }
 
-func (p *errorBoundary) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
-	r0, r1, err := p.next.ListUsers(ctx, pagination, query)
+func (p *errorBoundary) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
+	r0, r1, err := p.next.ListUsers(ctx, pagination, opts)
 	return r0, r1, wrapErr(err)
 }
 
