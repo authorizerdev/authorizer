@@ -5,6 +5,53 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.9] - 2026-11-26
+
+Fixes an authentication bypass that let anyone sign in as an account whose
+email or phone was not yet verified, without its password. Also fixes several
+role, MFA and magic-link bugs, stops raw database and infrastructure errors
+from reaching API clients, and makes the Docker Compose file work with v2.
+**Upgrading is strongly recommended for every 2.4.x deployment.** Read the
+Upgrade notes at the end of this section first: a few behaviours change on
+purpose.
+
+### Security
+
+- **Authentication bypass: a wrong password could sign in to an unverified account** ([GHSA-rpv7-grw6-r2jv](https://github.com/authorizerdev/authorizer/security/advisories/GHSA-rpv7-grw6-r2jv), high). When MFA was enabled (the default) and the account's email or phone was still unverified, `login` armed an MFA session before checking the password. That session was accepted by `skip_mfa_setup`, which then issued full tokens; with the same session a caller could also lock the victim's MFA with `lock_mfa`, enroll TOTP (getting the secret), add email/SMS OTP authenticators, or start passkey registration. These pre-password sessions are now only redeemable by `verify_otp` with the code that was just sent. The same fix covers phone signup with `--enable-phone-verification`, where `skip_mfa_setup` could issue tokens before the phone was verified. Affected 2.4.0-rc.1 through 2.4.8.
+
+### Added
+
+- **Sort and filter the admin users list** ([#927](https://github.com/authorizerdev/authorizer/pull/927), [#112](https://github.com/authorizerdev/authorizer/issues/112)). `_users` / `AuthorizerAdminService.Users` / `POST /v1/admin/users` accept `email_verified` (filter) and `created_at_order` (`ASC`/`DESC`, default `DESC`); `pagination.total` counts the filtered set. The dashboard Users page has matching controls. Additive: existing clients are unaffected.
+- **The admin dashboard uses `--organization-name` / `--organization-logo`** on its login page and sidebar, like the `/app` login UI ([#931](https://github.com/authorizerdev/authorizer/pull/931), [#444](https://github.com/authorizerdev/authorizer/issues/444)).
+- **One-click deploy image for v2**, [`ghcr.io/authorizerdev/authorizer-oneclick`](https://github.com/authorizerdev/authorizer-oneclick): maps environment variables to v2's CLI flags so image-only deploy buttons (ZopDay) can start a v2 server. The README's ZopDay button now uses it ([#935](https://github.com/authorizerdev/authorizer/pull/935); thanks `@muskanbandta23` for [#929](https://github.com/authorizerdev/authorizer/pull/929)).
+
+### Fixed
+
+- **Roles removed from `--roles` were still granted** ([#922](https://github.com/authorizerdev/authorizer/pull/922), [#425](https://github.com/authorizerdev/authorizer/issues/425)). Roles are now filtered against `--roles` ∪ `--protected-roles` ∪ `--default-roles` wherever they grant access: token issuance, login, session, `validate_session`, `validate_jwt_token` and the refresh grant. Stored user records are left as they are, so adding a role back restores it. Role flags are also trimmed, so `--default-roles "user, member"` no longer drops `member`.
+- **Roles requested at login were lost when MFA interrupted the login** ([#925](https://github.com/authorizerdev/authorizer/pull/925), [#301](https://github.com/authorizerdev/authorizer/issues/301)). They are now carried server-side across `verify_otp`, `skip_mfa_setup`, MFA enrolment and the passkey second factor, and checked against the user again when the MFA step completes.
+- **Raw database and infrastructure errors reached API clients** ([#924](https://github.com/authorizerdev/authorizer/pull/924), [#932](https://github.com/authorizerdev/authorizer/pull/932), [#356](https://github.com/authorizerdev/authorizer/issues/356)). Errors from storage, the memory store (Redis/in-memory/DB), OpenFGA's datastore, token signing, email/SMS providers and the JWKS endpoint are now returned as `internal server error (error_id: …)` on GraphQL, gRPC, REST, MCP and the HTTP handlers, and logged server-side under the same `error_id`. Deliberate user-facing messages are unchanged. Losing a creation race (invite, organization, membership) now returns `409 AlreadyExists` instead of a `500`; revoking an already-revoked session returns "token not found" instead of a masked `500`.
+- **Distributed rate limiting never used Redis** ([#932](https://github.com/authorizerdev/authorizer/pull/932)). A type check that could never match meant every replica enforced its own in-memory limit even with `--redis-url` set. The rate limiter now shares the memory store's Redis client.
+- **Asking for a password reset (or magic link, or invite) twice failed on MongoDB and ArangoDB** ([#928](https://github.com/authorizerdev/authorizer/pull/928), [#273](https://github.com/authorizerdev/authorizer/issues/273)) with a raw duplicate-key error, and Cassandra, DynamoDB and Couchbase kept both pending requests. A new request now replaces the previous one on every backend.
+- **Duplicate emails were possible on ArangoDB, DynamoDB, Cassandra and Couchbase** when the user also had a phone number ([#933](https://github.com/authorizerdev/authorizer/pull/933)); `AddUser` now checks email and phone independently on every backend.
+- **Magic links** ([#934](https://github.com/authorizerdev/authorizer/pull/934), surfaced by [#406](https://github.com/authorizerdev/authorizer/issues/406)): the `code` that `/verify_email` returns for an `/authorize` + PKCE flow can now be exchanged at `/oauth/token`. It is issued only when the link is opened in the browser that started `/authorize` and the redirect matches the one `/authorize` recorded. Magic links also work with `--redirect-uris` now: links are URL-encoded and carry `roles`/`state`/`scope` as their own parameters instead of inside `redirect_uri`. Links emailed by older versions still work.
+- **The password-reset flow dropped the user's `/authorize` request** ([#923](https://github.com/authorizerdev/authorizer/pull/923), [#344](https://github.com/authorizerdev/authorizer/issues/344)), leaving them on `/app` instead of returning them to the application. Hash-routed reset URLs keep the token inside the route.
+- **The signed-in page flashed before the redirect back to the application** after logging in through `/authorize` ([#921](https://github.com/authorizerdev/authorizer/pull/921), [#269](https://github.com/authorizerdev/authorizer/issues/269)).
+- **`docker-compose.yaml` could not start a v2 server** ([#930](https://github.com/authorizerdev/authorizer/pull/930), [#325](https://github.com/authorizerdev/authorizer/issues/325)): it relied on a `.env` file that v2 ignores. It now passes CLI flags (placeholder secrets, SQLite on a named volume). The image pre-creates `/authorizer/data` owned by its non-root user, so a named volume mounted there is writable without `-u root`.
+
+### Changed
+
+- Comment typo fixes ([#926](https://github.com/authorizerdev/authorizer/pull/926), thanks `@kayaal34`).
+
+### Upgrade notes
+
+- **Roles removed from `--roles` stop working immediately**, including in tokens issued before the upgrade. If you changed `--roles` in the past and users still rely on an old role, add it back (or to `--protected-roles`) before upgrading.
+- **An MFA login that requests no `roles` now gets `--default-roles`** instead of every role on the user, the same as a non-MFA login. Integrations that relied on the full set after MFA must pass `roles` explicitly.
+- **Error text changed**: clients that matched raw database messages (e.g. `record not found`, NoSQL `user with given email already exists`) now see `internal server error (error_id: …)`. Match on the error code instead.
+- **Redis deployments: rate limits are now shared across replicas**, so with several replicas a client reaches `--rate-limit-rps` sooner than before.
+- **A newer password-reset, magic-link or invite email invalidates the previous link** on MongoDB, ArangoDB, Cassandra, DynamoDB and Couchbase (SQL already behaved this way).
+- **DynamoDB**: the server adds an `email` index to the existing verification-requests table on first boot. Grant `dynamodb:UpdateTable` (or add the index yourself); without it lookups fall back to a scan.
+- **`/authorize` sets a short-lived `authorizer-authorize-binding` cookie** (HttpOnly, SameSite=Lax, 15 minutes) when it sends the browser to the login UI.
+
 ## [2.4.8] - 2026-11-24
 
 Fixes a cross-organization account takeover through SCIM, adds
