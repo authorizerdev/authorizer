@@ -12,23 +12,52 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request. It is an upsert on
+// (email, identifier), matching every other backend: a pending request for the
+// same pair is replaced in place (new token, expiry, nonce, redirect URI)
+// rather than rejected by the unique hash index.
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
+	}
+	if verificationRequest.Key == "" {
 		verificationRequest.Key = verificationRequest.ID
 	}
-	verificationRequest.CreatedAt = time.Now().Unix()
-	verificationRequest.UpdatedAt = time.Now().Unix()
-	verificationRequestRequestCollection, _ := p.db.Collection(ctx, schemas.Collections.VerificationRequest)
-	meta, err := verificationRequestRequestCollection.CreateDocument(ctx, verificationRequest)
+	now := time.Now().Unix()
+	query := fmt.Sprintf(`UPSERT { email: @email, identifier: @identifier }
+		INSERT { _key: @key, email: @email, identifier: @identifier, token: @token, expires_at: @expires_at, nonce: @nonce, redirect_uri: @redirect_uri, created_at: @now, updated_at: @now }
+		UPDATE { token: @token, expires_at: @expires_at, nonce: @nonce, redirect_uri: @redirect_uri, updated_at: @now }
+		IN %s RETURN NEW`, schemas.Collections.VerificationRequest)
+	bindVars := map[string]interface{}{
+		"key":          verificationRequest.Key,
+		"email":        verificationRequest.Email,
+		"identifier":   verificationRequest.Identifier,
+		"token":        verificationRequest.Token,
+		"expires_at":   verificationRequest.ExpiresAt,
+		"nonce":        verificationRequest.Nonce,
+		"redirect_uri": verificationRequest.RedirectURI,
+		"now":          now,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if arangoDriver.IsArangoErrorWithErrorNum(err, arangoErrUniqueConstraintViolated) {
+		// UPSERT's lookup and insert are not atomic: two concurrent first
+		// requests for the same pair can both miss and both insert, and the
+		// unique index rejects the loser. Retrying once finds the winner's
+		// document and takes the UPDATE branch instead.
+		cursor, err = p.db.Query(ctx, query, bindVars)
+	}
 	if err != nil {
 		return nil, err
 	}
-	verificationRequest.Key = meta.Key
-	verificationRequest.ID = meta.ID.String()
+	defer func() { _ = cursor.Close() }()
+	if _, err := cursor.ReadDocument(ctx, verificationRequest); err != nil {
+		return nil, err
+	}
 	return verificationRequest, nil
 }
+
+// arangoErrUniqueConstraintViolated is ArangoDB's ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED.
+const arangoErrUniqueConstraintViolated = 1210
 
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {

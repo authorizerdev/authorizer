@@ -12,19 +12,46 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request, replacing any pending
+// request for the same (email, identifier).
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
+	verificationRequest.CreatedAt = time.Now().Unix()
+	verificationRequest.UpdatedAt = time.Now().Unix()
+
+	// Upsert on (email, identifier), matching every other backend. The table
+	// is keyed by id only, so reuse the pending request's id when one exists:
+	// a CQL INSERT on an existing primary key overwrites that row in place.
+	var existingIDs []string
+	iter := p.db.Query(fmt.Sprintf("SELECT id, created_at FROM %s WHERE email = ? AND identifier = ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.VerificationRequest), verificationRequest.Email, verificationRequest.Identifier).WithContext(ctx).Iter()
+	var id string
+	var createdAt int64
+	for iter.Scan(&id, &createdAt) {
+		if len(existingIDs) == 0 {
+			verificationRequest.ID = id
+			verificationRequest.CreatedAt = createdAt
+		}
+		existingIDs = append(existingIDs, id)
+	}
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
 
-	verificationRequest.CreatedAt = time.Now().Unix()
-	verificationRequest.UpdatedAt = time.Now().Unix()
-
 	query := fmt.Sprintf("INSERT INTO %s (id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.VerificationRequest)
-	err := p.db.Query(query, verificationRequest.ID, verificationRequest.Token, verificationRequest.Identifier, verificationRequest.ExpiresAt, verificationRequest.Email, verificationRequest.Nonce, verificationRequest.RedirectURI, verificationRequest.CreatedAt, verificationRequest.UpdatedAt).Exec()
+	err := p.db.Query(query, verificationRequest.ID, verificationRequest.Token, verificationRequest.Identifier, verificationRequest.ExpiresAt, verificationRequest.Email, verificationRequest.Nonce, verificationRequest.RedirectURI, verificationRequest.CreatedAt, verificationRequest.UpdatedAt).WithContext(ctx).Exec()
 	if err != nil {
 		return nil, err
+	}
+	// Older versions inserted a fresh row per request, so a pair may still
+	// have extra pending rows. Remove them so only the newest token is valid.
+	if len(existingIDs) > 1 {
+		for _, extra := range existingIDs[1:] {
+			if err := p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.VerificationRequest), extra).WithContext(ctx).Exec(); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return verificationRequest, nil
 }

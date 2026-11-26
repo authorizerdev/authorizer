@@ -12,24 +12,65 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request, replacing any pending
+// request for the same (email, identifier).
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
+	verificationRequest.CreatedAt = time.Now().Unix()
+	verificationRequest.UpdatedAt = time.Now().Unix()
+	// Upsert on (email, identifier), matching every other backend. Documents
+	// are keyed by id only, so reuse the pending request's id when one exists
+	// and Upsert overwrites that document in place.
+	queryResult, err := p.db.Query(fmt.Sprintf("SELECT _id, created_at FROM %s.%s WHERE email=$1 AND identifier=$2", p.scopeName, schemas.Collections.VerificationRequest), &gocb.QueryOptions{
+		Context:              ctx,
+		PositionalParameters: []interface{}{verificationRequest.Email, verificationRequest.Identifier},
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var existingIDs []string
+	for queryResult.Next() {
+		var row struct {
+			ID        string `json:"_id"`
+			CreatedAt int64  `json:"created_at"`
+		}
+		if err := queryResult.Row(&row); err != nil {
+			return nil, err
+		}
+		if len(existingIDs) == 0 {
+			verificationRequest.ID = row.ID
+			verificationRequest.CreatedAt = row.CreatedAt
+		}
+		existingIDs = append(existingIDs, row.ID)
+	}
+	if err := queryResult.Err(); err != nil {
+		return nil, err
+	}
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
 	verificationRequest.Key = verificationRequest.ID
-	verificationRequest.CreatedAt = time.Now().Unix()
-	verificationRequest.UpdatedAt = time.Now().Unix()
-	insertOpt := gocb.InsertOptions{
+	upsertOpt := gocb.UpsertOptions{
 		Context: ctx,
 	}
 	doc, err := structToDocument(verificationRequest)
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.db.Collection(schemas.Collections.VerificationRequest).Insert(verificationRequest.ID, doc, &insertOpt)
+	_, err = p.db.Collection(schemas.Collections.VerificationRequest).Upsert(verificationRequest.ID, doc, &upsertOpt)
 	if err != nil {
 		return nil, err
+	}
+	// Older versions inserted a fresh document per request, so a pair may
+	// still have extra pending documents. Remove them so only the newest
+	// token is valid.
+	if len(existingIDs) > 1 {
+		for _, extra := range existingIDs[1:] {
+			_, err := p.db.Collection(schemas.Collections.VerificationRequest).Remove(extra, &gocb.RemoveOptions{Context: ctx})
+			if err != nil && !IsNotFound(err) {
+				return nil, err
+			}
+		}
 	}
 	return verificationRequest, nil
 }

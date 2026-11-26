@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,28 @@ func TestForgotPassword(t *testing.T) {
 		assert.NotNil(t, request)
 		assert.NotEmpty(t, request.Token)
 		assert.Equal(t, email, request.Email)
+	})
+
+	// Issue #273: a second forgot-password request for the same account used
+	// to surface a raw duplicate-key database error on backends where
+	// AddVerificationRequest was a plain insert. It must succeed and replace
+	// the pending request, so only the newest reset link is valid.
+	t.Run("should allow requesting forgot password twice", func(t *testing.T) {
+		forgotPasswordReq := &model.ForgotPasswordRequest{
+			Email: refs.NewStringRef(email),
+		}
+		first, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
+		require.NoError(t, err)
+
+		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)
+		require.NoError(t, err)
+		require.NotNil(t, forgotPasswordRes)
+
+		second, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
+		require.NoError(t, err)
+		assert.NotEqual(t, first.Token, second.Token, "the pending request must be replaced by the new one")
+		_, err = ts.StorageProvider.GetVerificationRequestByToken(ctx, first.Token)
+		assert.True(t, storage.IsNotFound(err), "the superseded reset token must no longer resolve, got %v", err)
 	})
 
 	// Issue #344: a user who reaches the login UI from an OIDC /authorize

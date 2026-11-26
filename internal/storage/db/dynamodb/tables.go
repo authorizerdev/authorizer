@@ -125,8 +125,12 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			attr: []types.AttributeDefinition{
 				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
 				{AttributeName: aws.String("token"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("email"), AttributeType: types.ScalarAttributeTypeS},
 			},
-			gsi: []types.GlobalSecondaryIndex{gsi("token", "token")},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("token", "token"),
+				gsi(verificationRequestEmailIndex, "email"),
+			},
 		},
 		{
 			name: schemas.Collections.Authenticators,
@@ -301,5 +305,48 @@ func (p *provider) ensureTables(ctx context.Context) error {
 			return fmt.Errorf("create table %s: %w", t.name, err)
 		}
 	}
+
+	// createTable is a no-op for a table that already exists, so a GSI added
+	// to the definition above never reaches existing deployments on its own.
+	// Add the verification-request email index to such tables here. Best
+	// effort: the reader falls back to a scan until the index is ACTIVE, so a
+	// failure (e.g. no dynamodb:UpdateTable permission) only costs speed.
+	if err := ensureGSI(ctx, p.client, schemas.Collections.VerificationRequest,
+		types.AttributeDefinition{AttributeName: aws.String("email"), AttributeType: types.ScalarAttributeTypeS},
+		gsi(verificationRequestEmailIndex, "email")); err != nil {
+		p.dependencies.Log.Warn().Err(err).Str("table", schemas.Collections.VerificationRequest).
+			Msg("could not add the email index to the existing verification request table; lookups by email will scan until it exists")
+	}
 	return nil
+}
+
+// verificationRequestEmailIndex is the GSI used to look up verification
+// requests by email (the identifier is applied as a filter).
+const verificationRequestEmailIndex = "email"
+
+// ensureGSI adds index to an existing table if the table does not have it yet.
+// It does not wait for the backfill: DynamoDB builds the index in the
+// background and rejects queries against it until it is ACTIVE.
+func ensureGSI(ctx context.Context, client *dynamodb.Client, table string, attr types.AttributeDefinition, index types.GlobalSecondaryIndex) error {
+	desc, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: aws.String(table)})
+	if err != nil {
+		return err
+	}
+	for _, existing := range desc.Table.GlobalSecondaryIndexes {
+		if aws.ToString(existing.IndexName) == aws.ToString(index.IndexName) {
+			return nil
+		}
+	}
+	_, err = client.UpdateTable(ctx, &dynamodb.UpdateTableInput{
+		TableName:            aws.String(table),
+		AttributeDefinitions: []types.AttributeDefinition{attr},
+		GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{{
+			Create: &types.CreateGlobalSecondaryIndexAction{
+				IndexName:  index.IndexName,
+				KeySchema:  index.KeySchema,
+				Projection: index.Projection,
+			},
+		}},
+	})
+	return err
 }

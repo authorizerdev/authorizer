@@ -12,21 +12,38 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request. It is an upsert on
+// (email, identifier), matching every other backend: a pending request for the
+// same pair is replaced in place (new token, expiry, nonce, redirect URI)
+// rather than rejected by the unique index.
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
-
-		verificationRequest.CreatedAt = time.Now().Unix()
-		verificationRequest.UpdatedAt = time.Now().Unix()
-		verificationRequest.Key = verificationRequest.ID
-		verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
-		_, err := verificationRequestCollection.InsertOne(ctx, verificationRequest)
-		if err != nil {
-			return nil, err
-		}
 	}
-
+	now := time.Now().Unix()
+	verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
+	filter := bson.D{
+		{Key: "email", Value: verificationRequest.Email},
+		{Key: "identifier", Value: verificationRequest.Identifier},
+	}
+	update := bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "token", Value: verificationRequest.Token},
+			{Key: "expires_at", Value: verificationRequest.ExpiresAt},
+			{Key: "nonce", Value: verificationRequest.Nonce},
+			{Key: "redirect_uri", Value: verificationRequest.RedirectURI},
+			{Key: "updated_at", Value: now},
+		}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: verificationRequest.ID},
+			{Key: "_key", Value: verificationRequest.ID},
+			{Key: "created_at", Value: now},
+		}},
+	}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	if err := verificationRequestCollection.FindOneAndUpdate(ctx, filter, update, opts).Decode(verificationRequest); err != nil {
+		return nil, err
+	}
 	return verificationRequest, nil
 }
 
