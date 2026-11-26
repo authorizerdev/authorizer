@@ -7,7 +7,11 @@ import {
 } from '@authorizerdev/authorizer-react';
 import { parseMfaRedirectParams } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
-import { hasWindow, createRandomString } from './utils/common';
+import {
+	hasWindow,
+	createRandomString,
+	isAuthorizeContextParams,
+} from './utils/common';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
@@ -35,6 +39,23 @@ function isSamlIdpContinueURL(url: string): boolean {
 		parsed.searchParams.has('saml_continue')
 	);
 }
+
+/**
+ * Whether this page load began on the reset-password page. Captured once at
+ * module load (i.e. per full page load), not per render: for a signed-in user
+ * the router's catch-all <Navigate> moves /app/reset-password to /app
+ * client-side, so a per-render pathname check would see /app and resume.
+ *
+ * Reset links carry the original /authorize params (issue #344) and are
+ * minted by an unauthenticated mutation, so a page load that started there
+ * must never auto-resume /authorize (or the SAML continue URL): a user who
+ * already has a session would be silently authorized into a client from a
+ * link anyone can request. Instead they land on the plain /app dashboard. A
+ * signed-out user resets, and the reset page then does a full navigation to
+ * /app with the params, where login resumes the flow as usual.
+ */
+const startedOnResetPassword =
+	hasWindow() && /^\/app\/reset-password\/?$/.test(window.location.pathname);
 
 // clearMfaRedirectParams strips mfa_required/mfa_gate/mfa_methods from the
 // current URL once the MFA gate resolves (skip or verify succeeds). Root's
@@ -122,19 +143,15 @@ export default function Root({
 		(globalState as Record<string, unknown>).isOrgDiscoveryEnabled === true;
 
 	const isAuthorizeContext =
-		rawRedirectURL !== '' &&
-		(getParam('state') !== '' ||
-			getParam('response_type') !== '' ||
-			getParam('response_mode') !== '' ||
-			getParam('client_id') !== '' ||
-			getParam('scope') !== '');
+		!startedOnResetPassword && isAuthorizeContextParams(combinedParams);
 
 	// Two mutually exclusive post-login resumption mechanisms, merged into one
 	// effect so they can never both fire off the same render (two separate
 	// effects both calling window.location.replace would race on declaration
 	// order instead of on which one is actually correct for this URL).
 	useEffect(() => {
-		if (!token) return;
+		// See startedOnResetPassword: a reset link must never auto-resume.
+		if (!token || startedOnResetPassword) return;
 
 		// Security + correctness: the server `/authorize` endpoint is the
 		// source of truth for redirect_uri validation and response_mode
@@ -145,8 +162,9 @@ export default function Root({
 			// /authorize; the backend will complete the authorization response.
 			const params = new URLSearchParams();
 			for (const [k, v] of combinedParams.entries()) {
-				// Ignore any accidental app-only params.
-				if (k === '') continue;
+				// Ignore any accidental app-only params; never forward a
+				// password-reset token to /authorize.
+				if (k === '' || k === 'token') continue;
 				params.set(k, v);
 			}
 
@@ -239,7 +257,13 @@ export default function Root({
 	}
 	// The resumption effect above is about to navigate away; rendering the
 	// signed-in dashboard here would flash it for a frame first (#269).
-	if (token && (isAuthorizeContext || isSamlIdpContinueURL(rawRedirectURL))) {
+	// Mirrors the effect's conditions exactly, including its reset-page
+	// early return, so this can never wait on a navigation that won't happen.
+	if (
+		token &&
+		!startedOnResetPassword &&
+		(isAuthorizeContext || isSamlIdpContinueURL(rawRedirectURL))
+	) {
 		return <h1>Loading...</h1>;
 	}
 	if (token) {
@@ -256,7 +280,17 @@ export default function Root({
 	return (
 		<Suspense fallback={<></>}>
 			<Routes>
-				<Route path="/app" element={<Login urlProps={urlProps} />} />
+				<Route
+					path="/app"
+					element={
+						<Login
+							urlProps={urlProps}
+							authorizeQuery={
+								isAuthorizeContext ? combinedParams.toString() : ''
+							}
+						/>
+					}
+				/>
 				<Route path="/app/signup" element={<SignUp urlProps={urlProps} />} />
 				<Route path="/app/reset-password" element={<ResetPassword />} />
 				<Route path="/app/setup-password" element={<SetupPassword />} />

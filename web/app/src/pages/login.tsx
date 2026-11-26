@@ -116,7 +116,16 @@ async function homeRealmDiscovery(
 	return null;
 }
 
-export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
+export default function Login({
+	urlProps,
+	authorizeQuery = '',
+}: {
+	urlProps: Record<string, any>;
+	// The pending /authorize request (query + fragment params) when this page
+	// was reached mid-OAuth-flow, else ''. Forwarded on the reset-password
+	// link so the reset page can send the user back here with it (issue #344).
+	authorizeQuery?: string;
+}) {
 	const { config } = useAuthorizer();
 	// Preserved on the Sign Up link below: dropping the query string here
 	// (state/client_id/redirect_uri/...) strands a user who signs up
@@ -259,7 +268,11 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 					<AuthorizerForgotPassword
 						urlProps={{
 							...urlProps,
-							redirect_uri: `${window.location.origin}/app/reset-password`,
+							// Same-origin reset page; the server validates it and
+							// merges the token into this query.
+							redirect_uri: `${window.location.origin}/app/reset-password${
+								authorizeQuery ? `?${authorizeQuery}` : ''
+							}`,
 						}}
 						onPasswordReset={() => {
 							setView(VIEW_TYPES.LOGIN);
