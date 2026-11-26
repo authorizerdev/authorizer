@@ -20,7 +20,7 @@
 | 13+ Database backends | Done | Unique differentiator |
 | Rate Limiting / Brute Force | Done | Per-IP rate limiter with Redis + in-memory backends; fail-closed option |
 | CSRF / Security hardening | Done | CSRF middleware, trusted proxies, HSTS, CSP, cookie hardening |
-| Audit Logs | Partial | Structured AuditLog + audit provider (single actor); delegation-chain fields for agents pending — see specs/AGENTIC_DELEGATION_DESIGN.md |
+| Audit Logs | Partial | Structured AuditLog + audit provider; agent/service-account actor types and delegated-user attribution on token exchange shipped in 2.4.x. Nested `act` chain as first-class fields still pending — see specs/AGENTIC_DELEGATION_DESIGN.md |
 | Monitoring / Metrics | Done | Prometheus `/metrics` on dedicated port; health + readiness endpoints |
 | GraphQL API | Done | Full schema; introspection toggle |
 | REST API | Done | Typed endpoints generated from proto (grpc-gateway) |
@@ -31,14 +31,14 @@
 | Python SDK | Done | `authorizer-py` v0.2.0; sync + async; admin client |
 | React SDK | Done | `authorizer-react` v2.0.7; `protocol` prop; pre-built login/signup/MFA components |
 | Kubernetes Helm Chart | Done | v2.2.1 / appVersion 2.3.0; all env vars wired |
-| M2M / Client Credentials | Missing | No service accounts or API keys |
-| SAML | Missing | Zero support |
-| SCIM / Directory Sync | Missing | No provisioning |
+| M2M / Client Credentials | Done (2.4.0) | Client registry with `service_account` clients, `client_credentials` grant, workload identity (RFC 7523, SPIFFE preview, Kubernetes) |
+| SAML | Done (2.4.0) | Per-org SAML 2.0 Service Provider and Identity Provider |
+| SCIM / Directory Sync | Done (2.4.0) | Per-org inbound SCIM 2.0 (RFC 7644) |
 | Bot Detection | Missing | No CAPTCHA, no fingerprinting |
-| MCP Auth | Missing | No OAuth 2.1 AS capabilities |
-| A2A / Agent Auth | Missing | No agent identity support |
-| Passkeys / WebAuthn | Missing | Not implemented |
-| Authorizer as OIDC Provider | Missing | Can consume OIDC, cannot provide |
+| MCP Auth | Done (2.4.0) | `--mcp-enabled` streamable-HTTP MCP server at `/mcp`; RFC 9728 + RFC 8414 metadata, RFC 8707 audience binding, CIMD and opt-in DCR behind a consent screen |
+| A2A / Agent Auth | Partial | RFC 8693 delegation-only token exchange with `act` (2.4.0), agent ∩ user FGA rule, scope attenuation. Missing: CIBA, `may_act`, Token Vault, Agent Card (`/.well-known/agent.json`) |
+| Passkeys / WebAuthn | Done (2.4.0) | WebAuthn passkeys for passwordless login and MFA |
+| Authorizer as OIDC Provider | Done | OIDC discovery, JWKS, `/authorize`, `/oauth/token`, `/userinfo`; acts as SSO IdP for other apps |
 
 ---
 
@@ -347,17 +347,18 @@
 
 ### Wave 1 — Decision core *(now; replaces 2.1)*
 Object-level authorization + the RAG primitive.
-- [ ] **OpenFGA ReBAC engine** (replaces Resource/Scope/Policy/Permission) — `Check`, `list_objects`, `batch_check`, Conditions (ABAC). SQL-backed FGA store (embedded default / external optional).
+- [x] **OpenFGA ReBAC engine** (replaces Resource/Scope/Policy/Permission) — `Check`, `list_objects`, `batch_check`, SQL-backed FGA store (embedded default / external optional). Shipped in 2.4.0.
+- [ ] **FGA Conditions (ABAC)** — models parse conditions, but tuples carry no condition and Check takes no `context`, so conditional tuples (e.g. `expiration`, `max_call_count` from OpenFGA's agent guide) cannot be written or evaluated yet.
 - [ ] **Keep & integrate** OAuth scopes (coarse gate), RBAC roles (optionally mirrored as tuples), custom-token-script hook (may call FGA).
 - [ ] **FGA-for-RAG** SDK helpers (`list_objects` pre-filter) in authorizer-go / authorizer-js.
 - *Unlocks:* document sharing, hierarchical/B2B authz, secure RAG retrieval.
 
 ### Wave 2 — Delegation core *(next; folds in 2.2, 4.2, 4.3, 5.5)*
 Who is asking, with whose borrowed authority, constrained to what.
-- [ ] **Agent identity** — agents as first-class service-account principals (4.2).
-- [ ] **RFC 8693 token exchange** + **`act` delegation claim** (5.5 / 4.2) — see design doc.
-- [ ] **Attenuation / least-privilege** — exchanged-token scope = `subject ∩ requested ∩ agent ceiling` (reuses `Principal.MaxScopes`) (4.3).
-- [ ] **Audit delegation chain** — `on_behalf_of` + `act` chain on AuditLog (all DBs).
+- [x] **Agent identity** — agents as first-class service-account principals (4.2). Shipped in 2.4.0.
+- [x] **RFC 8693 token exchange** + **`act` delegation claim** (5.5 / 4.2) — delegation-only profile, `act` chain capped at depth 4. Shipped in 2.4.0. `may_act` not yet supported.
+- [x] **Attenuation / least-privilege** — exchanged-token scope = `subject ∩ requested ∩ agent ceiling` (reuses `Principal.MaxScopes`) (4.3). Shipped in 2.4.0.
+- [ ] **Audit delegation chain** — `on_behalf_of` + `act` chain on AuditLog (all DBs). *Partial:* agent/service-account actor types and delegated-user metadata shipped in 2.4.x; the nested chain is not yet first-class.
 - *Unlocks:* "agent acting for user, least-privilege, fully audited."
 
 ### Wave 3 — Async + credential custody
@@ -443,7 +444,7 @@ Human approval and safe third-party access.
 
 **Why**: Token exchange (RFC 8693) enables secure delegation patterns across microservices and AI agents.
 
-- [ ] **Standard token exchange endpoint** at `POST /oauth/token` with `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`
+- [x] **Standard token exchange endpoint** at `POST /oauth/token` with `grant_type=urn:ietf:params:oauth:grant-type:token-exchange` (2.4.0, delegation only)
 - [ ] **Supported exchange patterns**
   - Delegation: User token -> service-scoped token
   - Impersonation: Admin token -> user token (with audit)
