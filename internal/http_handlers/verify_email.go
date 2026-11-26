@@ -144,7 +144,8 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			roles = strings.Split(user.Roles, ",")
 		} else {
 			roles = strings.Split(rolesString, ",")
-			userRoles := strings.Split(user.Roles, ",")
+			// Only roles still configured count (#425).
+			userRoles := h.Config.EffectiveUserRoles(user.Roles)
 			if !validators.IsValidRoles(roles, userRoles) {
 				log.Debug().Msg("Invalid roles requested")
 				errorRes["error"] = "invalid roles"

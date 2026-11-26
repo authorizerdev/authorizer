@@ -397,7 +397,9 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 		log.Debug().Err(cErr).Msg("Failed to reset login failed-attempt counter")
 	}
 	roles := p.Config.DefaultRoles
-	currentRoles := strings.Split(user.Roles, ",")
+	// Only roles still configured count: a role removed from --roles stays on
+	// the stored record but must no longer be grantable (#425).
+	currentRoles := p.Config.EffectiveUserRoles(user.Roles)
 	if len(params.Roles) > 0 {
 		if !validators.IsValidRoles(params.Roles, currentRoles) {
 			log.Debug().Msg("Invalid roles")

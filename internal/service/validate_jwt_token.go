@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
 
@@ -143,6 +144,20 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 	}
 
 	if len(params.Roles) > 0 {
+		// A token minted before a role was removed from --roles still lists
+		// it; drop roles that came from the user record and are no longer
+		// configured (#425). The token's own signed allowed_roles claim is
+		// the user record's roles at mint time (reserved, so a custom script
+		// cannot alter it), which makes this check DB-free on a hot path for
+		// resource servers. A token without allowed_roles (a machine token)
+		// has no record-sourced roles to drop.
+		var mintedUserRoles []string
+		for _, v := range utils.ConvertInterfaceToSlice(claims["allowed_roles"]) {
+			if s, ok := v.(string); ok {
+				mintedUserRoles = append(mintedUserRoles, s)
+			}
+		}
+		claimRoles = p.Config.WithoutStaleUserRoles(claimRoles, strings.Join(mintedUserRoles, ","))
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				log.Debug().Str("role", v).Msg("Role not found in claims")
