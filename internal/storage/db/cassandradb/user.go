@@ -204,19 +204,30 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 
 	// ponytail: Cassandra/ScyllaDB has no substring index on non-key columns
 	// and cannot ORDER BY created_at across partitions, so the list does a
-	// full-table scan, filters and sorts in application code, then slices the
-	// page — O(n). Acceptable for an admin list surface; upgrade path is a
-	// SASI/secondary index or an external search service at scale.
-	q := fmt.Sprintf("SELECT %s FROM %s", columns, KeySpace+"."+schemas.Collections.User)
+	// full-table scan of only the columns needed to filter and sort (never
+	// password/app_data), filters and sorts in application code, then fetches
+	// full rows for the requested page only (WHERE id IN ?). Still O(n) in
+	// users; upgrade path is a created_at-clustered lookup table or an
+	// external search service at scale.
+	searching := strings.TrimSpace(opts.Query) != ""
+	keyCols := "id, created_at, email_verified_at"
+	if searching {
+		keyCols += ", email, given_name, family_name, nickname"
+	}
+	q := fmt.Sprintf("SELECT %s FROM %s", keyCols, KeySpace+"."+schemas.Collections.User)
 	scanner := p.db.Query(q).WithContext(ctx).Iter().Scanner()
 	matched := []*schemas.User{}
 	for scanner.Next() {
-		user, err := scanUser(scanner)
-		if err != nil {
+		var user schemas.User
+		dest := []interface{}{&user.ID, &user.CreatedAt, &user.EmailVerifiedAt}
+		if searching {
+			dest = append(dest, &user.Email, &user.GivenName, &user.FamilyName, &user.Nickname)
+		}
+		if err := scanner.Scan(dest...); err != nil {
 			return nil, nil, err
 		}
-		if opts.Matches(user) {
-			matched = append(matched, user)
+		if opts.Matches(&user) {
+			matched = append(matched, &user)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -232,7 +243,34 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 	if end > int64(len(matched)) {
 		end = int64(len(matched))
 	}
-	return matched[start:end], paginationClone, nil
+	pageIDs := make([]string, 0, end-start)
+	for _, u := range matched[start:end] {
+		pageIDs = append(pageIDs, u.ID)
+	}
+	if len(pageIDs) == 0 {
+		return []*schemas.User{}, paginationClone, nil
+	}
+	fullQuery := fmt.Sprintf("SELECT %s FROM %s WHERE id IN ?", columns, KeySpace+"."+schemas.Collections.User)
+	fullScanner := p.db.Query(fullQuery, pageIDs).WithContext(ctx).Iter().Scanner()
+	byID := make(map[string]*schemas.User, len(pageIDs))
+	for fullScanner.Next() {
+		user, err := scanUser(fullScanner)
+		if err != nil {
+			return nil, nil, err
+		}
+		byID[user.ID] = user
+	}
+	if err := fullScanner.Err(); err != nil {
+		return nil, nil, err
+	}
+	// Preserve the sorted order; a row deleted between scan and fetch is skipped.
+	responseUsers := make([]*schemas.User, 0, len(pageIDs))
+	for _, id := range pageIDs {
+		if u, ok := byID[id]; ok {
+			responseUsers = append(responseUsers, u)
+		}
+	}
+	return responseUsers, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

@@ -173,7 +173,9 @@ export default function Users() {
 					});
 				} else {
 					// No match on the first page (e.g. a filter excludes every
-					// user): clear the list rather than showing stale rows.
+					// user): clear the list rather than showing stale rows, and
+					// take the new (zero) total so pagination is not stale.
+					setPaginationProps({ ...paginationProps, ...pagination, maxPages });
 					setUserList([]);
 				}
 			}
@@ -366,6 +368,18 @@ export default function Users() {
 					<option value="all">All emails</option>
 					<option value="verified">Email verified</option>
 					<option value="unverified">Email not verified</option>
+				</Select>
+				<Select
+					aria-label="Sort by created date"
+					value={createdAtOrder}
+					onChange={(e) => {
+						setCreatedAtOrder(e.target.value as 'ASC' | 'DESC');
+						resetToFirstPage();
+					}}
+					className="w-40"
+				>
+					<option value="DESC">Newest first</option>
+					<option value="ASC">Oldest first</option>
 				</Select>
 			</div>
 			{loading ? (

@@ -170,12 +170,17 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 //
 // ponytail: DynamoDB has no substring index, contains() is case-sensitive,
 // and a Scan returns items in hash order, not created_at order. So the list
-// scans the whole table, filters and sorts in application code, then slices
-// the page — O(n). Acceptable for an admin list surface; upgrade path is a
-// GSI keyed on created_at (and lowercased search fields) at scale.
+// scans the whole table — projecting only the attributes needed to filter and
+// sort, never password/app_data — filters and sorts in application code, then
+// BatchGets the full rows for the requested page only. Still O(n) in users;
+// the upgrade path is a GSI keyed on created_at (and lowercased search fields).
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
 	paginationClone := pagination
-	items, err := p.scanAllRaw(ctx, schemas.Collections.User, nil, nil)
+	attrs := []string{"id", "created_at", "email_verified_at"}
+	if strings.TrimSpace(opts.Query) != "" {
+		attrs = append(attrs, "email", "given_name", "family_name", "nickname")
+	}
+	items, err := p.scanProjectedAll(ctx, schemas.Collections.User, attrs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -200,7 +205,29 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 	if end > int64(len(matched)) {
 		end = int64(len(matched))
 	}
-	return matched[start:end], paginationClone, nil
+	pageIDs := make([]string, 0, end-start)
+	for _, u := range matched[start:end] {
+		pageIDs = append(pageIDs, u.ID)
+	}
+	full, err := p.batchGetByHash(ctx, schemas.Collections.User, "id", pageIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Preserve the sorted order; a row deleted between scan and fetch is skipped.
+	users := make([]*schemas.User, 0, len(pageIDs))
+	for _, id := range pageIDs {
+		it, ok := full[id]
+		if !ok {
+			continue
+		}
+		var u schemas.User
+		if err := unmarshalItem(it, &u); err != nil {
+			return nil, nil, err
+		}
+		normalizeUserOptionalPtrs(&u)
+		users = append(users, &u)
+	}
+	return users, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address
