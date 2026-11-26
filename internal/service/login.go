@@ -204,11 +204,20 @@ func (p *provider) resolveLoginRoles(user *schemas.User, requested []string) (ro
 // carried across the interruption so the deferred token issuance mints
 // exactly what the uninterrupted flow would have.
 func (p *provider) setMFASession(meta RequestMetadata, side *ResponseSideEffects, userID string, expiresAt int64, roles []string, scope ...string) error {
-	mfaSession := uuid.NewString()
 	// Every caller of this helper (login, webauthn-verify, oauth callback) has
 	// already confirmed a first factor for userID, so the session is Verified —
 	// the only purpose skip_mfa_setup/lock_mfa will act on.
-	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, constants.MFASessionPurposeVerified, expiresAt); err != nil {
+	return p.setMFASessionWithPurpose(meta, side, userID, constants.MFASessionPurposeVerified, expiresAt, roles, scope...)
+}
+
+// setMFASessionWithPurpose is setMFASession with an explicit purpose. Login's
+// email/phone verification branches run before the password is checked, so
+// they arm a Challenge session: redeemable only by verify_otp with the OTP
+// that was just sent, never by an endpoint that requires a verified first
+// factor (skip_mfa_setup, lock_mfa, *_mfa_setup, webauthn registration).
+func (p *provider) setMFASessionWithPurpose(meta RequestMetadata, side *ResponseSideEffects, userID, purpose string, expiresAt int64, roles []string, scope ...string) error {
+	mfaSession := uuid.NewString()
+	if err := p.MemoryStoreProvider.SetMfaSession(userID, mfaSession, purpose, expiresAt); err != nil {
 		return err
 	}
 	// Carry the caller's requested scope across the MFA interruption.
@@ -417,7 +426,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
+				if err := p.setMFASessionWithPurpose(meta, side, user.ID, constants.MFASessionPurposeChallenge, expiresAt, rolesRequest, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}
@@ -458,7 +467,7 @@ func (p *provider) Login(ctx context.Context, meta RequestMetadata, params *mode
 					log.Debug().Msg("Failed to generate otp")
 					return nil, nil, err
 				}
-				if err := p.setMFASession(meta, side, user.ID, expiresAt, rolesRequest, params.Scope...); err != nil {
+				if err := p.setMFASessionWithPurpose(meta, side, user.ID, constants.MFASessionPurposeChallenge, expiresAt, rolesRequest, params.Scope...); err != nil {
 					log.Debug().Msg("Failed to set mfa session")
 					return nil, nil, err
 				}

@@ -334,9 +334,10 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			return nil, nil, err
 		}
 		mfaSession := uuid.NewString()
-		// The caller just created this account with an accepted signup
-		// credential, so the session is Verified.
-		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeVerified, expiresAt)
+		// The phone number is not verified yet, so the session is Challenge:
+		// it completes only through verify_otp with the OTP just sent, and
+		// cannot be used to skip MFA setup or enroll a factor instead.
+		err = p.MemoryStoreProvider.SetMfaSession(user.ID, mfaSession, constants.MFASessionPurposeChallenge, expiresAt)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to add mfasession")
 			return nil, nil, err
