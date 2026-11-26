@@ -3,19 +3,24 @@ import { useQuery } from 'urql';
 import { MetaQuery } from '../graphql/queries';
 import { Skeleton } from '../components/ui/skeleton';
 import type { MetaResponse } from '../types';
+import { getOrganizationBranding } from '../utils';
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
 	const [{ fetching, data }] = useQuery<MetaResponse>({ query: MetaQuery });
+	const branding = getOrganizationBranding();
 	return (
 		<div className="flex h-screen flex-col items-center justify-center bg-gray-50 p-4">
 			<div className="flex items-center mb-6">
 				<img
-					src="https://authorizer.dev/images/logo.png"
-					alt="Authorizer logo"
+					src={branding.logo}
+					alt={`${branding.name} logo`}
 					className="h-12"
 				/>
-				<span className="ml-3 text-xl tracking-widest font-semibold text-gray-800">
-					AUTHORIZER
+				<span
+					className="ml-3 max-w-xs truncate text-xl uppercase tracking-widest font-semibold text-gray-800"
+					title={branding.name}
+				>
+					{branding.name}
 				</span>
 			</div>
 

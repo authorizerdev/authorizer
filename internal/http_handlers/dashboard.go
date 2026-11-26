@@ -18,6 +18,11 @@ func (h *httpProvider) DashboardHandler() gin.HandlerFunc {
 		c.HTML(http.StatusOK, "dashboard.tmpl", gin.H{
 			"data": map[string]interface{}{
 				"isOnboardingCompleted": true,
+				// Same branding the /app login UI uses (--organization-name /
+				// --organization-logo), so the admin login page and sidebar
+				// match the deployment instead of always showing Authorizer.
+				"organizationName": h.Config.OrganizationName,
+				"organizationLogo": h.Config.OrganizationLogo,
 			},
 		})
 	}

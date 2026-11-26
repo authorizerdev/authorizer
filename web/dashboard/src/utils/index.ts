@@ -3,6 +3,8 @@ import _ from 'lodash';
 interface AuthorizerWindow extends Window {
 	__authorizer__: {
 		isOnboardingCompleted: boolean;
+		organizationName?: string;
+		organizationLogo?: string;
 	};
 }
 
@@ -11,6 +13,19 @@ export const hasAdminSecret = () => {
 		(window as unknown as AuthorizerWindow).__authorizer__
 			.isOnboardingCompleted === true
 	);
+};
+
+const DEFAULT_ORGANIZATION_NAME = 'Authorizer';
+const DEFAULT_ORGANIZATION_LOGO = 'https://authorizer.dev/images/logo.png';
+
+// Branding injected by the server from --organization-name /
+// --organization-logo, falling back to the Authorizer defaults.
+export const getOrganizationBranding = (): { name: string; logo: string } => {
+	const data = (window as unknown as Partial<AuthorizerWindow>).__authorizer__;
+	return {
+		name: data?.organizationName || DEFAULT_ORGANIZATION_NAME,
+		logo: data?.organizationLogo || DEFAULT_ORGANIZATION_LOGO,
+	};
 };
 
 export const capitalizeFirstLetter = (data: string): string =>
