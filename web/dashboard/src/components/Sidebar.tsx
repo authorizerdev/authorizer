@@ -27,6 +27,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { AdminLogout } from '../graphql/mutation';
 import { MetaQuery } from '../graphql/queries';
 import type { MetaResponse } from '../types';
+import { getOrganizationBranding } from '../utils';
 
 interface NavItemConfig {
 	name: string;
@@ -125,12 +126,12 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 			<div className="flex h-16 items-center px-4">
 				<NavLink to="/" className="flex items-center" onClick={onClose}>
 					<img
-						src="https://authorizer.dev/images/logo.png"
-						alt="Authorizer logo"
+						src={getOrganizationBranding().logo}
+						alt={`${getOrganizationBranding().name} logo`}
 						className="h-9"
 					/>
-					<span className="ml-2 text-lg tracking-widest font-semibold text-gray-800">
-						AUTHORIZER
+					<span className="ml-2 text-lg uppercase tracking-widest font-semibold text-gray-800">
+						{getOrganizationBranding().name}
 					</span>
 				</NavLink>
 			</div>
@@ -270,8 +271,8 @@ export const MobileNav = ({ onOpen }: MobileNavProps) => {
 			</button>
 
 			<img
-				src="https://authorizer.dev/images/logo.png"
-				alt="Authorizer logo"
+				src={getOrganizationBranding().logo}
+				alt={`${getOrganizationBranding().name} logo`}
 				className="h-9 md:hidden"
 			/>
 
