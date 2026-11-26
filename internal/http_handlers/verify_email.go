@@ -2,6 +2,7 @@ package http_handlers
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,12 +39,16 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// Core §3.1.2.1) and simply was never called here
 		// (GHSA-44vr-f829-xfch).
 		//
-		// A verification request records no client_id, so the deployment's own
-		// client is the only identity available. Exact matching therefore
-		// applies when the operator has declared --redirect-uris, and falls
-		// back to the origin allow-list otherwise. That is why dropping the
-		// tokens from the redirect (further down) is the primary fix and this
-		// is hardening on top of it, not the other way round.
+		// A verification request records no client_id. When the link carries
+		// the `state` of an /authorize request, that request's client is the
+		// identity the redirect must satisfy — the same client /authorize
+		// already validated it against, so a third-party client's exact
+		// redirect is not refused here. Otherwise the deployment's own client
+		// is the only identity available: exact matching applies when the
+		// operator has declared --redirect-uris, and falls back to the origin
+		// allow-list otherwise. That is why dropping the tokens from the
+		// redirect (further down) is the primary fix and this is hardening on
+		// top of it, not the other way round.
 		//
 		// Returns false and has ALREADY written the response when the URI is
 		// unacceptable. A lookup FAILURE and a non-matching URI are answered
@@ -51,8 +56,19 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// registry, a read this handler never used to do, and collapsing a
 		// storage outage into "invalid redirect uri" would tell the user their
 		// link is bad during what is really a server fault. Mirrors /authorize.
+		state := strings.TrimSpace(c.Query("state"))
+		redirectClientID := h.Config.ClientID
+		if state != "" {
+			// Peek only: the state is consumed further down, after the token
+			// and the MFA gate have both passed.
+			if raw, _ := h.MemoryStoreProvider.GetState(state); codestate.HasCode(raw) {
+				if as := codestate.DecodeAuthorize(raw); as.ClientID != "" {
+					redirectClientID = as.ClientID
+				}
+			}
+		}
 		validRedirect := func(uri string) bool {
-			check, cErr := h.checkClientRedirectURI(c.Request.Context(), h.Config.ClientID, uri, hostname)
+			check, cErr := h.checkClientRedirectURI(c.Request.Context(), redirectClientID, uri, hostname)
 			switch {
 			case cErr != nil:
 				log.Warn().Err(cErr).Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
@@ -139,7 +155,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			log.Debug().Err(err).Msg("Error deleting verification request")
 		}
 
-		state := strings.TrimSpace(c.Query("state"))
 		rolesString := strings.TrimSpace(c.Query("roles"))
 		var roles []string
 		if rolesString == "" {
@@ -164,10 +179,11 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			scope = strings.Split(scopeString, " ")
 		}
 
-		// /authorize detour: when the magic link (or signup verification) was
-		// started from an /authorize request, the login UI threads its `state`
-		// through, and /authorize stored the pre-generated code plus its PKCE
-		// challenge under it. Bind them to the session minted here and persist
+		// /authorize detour: when a magic link was started from an /authorize
+		// request, the login UI threads its `state` through magic_link_login,
+		// and /authorize stored the pre-generated code plus its PKCE challenge
+		// under it. (Signup email verification does not carry state; signup.go
+		// completes the authorize request itself.) Bind them to the session minted here and persist
 		// the code state exactly as login/session/signup do, so /oauth/token
 		// can redeem the code (PKCE-verified, client- and redirect-bound,
 		// single-use via GetAndRemoveState). The code state used to be left
@@ -176,6 +192,14 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// Reached only after the MFA gate above has let the session through:
 		// a withheld session returns earlier and leaves the authorize state
 		// untouched, so no code is ever bound to a session that does not exist.
+		//
+		// A code is issued only to the browser that made the /authorize
+		// request. magic_link_login is unauthenticated and accepts any state,
+		// so the state alone says nothing about who is clicking, while
+		// whoever ran /authorize holds the PKCE verifier. /authorize set a
+		// binding cookie and stored its digest in the state
+		// (cookie.SetAuthorizeBinding); without the matching cookie the click
+		// still signs the user in here, but no code is issued.
 		code := ""
 		codeChallenge := ""
 		nonce := ""
@@ -194,18 +218,26 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 					// RFC 6749 §4.1.2: the code goes to the redirect_uri of the
 					// authorization request and nowhere else. The target here is
 					// validated, but against an allow-list that can be wider than
-					// the one URI /authorize recorded, so a mismatch gets the
-					// session (cookie) without a code rather than a code
-					// delivered somewhere the client never asked for.
-					if as.RedirectURI == "" || as.RedirectURI == redirectURL {
+					// the one URI /authorize recorded, so a mismatch — or a blob
+					// that recorded none — gets the session (cookie) without a
+					// code rather than a code delivered somewhere the client
+					// never asked for.
+					presented := cookie.GetAuthorizeBinding(c)
+					boundToThisBrowser := as.BrowserBinding != "" && presented != "" &&
+						subtle.ConstantTimeCompare([]byte(crypto.HashSessionValue(presented)), []byte(as.BrowserBinding)) == 1
+					switch {
+					case !boundToThisBrowser:
+						log.Debug().Msg("authorize request was not started in this browser; not issuing a code")
+					case as.RedirectURI == "" || as.RedirectURI != redirectURL:
+						log.Debug().Msg("redirect_uri differs from the authorize request; not issuing a code")
+					default:
 						code = as.Code
 						codeChallenge = as.Challenge
 						oidcNonce = as.Nonce
 						authorizeRedirectURI = as.RedirectURI
 						authorizeResource = as.Resource
 						authorizeClientID = as.ClientID
-					} else {
-						log.Debug().Msg("redirect_uri differs from the authorize request; not issuing a code")
+						cookie.DeleteAuthorizeBinding(c, h.Config.AppCookieSecure)
 					}
 				} else {
 					nonce = authorizeState

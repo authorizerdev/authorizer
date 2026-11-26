@@ -1,6 +1,7 @@
 package integration_tests
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 const magicLinkCallback = "http://localhost:3000/callback"
@@ -39,22 +43,25 @@ func magicLinkRouter(ts *testSetup) *gin.Engine {
 	return r
 }
 
-func serveGET(ts *testSetup, r *gin.Engine, target string) *httptest.ResponseRecorder {
+func serveGET(ts *testSetup, r *gin.Engine, target string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	req.Header.Set("X-Authorizer-URL", testAuthorizerHost(ts))
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
 	r.ServeHTTP(w, req)
 	return w
 }
 
-// clickLink follows the emailed link as a browser would, against the router.
-// A browser percent-encodes a literal space before sending the request, so
-// that is the only normalisation applied.
-func clickLink(t *testing.T, ts *testSetup, r *gin.Engine, link string) *httptest.ResponseRecorder {
+// clickLink follows the emailed link as a browser would, against the router,
+// presenting the given cookies. A browser percent-encodes a literal space
+// before sending the request, so that is the only normalisation applied.
+func clickLink(t *testing.T, ts *testSetup, r *gin.Engine, link string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	t.Helper()
 	u, err := url.Parse(link)
 	require.NoError(t, err)
-	return serveGET(ts, r, strings.ReplaceAll(u.RequestURI(), " ", "%20"))
+	return serveGET(ts, r, strings.ReplaceAll(u.RequestURI(), " ", "%20"), cookies...)
 }
 
 func redeemCode(ts *testSetup, r *gin.Engine, code, verifier, redirectURI string) (int, map[string]interface{}) {
@@ -76,14 +83,17 @@ func redeemCode(ts *testSetup, r *gin.Engine, code, verifier, redirectURI string
 	return w.Code, body
 }
 
-// authorizeAndClickMagicLink runs /authorize (PKCE, no session) →
-// magic_link_login with the state the login UI received and the given
-// redirect → clicks the emailed link. It returns the state and the raw
-// /verify_email response.
-func authorizeAndClickMagicLink(t *testing.T, ts *testSetup, r *gin.Engine, verifier, magicRedirect string) (string, *httptest.ResponseRecorder) {
-	t.Helper()
-	_, ctx := createContext(ts)
+// authorizeFlow is what one browser holds after an unauthenticated PKCE
+// /authorize: the state, the pre-generated code the login UI URL carries, and
+// whatever cookies /authorize set on that browser.
+type authorizeFlow struct {
+	State       string
+	LoginUICode string
+	Cookies     []*http.Cookie
+}
 
+func startAuthorize(t *testing.T, ts *testSetup, r *gin.Engine, verifier string) authorizeFlow {
+	t.Helper()
 	state := uuid.NewString()
 	qs := url.Values{}
 	qs.Set("response_type", "code")
@@ -100,18 +110,32 @@ func authorizeAndClickMagicLink(t *testing.T, ts *testSetup, r *gin.Engine, veri
 	require.NoError(t, err)
 	require.Equal(t, "/app", loginUI.Path, "an unauthenticated /authorize detours through the login UI")
 	require.Equal(t, state, loginUI.Query().Get("state"))
+	return authorizeFlow{State: state, LoginUICode: loginUI.Query().Get("code"), Cookies: aw.Result().Cookies()}
+}
 
-	email := "magic_authz_" + uuid.NewString() + "@authorizer.dev"
-	_, err = ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
+// sendMagicLink calls magic_link_login for email with the given state and
+// redirect, and returns the link from the email actually sent.
+func sendMagicLink(t *testing.T, ts *testSetup, email, state, redirect string) string {
+	t.Helper()
+	_, ctx := createContext(ts)
+	_, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
 		Email:       email,
 		State:       refs.NewStringRef(state),
 		Scope:       []string{"openid", "profile", "email"},
-		RedirectURI: refs.NewStringRef(magicRedirect),
+		RedirectURI: refs.NewStringRef(redirect),
 	})
 	require.NoError(t, err)
+	return ts.SentEmails.waitForVerificationURL(t, email, constants.VerificationTypeMagicLinkLogin)
+}
 
-	link := ts.SentEmails.waitForVerificationURL(t, email, constants.VerificationTypeMagicLinkLogin)
-	return state, clickLink(t, ts, r, link)
+// authorizeAndClickMagicLink runs /authorize → magic_link_login → clicks the
+// emailed link in the SAME browser that ran /authorize. It returns the state
+// and the raw /verify_email response.
+func authorizeAndClickMagicLink(t *testing.T, ts *testSetup, r *gin.Engine, verifier, magicRedirect string) (string, *httptest.ResponseRecorder) {
+	t.Helper()
+	flow := startAuthorize(t, ts, r, verifier)
+	link := sendMagicLink(t, ts, "magic_authz_"+uuid.NewString()+"@authorizer.dev", flow.State, magicRedirect)
+	return flow.State, clickLink(t, ts, r, link, flow.Cookies...)
 }
 
 // startAuthorizeMagicLink is authorizeAndClickMagicLink for the happy path,
@@ -291,4 +315,102 @@ func TestMagicLinkAuthorizeCodeOnlyToAuthorizeRedirect(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "/elsewhere", loc.Path)
 	assert.Empty(t, loc.Query().Get("code"))
+}
+
+// TestMagicLinkAuthorizeCodeRequiresInitiatingBrowser pins that a magic link
+// only completes an /authorize request in the browser that started it.
+//
+// magic_link_login is unauthenticated and accepts any `state`, so the state
+// alone says nothing about who clicks the link, while whoever ran /authorize
+// holds the PKCE verifier. /authorize therefore binds the request to the
+// initiating browser with a cookie, and /verify_email issues a code only when
+// that binding is presented. Without it the click still signs the user in
+// (session cookie) but carries no code.
+func TestMagicLinkAuthorizeCodeRequiresInitiatingBrowser(t *testing.T) {
+	ts := initTestSetup(t, magicLinkTestConfig())
+	r := magicLinkRouter(ts)
+	const verifier = "initiator-verifier-long-enough-to-be-valid-00000000"
+
+	assertNoCodeAndNothingRedeemable := func(t *testing.T, flow authorizeFlow, vw *httptest.ResponseRecorder) {
+		t.Helper()
+		require.Equal(t, http.StatusTemporaryRedirect, vw.Code, vw.Body.String())
+		loc, err := url.Parse(vw.Header().Get("Location"))
+		require.NoError(t, err)
+		redirected := loc.Query().Get("code")
+		assert.Empty(t, redirected, "no code without the initiating browser's binding")
+		for _, c := range []string{redirected, flow.LoginUICode} {
+			if c == "" {
+				continue
+			}
+			status, body := redeemCode(ts, r, c, verifier, magicLinkCallback)
+			assert.NotEqual(t, http.StatusOK, status, "the /authorize initiator must not obtain tokens: %v", body)
+			assert.Empty(t, body["access_token"])
+		}
+	}
+
+	t.Run("link clicked without the binding cookie issues no code", func(t *testing.T) {
+		flow := startAuthorize(t, ts, r, verifier)
+		link := sendMagicLink(t, ts, "magic_bind_"+uuid.NewString()+"@authorizer.dev", flow.State, magicLinkCallback)
+		assertNoCodeAndNothingRedeemable(t, flow, clickLink(t, ts, r, link))
+	})
+
+	t.Run("a binding from a different /authorize request does not match", func(t *testing.T) {
+		mine := startAuthorize(t, ts, r, verifier)
+		theirs := startAuthorize(t, ts, r, verifier)
+		link := sendMagicLink(t, ts, "magic_bind_"+uuid.NewString()+"@authorizer.dev", theirs.State, magicLinkCallback)
+		assertNoCodeAndNothingRedeemable(t, theirs, clickLink(t, ts, r, link, mine.Cookies...))
+	})
+
+	t.Run("the initiating browser gets a code redeemable once", func(t *testing.T) {
+		loc := startAuthorizeMagicLink(t, ts, r, verifier)
+		code := loc.Query().Get("code")
+		require.NotEmpty(t, code)
+		status, body := redeemCode(ts, r, code, verifier, magicLinkCallback)
+		require.Equal(t, http.StatusOK, status, "%v", body)
+		status, _ = redeemCode(ts, r, code, verifier, magicLinkCallback)
+		assert.Equal(t, http.StatusBadRequest, status)
+	})
+}
+
+// TestMagicLinkRedirectValidatedAgainstAuthorizeClient pins that /verify_email
+// validates the redirect against the client of the /authorize request the link
+// completes, not always the deployment's own client. With --redirect-uris set,
+// a third-party client's registered redirect — already accepted by /authorize
+// — used to be refused here with 400 because it is not in the deployment's own
+// list.
+func TestMagicLinkRedirectValidatedAgainstAuthorizeClient(t *testing.T) {
+	cfg := magicLinkTestConfig()
+	cfg.RedirectURIs = []string{magicLinkCallback}
+	ts := initTestSetup(t, cfg)
+	r := magicLinkRouter(ts)
+
+	const thirdPartyRedirect = "http://localhost:3000/third-party-cb"
+	client, err := ts.StorageProvider.AddClient(context.Background(), &schemas.Client{
+		Name:          "third-party-" + uuid.NewString(),
+		Kind:          constants.ClientKindInteractive,
+		RedirectURIs:  thirdPartyRedirect,
+		AllowedScopes: "openid,profile,email",
+		GrantTypes:    "authorization_code,refresh_token",
+		IsActive:      true,
+	})
+	require.NoError(t, err)
+
+	const binding = "third-party-browser-binding"
+	state := uuid.NewString()
+	require.NoError(t, ts.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
+		Code:           uuid.NewString(),
+		Challenge:      s256Challenge("third-party-verifier-long-enough-to-be-valid-000") + "::S256",
+		Nonce:          uuid.NewString(),
+		RedirectURI:    thirdPartyRedirect,
+		ClientID:       client.ClientID,
+		BrowserBinding: crypto.HashSessionValue(binding),
+	})))
+
+	link := sendMagicLink(t, ts, "magic_3p_"+uuid.NewString()+"@authorizer.dev", state, thirdPartyRedirect)
+	vw := clickLink(t, ts, r, link, &http.Cookie{Name: constants.AuthorizeBindingCookieName, Value: binding})
+	require.Equal(t, http.StatusTemporaryRedirect, vw.Code, "verify_email: %s", vw.Body.String())
+	loc, err := url.Parse(vw.Header().Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, thirdPartyRedirect, loc.Scheme+"://"+loc.Host+loc.Path)
+	assert.NotEmpty(t, loc.Query().Get("code"))
 }

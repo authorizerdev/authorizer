@@ -74,12 +74,13 @@ func TestDecodeCodeLegacyBlobs(t *testing.T) {
 func TestAuthorizeRoundTrip(t *testing.T) {
 	t.Parallel()
 	in := Authorize{
-		Code:        "the-code",
-		Challenge:   "chal::S256",
-		Nonce:       "nonce",
-		RedirectURI: "https://app.example.com/cb",
-		Resource:    "https://api.example.com",
-		ClientID:    "client-a",
+		Code:           "the-code",
+		Challenge:      "chal::S256",
+		Nonce:          "nonce",
+		RedirectURI:    "https://app.example.com/cb",
+		Resource:       "https://api.example.com",
+		ClientID:       "client-a",
+		BrowserBinding: "sha256:abc",
 	}
 	assert.Equal(t, in, DecodeAuthorize(EncodeAuthorize(in)))
 }
@@ -103,4 +104,5 @@ func TestDecodeAuthorizeLegacyBlob(t *testing.T) {
 	assert.Equal(t, "code", got.Code)
 	assert.Equal(t, "https://app.example.com/cb", got.RedirectURI)
 	assert.Empty(t, got.ClientID)
+	assert.Empty(t, got.BrowserBinding, "a pre-binding blob carries no binding")
 }

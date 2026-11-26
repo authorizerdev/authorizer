@@ -507,18 +507,24 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// [4] carries the RFC 8707 resource (url-escaped, empty when absent)
 			// so the login/signup/session/auth_response services can rebind it
 			// to the code state they persist after a fresh login.
+			// Bind this request to the browser making it, so a magic link —
+			// whose request is unauthenticated and can name any state — only
+			// completes it in this browser. See cookie.SetAuthorizeBinding.
+			browserBinding := rand.Text()
 			if err := h.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
-				Code:        code,
-				Challenge:   challengeData,
-				Nonce:       nonce,
-				RedirectURI: redirectURI,
-				Resource:    resource,
-				ClientID:    clientID,
+				Code:           code,
+				Challenge:      challengeData,
+				Nonce:          nonce,
+				RedirectURI:    redirectURI,
+				Resource:       resource,
+				ClientID:       clientID,
+				BrowserBinding: crypto.HashSessionValue(browserBinding),
 			})); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
+			cookie.SetAuthorizeBinding(gc, browserBinding, h.Config.AppCookieSecure)
 		} else {
 			if err := h.MemoryStoreProvider.SetState(state, nonce); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp nonce")

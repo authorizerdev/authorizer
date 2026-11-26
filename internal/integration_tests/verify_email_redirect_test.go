@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -212,20 +213,26 @@ func TestVerifyEmailStillDeliversCodeForAuthorizeFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Seed the state entry exactly as /authorize does when it detours an
-	// unauthenticated visitor through the login page.
+	// unauthenticated visitor through the login page, including the digest of
+	// the binding cookie it sets on that browser.
+	const binding = "browser-binding-value"
 	state := uuid.New().String()
 	expectedCode := uuid.New().String()
 	require.NoError(t, ts.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
-		Code:        expectedCode,
-		Nonce:       uuid.New().String(),
-		RedirectURI: "http://localhost:3000/callback",
-		ClientID:    ts.Config.ClientID,
+		Code:           expectedCode,
+		Nonce:          uuid.New().String(),
+		RedirectURI:    "http://localhost:3000/callback",
+		ClientID:       ts.Config.ClientID,
+		BrowserBinding: crypto.HashSessionValue(binding),
 	})))
 
-	resp, err := noRedirectClient().Get(
-		testAuthorizerHost(ts) + "/verify_email?token=" + url.QueryEscape(vreq.Token) +
-			"&state=" + url.QueryEscape(state) +
-			"&redirect_uri=" + url.QueryEscape("http://localhost:3000/callback"))
+	req, err := http.NewRequest(http.MethodGet,
+		testAuthorizerHost(ts)+"/verify_email?token="+url.QueryEscape(vreq.Token)+
+			"&state="+url.QueryEscape(state)+
+			"&redirect_uri="+url.QueryEscape("http://localhost:3000/callback"), nil)
+	require.NoError(t, err)
+	req.AddCookie(&http.Cookie{Name: constants.AuthorizeBindingCookieName, Value: binding})
+	resp, err := noRedirectClient().Do(req)
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -236,4 +243,50 @@ func TestVerifyEmailStillDeliversCodeForAuthorizeFlow(t *testing.T) {
 		"the authorization code must still reach the client — it is how a session is obtained now")
 	assert.NotContains(t, location, "access_token=")
 	assert.NotContains(t, location, "refresh_token=")
+}
+
+// TestVerifyEmailLegacyAuthorizeStateIssuesNoCode pins the upgrade behaviour:
+// an authorize state written before the browser binding existed carries no
+// binding digest, so it can never yield a code from /verify_email. The click
+// still completes (session cookie), only the code is withheld.
+func TestVerifyEmailLegacyAuthorizeStateIssuesNoCode(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "verify_email_legacy_" + uuid.New().String() + "@authorizer.dev"
+	const password = "Password@123"
+	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	vreq, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+	require.NoError(t, err)
+
+	state := uuid.New().String()
+	require.NoError(t, ts.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
+		Code:        uuid.New().String(),
+		Nonce:       uuid.New().String(),
+		RedirectURI: "http://localhost:3000/callback",
+		ClientID:    ts.Config.ClientID,
+	})))
+
+	req, err := http.NewRequest(http.MethodGet,
+		testAuthorizerHost(ts)+"/verify_email?token="+url.QueryEscape(vreq.Token)+
+			"&state="+url.QueryEscape(state)+
+			"&redirect_uri="+url.QueryEscape("http://localhost:3000/callback"), nil)
+	require.NoError(t, err)
+	req.AddCookie(&http.Cookie{Name: constants.AuthorizeBindingCookieName, Value: "anything"})
+	resp, err := noRedirectClient().Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Empty(t, loc.Query().Get("code"), "a binding-less authorize state never yields a code")
 }
