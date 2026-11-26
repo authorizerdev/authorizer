@@ -23,6 +23,8 @@ func devFlagSet(t *testing.T, set map[string]string) *pflag.FlagSet {
 	fs := pflag.NewFlagSet("dev", pflag.ContinueOnError)
 	var s string
 	var b bool
+	var ss []string
+	fs.StringSliceVar(&ss, "allowed-origins", nil, "")
 	for _, name := range []string{"host", "database-type", "database-url", "url", "client-id", "client-secret",
 		"admin-secret", "encryption-key", "jwt-type", "jwt-secret", "jwt-private-key", "jwt-public-key"} {
 		fs.StringVar(&s, name, "", "")
@@ -133,6 +135,8 @@ func TestApplyDevDefaults(t *testing.T) {
 		assert.Equal(t, "pub", cfg.JWTPublicKey)
 		assert.True(t, cfg.MCPEnabled)
 		assert.True(t, cfg.EnableClientIDMetadataDocument)
+		assert.Equal(t, []string{"http://localhost:8080", "http://localhost:3000", "http://localhost:5173", "http://localhost:4200"},
+			cfg.AllowedOrigins, "own origin first: an explicit list drops the same-origin fallback")
 	})
 
 	t.Run("url follows a non-default http port", func(t *testing.T) {
@@ -151,7 +155,9 @@ func TestApplyDevDefaults(t *testing.T) {
 			"host": "0.0.0.0", "database-url": "postgres://x", "url": "https://auth.example.com",
 			"client-id": "mine", "admin-secret": "my-admin", "jwt-type": "HS256",
 			"mcp-enabled": "false", "enable-client-id-metadata-document": "false",
+			"allowed-origins": "https://app.example.com",
 		})
+		cfg.AllowedOrigins = []string{"https://app.example.com"}
 		applyDevDefaults(fs, cfg, srv, st, "d")
 
 		assert.Equal(t, "0.0.0.0", srv.Host)
@@ -165,6 +171,7 @@ func TestApplyDevDefaults(t *testing.T) {
 		assert.Empty(t, cfg.JWTPrivateKey, "generated RSA keys are not injected under a caller-chosen algorithm")
 		assert.False(t, cfg.MCPEnabled)
 		assert.False(t, cfg.EnableClientIDMetadataDocument)
+		assert.Equal(t, []string{"https://app.example.com"}, cfg.AllowedOrigins)
 	})
 }
 

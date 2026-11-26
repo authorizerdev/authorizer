@@ -30,6 +30,12 @@ const (
 	devHost     = "127.0.0.1"
 )
 
+// devFrontendOrigins are the default ports of common frontend dev servers
+// (Next.js / Create React App / Remix, Vite, Angular). The allowlist has no
+// port wildcard, and the server default "*" is same-origin only for CSRF and
+// redirect URIs, so without these a local app could not log in.
+var devFrontendOrigins = []string{"http://localhost:3000", "http://localhost:5173", "http://localhost:4200"}
+
 var devArgs struct {
 	dir         string
 	printConfig bool
@@ -48,23 +54,24 @@ type devState struct {
 // devInfo is the connection summary printed by --print-config and written to
 // <dir>/dev.json. Field names are a stable contract for scripts and agents.
 type devInfo struct {
-	URL                    string `json:"url"`
-	LoginURL               string `json:"login_url"`
-	DashboardURL           string `json:"dashboard_url"`
-	GraphQLURL             string `json:"graphql_url"`
-	RESTBaseURL            string `json:"rest_base_url"`
-	OpenAPIURL             string `json:"openapi_url"`
-	GRPCAddress            string `json:"grpc_address"`
-	OpenIDConfigurationURL string `json:"openid_configuration_url"`
-	JWKSURL                string `json:"jwks_url"`
-	MCPURL                 string `json:"mcp_url,omitempty"`
-	ClientID               string `json:"client_id"`
-	ClientSecret           string `json:"client_secret"`
-	AdminSecret            string `json:"admin_secret"`
-	AdminSecretHeader      string `json:"admin_secret_header"`
-	DatabaseType           string `json:"database_type"`
-	DatabaseURL            string `json:"database_url"`
-	StateDir               string `json:"state_dir"`
+	URL                    string   `json:"url"`
+	LoginURL               string   `json:"login_url"`
+	DashboardURL           string   `json:"dashboard_url"`
+	GraphQLURL             string   `json:"graphql_url"`
+	RESTBaseURL            string   `json:"rest_base_url"`
+	OpenAPIURL             string   `json:"openapi_url"`
+	GRPCAddress            string   `json:"grpc_address"`
+	OpenIDConfigurationURL string   `json:"openid_configuration_url"`
+	JWKSURL                string   `json:"jwks_url"`
+	MCPURL                 string   `json:"mcp_url,omitempty"`
+	AllowedOrigins         []string `json:"allowed_origins"`
+	ClientID               string   `json:"client_id"`
+	ClientSecret           string   `json:"client_secret"`
+	AdminSecret            string   `json:"admin_secret"`
+	AdminSecretHeader      string   `json:"admin_secret_header"`
+	DatabaseType           string   `json:"database_type"`
+	DatabaseURL            string   `json:"database_url"`
+	StateDir               string   `json:"state_dir"`
 }
 
 // devCmd runs a local server with zero required flags. It exists so a person
@@ -79,6 +86,7 @@ var devCmd = &cobra.Command{
 		"Later runs reuse them, so credentials stay stable across restarts.\n\n" +
 		"Defaults (each applies only when you do not pass the flag yourself): SQLite at " +
 		"<dir>/authorizer.db, --host=" + devHost + ", --url=http://localhost:<http-port>, " +
+		"--allowed-origins=<url>,http://localhost:3000,http://localhost:5173,http://localhost:4200, " +
 		"--mcp-enabled and --enable-client-id-metadata-document. Every server flag is accepted and wins.\n\n" +
 		"--print-config prints the connection details as JSON and exits without starting the server. " +
 		"The same JSON is written to <dir>/" + devInfoFile + " on every start.\n\n" +
@@ -231,6 +239,11 @@ func applyDevDefaults(flags *pflag.FlagSet, cfg *config.Config, srv *server.Conf
 		}
 		cfg.AuthorizerURL = "http://localhost:" + strconv.Itoa(port)
 	}
+	if unset("allowed-origins") {
+		// Explicit, so the server's own origin must be listed too: with an
+		// explicit list the CSRF check no longer falls back to same-origin.
+		cfg.AllowedOrigins = append([]string{cfg.CanonicalURL()}, devFrontendOrigins...)
+	}
 	if unset("client-id") {
 		cfg.ClientID = st.ClientID
 	}
@@ -278,6 +291,7 @@ func buildDevInfo(cfg *config.Config, srv *server.Config, dir string) devInfo {
 		ClientSecret:           cfg.ClientSecret,
 		AdminSecret:            cfg.AdminSecret,
 		AdminSecretHeader:      "X-Authorizer-Admin-Secret",
+		AllowedOrigins:         cfg.AllowedOrigins,
 		DatabaseType:           cfg.DatabaseType,
 		DatabaseURL:            cfg.DatabaseURL,
 		StateDir:               dir,
