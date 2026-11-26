@@ -94,7 +94,7 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 
 	token, err := p.getSessionTokenByUserIDAndKey(ctx, userId, key)
 	if err != nil {
-		return "", memerr.ErrNotFound
+		return "", missOrErr(err)
 	}
 
 	// Check expiration. Inclusive (<=): a token is invalid AT its expiry second,
@@ -200,7 +200,7 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 
 	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
 	if err != nil {
-		return "", memerr.ErrNotFound
+		return "", missOrErr(err)
 	}
 
 	prefix := key + mfaPurposeSeparator
@@ -231,7 +231,7 @@ func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
 
 	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
 	if err != nil {
-		return nil, memerr.ErrNotFound
+		return nil, missOrErr(err)
 	}
 
 	if len(sessions) == 0 {
@@ -280,7 +280,7 @@ func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
 
 	sessions, err := p.getAllMFASessions(ctx)
 	if err != nil {
-		return "", "", memerr.ErrNotFound
+		return "", "", missOrErr(err)
 	}
 
 	prefix := key + mfaPurposeSeparator
@@ -325,7 +325,7 @@ func (p *provider) GetState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", memerr.ErrNotFound
+		return "", missOrErr(err)
 	}
 	// Enforce 10-minute TTL consistent with Redis provider.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
@@ -337,7 +337,7 @@ func (p *provider) GetState(key string) (string, error) {
 		asyncutil.Go(p.dependencies.Log, func() {
 			_, _ = p.deleteOAuthStateByKey(context.Background(), key)
 		})
-		return "", fmt.Errorf("state expired")
+		return "", memerr.ErrNotFound
 	}
 	return oauthState.State, nil
 }
@@ -365,11 +365,11 @@ func (p *provider) GetAndRemoveState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", memerr.ErrNotFound
+		return "", missOrErr(err)
 	}
 	claimed, err := p.deleteOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", memerr.ErrNotFound
+		return "", missOrErr(err)
 	}
 	if !claimed {
 		// Another caller won the delete: this request is redeeming an already
@@ -378,7 +378,7 @@ func (p *provider) GetAndRemoveState(key string) (string, error) {
 	}
 	// Enforce 10-minute TTL.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
-		return "", fmt.Errorf("state expired")
+		return "", memerr.ErrNotFound
 	}
 	return oauthState.State, nil
 }
@@ -498,4 +498,16 @@ func (p *provider) deleteOAuthStateByKey(ctx context.Context, key string) (bool,
 
 func (p *provider) getAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error) {
 	return p.storageProvider.GetAllOAuthStates(ctx)
+}
+
+// missOrErr maps the storage layer's not-found to the memory-store miss
+// sentinel and returns every other storage error unchanged. Collapsing a
+// storage fault into ErrNotFound would report a database outage to callers as
+// "absent" (e.g. "token not found") and, because misses are logged at warn,
+// drop it from error alerting.
+func missOrErr(err error) error {
+	if storage.IsNotFound(err) {
+		return memerr.ErrNotFound
+	}
+	return err
 }

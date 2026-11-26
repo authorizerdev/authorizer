@@ -3,6 +3,7 @@ package memory_store
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,6 +47,15 @@ func TestIsNotFound_UniformAcrossBackends(t *testing.T) {
 			assert.True(t, IsNotFound(err), "session miss: %v", err)
 			_, err = p.GetMfaSession("user", "missing")
 			assert.True(t, IsNotFound(err), "mfa session miss: %v", err)
+
+			// Expiry is a miss too, not a distinct error.
+			require.NoError(t, p.SetUserSession("user", "short", "tok", time.Now().Unix()+1))
+			require.NoError(t, p.SetMfaSession("user", "short", "login", time.Now().Unix()+1))
+			time.Sleep(2100 * time.Millisecond)
+			_, err = p.GetUserSession("user", "short")
+			assert.True(t, IsNotFound(err), "expired session: %v", err)
+			_, err = p.GetMfaSession("user", "short")
+			assert.True(t, IsNotFound(err), "expired mfa session: %v", err)
 		})
 	}
 	assert.False(t, IsNotFound(errors.New("dial tcp 10.0.0.5:6379: connect: connection refused")))
