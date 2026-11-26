@@ -146,8 +146,13 @@ func (p *provider) WebauthnRegistrationVerify(ctx context.Context, meta RequestM
 	// consumeMFAScope/consumeMFARoles are keyed by the same session id.
 	var carriedScope, carriedRoles []string
 	if mfaSession, sErr := cookie.GetMfaSession(gc); sErr == nil {
+		carriedRoles, err = p.carriedMFARoles(mfaSession, user)
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to resolve carried mfa roles")
+			return nil, nil, err
+		}
 		carriedScope = p.consumeMFAScope(mfaSession)
-		carriedRoles = p.consumeMFARoles(mfaSession)
+		p.dropMFARoles(mfaSession)
 		_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 	}
 	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodWebauthn, "Passkey registered and MFA setup complete.", params.State, false, carriedScope, carriedRoles)
@@ -276,8 +281,13 @@ func (p *provider) WebauthnLoginVerify(ctx context.Context, meta RequestMetadata
 	var carriedScope, carriedRoles []string
 	if mfaSession, sErr := cookie.GetMfaSession(&gin.Context{Request: meta.Request}); sErr == nil {
 		if purpose, gErr := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); gErr == nil && purpose == constants.MFASessionPurposeVerified {
+			carriedRoles, err = p.carriedMFARoles(mfaSession, user)
+			if err != nil {
+				log.Debug().Err(err).Msg("Failed to resolve carried mfa roles")
+				return nil, nil, err
+			}
 			carriedScope = p.consumeMFAScope(mfaSession)
-			carriedRoles = p.consumeMFARoles(mfaSession)
+			p.dropMFARoles(mfaSession)
 			_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
 		}
 	}

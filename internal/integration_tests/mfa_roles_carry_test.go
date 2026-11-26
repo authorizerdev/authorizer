@@ -13,10 +13,13 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // tokenRoles decodes a JWT payload and returns its roles claim.
@@ -200,5 +203,160 @@ func TestMFARolesAreCarriedAcrossTheInterruption(t *testing.T) {
 		require.NotNil(t, verifyRes.AccessToken)
 		assert.Equal(t, []string{"editor"}, tokenRoles(t, *verifyRes.AccessToken),
 			"a passkey completing the login's MFA step must honour the roles requested at login")
+
+		// The passkey spent the session: it cannot be redeemed again.
+		res, err := ts.GraphQLProvider.SkipMFASetup(ctx, &model.SkipMfaSetupRequest{Email: &email})
+		require.Error(t, err)
+		assert.Nil(t, res)
+	})
+
+	t.Run("a passkey login ignores another user's verified mfa session", func(t *testing.T) {
+		cfg := getTestConfig()
+		cfg.EnableWebauthnMFA = true
+		ts := initTestSetup(t, cfg)
+
+		passkeyUser, rp, authenticator, credential := registerPasskeyForNewUser(t, ts)
+		passkeyUser.Roles = strings.Join(userRoles, ",")
+		_, err := ts.StorageProvider.UpdateUser(t.Context(), passkeyUser)
+		require.NoError(t, err)
+
+		// A different account's Verified session, carrying roles=[editor].
+		_, ctx := createContext(ts)
+		otherEmail := "mfa_roles_other_" + uuid.NewString() + "@authorizer.dev"
+		_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &otherEmail, Password: password, ConfirmPassword: password, Roles: userRoles,
+		})
+		require.NoError(t, err)
+		other, err := ts.StorageProvider.GetUserByEmail(ctx, otherEmail)
+		require.NoError(t, err)
+		otherSession := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetMfaSession(other.ID, otherSession,
+			constants.MFASessionPurposeVerified, time.Now().Add(3*time.Minute).Unix()))
+		require.NoError(t, ts.MemoryStoreProvider.SetCache("mfa_roles:"+otherSession, `["editor"]`, 180))
+
+		req, ctx := createContext(ts)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", otherSession))
+		optRes, err := ts.GraphQLProvider.WebauthnLoginOptions(ctx, nil)
+		require.NoError(t, err)
+		assertOpts, err := virtualwebauthn.ParseAssertionOptions(optRes.Options)
+		require.NoError(t, err)
+		assertResp := virtualwebauthn.CreateAssertionResponse(rp, authenticator, credential, *assertOpts)
+		verifyRes, err := ts.GraphQLProvider.WebauthnLoginVerify(ctx, &model.WebauthnLoginVerifyRequest{Credential: assertResp})
+		require.NoError(t, err)
+		require.NotNil(t, verifyRes.AccessToken)
+		assert.ElementsMatch(t, userRoles, tokenRoles(t, *verifyRes.AccessToken),
+			"another account's carried roles must not apply to this passkey login")
+
+		purpose, err := ts.MemoryStoreProvider.GetMfaSession(other.ID, otherSession)
+		require.NoError(t, err, "the other account's session must be left untouched")
+		assert.Equal(t, constants.MFASessionPurposeVerified, purpose)
+		blob, err := ts.MemoryStoreProvider.GetCache("mfa_roles:" + otherSession)
+		require.NoError(t, err)
+		assert.Equal(t, `["editor"]`, blob)
+	})
+
+	t.Run("roles survive TOTP enrollment from the login-time setup offer", func(t *testing.T) {
+		ts := newTS(t)
+		_, ctx := createContext(ts)
+		email := "mfa_roles_enroll_" + uuid.NewString() + "@authorizer.dev"
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password, Roles: userRoles,
+		})
+		require.NoError(t, err)
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+		ts.Config.EnableMFA = true
+
+		// No factor enrolled and MFA not enforced: login offers setup.
+		req, ctx := createContext(ts)
+		loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+			Email: &email, Password: password, Roles: []string{"editor"},
+		})
+		require.NoError(t, err)
+		require.Nil(t, loginRes.AccessToken)
+		loginSession := latestMfaSessionCookie(ts)
+		require.NotEmpty(t, loginSession)
+
+		// Enroll via the MFA cookie (no bearer token) ...
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", loginSession))
+		setupRes, err := ts.GraphQLProvider.TOTPMFASetup(ctx, &model.OtpMfaSetupRequest{Email: &email})
+		require.NoError(t, err)
+		require.NotNil(t, setupRes.AuthenticatorSecret)
+
+		// ... and adopt the NEW session cookie the setup call issued, exactly
+		// as a browser would.
+		newSession := latestMfaSessionCookie(ts)
+		require.NotEmpty(t, newSession)
+		require.NotEqual(t, loginSession, newSession, "setup re-arms a fresh session")
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", newSession))
+		code, err := totp.GenerateCode(*setupRes.AuthenticatorSecret, time.Now())
+		require.NoError(t, err)
+		verifyRes, err := ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{
+			Email: &email, Otp: code, IsTotp: refs.NewBoolRef(true),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, verifyRes.AccessToken)
+		assert.Equal(t, []string{"editor"}, tokenRoles(t, *verifyRes.AccessToken),
+			"enrolling a factor mid-login must not drop the roles requested at login")
+
+		// The roles were copied, not moved: the original login cookie (which
+		// clients that ignore the new cookie keep using) still carries them.
+		blob, err := ts.MemoryStoreProvider.GetCache("mfa_roles:" + loginSession)
+		require.NoError(t, err)
+		assert.Equal(t, `["editor"]`, blob)
+	})
+
+	// Unverified-email login: the roles request is carried unvalidated and
+	// resolved only once the emailed code is proven.
+	t.Run("unverified-email OTP branch resolves the roles request after the code", func(t *testing.T) {
+		const knownOTP = "123456"
+		run := func(t *testing.T, roles []string) (*model.AuthResponse, error) {
+			cfg := getTestConfig()
+			cfg.IsEmailServiceEnabled = true
+			ts := initTestSetup(t, cfg)
+			_, ctx := createContext(ts)
+			email := "mfa_roles_unverified_" + uuid.NewString() + "@authorizer.dev"
+			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+			require.NoError(t, err)
+			h := string(hash)
+			_, err = ts.StorageProvider.AddUser(ctx, &schemas.User{
+				Email: refs.NewStringRef(email), Password: &h,
+				SignupMethods: constants.AuthRecipeMethodBasicAuth,
+				Roles:         strings.Join(userRoles, ","),
+			})
+			require.NoError(t, err)
+
+			req, ctx := createContext(ts)
+			loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+				Email: &email, Password: password, Roles: roles,
+			})
+			require.NoError(t, err, "the unverified-email branch must not report invalid roles before the code is proven")
+			require.True(t, refs.BoolValue(loginRes.ShouldShowEmailOtpScreen))
+
+			_, err = ts.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
+				Email:     email,
+				Otp:       crypto.HashOTP(knownOTP, cfg.JWTSecret),
+				ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+			})
+			require.NoError(t, err)
+			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", latestMfaSessionCookie(ts)))
+			return ts.GraphQLProvider.VerifyOTP(ctx, &model.VerifyOTPRequest{Email: &email, Otp: knownOTP})
+		}
+
+		t.Run("valid request", func(t *testing.T) {
+			res, err := run(t, []string{"viewer"})
+			require.NoError(t, err)
+			require.NotNil(t, res.AccessToken)
+			assert.Equal(t, []string{"viewer"}, tokenRoles(t, *res.AccessToken))
+		})
+		t.Run("invalid request is rejected only after the code is proven", func(t *testing.T) {
+			res, err := run(t, []string{"admin"})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "invalid roles")
+			assert.Nil(t, res)
+		})
 	})
 }

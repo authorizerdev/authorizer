@@ -90,6 +90,14 @@ func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata, param
 		return nil, nil, FailedPrecondition("cannot skip multi factor authentication setup")
 	}
 
+	// Resolve the roles carried from login (issue #301) before any state
+	// changes, so a store fault or a no-longer-valid request fails cleanly.
+	roles, err := p.carriedMFARoles(mfaSession, user)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to resolve carried mfa roles")
+		return nil, nil, err
+	}
+
 	now := time.Now().Unix()
 	user.HasSkippedMFASetupAt = &now
 	user, err = p.StorageProvider.UpdateUser(ctx, user)
@@ -99,13 +107,14 @@ func (p *provider) SkipMFASetup(ctx context.Context, meta RequestMetadata, param
 	}
 	// Single-use: drop the session so a captured cookie cannot be replayed.
 	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+	p.dropMFARoles(mfaSession)
 
 	// Known simplification: issueAuthResponse always stamps loginMethod into
 	// the audit/webhook trail. The caller may have actually arrived via
 	// passkey or OAuth, not password, but issueAuthResponse has no way to
 	// recover the original login method from the MFA session today. Out of
 	// scope for this task.
-	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodBasicAuth, "MFA setup skipped", params.State, false, p.consumeMFAScope(mfaSession), p.consumeMFARoles(mfaSession))
+	res, err := p.issueAuthResponse(ctx, meta, side, user, constants.AuthRecipeMethodBasicAuth, "MFA setup skipped", params.State, false, p.consumeMFAScope(mfaSession), roles)
 	if err != nil {
 		return nil, nil, err
 	}

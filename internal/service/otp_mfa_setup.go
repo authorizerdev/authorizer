@@ -45,12 +45,31 @@ import (
 //
 // Returns Unauthenticated if neither mode resolves a caller.
 func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetadata, side *ResponseSideEffects, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
-	user, err := p.resolveOTPSetupCallerIdentity(ctx, meta, params)
+	user, oldSession, err := p.resolveOTPSetupCallerIdentity(ctx, meta, params)
 	if err != nil {
 		return nil, err
 	}
+	// Cookie mode is mid-login: the session in hand carries the login's scope
+	// and roles request (issue #301). Copy both onto the freshly armed
+	// session, or a verify_otp on the new cookie mints a token with every
+	// stored role and the default scope. They are copied, not moved: the
+	// original cookie stays redeemable exactly as before (clients that do not
+	// adopt the new cookie keep working), and whichever session completes
+	// first spends only its own copy. Bearer mode has no session and carries
+	// nothing.
+	var carriedRoles, carriedScope []string
+	if oldSession != "" {
+		requested, carried, lErr := p.loadMFARoles(oldSession)
+		if lErr != nil {
+			return nil, lErr
+		}
+		if carried {
+			carriedRoles = requested
+		}
+		carriedScope = p.loadMFAScope(oldSession)
+	}
 	expiresAt := time.Now().Add(3 * time.Minute).Unix()
-	if err := p.setMFASession(meta, side, user.ID, expiresAt, nil); err != nil {
+	if err := p.setMFASession(meta, side, user.ID, expiresAt, carriedRoles, carriedScope...); err != nil {
 		return nil, err
 	}
 	return user, nil
@@ -59,7 +78,7 @@ func (p *provider) resolveOTPSetupCaller(ctx context.Context, meta RequestMetada
 // resolveOTPSetupCallerIdentity is resolveOTPSetupCaller's identity-only
 // half, split out so the MFA-session re-arming above has a single call site
 // rather than being duplicated across every return branch below.
-func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*schemas.User, error) {
+func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta RequestMetadata, params *model.OtpMfaSetupRequest) (*schemas.User, string, error) {
 	if tokenData, err := p.callerTokenData(ctx, meta); err == nil && tokenData != nil && tokenData.UserID != "" {
 		// A machine identity has no user behind it: a client_credentials token's
 		// `sub` is a Client row id, so the lookup below misses and the caller
@@ -70,15 +89,17 @@ func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta Reque
 		// no service account has a user row. Enrolling a second factor "for" a
 		// service account is meaningless in any case.
 		if tokenData.LoginMethod == constants.AuthRecipeMethodServiceAccount {
-			return nil, Unauthenticated(`unauthorized`)
+			return nil, "", Unauthenticated(`unauthorized`)
 		}
-		return p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
+		// Bearer mode: no MFA session is being continued, so none is returned.
+		user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
+		return user, "", err
 	}
 
 	gc := &gin.Context{Request: meta.Request}
 	mfaSession, err := cookie.GetMfaSession(gc)
 	if err != nil {
-		return nil, Unauthenticated(`unauthorized`)
+		return nil, "", Unauthenticated(`unauthorized`)
 	}
 
 	var email, phoneNumber string
@@ -96,13 +117,13 @@ func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta Reque
 		// a new email/SMS/TOTP authenticator on the account instead.
 		ownerID, purpose, oErr := p.MemoryStoreProvider.GetMfaSessionOwner(mfaSession)
 		if oErr != nil || purpose != constants.MFASessionPurposeVerified {
-			return nil, Unauthenticated(`unauthorized`)
+			return nil, "", Unauthenticated(`unauthorized`)
 		}
 		user, uErr := p.StorageProvider.GetUserByID(ctx, ownerID)
 		if user == nil || uErr != nil {
-			return nil, Unauthenticated(`unauthorized`)
+			return nil, "", Unauthenticated(`unauthorized`)
 		}
-		return user, nil
+		return user, mfaSession, nil
 	}
 
 	var user *schemas.User
@@ -112,15 +133,15 @@ func (p *provider) resolveOTPSetupCallerIdentity(ctx context.Context, meta Reque
 		user, err = p.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
 	}
 	if user == nil || err != nil {
-		return nil, Unauthenticated(`unauthorized`)
+		return nil, "", Unauthenticated(`unauthorized`)
 	}
 
 	// Same Verified-only restriction as the no-identifier branch above.
 	if purpose, err := p.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil || purpose != constants.MFASessionPurposeVerified {
-		return nil, Unauthenticated(`unauthorized`)
+		return nil, "", Unauthenticated(`unauthorized`)
 	}
 
-	return user, nil
+	return user, mfaSession, nil
 }
 
 // EmailOTPMFASetup sends a one-time code to the caller's own email and

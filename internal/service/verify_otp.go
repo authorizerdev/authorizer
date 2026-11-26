@@ -141,6 +141,16 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		}
 	}
 
+	// Load the roles request carried from login (issue #301) BEFORE spending
+	// the code, so a store read fault fails retryably instead of burning the
+	// OTP. It is only resolved against the user after the code is proven,
+	// below, so "invalid roles" is never shown to a caller who has not.
+	rolesRequest, rolesCarried, err := p.loadMFARoles(mfaSession)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to load carried mfa roles")
+		return nil, nil, err
+	}
+
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.IsTotp) {
 		// Per-user lockout: atomically reserve this attempt's slot BEFORE
@@ -278,6 +288,17 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 		}
 	}
 
+	// The code is proven: resolve the carried roles request exactly as login
+	// does. A request the user does not (or no longer) satisfy ends the
+	// attempt and spends the session, like any other completed verification.
+	roles, err := p.resolveCarriedRoles(user, rolesRequest, rolesCarried)
+	if err != nil {
+		log.Debug().Msg("Carried roles are invalid for this user")
+		p.dropMFARoles(mfaSession)
+		_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+		return nil, nil, err
+	}
+
 	isSignUp := false
 	if user.EmailVerifiedAt == nil && isEmailVerification {
 		isSignUp = true
@@ -331,8 +352,9 @@ func (p *provider) VerifyOTP(ctx context.Context, meta RequestMetadata, params *
 	// Single-use: the OTP is verified, so drop the session to prevent replay of
 	// a captured cookie within its remaining TTL.
 	_ = p.MemoryStoreProvider.DeleteMfaSession(user.ID, mfaSession)
+	p.dropMFARoles(mfaSession)
 
-	res, err := p.issueAuthResponse(ctx, meta, side, user, loginMethod, `OTP verified successfully.`, params.State, isSignUp, p.consumeMFAScope(mfaSession), p.consumeMFARoles(mfaSession))
+	res, err := p.issueAuthResponse(ctx, meta, side, user, loginMethod, `OTP verified successfully.`, params.State, isSignUp, p.consumeMFAScope(mfaSession), roles)
 	if err != nil {
 		return nil, nil, err
 	}
