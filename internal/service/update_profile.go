@@ -258,7 +258,7 @@ func (p *provider) UpdateProfile(ctx context.Context, meta RequestMetadata, para
 				_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]any{
 					"user":             user.ToMap(),
 					"organization":     utils.GetOrganization(p.Config),
-					"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+					"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL, nil),
 				})
 			})
 

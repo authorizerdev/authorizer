@@ -316,7 +316,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			_ = p.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL, nil),
 			})
 		})
 

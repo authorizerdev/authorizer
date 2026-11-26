@@ -2,7 +2,9 @@ package http_handlers
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/codestate"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -36,12 +39,20 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// Core §3.1.2.1) and simply was never called here
 		// (GHSA-44vr-f829-xfch).
 		//
-		// A verification request records no client_id, so the deployment's own
-		// client is the only identity available. Exact matching therefore
-		// applies when the operator has declared --redirect-uris, and falls
-		// back to the origin allow-list otherwise. That is why dropping the
-		// tokens from the redirect (further down) is the primary fix and this
-		// is hardening on top of it, not the other way round.
+		// A verification request records no client_id. When the link carries
+		// the `state` of an /authorize request AND this browser is the one that
+		// made it (authorizeStateBoundToBrowser), that request's client is the
+		// identity the redirect must satisfy — the same client /authorize
+		// already validated it against, so a third-party client's exact
+		// redirect is not refused here. The binding is required because the
+		// state is caller-supplied: magic_link_login is unauthenticated, so an
+		// unbound state would let anyone widen this check to the URIs of a
+		// client they control. Otherwise the deployment's own client is the
+		// only identity available: exact matching applies when the
+		// operator has declared --redirect-uris, and falls back to the origin
+		// allow-list otherwise. That is why dropping the tokens from the
+		// redirect (further down) is the primary fix and this is hardening on
+		// top of it, not the other way round.
 		//
 		// Returns false and has ALREADY written the response when the URI is
 		// unacceptable. A lookup FAILURE and a non-matching URI are answered
@@ -49,8 +60,19 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// registry, a read this handler never used to do, and collapsing a
 		// storage outage into "invalid redirect uri" would tell the user their
 		// link is bad during what is really a server fault. Mirrors /authorize.
+		state := strings.TrimSpace(c.Query("state"))
+		redirectClientID := h.Config.ClientID
+		if state != "" {
+			// Peek only: the state is consumed further down, after the token
+			// and the MFA gate have both passed.
+			if raw, _ := h.MemoryStoreProvider.GetState(state); codestate.HasCode(raw) {
+				if as := codestate.DecodeAuthorize(raw); as.ClientID != "" && authorizeStateBoundToBrowser(c, as) {
+					redirectClientID = as.ClientID
+				}
+			}
+		}
 		validRedirect := func(uri string) bool {
-			check, cErr := h.checkClientRedirectURI(c.Request.Context(), h.Config.ClientID, uri, hostname)
+			check, cErr := h.checkClientRedirectURI(c.Request.Context(), redirectClientID, uri, hostname)
 			switch {
 			case cErr != nil:
 				log.Warn().Err(cErr).Msg("client lookup failed; refusing rather than falling back to the origin allow-list")
@@ -137,7 +159,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			log.Debug().Err(err).Msg("Error deleting verification request")
 		}
 
-		state := strings.TrimSpace(c.Query("state"))
 		rolesString := strings.TrimSpace(c.Query("roles"))
 		var roles []string
 		if rolesString == "" {
@@ -162,23 +183,66 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			scope = strings.Split(scopeString, " ")
 		}
 
+		// /authorize detour: when a magic link was started from an /authorize
+		// request, the login UI threads its `state` through magic_link_login,
+		// and /authorize stored the pre-generated code plus its PKCE challenge
+		// under it. (Signup email verification does not carry state; signup.go
+		// completes the authorize request itself.) Bind them to the session minted here and persist
+		// the code state exactly as login/session/signup do, so /oauth/token
+		// can redeem the code (PKCE-verified, client- and redirect-bound,
+		// single-use via GetAndRemoveState). The code state used to be left
+		// unwritten, so the `code` in the redirect was never redeemable.
+		//
+		// Reached only after the MFA gate above has let the session through:
+		// a withheld session returns earlier and leaves the authorize state
+		// untouched, so no code is ever bound to a session that does not exist.
+		//
+		// A code is issued only to the browser that made the /authorize
+		// request. magic_link_login is unauthenticated and accepts any state,
+		// so the state alone says nothing about who is clicking, while
+		// whoever ran /authorize holds the PKCE verifier. /authorize set a
+		// binding cookie and stored its digest in the state
+		// (cookie.SetAuthorizeBinding); without the matching cookie the click
+		// still signs the user in here, but no code is issued.
 		code := ""
-		// Not required as /oauth/token cannot be resumed from other tab
-		// codeChallenge := ""
+		codeChallenge := ""
 		nonce := ""
+		oidcNonce := ""
+		authorizeRedirectURI := ""
+		authorizeResource := ""
+		authorizeClientID := ""
 		if state != "" {
-			// Get state from store
-			authorizeState, _ := h.MemoryStoreProvider.GetState(state)
+			// Atomic read-and-delete: the authorize state is single-use, so two
+			// clicks racing on the same link cannot both bind it.
+			authorizeState, _ := h.MemoryStoreProvider.GetAndRemoveState(state)
 			if authorizeState != "" {
-				authorizeStateSplit := strings.Split(authorizeState, "@@")
-				if len(authorizeStateSplit) > 1 {
-					code = authorizeStateSplit[0]
-					// Not required as /oauth/token cannot be resumed from other tab
-					// codeChallenge = authorizeStateSplit[1]
+				// One owner for this positional format — see internal/codestate.
+				if codestate.HasCode(authorizeState) {
+					as := codestate.DecodeAuthorize(authorizeState)
+					// RFC 6749 §4.1.2: the code goes to the redirect_uri of the
+					// authorization request and nowhere else. The target here is
+					// validated, but against an allow-list that can be wider than
+					// the one URI /authorize recorded, so a mismatch — or a blob
+					// that recorded none — gets the session (cookie) without a
+					// code rather than a code delivered somewhere the client
+					// never asked for.
+					switch {
+					case !authorizeStateBoundToBrowser(c, as):
+						log.Debug().Msg("authorize request was not started in this browser; not issuing a code")
+					case as.RedirectURI == "" || as.RedirectURI != redirectURL:
+						log.Debug().Msg("redirect_uri differs from the authorize request; not issuing a code")
+					default:
+						code = as.Code
+						codeChallenge = as.Challenge
+						oidcNonce = as.Nonce
+						authorizeRedirectURI = as.RedirectURI
+						authorizeResource = as.Resource
+						authorizeClientID = as.ClientID
+						cookie.DeleteAuthorizeBinding(c, h.Config.AppCookieSecure)
+					}
 				} else {
 					nonce = authorizeState
 				}
-				asyncutil.Go(h.Log, func() { _ = h.MemoryStoreProvider.RemoveState(state) })
 			}
 		}
 		if nonce == "" {
@@ -190,6 +254,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			Scope:       scope,
 			LoginMethod: loginMethod,
 			Nonce:       nonce,
+			OIDCNonce:   oidcNonce,
 			Code:        code,
 			HostName:    hostname,
 		})
@@ -200,16 +265,21 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Code challenge could be optional if PKCE flow is not used
-		// Not required as /oauth/token cannot be resumed from other tab
-		// if code != "" {
-		// 	if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
-		// 		log.Debug("Error setting code state ", err)
-		// 		errorRes["error"] = err.Error()
-		// 		c.JSON(500, errorRes)
-		// 		return
-		// 	}
-		// }
+		if code != "" {
+			if err := h.MemoryStoreProvider.SetState(code, codestate.EncodeCode(codestate.Code{
+				Challenge:   codeChallenge,
+				Session:     authToken.FingerPrintHash,
+				Nonce:       oidcNonce,
+				RedirectURI: authorizeRedirectURI,
+				Resource:    authorizeResource,
+				ClientID:    authorizeClientID,
+			})); err != nil {
+				log.Debug().Err(err).Msg("Error setting code state")
+				errorRes["error"] = publicErrorMessage(&log, err)
+				utils.HandleRedirectORJsonResponse(c, http.StatusInternalServerError, errorRes, generateRedirectURL(redirectURL, errorRes))
+				return
+			}
+		}
 
 		// Tokens are NOT placed in the redirect URL. This endpoint is reached
 		// from an emailed link, so its URL is unusually long-lived: it sits in
@@ -224,10 +294,10 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// are the delivery channel — matching oauth_callback.go and
 		// oauth_sso.go, which were migrated to code-only delivery already. This
 		// handler was the last one still emitting raw tokens.
-		params := "state=" + state + "&nonce=" + nonce
+		params := "state=" + url.QueryEscape(state) + "&nonce=" + url.QueryEscape(nonce)
 
 		if code != "" {
-			params += "&code=" + code
+			params += "&code=" + url.QueryEscape(code)
 		}
 
 		sessionKey := loginMethod + ":" + user.ID
@@ -283,6 +353,18 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
+}
+
+// authorizeStateBoundToBrowser reports whether this request comes from the
+// browser that made the /authorize request: it must present the binding cookie
+// whose digest /authorize stored in the state (cookie.SetAuthorizeBinding).
+// States without a binding (older builds) are never bound.
+func authorizeStateBoundToBrowser(c *gin.Context, as codestate.Authorize) bool {
+	presented := cookie.GetAuthorizeBinding(c)
+	if as.BrowserBinding == "" || presented == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(crypto.HashSessionValue(presented)), []byte(as.BrowserBinding)) == 1
 }
 
 func generateRedirectURL(url string, res map[string]interface{}) string {

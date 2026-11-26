@@ -93,6 +93,13 @@ type Authorize struct {
 	RedirectURI string
 	Resource    string
 	ClientID    string
+	// BrowserBinding is the digest (crypto.HashSessionValue) of the random
+	// value /authorize set in the initiating browser's binding cookie. A
+	// completion path that the state alone can reach — the magic link, whose
+	// request is unauthenticated and takes any state — must see the matching
+	// cookie before it issues a code. Empty in blobs written by older builds,
+	// which therefore never yield a code on that path.
+	BrowserBinding string
 }
 
 // EncodeAuthorize serialises the authorize-detour state.
@@ -104,6 +111,7 @@ func EncodeAuthorize(a Authorize) string {
 		url.QueryEscape(a.RedirectURI),
 		url.QueryEscape(a.Resource),
 		url.QueryEscape(a.ClientID),
+		url.QueryEscape(a.BrowserBinding),
 	}, delimiter)
 }
 
@@ -131,6 +139,9 @@ func DecodeAuthorize(raw string) Authorize {
 	}
 	if len(parts) > 5 {
 		a.ClientID, _ = url.QueryUnescape(parts[5])
+	}
+	if len(parts) > 6 {
+		a.BrowserBinding, _ = url.QueryUnescape(parts[6])
 	}
 	return a
 }

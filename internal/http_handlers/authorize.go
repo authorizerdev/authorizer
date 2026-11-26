@@ -507,18 +507,28 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// [4] carries the RFC 8707 resource (url-escaped, empty when absent)
 			// so the login/signup/session/auth_response services can rebind it
 			// to the code state they persist after a fresh login.
+			// Bind this request to the browser making it, so a magic link —
+			// whose request is unauthenticated and can name any state — only
+			// completes it in this browser. See cookie.SetAuthorizeBinding.
+			// The cookie itself is set only if this request actually detours
+			// to the login UI (handleResponse): a request answered from an
+			// existing session, or a prompt=none renew, must not overwrite the
+			// binding of a magic-link flow still pending in another tab.
+			browserBinding := rand.Text()
 			if err := h.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
-				Code:        code,
-				Challenge:   challengeData,
-				Nonce:       nonce,
-				RedirectURI: redirectURI,
-				Resource:    resource,
-				ClientID:    clientID,
+				Code:           code,
+				Challenge:      challengeData,
+				Nonce:          nonce,
+				RedirectURI:    redirectURI,
+				Resource:       resource,
+				ClientID:       clientID,
+				BrowserBinding: crypto.HashSessionValue(browserBinding),
 			})); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
+			gc.Set(pendingAuthorizeBindingKey, pendingAuthorizeBinding{value: browserBinding, secure: h.Config.AppCookieSecure})
 		} else {
 			if err := h.MemoryStoreProvider.SetState(state, nonce); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp nonce")
@@ -1488,6 +1498,16 @@ func redirectErrorToRP(gc *gin.Context, responseMode, redirectURI, state, errCod
 	}
 }
 
+// pendingAuthorizeBindingKey holds the browser binding generated for this
+// /authorize request until handleResponse knows whether the request detours to
+// the login UI, the only case in which the binding cookie is set.
+const pendingAuthorizeBindingKey = "authorizer_pending_authorize_binding"
+
+type pendingAuthorizeBinding struct {
+	value  string
+	secure bool
+}
+
 func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
 	if resp, ok := data["response"].(map[string]interface{}); ok {
@@ -1497,6 +1517,11 @@ func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, 
 	}
 
 	if isAuthenticationRequired && responseMode != constants.ResponseModeWebMessage {
+		if v, ok := gc.Get(pendingAuthorizeBindingKey); ok {
+			if b, ok := v.(pendingAuthorizeBinding); ok {
+				cookie.SetAuthorizeBinding(gc, b.value, b.secure)
+			}
+		}
 		gc.Redirect(http.StatusFound, authURI)
 		return
 	}

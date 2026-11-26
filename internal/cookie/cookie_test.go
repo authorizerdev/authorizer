@@ -194,3 +194,18 @@ func TestOAuthStateCookieIsNeverStrict(t *testing.T) {
 		}
 	}
 }
+
+// TestAuthorizeBindingCookieShape guards the binding cookie's attributes. Lax,
+// never Strict: the magic link is clicked from a mail client, a top-level
+// cross-site navigation that Strict would strip the cookie from.
+func TestAuthorizeBindingCookieShape(t *testing.T) {
+	t.Parallel()
+	for _, secure := range []bool{false, true} {
+		c := BuildAuthorizeBindingCookie("binding", secure)
+		assert.Equal(t, http.SameSiteLaxMode, c.SameSite)
+		assert.True(t, c.HttpOnly, "the binding must not be script-readable")
+		assert.Empty(t, c.Domain, "host-only")
+		assert.Equal(t, secure, c.Secure)
+		assert.Positive(t, c.MaxAge)
+	}
+}

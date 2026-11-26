@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 
@@ -169,12 +170,19 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 			log.Debug().Msg("Failed to generate nonce")
 			return nil, nil, err
 		}
-		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
+		// roles/state/scope travel as top-level parameters of the emailed
+		// /verify_email link, which is where VerifyEmailHandler reads them.
+		// They used to be appended to the redirect URI itself, so the
+		// redirect_uri /verify_email received was "<uri>?roles=..." and never
+		// exactly matched a --redirect-uris entry. The redirect URI is now
+		// stored and sent exactly as the caller supplied it.
+		linkParams := url.Values{}
+		linkParams.Set("roles", strings.Join(inputRoles, ","))
 		if params.State != nil {
-			redirectURLParams = redirectURLParams + "&state=" + refs.StringValue(params.State)
+			linkParams.Set("state", refs.StringValue(params.State))
 		}
 		if len(params.Scope) > 0 {
-			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
+			linkParams.Set("scope", strings.Join(params.Scope, " "))
 		}
 		redirectURL := hostname + "/app"
 		if params.RedirectURI != nil {
@@ -183,12 +191,6 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 				log.Debug().Msg("Invalid redirect URI")
 				return nil, nil, InvalidArgument("invalid redirect URI")
 			}
-		}
-
-		if strings.Contains(redirectURL, "?") {
-			redirectURL = redirectURL + "&" + redirectURLParams
-		} else {
-			redirectURL = redirectURL + "?" + strings.TrimPrefix(redirectURLParams, "&")
 		}
 
 		verificationType := constants.VerificationTypeMagicLinkLogin
@@ -221,7 +223,7 @@ func (p *provider) MagicLinkLogin(ctx context.Context, meta RequestMetadata, par
 			_ = p.EmailProvider.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]any{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL, linkParams),
 			})
 		})
 	}
