@@ -23,6 +23,10 @@ export default defineConfig({
         /magic-link\.spec\.ts/,
         /email-verification-database\.spec\.ts/,
         /email-verification-ui\.spec\.ts/,
+        /magic-link-authorize\.spec\.ts/,
+        /forgot-password-resume\.spec\.ts/,
+        /login-flash\.spec\.ts/,
+        /dashboard-users\.spec\.ts/,
         // Drives authorizer-replica-a/-b directly by absolute URL rather than
         // this project's baseURL; see the `replica` project below.
         /replica-shared-state\.spec\.ts/,
@@ -84,7 +88,7 @@ export default defineConfig({
       // email-verification-database.spec.ts rides along here because this is
       // the only instance with --enable-email-verification=true, which is what
       // makes the pre-click "email_verified: false" state observable at all.
-      testMatch: [/magic-link\.spec\.ts/, /email-verification-database\.spec\.ts/],
+      testMatch: [/magic-link\.spec\.ts/, /magic-link-authorize\.spec\.ts/, /email-verification-database\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_MAGIC_LINK_BASE_URL || 'http://localhost:8083',
@@ -96,7 +100,15 @@ export default defineConfig({
       // which is what makes the rendered "signup -> check your inbox -> click
       // link" journey reachable at all. See that service's comment.
       name: 'email-verify',
-      testMatch: /email-verification-ui\.spec\.ts/,
+      // forgot-password-resume, login-flash and dashboard-users ride along:
+      // this is the only instance with basic-auth login, a working email
+      // service and MFA off, and its signups start unverified.
+      testMatch: [
+        /email-verification-ui\.spec\.ts/,
+        /forgot-password-resume\.spec\.ts/,
+        /login-flash\.spec\.ts/,
+        /dashboard-users\.spec\.ts/,
+      ],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.AUTHORIZER_EMAIL_VERIFY_BASE_URL || 'http://localhost:8086',

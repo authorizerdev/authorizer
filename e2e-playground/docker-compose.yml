@@ -17,6 +17,10 @@ services:
       - "--client-id=e2e-client-id"
       - "--client-secret=e2e-client-secret"
       - "--enable-signup=true"
+      # editor/viewer exist only so tests/mfa-roles.spec.ts can request a
+      # subset of a user's roles across the MFA step (#925). Default roles
+      # stay "user", so no other spec sees a difference.
+      - "--roles=user,editor,viewer"
       # Remote MCP surface. --url above is what makes it legal: every token
       # presented at /mcp is checked against <url>/mcp, so the server refuses
       # to start with --mcp-enabled and no --url.
@@ -260,6 +264,13 @@ services:
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"
       - "--allowed-origins=http://localhost:8083,http://authorizer-magic-link:8080"
+      # Exact redirect URIs for the deployment's own client, so
+      # tests/magic-link-authorize.spec.ts exercises /verify_email's exact
+      # matching (#934) rather than the origin fallback. /app is the default
+      # target of a magic link sent without a redirect_uri (magic-link.spec.ts);
+      # the ?tenant=acme entry proves a redirect URI with its own query string
+      # survives the emailed link.
+      - "--redirect-uris=http://authorizer-magic-link:8080/app,http://authorizer-magic-link:8080/e2e-callback,http://authorizer-magic-link:8080/e2e-callback?tenant=acme"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
       # Ephemeral, purpose-built test stack - no real DoS concern, and the
@@ -312,6 +323,10 @@ services:
       - "--admin-cookie-secure=false"
       - "--app-cookie-same-site=lax"
       - "--allowed-origins=http://localhost:8086,http://authorizer-email-verify:8080"
+      # Custom branding for tests/dashboard-users.spec.ts (#931): the admin
+      # login page and sidebar must show these instead of Authorizer's own.
+      - "--organization-name=Acme E2E"
+      - "--organization-logo=https://example.invalid/acme-e2e-logo.png"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
       - "--smtp-sender-email=e2e@authorizer.test"
