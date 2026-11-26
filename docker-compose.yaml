@@ -1,9 +1,34 @@
-version: '3.9'
+# Local development / evaluation only.
+#
+# v2 is configured entirely through CLI flags (it reads no .env file or
+# environment variables), so the flags live in `command:` below. Every
+# secret here is a placeholder: replace them all before any real deployment.
+# See https://docs.authorizer.dev/deployment/docker for the full flag list.
+#
+# API calls are CSRF-checked: browser requests must come from an allowed
+# origin (by default the --url origin, http://localhost:8080). When calling
+# the API from scripts, send a matching `Origin` header or set
+# --allowed-origins.
 services:
   authorizer:
     build: .
     ports:
-      - 8080:8080
-      - 9091:9091
-    env_file:
-      - .env
+      - "8080:8080" # HTTP: API, /app login UI, /dashboard
+      - "9091:9091" # gRPC (optional; remove if you only use HTTP)
+    volumes:
+      # SQLite file persisted across restarts. The image pre-creates
+      # /authorizer/data owned by its non-root user, so no `user: root` needed.
+      - authorizer_data:/authorizer/data
+    command:
+      - --database-type=sqlite
+      - --database-url=/authorizer/data/authorizer.db
+      - --url=http://localhost:8080
+      - --client-id=local-dev-client
+      - --client-secret=change-me-client-secret
+      - --admin-secret=change-me-admin-secret
+      - --jwt-type=HS256
+      - --jwt-secret=change-me-jwt-secret
+      - --encryption-key=change-me-encryption-key
+
+volumes:
+  authorizer_data:

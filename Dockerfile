@@ -76,8 +76,11 @@ COPY --from=node-builder /authorizer/web/dashboard/favicon_io web/dashboard/favi
 COPY --from=go-builder /authorizer/build/linux/${TARGETARCH}/authorizer ./authorizer
 COPY web/templates web/templates
 
+# /authorizer/data is a writable mount point for SQLite: a named volume mounted
+# there inherits this ownership, so the non-root user can create the database.
 RUN addgroup -g 1000 authorizer && \
     adduser -D -u 1000 -G authorizer authorizer && \
+    mkdir -p /authorizer/data && \
     chown -R authorizer:authorizer /authorizer
 
 USER authorizer
