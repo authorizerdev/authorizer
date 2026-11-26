@@ -138,13 +138,19 @@ export default function Root({
 		// source of truth for redirect_uri validation and response_mode
 		// (query / fragment / form_post / web_message). The login UI should
 		// only establish a session and then resume the authorization request.
-		if (isAuthorizeContext) {
+		// The reset-password link carries the authorize params too (issue
+		// #344) but must not resume from there: it would skip the reset form
+		// and leak the reset token into the /authorize URL.
+		const onResetPasswordRoute =
+			hasWindow() && window.location.pathname === '/app/reset-password';
+		if (isAuthorizeContext && !onResetPasswordRoute) {
 			// Preserve exactly what we received on /app and send it back to
 			// /authorize; the backend will complete the authorization response.
 			const params = new URLSearchParams();
 			for (const [k, v] of combinedParams.entries()) {
-				// Ignore any accidental app-only params.
-				if (k === '') continue;
+				// Ignore any accidental app-only params; never forward a
+				// password-reset token to /authorize.
+				if (k === '' || k === 'token') continue;
 				params.set(k, v);
 			}
 

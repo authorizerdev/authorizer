@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,28 @@ func TestGetForgotPasswordURL(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/cb", q.Get("redirect_uri"))
 		assert.Equal(t, "code", q.Get("response_type"))
 		assert.Equal(t, "xyz", q.Get("code_challenge"))
+	})
+
+	// Hash-routed SPAs read the token from the fragment route; it must stay
+	// there (pre-#344 behaviour), not move to the real query string.
+	t.Run("hash routed redirect uri keeps token in fragment", func(t *testing.T) {
+		assert.Equal(t, "https://app.example.com/#/reset-password?token="+tok,
+			GetForgotPasswordURL(tok, "https://app.example.com/#/reset-password"))
+	})
+
+	t.Run("hash routed redirect uri with fragment query merges token", func(t *testing.T) {
+		got := GetForgotPasswordURL(tok, "https://app.example.com/base?x=1#/reset-password?state=s%26t&token=attacker")
+		u, err := url.Parse(got)
+		require.NoError(t, err)
+		assert.Equal(t, "/base", u.Path)
+		assert.Equal(t, "x=1", u.RawQuery)
+		route, rawQ, ok := strings.Cut(u.EscapedFragment(), "?")
+		require.True(t, ok)
+		assert.Equal(t, "/reset-password", route)
+		fq, err := url.ParseQuery(rawQ)
+		require.NoError(t, err)
+		assert.Equal(t, []string{tok}, fq["token"])
+		assert.Equal(t, "s&t", fq.Get("state"))
 	})
 
 	t.Run("caller supplied token param cannot shadow the real token", func(t *testing.T) {

@@ -3,6 +3,7 @@ package utils
 import (
 	"net/url"
 	"reflect"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/config"
 )
@@ -81,10 +82,21 @@ func GetOrganization(cfg *config.Config) map[string]interface{} {
 // #344) instead of blindly appending "?token=", which produced a malformed
 // "...?a=b?token=" link. Set (not Add) so a caller-supplied "token" parameter
 // can never shadow the real one.
+//
+// Hash-routed redirect URIs (https://app.example.com/#/reset-password) keep
+// the token inside the fragment route, as before, because that is where a
+// hash router reads it from.
 func GetForgotPasswordURL(token, redirectURI string) string {
 	u, err := url.Parse(redirectURI)
 	if err != nil {
 		return redirectURI + "?token=" + url.QueryEscape(token)
+	}
+	if frag := u.EscapedFragment(); frag != "" {
+		route, rawQuery, _ := strings.Cut(frag, "?")
+		fq, _ := url.ParseQuery(rawQuery)
+		fq.Set("token", token)
+		u.Fragment, u.RawFragment = "", ""
+		return u.String() + "#" + route + "?" + fq.Encode()
 	}
 	q := u.Query()
 	q.Set("token", token)
