@@ -413,3 +413,69 @@ func (p *provider) scanPageIter(ctx context.Context, table string, filter *expre
 }
 
 func strPtr(s string) *string { return &s }
+
+// scanProjectedAll scans the whole table returning only the named attributes.
+// Attribute names go through the expression builder, so reserved words are
+// aliased rather than interpolated.
+func (p *provider) scanProjectedAll(ctx context.Context, table string, attrs []string) ([]map[string]types.AttributeValue, error) {
+	names := make([]expression.NameBuilder, 0, len(attrs))
+	for _, a := range attrs {
+		names = append(names, expression.Name(a))
+	}
+	proj := expression.NamesList(names[0], names[1:]...)
+	built, err := expression.NewBuilder().WithProjection(proj).Build()
+	if err != nil {
+		return nil, err
+	}
+	var out []map[string]types.AttributeValue
+	var start map[string]types.AttributeValue
+	for {
+		res, err := p.client.Scan(ctx, &dynamodb.ScanInput{
+			TableName:                aws.String(table),
+			ExclusiveStartKey:        start,
+			ProjectionExpression:     built.Projection(),
+			ExpressionAttributeNames: built.Names(),
+		})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, res.Items...)
+		if res.LastEvaluatedKey == nil {
+			break
+		}
+		start = res.LastEvaluatedKey
+	}
+	return out, nil
+}
+
+// batchGetByHash fetches the items whose hashKey is in values with
+// BatchGetItem (chunks of 100, retrying UnprocessedKeys). The result is keyed
+// by hash value; missing items are simply absent.
+func (p *provider) batchGetByHash(ctx context.Context, table, hashKey string, values []string) (map[string]map[string]types.AttributeValue, error) {
+	const maxBatch = 100
+	out := make(map[string]map[string]types.AttributeValue, len(values))
+	for start := 0; start < len(values); start += maxBatch {
+		end := start + maxBatch
+		if end > len(values) {
+			end = len(values)
+		}
+		keys := make([]map[string]types.AttributeValue, 0, end-start)
+		for _, v := range values[start:end] {
+			keys = append(keys, map[string]types.AttributeValue{hashKey: &types.AttributeValueMemberS{Value: v}})
+		}
+		req := map[string]types.KeysAndAttributes{table: {Keys: keys}}
+		for len(req) > 0 {
+			res, err := p.client.BatchGetItem(ctx, &dynamodb.BatchGetItemInput{RequestItems: req})
+			if err != nil {
+				return nil, err
+			}
+			for _, item := range res.Responses[table] {
+				if s, ok := item[hashKey].(*types.AttributeValueMemberS); ok {
+					out[s.Value] = item
+				}
+			}
+			req = res.UnprocessedKeys
+		}
+	}
+	return out, nil
+}

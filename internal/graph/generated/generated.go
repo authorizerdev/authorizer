@@ -5402,12 +5402,23 @@ input PaginationRequest {
   page: Int64
 }
 
+# SortOrder is the direction of a list ordering.
+enum SortOrder {
+  ASC
+  DESC
+}
+
 # ListUsersRequest is the admin _users query input. query is an optional
 # case-insensitive substring filter matched against email, given_name,
 # family_name and nickname. Empty/absent means no filter (full list).
+# email_verified, when set, keeps only verified (true) or unverified (false)
+# users. created_at_order orders by created_at; absent means DESC (newest
+# first). pagination.total counts the filtered set.
 input ListUsersRequest {
   pagination: PaginationRequest
   query: String
+  email_verified: Boolean
+  created_at_order: SortOrder
 }
 
 # UserOrganizationsRequest is the admin _user_organizations query input. It
@@ -25662,7 +25673,7 @@ func (ec *executionContext) unmarshalInputListUsersRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"pagination", "query"}
+	fieldsInOrder := [...]string{"pagination", "query", "email_verified", "created_at_order"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25683,6 +25694,20 @@ func (ec *executionContext) unmarshalInputListUsersRequest(ctx context.Context, 
 				return it, err
 			}
 			it.Query = data
+		case "email_verified":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email_verified"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EmailVerified = data
+		case "created_at_order":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("created_at_order"))
+			data, err := ec.unmarshalOSortOrder2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAtOrder = data
 		}
 	}
 	return it, nil
@@ -35531,6 +35556,22 @@ func (ec *executionContext) unmarshalOSessionQueryRequest2ᚖgithubᚗcomᚋauth
 	}
 	res, err := ec.unmarshalInputSessionQueryRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOSortOrder2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx context.Context, v any) (*model.SortOrder, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.SortOrder)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOSortOrder2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx context.Context, sel ast.SelectionSet, v *model.SortOrder) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {

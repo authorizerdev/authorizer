@@ -188,9 +188,9 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return p.db.Query(query, user.ID).WithContext(ctx).Exec()
 }
 
-// ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, query string) ([]*schemas.User, *model.Pagination, error) {
-	responseUsers := []*schemas.User{}
+// ListUsers to get list of users from database, filtered by opts and ordered
+// by created_at.
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, opts schemas.ListUsersOptions) ([]*schemas.User, *model.Pagination, error) {
 	paginationClone := pagination
 	const columns = "id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, has_skipped_mfa_setup_at, mfa_locked_at, app_data, external_id, is_active, created_at, updated_at"
 	scanUser := func(scanner gocql.Scanner) (*schemas.User, error) {
@@ -202,60 +202,73 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination, 
 		return &user, err
 	}
 
-	if search := strings.TrimSpace(query); search != "" {
-		// ponytail: Cassandra/ScyllaDB has no substring index on non-key
-		// columns, so search does a full-table scan and filters in application
-		// code — O(n). Acceptable for an admin search surface; upgrade path is a
-		// SASI/secondary index or an external search service at scale.
-		q := fmt.Sprintf("SELECT %s FROM %s", columns, KeySpace+"."+schemas.Collections.User)
-		scanner := p.db.Query(q).Iter().Scanner()
-		matched := []*schemas.User{}
-		for scanner.Next() {
-			user, err := scanUser(scanner)
-			if err != nil {
-				return nil, nil, err
-			}
-			if user.MatchesSearch(search) {
-				matched = append(matched, user)
-			}
+	// ponytail: Cassandra/ScyllaDB has no substring index on non-key columns
+	// and cannot ORDER BY created_at across partitions, so the list does a
+	// full-table scan of only the columns needed to filter and sort (never
+	// password/app_data), filters and sorts in application code, then fetches
+	// full rows for the requested page only (WHERE id IN ?). Still O(n) in
+	// users; upgrade path is a created_at-clustered lookup table or an
+	// external search service at scale.
+	searching := strings.TrimSpace(opts.Query) != ""
+	keyCols := "id, created_at, email_verified_at"
+	if searching {
+		keyCols += ", email, given_name, family_name, nickname"
+	}
+	q := fmt.Sprintf("SELECT %s FROM %s", keyCols, KeySpace+"."+schemas.Collections.User)
+	scanner := p.db.Query(q).WithContext(ctx).Iter().Scanner()
+	matched := []*schemas.User{}
+	for scanner.Next() {
+		var user schemas.User
+		dest := []interface{}{&user.ID, &user.CreatedAt, &user.EmailVerifiedAt}
+		if searching {
+			dest = append(dest, &user.Email, &user.GivenName, &user.FamilyName, &user.Nickname)
 		}
-		if err := scanner.Err(); err != nil {
+		if err := scanner.Scan(dest...); err != nil {
 			return nil, nil, err
 		}
-		paginationClone.Total = int64(len(matched))
-		start := pagination.Offset
-		if start > int64(len(matched)) {
-			start = int64(len(matched))
+		if opts.Matches(&user) {
+			matched = append(matched, &user)
 		}
-		end := start + pagination.Limit
-		if end > int64(len(matched)) {
-			end = int64(len(matched))
-		}
-		return matched[start:end], paginationClone, nil
 	}
-
-	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.User)
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
-	if err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, nil, err
 	}
-
-	// there is no offset in cassandra
-	// so we fetch till limit + offset
-	// and return the results from offset to limit
-	q := fmt.Sprintf("SELECT %s FROM %s LIMIT %d", columns, KeySpace+"."+schemas.Collections.User,
-		pagination.Limit+pagination.Offset)
-	scanner := p.db.Query(q).Iter().Scanner()
-	counter := int64(0)
-	for scanner.Next() {
-		if counter >= pagination.Offset {
-			user, err := scanUser(scanner)
-			if err != nil {
-				return nil, nil, err
-			}
-			responseUsers = append(responseUsers, user)
+	opts.SortUsersByCreatedAt(matched)
+	paginationClone.Total = int64(len(matched))
+	start := pagination.Offset
+	if start > int64(len(matched)) {
+		start = int64(len(matched))
+	}
+	end := start + pagination.Limit
+	if end > int64(len(matched)) {
+		end = int64(len(matched))
+	}
+	pageIDs := make([]string, 0, end-start)
+	for _, u := range matched[start:end] {
+		pageIDs = append(pageIDs, u.ID)
+	}
+	if len(pageIDs) == 0 {
+		return []*schemas.User{}, paginationClone, nil
+	}
+	fullQuery := fmt.Sprintf("SELECT %s FROM %s WHERE id IN ?", columns, KeySpace+"."+schemas.Collections.User)
+	fullScanner := p.db.Query(fullQuery, pageIDs).WithContext(ctx).Iter().Scanner()
+	byID := make(map[string]*schemas.User, len(pageIDs))
+	for fullScanner.Next() {
+		user, err := scanUser(fullScanner)
+		if err != nil {
+			return nil, nil, err
 		}
-		counter++
+		byID[user.ID] = user
+	}
+	if err := fullScanner.Err(); err != nil {
+		return nil, nil, err
+	}
+	// Preserve the sorted order; a row deleted between scan and fetch is skipped.
+	responseUsers := make([]*schemas.User, 0, len(pageIDs))
+	for _, id := range pageIDs {
+		if u, ok := byID[id]; ok {
+			responseUsers = append(responseUsers, u)
+		}
 	}
 	return responseUsers, paginationClone, nil
 }

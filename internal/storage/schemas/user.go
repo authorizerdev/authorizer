@@ -3,6 +3,7 @@ package schemas
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -102,6 +103,46 @@ func (user *User) AsAPIUser() *model.User {
 		UpdatedAt:                refs.NewInt64Ref(user.UpdatedAt),
 		AppData:                  appDataMap,
 	}
+}
+
+// ListUsersOptions carries the optional filters and ordering for
+// Provider.ListUsers. The zero value lists every user, newest first.
+type ListUsersOptions struct {
+	// Query is a case-insensitive substring matched against id, email,
+	// given_name, family_name and nickname. Empty means no filter.
+	Query string
+	// EmailVerified, when non-nil, keeps only users whose email is verified
+	// (true: email_verified_at is set) or unverified (false: it is null).
+	EmailVerified *bool
+	// CreatedAtAsc orders by created_at oldest first. The default (false) is
+	// newest first. Backends map it to a fixed ASC/DESC keyword, never to a
+	// caller-supplied string.
+	CreatedAtAsc bool
+}
+
+// Matches reports whether user passes every filter in o. Used by backends
+// that filter in application code (DynamoDB, Cassandra/ScyllaDB).
+func (o ListUsersOptions) Matches(user *User) bool {
+	if o.EmailVerified != nil && (user.EmailVerifiedAt != nil) != *o.EmailVerified {
+		return false
+	}
+	return user.MatchesSearch(o.Query)
+}
+
+// SortUsersByCreatedAt orders users in place by created_at in the direction
+// o requests, breaking ties by id so pagination is deterministic. Used by
+// backends that sort in application code.
+func (o ListUsersOptions) SortUsersByCreatedAt(users []*User) {
+	sort.SliceStable(users, func(i, j int) bool {
+		a, b := users[i], users[j]
+		if a.CreatedAt != b.CreatedAt {
+			if o.CreatedAtAsc {
+				return a.CreatedAt < b.CreatedAt
+			}
+			return a.CreatedAt > b.CreatedAt
+		}
+		return a.ID < b.ID
+	})
 }
 
 // MatchesSearch reports whether the user matches a case-insensitive substring

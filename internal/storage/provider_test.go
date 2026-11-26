@@ -198,6 +198,7 @@ func TestStorageProvider(t *testing.T) {
 
 			t.Run("User Search Operations", func(t *testing.T) {
 				testUserSearchOperations(t, ctx, provider)
+				testUserSortFilterOperations(t, ctx, provider)
 			})
 
 			t.Run("Verification Request Operations", func(t *testing.T) {
@@ -477,27 +478,27 @@ func testUserSearchOperations(t *testing.T, ctx context.Context, provider Provid
 	makeUser("dave_"+uuid.New().String()+"@test.com", refs.NewStringRef("unrelated"), nil)
 
 	// Case-insensitive search on the shared token returns exactly the 3 matches.
-	res, pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, strings.ToUpper(token))
+	res, pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: strings.ToUpper(token)})
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), pagination.Total, "search total must count only matching users")
 	assert.Len(t, res, 3)
 
 	// Empty query is unfiltered: total must include at least the 4 created here.
-	_, allPagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 1, Offset: 0}, "")
+	_, allPagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 1, Offset: 0}, schemas.ListUsersOptions{})
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, allPagination.Total, int64(4))
 
 	// Pagination applies to the filtered set: limit 2 returns 2 of 3, total 3.
-	page1, page1Pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 0}, token)
+	page1, page1Pagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 0}, schemas.ListUsersOptions{Query: token})
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), page1Pagination.Total)
 	assert.Len(t, page1, 2)
-	page2, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 2}, token)
+	page2, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 2, Offset: 2}, schemas.ListUsersOptions{Query: token})
 	require.NoError(t, err)
 	assert.Len(t, page2, 1)
 
 	// A non-matching query returns nothing.
-	none, nonePagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, "no-such-user-"+uuid.New().String())
+	none, nonePagination, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: "no-such-user-" + uuid.New().String()})
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), nonePagination.Total)
 	assert.Len(t, none, 0)
@@ -513,7 +514,7 @@ func testUserSearchOperations(t *testing.T, ctx context.Context, provider Provid
 	}
 	_, err = provider.AddUser(ctx, idUser)
 	require.NoError(t, err)
-	byID, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, idUser.ID[:13])
+	byID, _, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: idUser.ID[:13]})
 	require.NoError(t, err)
 	foundByID := false
 	for _, u := range byID {
@@ -523,6 +524,109 @@ func testUserSearchOperations(t *testing.T, ctx context.Context, provider Provid
 		}
 	}
 	assert.True(t, foundByID, "search by id prefix must return the user")
+}
+
+// testUserSortFilterOperations verifies ListUsers' created_at ordering
+// (default newest first, optional oldest first) and email_verified filter,
+// alone and combined with search and pagination, with Total counting only the
+// filtered set. Every backend must honour it, including the application-side
+// DynamoDB/Cassandra paths.
+func testUserSortFilterOperations(t *testing.T, ctx context.Context, provider Provider) {
+	token := "zs" + strings.ReplaceAll(uuid.New().String(), "-", "")
+	// Fixed, distinct created_at values far in the past, so ordering is
+	// deterministic regardless of how fast the users are inserted.
+	base := int64(1_000_000_000)
+	verifiedAt := int64(1_000_000_500)
+	makeUser := func(name string, createdAt int64, verified bool) string {
+		u := &schemas.User{
+			ID:            uuid.New().String(),
+			Email:         refs.NewStringRef(name + "_" + token + "@test.com"),
+			Password:      refs.NewStringRef("hashedPassword"),
+			SignupMethods: "basic_auth",
+		}
+		if verified {
+			u.EmailVerifiedAt = refs.NewInt64Ref(verifiedAt)
+		}
+		_, err := provider.AddUser(ctx, u)
+		require.NoError(t, err)
+		// AddUser stamps created_at with now; overwrite it via UpdateUser.
+		stored, err := provider.GetUserByID(ctx, u.ID)
+		require.NoError(t, err)
+		stored.CreatedAt = createdAt
+		_, err = provider.UpdateUser(ctx, stored)
+		require.NoError(t, err)
+		return u.ID
+	}
+	oldest := makeUser("oldest", base+1, true)
+	middle := makeUser("middle", base+2, false)
+	newest := makeUser("newest", base+3, true)
+	defer func() {
+		for _, id := range []string{oldest, middle, newest} {
+			if u, err := provider.GetUserByID(ctx, id); err == nil {
+				_ = provider.DeleteUser(ctx, u)
+			}
+		}
+	}()
+
+	ids := func(users []*schemas.User) []string {
+		out := make([]string, len(users))
+		for i, u := range users {
+			out[i] = u.ID
+		}
+		return out
+	}
+
+	// Default order is newest first.
+	res, pag, err := provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: token})
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), pag.Total)
+	assert.Equal(t, []string{newest, middle, oldest}, ids(res), "default order must be created_at DESC")
+
+	// Ascending order is oldest first.
+	res, pag, err = provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: token, CreatedAtAsc: true})
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), pag.Total)
+	assert.Equal(t, []string{oldest, middle, newest}, ids(res), "CreatedAtAsc must order created_at ASC")
+
+	// email_verified=true keeps only verified users; Total counts the filtered set.
+	res, pag, err = provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: token, EmailVerified: refs.NewBoolRef(true)})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), pag.Total)
+	assert.Equal(t, []string{newest, oldest}, ids(res))
+
+	// email_verified=false keeps only unverified users.
+	res, pag, err = provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{Query: token, EmailVerified: refs.NewBoolRef(false)})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), pag.Total)
+	assert.Equal(t, []string{middle}, ids(res))
+
+	// Pagination applies after filter + sort: page 2 of size 1, ascending,
+	// verified only, is the newest verified user; Total stays 2.
+	res, pag, err = provider.ListUsers(ctx, &model.Pagination{Limit: 1, Offset: 1}, schemas.ListUsersOptions{Query: token, EmailVerified: refs.NewBoolRef(true), CreatedAtAsc: true})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), pag.Total)
+	assert.Equal(t, []string{newest}, ids(res))
+
+	// Without a search query the filter still applies to every returned row,
+	// and the order holds across the whole page.
+	for _, verified := range []bool{true, false} {
+		for _, asc := range []bool{true, false} {
+			res, pag, err = provider.ListUsers(ctx, &model.Pagination{Limit: 50, Offset: 0}, schemas.ListUsersOptions{EmailVerified: refs.NewBoolRef(verified), CreatedAtAsc: asc})
+			require.NoError(t, err)
+			assert.GreaterOrEqual(t, pag.Total, int64(1))
+			for i, u := range res {
+				assert.Equal(t, verified, u.EmailVerifiedAt != nil, "user %s violates email_verified=%v", u.ID, verified)
+				if i == 0 {
+					continue
+				}
+				if asc {
+					assert.LessOrEqual(t, res[i-1].CreatedAt, u.CreatedAt, "page must be created_at ASC")
+				} else {
+					assert.GreaterOrEqual(t, res[i-1].CreatedAt, u.CreatedAt, "page must be created_at DESC")
+				}
+			}
+		}
+	}
 }
 
 func testUserOperations(t *testing.T, ctx context.Context, provider Provider, dbType string) {
@@ -609,7 +713,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	users, pagination, err := provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	}, "")
+	}, schemas.ListUsersOptions{})
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)
@@ -662,7 +766,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider, db
 	users, _, err = provider.ListUsers(ctx, &model.Pagination{
 		Limit:  10,
 		Offset: 0,
-	}, *user.Email)
+	}, schemas.ListUsersOptions{Query: *user.Email})
 	assert.NoError(t, err)
 	assert.NotNil(t, users)
 	assert.Greater(t, len(users), 0)

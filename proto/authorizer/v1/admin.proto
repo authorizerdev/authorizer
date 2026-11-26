@@ -803,6 +803,19 @@ message UsersRequest {
   // query is an optional case-insensitive substring filter matched against
   // email, given_name, family_name and nickname. Empty means no filter.
   string query = 2;
+  // email_verified, when set, keeps only verified (true) or unverified
+  // (false) users. Unset means no filter.
+  optional bool email_verified = 3;
+  // created_at_order orders the list by created_at. Unspecified means
+  // descending (newest first).
+  SortOrder created_at_order = 4;
+}
+
+// SortOrder is the direction of a list ordering.
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_ASC = 1;
+  SORT_ORDER_DESC = 2;
 }
 message UsersResponse {
   repeated User users = 1;

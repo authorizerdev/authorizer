@@ -99,6 +99,30 @@ func TestAdminUsersGRPC(t *testing.T) {
 		}
 		require.True(t, found, "seeded user should appear in the users page")
 	})
+
+	t.Run("filters by email_verified and orders by created_at", func(t *testing.T) {
+		for _, verified := range []bool{true, false} {
+			v := verified
+			resp, err := client.Users(adminCtx(cfg.AdminSecret), &authorizerv1.UsersRequest{EmailVerified: &v})
+			require.NoError(t, err)
+			for _, u := range resp.Users {
+				require.Equal(t, verified, u.EmailVerified, "user %s violates email_verified=%v", u.Id, verified)
+			}
+		}
+		for _, order := range []authorizerv1.SortOrder{authorizerv1.SortOrder_SORT_ORDER_ASC, authorizerv1.SortOrder_SORT_ORDER_DESC} {
+			resp, err := client.Users(adminCtx(cfg.AdminSecret), &authorizerv1.UsersRequest{CreatedAtOrder: order})
+			require.NoError(t, err)
+			require.NotEmpty(t, resp.Users)
+			for i := 1; i < len(resp.Users); i++ {
+				prev, cur := resp.Users[i-1].CreatedAt, resp.Users[i].CreatedAt
+				if order == authorizerv1.SortOrder_SORT_ORDER_ASC {
+					require.LessOrEqual(t, prev, cur)
+				} else {
+					require.GreaterOrEqual(t, prev, cur)
+				}
+			}
+		}
+	})
 }
 
 // TestAdminUserGRPC exercises AuthorizerAdminService.User over gRPC for both

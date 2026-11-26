@@ -38,7 +38,8 @@ func (p *provider) isMFAServiceAvailable() bool {
 
 // Users returns a paginated list of all users, optionally filtered by a
 // case-insensitive substring search (params.Query) over email/given_name/
-// family_name/nickname. Requires super-admin auth. Logic migrated from
+// family_name/nickname and by email verification (params.EmailVerified),
+// ordered by created_at (params.CreatedAtOrder, default newest first). Requires super-admin auth. Logic migrated from
 // internal/graphql/users.go.
 func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *model.ListUsersRequest) (*model.Users, *ResponseSideEffects, error) {
 	log := p.Log.With().Str("func", "Users").Logger()
@@ -46,15 +47,17 @@ func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *mode
 		return nil, nil, err
 	}
 
-	var query string
+	var opts schemas.ListUsersOptions
 	var pagination *model.Pagination
 	if params != nil {
 		pagination = utils.GetPagination(params.Pagination)
-		query = refs.StringValue(params.Query)
+		opts.Query = refs.StringValue(params.Query)
+		opts.EmailVerified = params.EmailVerified
+		opts.CreatedAtAsc = params.CreatedAtOrder != nil && *params.CreatedAtOrder == model.SortOrderAsc
 	} else {
 		pagination = utils.GetPagination(nil)
 	}
-	res, pagination, err := p.StorageProvider.ListUsers(ctx, pagination, query)
+	res, pagination, err := p.StorageProvider.ListUsers(ctx, pagination, opts)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed ListUsers")
 		return nil, nil, err
