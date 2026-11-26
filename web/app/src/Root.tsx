@@ -257,7 +257,13 @@ export default function Root({
 	}
 	// The resumption effect above is about to navigate away; rendering the
 	// signed-in dashboard here would flash it for a frame first (#269).
-	if (token && (isAuthorizeContext || isSamlIdpContinueURL(rawRedirectURL))) {
+	// Mirrors the effect's conditions exactly, including its reset-page
+	// early return, so this can never wait on a navigation that won't happen.
+	if (
+		token &&
+		!startedOnResetPassword &&
+		(isAuthorizeContext || isSamlIdpContinueURL(rawRedirectURL))
+	) {
 		return <h1>Loading...</h1>;
 	}
 	if (token) {
