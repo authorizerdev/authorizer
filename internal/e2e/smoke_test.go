@@ -716,6 +716,15 @@ func freePort(t *testing.T) int {
 // stop function (also registered as cleanup, safe to call twice).
 func startServer(t *testing.T, bin string, args []string, baseURL string) func() {
 	t.Helper()
+	stop, _ := startServerWithLog(t, bin, args, baseURL)
+	return stop
+}
+
+// startServerWithLog is startServer that also returns the path of the
+// server's combined stdout/stderr log, for tests that correlate an API
+// response with what the server logged.
+func startServerWithLog(t *testing.T, bin string, args []string, baseURL string) (func(), string) {
+	t.Helper()
 	logPath := filepath.Join(t.TempDir(), "server.log")
 	logFile, err := os.Create(logPath)
 	require.NoError(t, err)
@@ -746,14 +755,14 @@ func startServer(t *testing.T, bin string, args []string, baseURL string) func()
 		if err == nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				return stop
+				return stop, logPath
 			}
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
 	logs, _ := os.ReadFile(logPath)
 	t.Fatalf("server did not become ready; log:\n%s", logs)
-	return stop
+	return stop, logPath
 }
 
 // graphQLClient is a minimal GraphQL-over-HTTP client with a cookie jar (the
