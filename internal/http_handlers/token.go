@@ -871,6 +871,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		// needs the org context available at this point (the refresh token carries
 		// no org claim today) plus an FGA lookup. That is a design change, not a
 		// patch, and is deliberately left undone rather than half-done.
+		//
+		// What IS safe to drop here is a role the user record holds that is no
+		// longer configured (#425): it can only have come from the record, so
+		// org-group-derived roles are untouched. CreateAuthToken applies the
+		// same filter to the token claims; doing it here as well keeps the
+		// "roles" field of the JSON response in step with the tokens.
+		roles = h.Config.WithoutStaleUserRoles(roles, user.Roles)
 		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String()
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{

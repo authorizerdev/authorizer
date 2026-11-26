@@ -4,13 +4,16 @@ import "strings"
 
 // IsConfiguredRole reports whether role is currently configured on this
 // instance, i.e. listed in --roles, --protected-roles or --default-roles.
+// Both sides are trimmed: pflag's StringSliceVar keeps the space in
+// --default-roles "user, member".
 func (c *Config) IsConfiguredRole(role string) bool {
+	role = strings.TrimSpace(role)
 	if c == nil || role == "" {
 		return false
 	}
 	for _, set := range [][]string{c.Roles, c.ProtectedRoles, c.DefaultRoles} {
 		for _, r := range set {
-			if r == role {
+			if strings.TrimSpace(r) == role {
 				return true
 			}
 		}

@@ -17,6 +17,23 @@ func TestEffectiveUserRoles(t *testing.T) {
 	assert.Equal(t, []string{}, c.EffectiveUserRoles("removed"))
 }
 
+func TestIsConfiguredRole(t *testing.T) {
+	c := &Config{
+		Roles:          []string{"user"},
+		ProtectedRoles: []string{"super"},
+		// pflag's StringSliceVar does not trim: --default-roles "user, member".
+		DefaultRoles: []string{"user", " member"},
+	}
+	assert.True(t, c.IsConfiguredRole("user"))
+	assert.True(t, c.IsConfiguredRole("super"), "protected roles are configured")
+	assert.True(t, c.IsConfiguredRole("member"), "default roles are configured, whitespace ignored")
+	assert.True(t, c.IsConfiguredRole(" member "))
+	assert.False(t, c.IsConfiguredRole("removed"))
+	assert.False(t, c.IsConfiguredRole(""))
+	assert.False(t, c.IsConfiguredRole("  "))
+	assert.Equal(t, []string{"user", "member"}, c.EffectiveUserRoles("user, member,removed"))
+}
+
 func TestWithoutStaleUserRoles(t *testing.T) {
 	c := &Config{Roles: []string{"user"}}
 	// "removed" is on the user record but no longer configured: dropped.

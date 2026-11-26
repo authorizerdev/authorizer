@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -145,19 +145,19 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 
 	if len(params.Roles) > 0 {
 		// A token minted before a role was removed from --roles still lists
-		// it; drop roles the user record holds that are no longer configured
-		// (#425). A subject with no user row (a machine token) has no stored
-		// roles to drop. A storage failure is not treated as "no roles": the
-		// check is an authorization decision, so it fails rather than guesses.
-		subjectUser, err := p.StorageProvider.GetUserByID(ctx, userID)
-		switch {
-		case storage.IsNotFound(err):
-		case err != nil:
-			log.Debug().Err(err).Msg("Failed to get user for role check")
-			return nil, nil, err
-		default:
-			claimRoles = p.Config.WithoutStaleUserRoles(claimRoles, subjectUser.Roles)
+		// it; drop roles that came from the user record and are no longer
+		// configured (#425). The token's own signed allowed_roles claim is
+		// the user record's roles at mint time (reserved, so a custom script
+		// cannot alter it), which makes this check DB-free on a hot path for
+		// resource servers. A token without allowed_roles (a machine token)
+		// has no record-sourced roles to drop.
+		var mintedUserRoles []string
+		for _, v := range utils.ConvertInterfaceToSlice(claims["allowed_roles"]) {
+			if s, ok := v.(string); ok {
+				mintedUserRoles = append(mintedUserRoles, s)
+			}
 		}
+		claimRoles = p.Config.WithoutStaleUserRoles(claimRoles, strings.Join(mintedUserRoles, ","))
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				log.Debug().Str("role", v).Msg("Role not found in claims")
