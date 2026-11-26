@@ -67,7 +67,7 @@ func ErrorMap(log *zerolog.Logger) grpc.UnaryServerInterceptor {
 		// Checked before the status pass-through so a driver error that
 		// happens to carry a gRPC status cannot slip past.
 		if msg, errorID, masked := service.MaskInternalError(err); masked {
-			log.Error().Err(err).Str("error_id", errorID).Str("method", info.FullMethod).Msg("grpc: masked internal error")
+			service.MaskedErrorEvent(log, err, errorID).Str("method", info.FullMethod).Msg("grpc: masked internal error")
 			return resp, status.Error(codes.Internal, msg)
 		}
 

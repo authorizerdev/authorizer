@@ -86,7 +86,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		verified, err := h.ServiceProvider.ConsumeEmailVerificationToken(c, hostname, tokenInQuery)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to consume verification token")
-			errorRes["error"] = err.Error()
+			errorRes["error"] = publicErrorMessage(&log, err)
 			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
@@ -116,7 +116,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		withheld, redirectSuffix, gateErr := h.ServiceProvider.EvaluateMFAGateForOAuth(c, meta, side, user)
 		if gateErr != nil {
 			log.Debug().Err(gateErr).Msg("MFA gate rejected email verification")
-			errorRes["error"] = gateErr.Error()
+			errorRes["error"] = publicErrorMessage(&log, gateErr)
 			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
@@ -194,7 +194,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")
-			errorRes["error"] = err.Error()
+			errorRes["error"] = publicErrorMessage(&log, err)
 			utils.HandleRedirectORJsonResponse(c, http.StatusInternalServerError, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}

@@ -93,7 +93,7 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug().Err(err).Msg("Error getting oauth config")
 			c.JSON(422, gin.H{
-				"error": err.Error(),
+				"error": publicErrorMessage(&log, err),
 			})
 			return
 		}

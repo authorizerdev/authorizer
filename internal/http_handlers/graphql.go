@@ -75,10 +75,13 @@ func graphQLErrorPresenter(log *zerolog.Logger) gql.ErrorPresenterFunc {
 				gqlErr.Extensions = map[string]interface{}{}
 			}
 			gqlErr.Extensions["code"] = kindToGraphQLCode(svcErr.Kind)
+			// Only the typed message, never text from anything wrapped
+			// around or under it — matches gRPC ErrorMap.
+			gqlErr.Message = svcErr.Error()
 			return gqlErr
 		}
 		if msg, errorID, masked := service.MaskInternalError(e); masked {
-			evt := log.Error().Err(e).Str("error_id", errorID).Str("path", gqlErr.Path.String())
+			evt := service.MaskedErrorEvent(log, e, errorID).Str("path", gqlErr.Path.String())
 			if gql.HasOperationContext(ctx) {
 				evt = evt.Str("operation", gql.GetOperationContext(ctx).OperationName)
 			}

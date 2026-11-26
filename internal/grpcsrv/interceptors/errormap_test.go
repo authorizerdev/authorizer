@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -43,6 +44,18 @@ func TestErrorMap_MasksStorageError(t *testing.T) {
 	assert.Contains(t, logged, "/authorizer.v1.AuthorizerService/Signup")
 	id := st.Message()[len("internal server error (error_id: ") : len(st.Message())-1]
 	assert.Contains(t, logged, `"error_id":"`+id+`"`)
+}
+
+// TestErrorMap_StorageNotFoundLogsAtWarn: an unclassified not-found is masked
+// but logged at warn, not error — it is not an outage.
+func TestErrorMap_StorageNotFoundLogsAtWarn(t *testing.T) {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf)
+	_, err := ErrorMap(&log)(context.Background(), nil, info("/svc/M"), func(_ context.Context, _ any) (any, error) {
+		return nil, &storage.Error{Err: gorm.ErrRecordNotFound}
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+	assert.Contains(t, buf.String(), `"level":"warn"`)
 }
 
 // TestErrorMap_TypedErrorWrappingStorageErrorKeepsMessage: a service that

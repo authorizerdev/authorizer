@@ -42,6 +42,16 @@ func TestMaskInternalError(t *testing.T) {
 		assert.False(t, masked)
 	})
 
+	t.Run("SAML URL validation keeps the field name in the typed message", func(t *testing.T) {
+		// Transports surface only the typed message, so the field context
+		// must live inside it rather than in a fmt.Errorf wrapper.
+		bad := "http://idp.example.com"
+		_, _, _, err := validateOptionalSAMLFields(&bad, nil, nil)
+		var se *Error
+		assert.ErrorAs(t, err, &se)
+		assert.Equal(t, "sp_entity_id must be a valid https URL", se.Error())
+	})
+
 	t.Run("nil", func(t *testing.T) {
 		_, _, masked := MaskInternalError(nil)
 		assert.False(t, masked)

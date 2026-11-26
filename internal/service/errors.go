@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
@@ -146,4 +148,16 @@ func MaskInternalError(err error) (publicMsg, errorID string, masked bool) {
 	}
 	errorID = rand.Text()
 	return fmt.Sprintf("internal server error (error_id: %s)", errorID), errorID, true
+}
+
+// MaskedErrorEvent starts the server-side log line for an error masked by
+// MaskInternalError, carrying the original error and its errorID. A storage
+// not-found is logged at warn rather than error: it is still masked (the
+// service should have classified it), but it is not an outage.
+func MaskedErrorEvent(log *zerolog.Logger, err error, errorID string) *zerolog.Event {
+	evt := log.Error()
+	if storage.IsNotFound(err) {
+		evt = log.Warn()
+	}
+	return evt.Err(err).Str("error_id", errorID)
 }

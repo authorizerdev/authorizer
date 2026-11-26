@@ -518,7 +518,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		withheld, redirectSuffix, gateErr := h.ServiceProvider.EvaluateMFAGateForOAuth(ctx, meta, side, user)
 		if gateErr != nil {
 			log.Debug().Err(gateErr).Msg("MFA gate rejected OAuth callback")
-			ctx.JSON(400, gin.H{"error": gateErr.Error()})
+			ctx.JSON(400, gin.H{"error": publicErrorMessage(&log, gateErr)})
 			return
 		}
 		if withheld {

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -42,6 +43,27 @@ func TestGraphQLErrorPresenter_MasksStorageError(t *testing.T) {
 	// Correlation: the id the client sees is the one in the log line.
 	id := gqlErr.Message[len("internal server error (error_id: ") : len(gqlErr.Message)-1]
 	assert.Contains(t, logged, `"error_id":"`+id+`"`)
+}
+
+// TestGraphQLErrorPresenter_StorageNotFoundLogsAtWarn: an unclassified
+// not-found is still masked (services should classify it), but it is not an
+// outage, so it must not page anyone at ERROR.
+func TestGraphQLErrorPresenter_StorageNotFoundLogsAtWarn(t *testing.T) {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf)
+	gqlErr := graphQLErrorPresenter(&log)(context.Background(), &storage.Error{Err: gorm.ErrRecordNotFound})
+	assert.Regexp(t, `^internal server error \(error_id: \S+\)$`, gqlErr.Message)
+	assert.Contains(t, buf.String(), `"level":"warn"`)
+}
+
+// TestGraphQLErrorPresenter_TypedWrappingStorageUsesTypedMessage: GraphQL must
+// agree with gRPC's ErrorMap — a typed error that wraps a storage error shows
+// only the typed message, never the wrapped driver text.
+func TestGraphQLErrorPresenter_TypedWrappingStorageUsesTypedMessage(t *testing.T) {
+	err := fmt.Errorf("%w: %w", service.NotFound("user not found"), &storage.Error{Err: errors.New("mongo: no documents in result")})
+	gqlErr := graphQLErrorPresenter(&nopLog)(context.Background(), err)
+	assert.Equal(t, "user not found", gqlErr.Message)
+	assert.Equal(t, "NOT_FOUND", gqlErr.Extensions["code"])
 }
 
 // TestGraphQLErrorPresenter_TypedServiceError guards the contract that
