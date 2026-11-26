@@ -160,6 +160,37 @@ func TestMFARolesAreCarriedAcrossTheInterruption(t *testing.T) {
 		assert.Nil(t, res)
 	})
 
+	// #425 x #301: a role the user still holds on the stored record but that
+	// was removed from --roles must not be grantable through the MFA path
+	// either (resolveLoginRoles filters to configured roles).
+	t.Run("a role removed from config is rejected on an MFA login", func(t *testing.T) {
+		ts := newTS(t)
+		email, secret, _ := setupTOTPUser(t, ts)
+		ts.Config.EnableMFA = true
+		var kept []string
+		for _, r := range ts.Config.Roles {
+			if r != "editor" {
+				kept = append(kept, r)
+			}
+		}
+		ts.Config.Roles = kept
+		require.NotContains(t, ts.Config.DefaultRoles, "editor")
+		require.NotContains(t, ts.Config.ProtectedRoles, "editor")
+
+		_, ctx := createContext(ts)
+		res, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+			Email: &email, Password: password, Roles: []string{"editor"},
+		})
+		require.Error(t, err, "editor is no longer configured, so requesting it must fail")
+		assert.Nil(t, res)
+
+		// A still-configured role keeps working through the same MFA path.
+		code, err := totp.GenerateCode(secret, time.Now())
+		require.NoError(t, err)
+		got := loginThenVerifyTOTP(t, ts, email, code, []string{"viewer"})
+		assert.Equal(t, []string{"viewer"}, got)
+	})
+
 	t.Run("carried roles are single-use and do not leak into a later session", func(t *testing.T) {
 		ts := newTS(t)
 		email, _, recoveryCodes := setupTOTPUser(t, ts)
