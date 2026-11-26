@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 )
 
 // Revoke invalidates a refresh token. Typed mirror of RFC 7009.
@@ -42,11 +43,14 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 	}
 
 	existing, err := p.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
-	if err != nil {
+	if err != nil && !memory_store.IsNotFound(err) {
 		log.Debug().Err(err).Msg("Failed to get refresh token")
 		return nil, nil, err
 	}
-	if existing == "" {
+	// A miss (already revoked, rotated or expired) is the caller's state, not
+	// a server fault: answer it like the empty-entry case instead of letting
+	// the memory-store error be masked as a 500.
+	if err != nil || existing == "" {
 		log.Debug().Msg("Token not found")
 		return nil, nil, NotFound("token not found")
 	}

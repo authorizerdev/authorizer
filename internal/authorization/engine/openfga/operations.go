@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
@@ -36,7 +37,7 @@ func (e *engineImpl) Check(ctx context.Context, user, relation, object string, c
 		ContextualTuples: toProtoContextual(ctxTuples),
 	})
 	if err != nil {
-		return false, fmt.Errorf("openfga.Check: %w", err)
+		return false, opErr("openfga.Check", err)
 	}
 	return res.GetAllowed(), nil
 }
@@ -73,7 +74,7 @@ func (e *engineImpl) BatchCheck(ctx context.Context, requests []engine.CheckRequ
 		Checks:               items,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("openfga.BatchCheck: %w", err)
+		return nil, opErr("openfga.BatchCheck", err)
 	}
 
 	results := make([]engine.CheckResult, len(requests))
@@ -107,7 +108,7 @@ func (e *engineImpl) ListObjects(ctx context.Context, user, relation, objType st
 		User:                 user,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("openfga.ListObjects: %w", err)
+		return nil, opErr("openfga.ListObjects", err)
 	}
 	return res.GetObjects(), nil
 }
@@ -135,7 +136,7 @@ func (e *engineImpl) ListUsers(ctx context.Context, object, relation, userType s
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultError)
 		e.log.Debug().Err(err).Msg("openfga: list users failed")
-		return nil, fmt.Errorf("openfga.ListUsers: %w", err)
+		return nil, opErr("openfga.ListUsers", err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultSuccess)
 	users := make([]string, 0, len(res.GetUsers()))
@@ -165,12 +166,12 @@ func (e *engineImpl) Expand(ctx context.Context, relation, object string) (strin
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
 		e.log.Debug().Err(err).Msg("openfga: expand failed")
-		return "", fmt.Errorf("openfga.Expand: %w", err)
+		return "", opErr("openfga.Expand", err)
 	}
 	jsonBytes, err := protojson.Marshal(res.GetTree())
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
-		return "", fmt.Errorf("openfga.Expand: marshal tree: %w", err)
+		return "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.Expand: marshal tree: %w", err))
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultSuccess)
 	return string(jsonBytes), nil
@@ -198,7 +199,7 @@ func (e *engineImpl) WriteTuples(ctx context.Context, tuples []engine.TupleKey) 
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultError)
 		e.log.Debug().Err(err).Int("count", len(tuples)).Msg("openfga: write tuples failed")
-		return fmt.Errorf("openfga.WriteTuples: %w", err)
+		return opErr("openfga.WriteTuples", err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	return nil
@@ -226,7 +227,7 @@ func (e *engineImpl) DeleteTuples(ctx context.Context, tuples []engine.TupleKey)
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultError)
 		e.log.Debug().Err(err).Int("count", len(tuples)).Msg("openfga: delete tuples failed")
-		return fmt.Errorf("openfga.DeleteTuples: %w", err)
+		return opErr("openfga.DeleteTuples", err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	return nil
@@ -260,7 +261,7 @@ func (e *engineImpl) ReadTuples(ctx context.Context, filter engine.ReadTuplesFil
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultError)
 		e.log.Debug().Err(err).Msg("openfga: read tuples failed")
-		return nil, fmt.Errorf("openfga.ReadTuples: %w", err)
+		return nil, opErr("openfga.ReadTuples", err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultSuccess)
 
@@ -298,7 +299,7 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultError)
 		e.log.Debug().Err(err).Msg("openfga: write model failed")
-		return "", fmt.Errorf("openfga.WriteModel: %w", err)
+		return "", opErr("openfga.WriteModel", err)
 	}
 	modelID := wm.GetAuthorizationModelId()
 
@@ -324,7 +325,7 @@ func (e *engineImpl) TypeRelations(ctx context.Context) (map[string][]string, er
 		Id:      modelID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("openfga.TypeRelations: %w", err)
+		return nil, opErr("openfga.TypeRelations", err)
 	}
 	out := make(map[string][]string)
 	for _, td := range res.GetAuthorizationModel().GetTypeDefinitions() {
@@ -353,7 +354,7 @@ func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 		Id:      modelID,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("openfga.ReadModel: %w", err)
+		return "", "", opErr("openfga.ReadModel", err)
 	}
 	// Render via the JSON-string transformer rather than the proto-direct
 	// TransformJSONProtoToDSL: the latter (language v0.2.1) errors on relations
@@ -362,14 +363,14 @@ func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 	// same model correctly.
 	jsonBytes, err := protojson.Marshal(res.GetAuthorizationModel())
 	if err != nil {
-		return "", "", fmt.Errorf("openfga.ReadModel: marshal model: %w", err)
+		return "", "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.ReadModel: marshal model: %w", err))
 	}
 	dsl, err := language.TransformJSONStringToDSL(string(jsonBytes))
 	if err != nil {
-		return "", "", fmt.Errorf("openfga.ReadModel: render DSL: %w", err)
+		return "", "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.ReadModel: render DSL: %w", err))
 	}
 	if dsl == nil {
-		return "", "", fmt.Errorf("openfga.ReadModel: render DSL returned nil")
+		return "", "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.ReadModel: render DSL returned nil"))
 	}
 	return modelID, *dsl, nil
 }
@@ -391,7 +392,7 @@ func (e *engineImpl) TypeNames(ctx context.Context) ([]string, error) {
 		Id:      modelID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("openfga.TypeNames: %w", err)
+		return nil, opErr("openfga.TypeNames", err)
 	}
 	defs := res.GetAuthorizationModel().GetTypeDefinitions()
 	out := make([]string, 0, len(defs))

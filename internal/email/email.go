@@ -14,8 +14,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email/templates"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/storage"
 )
+
+// errorSource is the internalerr source recorded for email-provider faults.
+const errorSource = "email"
 
 // Provider interface for email provider
 type Provider interface {
@@ -57,8 +61,14 @@ func New(
 	}, nil
 }
 
-// SendEmail function to send mail
+// SendEmail function to send mail. Every failure (template rendering, SMTP
+// dial/auth/send) is a server-side fault whose text can carry the SMTP host and
+// server responses, so it is marked internal and masked by the transports.
 func (p *provider) SendEmail(to []string, event string, data map[string]interface{}) error {
+	return internalerr.Wrap(errorSource, p.sendEmail(to, event, data))
+}
+
+func (p *provider) sendEmail(to []string, event string, data map[string]interface{}) error {
 	log := p.deps.Log.With().Str("func", "send_email").Str("event", event).Logger()
 	// Don't trigger email sending in case of test
 	if p.config.Env == constants.TestEnv {

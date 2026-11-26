@@ -250,6 +250,14 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		user, err = p.StorageProvider.AddUser(ctx, user)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to add user")
+			// Lost a race with a concurrent create of the same email: skip it,
+			// exactly as the pre-check above skips emails that already exist,
+			// rather than failing the request after earlier invitees were
+			// already created and emailed. See conflict.go.
+			if p.userIdentifierTaken(ctx, email, "") {
+				log.Debug().Msg("user with this email was created concurrently; skipping invite")
+				continue
+			}
 			return nil, nil, err
 		}
 

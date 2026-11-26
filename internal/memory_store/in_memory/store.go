@@ -1,9 +1,8 @@
 package in_memory
 
 import (
-	"fmt"
-
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/memory_store/memerr"
 )
 
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
@@ -16,7 +15,7 @@ func (c *provider) SetUserSession(userId, key, token string, expiration int64) e
 func (c *provider) GetUserSession(userId, key string) (string, error) {
 	val := c.sessionStore.Get(userId, key)
 	if val == "" {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	return val, nil
 }
@@ -63,7 +62,7 @@ func (c *provider) SetMfaSession(userId, key, purpose string, expiration int64) 
 func (c *provider) GetMfaSession(userId, key string) (string, error) {
 	val := c.mfasessionStore.Get(userId, key)
 	if val == "" {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	return val, nil
 }
@@ -72,7 +71,7 @@ func (c *provider) GetMfaSession(userId, key string) (string, error) {
 func (c *provider) GetAllMfaSessions(userId string) ([]string, error) {
 	values := c.mfasessionStore.GetAll(userId)
 	if len(values) == 0 {
-		return nil, fmt.Errorf("not found")
+		return nil, memerr.ErrNotFound
 	}
 	return values, nil
 }
@@ -87,7 +86,7 @@ func (c *provider) DeleteMfaSession(userId, key string) error {
 func (c *provider) GetMfaSessionOwner(key string) (string, string, error) {
 	ownerKey, value, found := c.mfasessionStore.FindOwnerBySuffix(key)
 	if !found {
-		return "", "", fmt.Errorf("not found")
+		return "", "", memerr.ErrNotFound
 	}
 	return ownerKey, value, nil
 }
@@ -119,7 +118,7 @@ func (c *provider) GetAndRemoveState(key string) (string, error) {
 	defer c.mutex.Unlock()
 	val := c.stateStore.GetAndRemove(key)
 	if val == "" {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	return val, nil
 }

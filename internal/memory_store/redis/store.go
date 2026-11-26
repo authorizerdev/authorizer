@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/memory_store/memerr"
 )
 
 var (
@@ -181,7 +182,7 @@ func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
 	keys := res.Val()
 	if len(keys) != 1 {
 		p.dependencies.Log.Debug().Int("matches", len(keys)).Msg("Expected exactly one mfa session owner match")
-		return "", "", fmt.Errorf("not found")
+		return "", "", memerr.ErrNotFound
 	}
 	matchedKey := keys[0]
 	userID := strings.TrimSuffix(strings.TrimPrefix(matchedKey, mfaSessionPrefix), ":"+key)
@@ -241,7 +242,7 @@ return v`
 	}
 	data, ok := result.(string)
 	if !ok || data == "" {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	return data, nil
 }

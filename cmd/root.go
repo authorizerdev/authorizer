@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -648,16 +647,11 @@ func runRoot(c *cobra.Command, args []string) {
 	rateLimitDeps := &rate_limit.Dependencies{
 		Log: &log,
 	}
-	// If memory store is Redis-backed, reuse its client for distributed rate limiting
-	type redisClientProvider interface {
-		Client() interface {
-			Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd
-		}
-	}
-	if rcp, ok := memoryStoreProvider.(redisClientProvider); ok {
-		if client, ok := rcp.Client().(rate_limit.RedisClient); ok {
-			rateLimitDeps.RedisStore = client
-		}
+	// If memory store is Redis-backed, reuse its client for distributed rate
+	// limiting (shared across replicas); otherwise each instance limits in
+	// memory.
+	if client := memory_store.RedisClient(memoryStoreProvider); client != nil {
+		rateLimitDeps.RedisStore = client
 	}
 	rateLimitProvider, err := rate_limit.New(&rootArgs.config, rateLimitDeps)
 	if err != nil {

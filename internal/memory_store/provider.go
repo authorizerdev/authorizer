@@ -16,8 +16,17 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 }
 
-// New returns a new memory store provider
+// New returns a new memory store provider. Every backend is wrapped in
+// errorBoundary so its errors are marked internal and masked by the transports.
 func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
+	next, err := newBackend(cfg, deps)
+	if err != nil {
+		return nil, err
+	}
+	return &errorBoundary{next: next}, nil
+}
+
+func newBackend(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.RedisURL != "" {
 		return redis.NewRedisProvider(cfg, &redis.Dependencies{
 			Log: deps.Log,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 )
 
 const (
@@ -39,7 +40,7 @@ const (
 func (p *provider) NewAdminSession() (string, error) {
 	sessionID, err := crypto.NewRandomString(adminSessionIDBytes)
 	if err != nil {
-		return "", err
+		return "", internalerr.Wrap(errorSource, err)
 	}
 	if err := p.dependencies.MemoryStoreProvider.SetCache(adminSessionCachePrefix+sessionID, "1", AdminSessionTTLSeconds); err != nil {
 		return "", err

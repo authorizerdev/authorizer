@@ -7,8 +7,12 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
+
+// errorSource is the internalerr source recorded for token-provider faults.
+const errorSource = "token"
 
 // SignJWTToken common util to sing jwt token
 func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
@@ -18,7 +22,16 @@ func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
 // signJWTToken signs the claims, optionally stamping the JWT header `typ`
 // (RFC 9068: an OAuth2 access token uses "at+jwt"). An empty typ leaves the
 // default "JWT" header, preserving the behavior of every existing caller.
+//
+// Every failure here is a server-side fault (misconfigured algorithm, an
+// unparseable signing key, a signer error) — never something the caller did —
+// so it is marked internal and masked by the transports.
 func (p *provider) signJWTToken(jwtclaims jwt.MapClaims, typ string) (string, error) {
+	signed, err := p.signJWTTokenRaw(jwtclaims, typ)
+	return signed, internalerr.Wrap(errorSource, err)
+}
+
+func (p *provider) signJWTTokenRaw(jwtclaims jwt.MapClaims, typ string) (string, error) {
 	signingMethod := jwt.GetSigningMethod(p.config.JWTType)
 	if signingMethod == nil {
 		return "", errors.New("unsupported signing method")

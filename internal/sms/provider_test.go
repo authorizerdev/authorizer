@@ -37,7 +37,7 @@ func TestNew_ProductionDefault_TwilioCredsSet_UsesTwilioProvider(t *testing.T) {
 	}, &Dependencies{Log: &log})
 	require.NoError(t, err)
 	require.NotNil(t, provider)
-	assert.Contains(t, fmt.Sprintf("%T", provider), "twilio.")
+	assert.Contains(t, backendType(provider), "twilio.")
 }
 
 // TestNew_TestEnv_StillUsesTwilioProvider proves E2EEnv and TestEnv are
@@ -54,7 +54,7 @@ func TestNew_TestEnv_StillUsesTwilioProvider(t *testing.T) {
 	}, &Dependencies{Log: &log})
 	require.NoError(t, err)
 	require.NotNil(t, provider)
-	assert.Contains(t, fmt.Sprintf("%T", provider), "twilio.")
+	assert.Contains(t, backendType(provider), "twilio.")
 }
 
 // TestNew_E2EEnv_UsesTestWebhookProvider confirms the escape hatch: under
@@ -71,5 +71,13 @@ func TestNew_E2EEnv_UsesTestWebhookProvider(t *testing.T) {
 	}, &Dependencies{Log: &log})
 	require.NoError(t, err)
 	require.NotNil(t, provider)
-	assert.NotContains(t, fmt.Sprintf("%T", provider), "twilio.")
+	assert.NotContains(t, backendType(provider), "twilio.")
+}
+
+// backendType names the concrete provider behind the errorBoundary New adds.
+func backendType(p Provider) string {
+	if b, ok := p.(*errorBoundary); ok {
+		return fmt.Sprintf("%T", b.next)
+	}
+	return fmt.Sprintf("%T", p)
 }

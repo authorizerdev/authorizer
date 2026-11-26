@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 )
 
 // generateJWKFromKey generates the JWK for the given algorithm and public
@@ -49,14 +50,16 @@ func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 		primaryJWK, err := generateJWKFromKey(h.JWTType, h.JWTPublicKey)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error generating primary JWK")
-			c.JSON(500, gin.H{"error": err.Error()})
+			// A key that cannot be rendered is server misconfiguration; its
+			// parse error must not be published on an unauthenticated endpoint.
+			c.JSON(500, gin.H{"error": publicErrorMessage(&log, internalerr.Wrap("jwks", err))})
 			return
 		}
 		if primaryJWK != "" {
 			var data map[string]string
 			if err := json.Unmarshal([]byte(primaryJWK), &data); err != nil {
 				log.Debug().Err(err).Msg("Error unmarshalling primary JWK")
-				c.JSON(500, gin.H{"error": err.Error()})
+				c.JSON(500, gin.H{"error": publicErrorMessage(&log, internalerr.Wrap("jwks", err))})
 				return
 			}
 			keys = append(keys, data)
