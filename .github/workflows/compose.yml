@@ -1,0 +1,53 @@
+---
+name: Docker Compose quick start
+
+# Boots the committed docker-compose.yaml exactly as a new user would and
+# checks that it works and keeps its data: the server comes up healthy, runs
+# as the image's non-root user, writes SQLite to the named volume, and still
+# has a signed-up user after a restart and a container recreate. Guards
+# #930 / #325, where the quick start broke without any test noticing.
+#
+# Path-filtered like k8s.yml: it builds the full image (Go + both web apps),
+# so it runs only when the files that decide whether the quick start works
+# change.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docker-compose.yaml'
+      - 'Dockerfile'
+      - 'scripts/ci-compose-smoke.sh'
+      - '.github/workflows/compose.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose.yaml'
+      - 'Dockerfile'
+      - 'scripts/ci-compose-smoke.sh'
+      - '.github/workflows/compose.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    name: Compose boot + persistence (SQLite volume)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The script prints ps + logs on failure and tears the stack down
+      # itself; the step below is a backstop if the job is cancelled.
+      - name: Boot docker-compose.yaml and check persistence
+        run: scripts/ci-compose-smoke.sh
+
+      - name: Tear down
+        if: always()
+        run: docker compose -p authorizer-compose-smoke down -v --remove-orphans || true
