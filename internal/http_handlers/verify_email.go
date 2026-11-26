@@ -40,11 +40,15 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		// (GHSA-44vr-f829-xfch).
 		//
 		// A verification request records no client_id. When the link carries
-		// the `state` of an /authorize request, that request's client is the
+		// the `state` of an /authorize request AND this browser is the one that
+		// made it (authorizeStateBoundToBrowser), that request's client is the
 		// identity the redirect must satisfy — the same client /authorize
 		// already validated it against, so a third-party client's exact
-		// redirect is not refused here. Otherwise the deployment's own client
-		// is the only identity available: exact matching applies when the
+		// redirect is not refused here. The binding is required because the
+		// state is caller-supplied: magic_link_login is unauthenticated, so an
+		// unbound state would let anyone widen this check to the URIs of a
+		// client they control. Otherwise the deployment's own client is the
+		// only identity available: exact matching applies when the
 		// operator has declared --redirect-uris, and falls back to the origin
 		// allow-list otherwise. That is why dropping the tokens from the
 		// redirect (further down) is the primary fix and this is hardening on
@@ -62,7 +66,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			// Peek only: the state is consumed further down, after the token
 			// and the MFA gate have both passed.
 			if raw, _ := h.MemoryStoreProvider.GetState(state); codestate.HasCode(raw) {
-				if as := codestate.DecodeAuthorize(raw); as.ClientID != "" {
+				if as := codestate.DecodeAuthorize(raw); as.ClientID != "" && authorizeStateBoundToBrowser(c, as) {
 					redirectClientID = as.ClientID
 				}
 			}
@@ -222,11 +226,8 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 					// that recorded none — gets the session (cookie) without a
 					// code rather than a code delivered somewhere the client
 					// never asked for.
-					presented := cookie.GetAuthorizeBinding(c)
-					boundToThisBrowser := as.BrowserBinding != "" && presented != "" &&
-						subtle.ConstantTimeCompare([]byte(crypto.HashSessionValue(presented)), []byte(as.BrowserBinding)) == 1
 					switch {
-					case !boundToThisBrowser:
+					case !authorizeStateBoundToBrowser(c, as):
 						log.Debug().Msg("authorize request was not started in this browser; not issuing a code")
 					case as.RedirectURI == "" || as.RedirectURI != redirectURL:
 						log.Debug().Msg("redirect_uri differs from the authorize request; not issuing a code")
@@ -352,6 +353,18 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
+}
+
+// authorizeStateBoundToBrowser reports whether this request comes from the
+// browser that made the /authorize request: it must present the binding cookie
+// whose digest /authorize stored in the state (cookie.SetAuthorizeBinding).
+// States without a binding (older builds) are never bound.
+func authorizeStateBoundToBrowser(c *gin.Context, as codestate.Authorize) bool {
+	presented := cookie.GetAuthorizeBinding(c)
+	if as.BrowserBinding == "" || presented == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(crypto.HashSessionValue(presented)), []byte(as.BrowserBinding)) == 1
 }
 
 func generateRedirectURL(url string, res map[string]interface{}) string {

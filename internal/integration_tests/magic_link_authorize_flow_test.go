@@ -414,3 +414,125 @@ func TestMagicLinkRedirectValidatedAgainstAuthorizeClient(t *testing.T) {
 	assert.Equal(t, thirdPartyRedirect, loc.Scheme+"://"+loc.Host+loc.Path)
 	assert.NotEmpty(t, loc.Query().Get("code"))
 }
+
+// TestMagicLinkThirdPartyRedirectNeedsBrowserBinding pins that the link's
+// `state` can only widen redirect validation to another client's registered
+// URIs when the clicking browser is the one that ran that /authorize request.
+// The state is caller-supplied (magic_link_login is unauthenticated), so
+// honouring its client_id unconditionally would let anyone point a genuine
+// verification email at a URI registered by a client they control, bypassing
+// the exact --redirect-uris match for the deployment's own client.
+func TestMagicLinkThirdPartyRedirectNeedsBrowserBinding(t *testing.T) {
+	cfg := magicLinkTestConfig()
+	cfg.RedirectURIs = []string{magicLinkCallback}
+	ts := initTestSetup(t, cfg)
+	r := magicLinkRouter(ts)
+
+	const otherRedirect = "http://localhost:3000/other-client-cb"
+	client, err := ts.StorageProvider.AddClient(context.Background(), &schemas.Client{
+		Name:          "other-" + uuid.NewString(),
+		Kind:          constants.ClientKindInteractive,
+		RedirectURIs:  otherRedirect,
+		AllowedScopes: "openid,profile,email",
+		GrantTypes:    "authorization_code,refresh_token",
+		IsActive:      true,
+	})
+	require.NoError(t, err)
+
+	// Each case gets its own state and link: clicking consumes the token.
+	freshLink := func(t *testing.T) string {
+		t.Helper()
+		state := uuid.NewString()
+		require.NoError(t, ts.MemoryStoreProvider.SetState(state, codestate.EncodeAuthorize(codestate.Authorize{
+			Code:           uuid.NewString(),
+			Challenge:      s256Challenge("other-verifier-long-enough-to-be-valid-0000000000") + "::S256",
+			Nonce:          uuid.NewString(),
+			RedirectURI:    otherRedirect,
+			ClientID:       client.ClientID,
+			BrowserBinding: crypto.HashSessionValue("the-initiators-binding"),
+		})))
+		return sendMagicLink(t, ts, "magic_or_"+uuid.NewString()+"@authorizer.dev", state, otherRedirect)
+	}
+
+	t.Run("without the binding cookie the redirect is refused", func(t *testing.T) {
+		vw := clickLink(t, ts, r, freshLink(t))
+		assert.Equal(t, http.StatusBadRequest, vw.Code, "must not redirect to another client's URI: %s", vw.Header().Get("Location"))
+		assert.Contains(t, vw.Body.String(), "invalid redirect uri")
+		assert.Empty(t, vw.Header().Get("Location"))
+	})
+
+	t.Run("a non-matching binding cookie is refused too", func(t *testing.T) {
+		vw := clickLink(t, ts, r, freshLink(t), &http.Cookie{Name: constants.AuthorizeBindingCookieName, Value: "someone-elses"})
+		assert.Equal(t, http.StatusBadRequest, vw.Code, "must not redirect to another client's URI: %s", vw.Header().Get("Location"))
+		assert.Contains(t, vw.Body.String(), "invalid redirect uri")
+	})
+
+	t.Run("the initiating browser is redirected", func(t *testing.T) {
+		vw := clickLink(t, ts, r, freshLink(t), &http.Cookie{Name: constants.AuthorizeBindingCookieName, Value: "the-initiators-binding"})
+		require.Equal(t, http.StatusTemporaryRedirect, vw.Code, vw.Body.String())
+		assert.True(t, strings.HasPrefix(vw.Header().Get("Location"), otherRedirect+"?"))
+	})
+}
+
+// TestAuthorizeBindingCookieOnlyOnLoginDetour pins that /authorize sets the
+// browser-binding cookie only when it sends the browser to the login UI. A
+// request answered from an existing session, or a prompt=none renew, would
+// otherwise overwrite the binding of a magic-link flow pending in another tab.
+func TestAuthorizeBindingCookieOnlyOnLoginDetour(t *testing.T) {
+	ts := initTestSetup(t, magicLinkTestConfig())
+	r := magicLinkRouter(ts)
+	_, ctx := createContext(ts)
+	const verifier = "binding-detour-verifier-long-enough-000000000"
+
+	hasBindingCookie := func(cookies []*http.Cookie) bool {
+		for _, c := range cookies {
+			if c.Name == constants.AuthorizeBindingCookieName {
+				return true
+			}
+		}
+		return false
+	}
+	authorizeQuery := func(extra map[string]string) string {
+		qs := url.Values{}
+		qs.Set("response_type", "code")
+		qs.Set("response_mode", "query")
+		qs.Set("client_id", ts.Config.ClientID)
+		qs.Set("redirect_uri", magicLinkCallback)
+		qs.Set("state", uuid.NewString())
+		qs.Set("scope", "openid profile email")
+		qs.Set("code_challenge", s256Challenge(verifier))
+		qs.Set("code_challenge_method", "S256")
+		for k, v := range extra {
+			qs.Set(k, v)
+		}
+		return "/authorize?" + qs.Encode()
+	}
+
+	t.Run("login detour sets it", func(t *testing.T) {
+		assert.True(t, hasBindingCookie(startAuthorize(t, ts, r, verifier).Cookies))
+	})
+
+	t.Run("prompt=none without a session does not", func(t *testing.T) {
+		w := serveGET(ts, r, authorizeQuery(map[string]string{"prompt": "none"}))
+		require.Equal(t, http.StatusFound, w.Code, w.Body.String())
+		assert.Contains(t, w.Header().Get("Location"), "login_required")
+		assert.False(t, hasBindingCookie(w.Result().Cookies()))
+	})
+
+	t.Run("an existing session does not", func(t *testing.T) {
+		email := "binding_session_" + uuid.NewString() + "@authorizer.dev"
+		const password = "Password@123"
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{Email: &email, Password: password, ConfirmPassword: password})
+		require.NoError(t, err)
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+		require.NoError(t, err)
+		sessionToken := sessionForExistingUser(t, ts, user)
+
+		w := serveGET(ts, r, authorizeQuery(nil), &http.Cookie{Name: constants.AppCookieName + "_session", Value: sessionToken})
+		require.Equal(t, http.StatusFound, w.Code, w.Body.String())
+		loc, err := url.Parse(w.Header().Get("Location"))
+		require.NoError(t, err)
+		require.NotEmpty(t, loc.Query().Get("code"), "precondition: answered from the session, got %s", loc)
+		assert.False(t, hasBindingCookie(w.Result().Cookies()))
+	})
+}
