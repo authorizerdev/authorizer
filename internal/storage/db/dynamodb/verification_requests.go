@@ -2,11 +2,13 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -21,13 +23,13 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	// Upsert on (email, identifier), matching every other backend. The table
 	// is keyed by id only, so reuse the pending request's id when one exists:
 	// PutItem on an existing key replaces that item in place.
-	existing, err := p.GetVerificationRequestByEmail(ctx, verificationRequest.Email, verificationRequest.Identifier)
-	switch {
-	case err == nil:
-		verificationRequest.ID = existing.ID
-		verificationRequest.CreatedAt = existing.CreatedAt
-	case !IsNotFound(err):
+	existing, err := p.verificationRequestsByEmail(ctx, verificationRequest.Email, verificationRequest.Identifier)
+	if err != nil {
 		return nil, err
+	}
+	if len(existing) > 0 {
+		verificationRequest.ID = existing[0].ID
+		verificationRequest.CreatedAt = existing[0].CreatedAt
 	}
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
@@ -35,7 +37,42 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	if err := p.putItem(ctx, schemas.Collections.VerificationRequest, verificationRequest); err != nil {
 		return nil, err
 	}
+	// Older versions put a fresh item per request, so a pair may still have
+	// extra pending items. Remove them so only the newest token is valid.
+	if len(existing) > 1 {
+		for _, extra := range existing[1:] {
+			if err := p.deleteItemByHash(ctx, schemas.Collections.VerificationRequest, "id", extra.ID); err != nil {
+				return nil, err
+			}
+		}
+	}
 	return verificationRequest, nil
+}
+
+// verificationRequestsByEmail returns every verification request for
+// (email, identifier). It queries the email GSI; on a deployment whose table
+// predates that index (or while DynamoDB is still backfilling it) the query is
+// rejected with a ValidationException and it falls back to a filtered scan.
+func (p *provider) verificationRequestsByEmail(ctx context.Context, email, identifier string) ([]*schemas.VerificationRequest, error) {
+	byIdentifier := expression.Name("identifier").Equal(expression.Value(identifier))
+	items, err := p.queryEq(ctx, schemas.Collections.VerificationRequest, verificationRequestEmailIndex, "email", email, &byIdentifier)
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) && apiErr.ErrorCode() == "ValidationException" {
+		f := expression.Name("email").Equal(expression.Value(email)).And(byIdentifier)
+		items, err = p.scanFilteredAll(ctx, schemas.Collections.VerificationRequest, nil, &f)
+	}
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*schemas.VerificationRequest, 0, len(items))
+	for _, item := range items {
+		var v schemas.VerificationRequest
+		if err := unmarshalItem(item, &v); err != nil {
+			return nil, err
+		}
+		out = append(out, &v)
+	}
+	return out, nil
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
@@ -61,22 +98,17 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
-	f := expression.Name("email").Equal(expression.Value(email)).And(expression.Name("identifier").Equal(expression.Value(identifier)))
-	items, err := p.scanFilteredAll(ctx, schemas.Collections.VerificationRequest, nil, &f)
+	requests, err := p.verificationRequestsByEmail(ctx, email, identifier)
 	if err != nil {
 		return nil, err
 	}
-	if len(items) == 0 {
+	if len(requests) == 0 {
 		// See GetVerificationRequestByToken: absent is an error on every other
 		// backend, and resend_verify_email.go passes this row straight to
 		// DeleteVerificationRequest without a nil check.
 		return nil, fmt.Errorf("verification request not found: %w", ErrNotFound)
 	}
-	var v schemas.VerificationRequest
-	if err := unmarshalItem(items[0], &v); err != nil {
-		return nil, err
-	}
-	return &v, nil
+	return requests[0], nil
 }
 
 // ListVerificationRequests to get list of verification requests from database

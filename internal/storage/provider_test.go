@@ -772,6 +772,8 @@ func testVerificationRequestOperations(t *testing.T, ctx context.Context, provid
 	assert.Equal(t, dupToken, refetched.Token, "upsert must replace the pending request's token")
 	assert.Equal(t, dupNonce, refetched.Nonce)
 	assert.Equal(t, "https://app.example.com/callback-2", refetched.RedirectURI)
+	assert.Equal(t, refetched.ID, dup.ID, "AddVerificationRequest must return the stored row's id, not a fresh one")
+	assert.Equal(t, refetched.CreatedAt, dup.CreatedAt, "AddVerificationRequest must return the stored row's created_at")
 	_, err = provider.GetVerificationRequestByToken(ctx, vr.Token)
 	assert.True(t, IsNotFound(err), "the superseded token must no longer resolve, got %v", err)
 	all, _, err := provider.ListVerificationRequests(ctx, &model.Pagination{Limit: 1000, Offset: 0})

@@ -11,7 +11,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// AddVerification to save verification request in database
+// AddVerificationRequest saves a verification request, replacing any pending
+// request for the same (email, identifier), and returns the stored row.
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
@@ -21,11 +22,19 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	verificationRequest.UpdatedAt = time.Now().Unix()
 	result := p.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
-		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at", "nonce", "redirect_uri"}),
+		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at", "nonce", "redirect_uri", "updated_at"}),
 	}).Create(&verificationRequest)
 	if result.Error != nil {
 		return verificationRequest, result.Error
 	}
+	// On conflict the existing row keeps its own id and created_at, so the
+	// struct above no longer describes what is stored. Re-read it (into a
+	// fresh value: First on a populated struct also filters by its id).
+	var stored schemas.VerificationRequest
+	if err := p.db.WithContext(ctx).Where("email = ? AND identifier = ?", verificationRequest.Email, verificationRequest.Identifier).First(&stored).Error; err != nil {
+		return nil, err
+	}
+	*verificationRequest = stored
 	return verificationRequest, nil
 }
 

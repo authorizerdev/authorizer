@@ -39,6 +39,13 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 		"now":          now,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
+	if arangoDriver.IsArangoErrorWithErrorNum(err, arangoErrUniqueConstraintViolated) {
+		// UPSERT's lookup and insert are not atomic: two concurrent first
+		// requests for the same pair can both miss and both insert, and the
+		// unique index rejects the loser. Retrying once finds the winner's
+		// document and takes the UPDATE branch instead.
+		cursor, err = p.db.Query(ctx, query, bindVars)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +55,9 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	}
 	return verificationRequest, nil
 }
+
+// arangoErrUniqueConstraintViolated is ArangoDB's ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED.
+const arangoErrUniqueConstraintViolated = 1210
 
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {

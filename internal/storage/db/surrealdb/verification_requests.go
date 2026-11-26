@@ -31,6 +31,15 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 			"redirect_uri": verificationRequest.RedirectURI, "updated_at": verificationRequest.UpdatedAt,
 			"email": verificationRequest.Email, "identifier": verificationRequest.Identifier,
 		})
+		if err == nil {
+			// The updated record keeps its own id and created_at; return it
+			// rather than the fresh id that was never stored.
+			var stored *schemas.VerificationRequest
+			stored, err = p.GetVerificationRequestByEmail(ctx, verificationRequest.Email, verificationRequest.Identifier)
+			if err == nil {
+				*verificationRequest = *stored
+			}
+		}
 	}
 	if err != nil {
 		return verificationRequest, err

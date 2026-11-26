@@ -96,6 +96,8 @@ type Provider interface {
 	// AddVerificationRequest to save verification request in database. It is an
 	// upsert on (email, identifier) on every backend: a pending request for the
 	// same pair is replaced in place, so callers need not delete it first.
+	// The returned request is the stored row (its id and created_at are the
+	// original request's when one was replaced).
 	AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error)
 	// GetVerificationRequestByToken to get verification request from database using token
 	GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error)
