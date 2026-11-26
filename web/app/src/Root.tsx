@@ -40,6 +40,23 @@ function isSamlIdpContinueURL(url: string): boolean {
 	);
 }
 
+/**
+ * Whether this page load began on the reset-password page. Captured once at
+ * module load (i.e. per full page load), not per render: for a signed-in user
+ * the router's catch-all <Navigate> moves /app/reset-password to /app
+ * client-side, so a per-render pathname check would see /app and resume.
+ *
+ * Reset links carry the original /authorize params (issue #344) and are
+ * minted by an unauthenticated mutation, so a page load that started there
+ * must never auto-resume /authorize (or the SAML continue URL): a user who
+ * already has a session would be silently authorized into a client from a
+ * link anyone can request. Instead they land on the plain /app dashboard. A
+ * signed-out user resets, and the reset page then does a full navigation to
+ * /app with the params, where login resumes the flow as usual.
+ */
+const startedOnResetPassword =
+	hasWindow() && /^\/app\/reset-password\/?$/.test(window.location.pathname);
+
 // clearMfaRedirectParams strips mfa_required/mfa_gate/mfa_methods from the
 // current URL once the MFA gate resolves (skip or verify succeeds). Root's
 // `mfaRedirect` (below) is recomputed from window.location.href on every
@@ -125,25 +142,22 @@ export default function Root({
 	urlProps.isOrgDiscoveryEnabled =
 		(globalState as Record<string, unknown>).isOrgDiscoveryEnabled === true;
 
-	const isAuthorizeContext = isAuthorizeContextParams(combinedParams);
+	const isAuthorizeContext =
+		!startedOnResetPassword && isAuthorizeContextParams(combinedParams);
 
 	// Two mutually exclusive post-login resumption mechanisms, merged into one
 	// effect so they can never both fire off the same render (two separate
 	// effects both calling window.location.replace would race on declaration
 	// order instead of on which one is actually correct for this URL).
 	useEffect(() => {
-		if (!token) return;
+		// See startedOnResetPassword: a reset link must never auto-resume.
+		if (!token || startedOnResetPassword) return;
 
 		// Security + correctness: the server `/authorize` endpoint is the
 		// source of truth for redirect_uri validation and response_mode
 		// (query / fragment / form_post / web_message). The login UI should
 		// only establish a session and then resume the authorization request.
-		// The reset-password link carries the authorize params too (issue
-		// #344) but must not resume from there: it would skip the reset form
-		// and leak the reset token into the /authorize URL.
-		const onResetPasswordRoute =
-			hasWindow() && window.location.pathname === '/app/reset-password';
-		if (isAuthorizeContext && !onResetPasswordRoute) {
+		if (isAuthorizeContext) {
 			// Preserve exactly what we received on /app and send it back to
 			// /authorize; the backend will complete the authorization response.
 			const params = new URLSearchParams();
