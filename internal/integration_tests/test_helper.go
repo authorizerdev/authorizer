@@ -65,6 +65,54 @@ type testSetup struct {
 	// DNSResolver is the programmable stub wired into the service layer for
 	// domain-verification tests, so no real DNS is ever queried.
 	DNSResolver *mockDNSResolver
+	// SentEmails records every email the service layer sends, so a test can
+	// follow the exact link a user would click instead of rebuilding it.
+	SentEmails *emailRecorder
+}
+
+// sentEmail is one call to EmailProvider.SendEmail.
+type sentEmail struct {
+	To    []string
+	Event string
+	Data  map[string]interface{}
+}
+
+// emailRecorder wraps the real email provider and records each send before
+// delegating, so existing behaviour is unchanged.
+type emailRecorder struct {
+	inner email.Provider
+	mu    sync.Mutex
+	sent  []sentEmail
+}
+
+func (r *emailRecorder) SendEmail(to []string, event string, data map[string]interface{}) error {
+	r.mu.Lock()
+	r.sent = append(r.sent, sentEmail{To: to, Event: event, Data: data})
+	r.mu.Unlock()
+	return r.inner.SendEmail(to, event, data)
+}
+
+// waitForVerificationURL returns the verification_url of the most recent
+// email of the given event sent to addr. Sends are fire-and-forget
+// (asyncutil.Go), so it polls briefly.
+func (r *emailRecorder) waitForVerificationURL(t *testing.T, addr, event string) string {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		r.mu.Lock()
+		for i := len(r.sent) - 1; i >= 0; i-- {
+			m := r.sent[i]
+			if m.Event == event && len(m.To) == 1 && m.To[0] == addr {
+				u, _ := m.Data["verification_url"].(string)
+				r.mu.Unlock()
+				return u
+			}
+		}
+		r.mu.Unlock()
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("no %q email sent to %s", event, addr)
+	return ""
 }
 
 // mockDNSResolver is a programmable TXT resolver for domain-verification tests.
@@ -280,11 +328,12 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
-	emailProvider, err := email.New(cfg, &email.Dependencies{
+	realEmailProvider, err := email.New(cfg, &email.Dependencies{
 		Log:             &logger,
 		StorageProvider: storageProvider,
 	})
 	require.NoError(t, err)
+	emailProvider := &emailRecorder{inner: realEmailProvider}
 
 	eventsProvider, err := events.New(cfg, &events.Dependencies{
 		Log:             &logger,
@@ -429,6 +478,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		TokenProvider:          tokenProvider,
 		ServiceProvider:        serviceProvider,
 		DNSResolver:            dnsResolver,
+		SentEmails:             emailProvider,
 	}
 }
 

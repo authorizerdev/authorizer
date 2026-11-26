@@ -291,7 +291,7 @@ func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params 
 			_ = p.EmailProvider.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(p.Config),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL, nil),
 			})
 		})
 	}

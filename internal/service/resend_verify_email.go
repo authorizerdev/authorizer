@@ -113,7 +113,7 @@ func (p *provider) ResendVerifyEmail(ctx context.Context, meta RequestMetadata, 
 		_ = p.EmailProvider.SendEmail([]string{params.Email}, params.Identifier, map[string]any{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(p.Config),
-			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURI),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURI, nil),
 		})
 	})
 	p.AuditProvider.LogEvent(audit.Event{

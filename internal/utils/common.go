@@ -104,14 +104,28 @@ func GetForgotPasswordURL(token, redirectURI string) string {
 	return u.String()
 }
 
-// GetInviteVerificationURL to get url for invite email verification
+// GetInviteVerificationURL to get url for invite email verification.
+// Values are query-escaped: a raw redirect_uri carrying its own query string
+// would otherwise be split into top-level parameters by the receiving page.
 func GetInviteVerificationURL(verificationURL, token, redirectURI string) string {
-	return verificationURL + "?token=" + token + "&redirect_uri=" + redirectURI
+	return verificationURL + "?token=" + url.QueryEscape(token) + "&redirect_uri=" + url.QueryEscape(redirectURI)
 }
 
-// GetEmailVerificationURL to get url for invite email verification
-func GetEmailVerificationURL(token, hostname, redirectURI string) string {
-	return hostname + "/verify_email?token=" + token + "&redirect_uri=" + redirectURI
+// GetEmailVerificationURL builds the /verify_email link sent by email.
+//
+// Every value is query-escaped. redirect_uri used to be concatenated raw, so
+// any query string it carried leaked into the link's own parameters and
+// /verify_email received a truncated redirect_uri that no longer matched an
+// exact --redirect-uris entry. extra carries additional top-level parameters
+// the handler reads (state, scope, roles for magic-link login); it may be nil.
+func GetEmailVerificationURL(token, hostname, redirectURI string, extra url.Values) string {
+	q := url.Values{}
+	for k, v := range extra {
+		q[k] = v
+	}
+	q.Set("token", token)
+	q.Set("redirect_uri", redirectURI)
+	return hostname + "/verify_email?" + q.Encode()
 }
 
 // FindDeletedValues find deleted values between original and updated one
