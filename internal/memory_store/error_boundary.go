@@ -1,19 +1,41 @@
 package memory_store
 
-import "github.com/authorizerdev/authorizer/internal/internalerr"
+import (
+	"errors"
+
+	goredis "github.com/redis/go-redis/v9"
+
+	"github.com/authorizerdev/authorizer/internal/internalerr"
+	"github.com/authorizerdev/authorizer/internal/memory_store/memerr"
+)
 
 // errorSource is the internalerr source recorded for memory-store faults.
 const errorSource = "memory_store"
 
+// ErrNotFound is returned (wrapped) by every backend for an absent or expired
+// entry. Use IsNotFound to test for it.
+var ErrNotFound = memerr.ErrNotFound
+
+// IsNotFound reports whether err is a memory-store miss rather than a fault:
+// ErrNotFound from the in-memory and DB-backed stores, or redis.Nil from the
+// Redis store's plain GETs. A caller for which "absent" is an expected outcome
+// (e.g. revoking an already-rotated token) must check this before treating the
+// error as internal, because every memory-store error — misses included — is
+// marked internal and would otherwise be masked as a 500.
+func IsNotFound(err error) bool {
+	return errors.Is(err, memerr.ErrNotFound) || errors.Is(err, goredis.Nil)
+}
+
 // errorBoundary decorates a memory-store Provider so every error it returns is
-// marked internal (internalerr.Wrap). Redis and in-memory errors otherwise
-// reach API clients verbatim, while the database-backed store's errors were
-// already masked as storage errors — this keeps the three backends at parity.
+// marked internal (internalerr.Wrap), so the transports mask it and log it with
+// an error_id. Before this, errors from all three backends (Redis, in-memory
+// and the DB-backed store, whose misses are plain errors rather than storage
+// errors) reached API clients verbatim.
 // It is applied once, in New; the compile-time assertion below forces every new
 // Provider method to be added here as well.
 //
 // Wrapping is transparent to errors.Is / errors.As, so callers that compare
-// against a driver sentinel keep working.
+// against a driver sentinel (redis.Nil, ErrNotFound) keep working.
 type errorBoundary struct {
 	next Provider
 }

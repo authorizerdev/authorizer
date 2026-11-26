@@ -16,7 +16,9 @@ const errorSource = "openfga"
 // engine operation, and marks it internal when OpenFGA itself classified it as
 // an internal fault (serverErrors.InternalError: a datastore failure or any
 // other unexpected server error). Those are masked by the transports and
-// logged with an error_id.
+// logged with an error_id. OpenFGA already replaces their text with a generic
+// "Internal Server Error"; what marking adds is the error_id correlation and
+// not passing OpenFGA's non-standard gRPC status (code 4000) through ErrorMap.
 //
 // Validation errors (unknown type/relation, invalid tuple, invalid model) are
 // left unmarked: they describe the caller's own input and are deliberately

@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/asyncutil"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/memory_store/memerr"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -93,7 +94,7 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 
 	token, err := p.getSessionTokenByUserIDAndKey(ctx, userId, key)
 	if err != nil {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 
 	// Check expiration. Inclusive (<=): a token is invalid AT its expiry second,
@@ -105,7 +106,7 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 	if token.ExpiresAt <= currentTime {
 		// Delete expired token
 		_ = p.deleteSessionToken(ctx, token.ID)
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 
 	return token.Token, nil
@@ -199,7 +200,7 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 
 	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
 	if err != nil {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 
 	prefix := key + mfaPurposeSeparator
@@ -211,11 +212,11 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 		// Inclusive expiry, matching GetUserSession and the in-memory store.
 		if session.ExpiresAt <= currentTime {
 			_ = p.deleteMFASession(ctx, session.ID)
-			return "", fmt.Errorf("not found")
+			return "", memerr.ErrNotFound
 		}
 		return strings.TrimPrefix(session.KeyName, prefix), nil
 	}
-	return "", fmt.Errorf("not found")
+	return "", memerr.ErrNotFound
 }
 
 // GetAllMfaSessions returns all mfa sessions for given userId
@@ -230,11 +231,11 @@ func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
 
 	sessions, err := p.getAllMFASessionsByUserID(ctx, userId)
 	if err != nil {
-		return nil, fmt.Errorf("not found")
+		return nil, memerr.ErrNotFound
 	}
 
 	if len(sessions) == 0 {
-		return nil, fmt.Errorf("not found")
+		return nil, memerr.ErrNotFound
 	}
 
 	keys := make([]string, 0, len(sessions))
@@ -279,7 +280,7 @@ func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
 
 	sessions, err := p.getAllMFASessions(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("not found")
+		return "", "", memerr.ErrNotFound
 	}
 
 	prefix := key + mfaPurposeSeparator
@@ -288,7 +289,7 @@ func (p *provider) GetMfaSessionOwner(key string) (string, string, error) {
 			return session.UserID, strings.TrimPrefix(session.KeyName, prefix), nil
 		}
 	}
-	return "", "", fmt.Errorf("not found")
+	return "", "", memerr.ErrNotFound
 }
 
 // SetState sets the login state (key, value form) in the session store
@@ -324,7 +325,7 @@ func (p *provider) GetState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	// Enforce 10-minute TTL consistent with Redis provider.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
@@ -364,16 +365,16 @@ func (p *provider) GetAndRemoveState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	claimed, err := p.deleteOAuthStateByKey(ctx, key)
 	if err != nil {
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	if !claimed {
 		// Another caller won the delete: this request is redeeming an already
 		// consumed key. Same opaque error as a missing key — no replay oracle.
-		return "", fmt.Errorf("not found")
+		return "", memerr.ErrNotFound
 	}
 	// Enforce 10-minute TTL.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {

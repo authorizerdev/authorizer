@@ -320,7 +320,7 @@ func (h *httpProvider) resolveSAMLResponseContext(c *gin.Context, sp *saml.Servi
 	relayState := strings.TrimSpace(c.Request.PostForm.Get("RelayState"))
 	if relayState != "" {
 		raw, err := h.MemoryStoreProvider.GetAndRemoveState(samlFlowPrefix + relayState)
-		if err != nil && err != goredis.Nil {
+		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Msg("failed to read saml flow state")
 		}
 		if strings.TrimSpace(raw) != "" {

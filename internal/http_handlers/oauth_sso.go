@@ -29,6 +29,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -230,7 +231,7 @@ func (h *httpProvider) SSOCallbackHandler() gin.HandlerFunc {
 		}
 		// Single-use: atomically fetch and delete. A replayed callback finds nothing.
 		raw, err := h.MemoryStoreProvider.GetAndRemoveState(ssoFlowPrefix + state)
-		if err != nil && err != goredis.Nil {
+		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Msg("failed to read sso flow state")
 		}
 		if strings.TrimSpace(raw) == "" {

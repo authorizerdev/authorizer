@@ -370,7 +370,7 @@ func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 		return "", "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.ReadModel: render DSL: %w", err))
 	}
 	if dsl == nil {
-		return "", "", fmt.Errorf("openfga.ReadModel: render DSL returned nil")
+		return "", "", internalerr.Wrap(errorSource, fmt.Errorf("openfga.ReadModel: render DSL returned nil"))
 	}
 	return modelID, *dsl, nil
 }
