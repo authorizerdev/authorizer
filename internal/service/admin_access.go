@@ -250,6 +250,10 @@ func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, para
 		user, err = p.StorageProvider.AddUser(ctx, user)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to add user")
+			// Lost a race with a concurrent create of the same email.
+			if p.userIdentifierTaken(ctx, email, "") {
+				return nil, nil, AlreadyExists("user with this email address already exists")
+			}
 			return nil, nil, err
 		}
 

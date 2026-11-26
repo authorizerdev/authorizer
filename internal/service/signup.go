@@ -228,6 +228,18 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	user, err := p.StorageProvider.AddUser(ctx, user)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to add user")
+		// The pre-checks above cover only the identifier being signed up
+		// with (an email signup's phone number is not checked), and they race
+		// with concurrent signups. A conflict then surfaces as a backend error;
+		// report it with the same wording the phone pre-check uses instead of
+		// a masked 500. A lost race on the email keeps the anti-enumeration
+		// answer of the email pre-check.
+		if p.Config.EnableEmailVerification && p.userIdentifierTaken(ctx, email, "") {
+			return &model.AuthResponse{Message: signupVerificationSentMessage}, nil, nil
+		}
+		if p.userIdentifierTaken(ctx, email, phoneNumber) {
+			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
+		}
 		return nil, nil, err
 	}
 

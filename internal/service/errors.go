@@ -7,6 +7,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
@@ -24,9 +25,10 @@ import (
 // Only client-facing (4xx-class) errors need to be wrapped with these
 // constructors. Anything returned bare (storage failures, token-creation
 // failures, etc.) is treated as internal by the mapper, which is the correct
-// default. Errors that came out of the storage layer are additionally masked
-// by every transport (see MaskInternalError), so raw driver text never reaches
-// a client.
+// default. Errors that came out of the storage layer, or that an infrastructure
+// provider marked with internalerr.Wrap (memory store / Redis, OpenFGA
+// datastore, JWT signing, SMTP, SMS), are additionally masked by every
+// transport (see MaskInternalError), so raw driver text never reaches a client.
 
 // ErrorKind classifies a service error independently of any transport.
 type ErrorKind int
@@ -123,10 +125,11 @@ func AlreadyExists(msg string) error {
 
 // MaskInternalError decides whether err must be hidden from API clients. It
 // returns masked=true for an error that originated in the storage layer
-// (storage.IsStorageError) and was not deliberately classified with one of the
-// typed constructors above: such an error carries backend text (driver
-// messages, SQL, constraint names) that is useful in logs but must never be
-// shown to a caller.
+// (storage.IsStorageError) or in another infrastructure provider
+// (internalerr.Is) and was not deliberately classified with one of the typed
+// constructors above: such an error carries backend text (driver messages,
+// SQL, constraint names, Redis/SMTP/key-parsing failures) that is useful in
+// logs but must never be shown to a caller.
 //
 // When masked, publicMsg is a generic message carrying errorID, a random
 // reference the transport must log next to the original error so an operator
@@ -143,7 +146,7 @@ func MaskInternalError(err error) (publicMsg, errorID string, masked bool) {
 	if errors.As(err, &se) {
 		return "", "", false
 	}
-	if !storage.IsStorageError(err) {
+	if !storage.IsStorageError(err) && !internalerr.Is(err) {
 		return "", "", false
 	}
 	errorID = rand.Text()
@@ -151,13 +154,18 @@ func MaskInternalError(err error) (publicMsg, errorID string, masked bool) {
 }
 
 // MaskedErrorEvent starts the server-side log line for an error masked by
-// MaskInternalError, carrying the original error and its errorID. A storage
-// not-found is logged at warn rather than error: it is still masked (the
-// service should have classified it), but it is not an outage.
+// MaskInternalError, carrying the original error, its errorID and the source
+// that produced it. A storage not-found is logged at warn rather than error: it
+// is still masked (the service should have classified it), but it is not an
+// outage.
 func MaskedErrorEvent(log *zerolog.Logger, err error, errorID string) *zerolog.Event {
 	evt := log.Error()
 	if storage.IsNotFound(err) {
 		evt = log.Warn()
 	}
-	return evt.Err(err).Str("error_id", errorID)
+	source := internalerr.Source(err)
+	if storage.IsStorageError(err) {
+		source = "storage"
+	}
+	return evt.Err(err).Str("error_id", errorID).Str("error_source", source)
 }

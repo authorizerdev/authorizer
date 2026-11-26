@@ -69,6 +69,11 @@ func (p *provider) CreateOrganization(ctx context.Context, meta RequestMetadata,
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to add organization")
 		p.logOrgFailure(meta, constants.AuditOrganizationCreateFailedEvent, "")
+		// Lost a race with a concurrent create: the backend's own conflict
+		// error would otherwise be masked as a 500 (see conflict.go).
+		if existing, gerr := p.StorageProvider.GetOrganizationByName(ctx, name); gerr == nil && existing != nil {
+			return nil, nil, AlreadyExists("an organization with this name already exists")
+		}
 		return nil, nil, err
 	}
 
@@ -293,6 +298,10 @@ func (p *provider) AddOrgMember(ctx context.Context, meta RequestMetadata, param
 	if err != nil {
 		log.Debug().Err(err).Msg("failed AddOrgMembership")
 		p.logOrgMemberFailure(meta, orgID)
+		// Lost a race with a concurrent add (see conflict.go).
+		if existing, gerr := p.StorageProvider.GetOrgMembership(ctx, orgID, userID); gerr == nil && existing != nil {
+			return nil, nil, AlreadyExists("user is already a member of this organization")
+		}
 		return nil, nil, err
 	}
 

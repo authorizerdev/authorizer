@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -273,7 +274,7 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
 	fingerPrintHash, err := crypto.EncryptAES(p.config.ClientSecret, string(fingerPrintBytes))
 	if err != nil {
-		return nil, "", 0, err
+		return nil, "", 0, internalerr.Wrap(errorSource, err)
 	}
 
 	return fingerPrintMap, fingerPrintHash, expiresAt, nil
