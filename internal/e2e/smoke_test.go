@@ -30,6 +30,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -683,14 +684,42 @@ func jwtPayload(t *testing.T, tok string) map[string]any {
 	return claims
 }
 
+// The binary is built once per `go test` run and shared by every top-level
+// smoke test (each used to rebuild it, ~8-10s apiece). TestMain removes it.
+var (
+	smokeBinOnce sync.Once
+	smokeBinDir  string
+	smokeBinPath string
+	smokeBinErr  error
+)
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if smokeBinDir != "" {
+		_ = os.RemoveAll(smokeBinDir)
+	}
+	os.Exit(code)
+}
+
 func buildBinary(t *testing.T) string {
 	t.Helper()
-	bin := filepath.Join(t.TempDir(), "authorizer")
-	cmd := exec.Command("go", "build", "-o", bin, ".")
-	cmd.Dir = repoRoot(t)
-	out, err := cmd.CombinedOutput()
-	require.NoError(t, err, "go build: %s", out)
-	return bin
+	root := repoRoot(t)
+	smokeBinOnce.Do(func() {
+		smokeBinDir, smokeBinErr = os.MkdirTemp("", "authorizer-smoke-bin-")
+		if smokeBinErr != nil {
+			return
+		}
+		bin := filepath.Join(smokeBinDir, "authorizer")
+		cmd := exec.Command("go", "build", "-o", bin, ".")
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			smokeBinErr = fmt.Errorf("go build: %w: %s", err, out)
+			return
+		}
+		smokeBinPath = bin
+	})
+	require.NoError(t, smokeBinErr)
+	return smokeBinPath
 }
 
 // repoRoot resolves the module root (two levels up from internal/e2e).

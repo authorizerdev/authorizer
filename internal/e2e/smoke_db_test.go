@@ -11,9 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,8 +74,10 @@ func TestReleaseSmokeDB(t *testing.T) {
 	admin := newGraphQLClient(t, baseURL)
 	admin.mutate(t, `mutation { _admin_login(params:{admin_secret:"`+smokeAdminSecret+`"}) { message } }`)
 
-	// Unique per run: an external database can outlive a failed run.
-	run := strings.ReplaceAll(filepath.Base(t.TempDir()), "_", "")
+	// Unique per run, so a database that outlives a run (or is reused via
+	// SMOKE_DB_ARGS) never sees the same emails twice. t.TempDir()'s base name
+	// is a sequence number and would repeat across runs.
+	run := strconv.FormatInt(time.Now().UnixNano(), 36)
 	email := func(name string) string { return name + "-" + run + "@smokedb.dev" }
 	const password = "SmokeDB-Pass-123!"
 

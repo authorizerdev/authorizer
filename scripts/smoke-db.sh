@@ -35,7 +35,11 @@ case "$DB" in
 esac
 
 docker rm -vf "$CONTAINER" >/dev/null 2>&1 || true
-trap 'docker rm -vf "$CONTAINER" >/dev/null 2>&1 || true' EXIT
+cleanup() { docker rm -vf "$CONTAINER" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+# dash (Linux /bin/sh) skips the EXIT trap on signals: exit explicitly so it runs.
+trap 'exit 130' INT
+trap 'exit 143' TERM
 # shellcheck disable=SC2086 # RUN is a word list on purpose.
 docker run -d --name "$CONTAINER" $RUN >/dev/null
 

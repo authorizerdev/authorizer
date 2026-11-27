@@ -249,7 +249,11 @@ func smokeSCIMSharedIdentifier(t *testing.T, bin string) {
 		res = gqlRaw(t, baseURL, `mutation { forgot_password(params:{email:"`+sharedEmail+`"}) { message } }`, "")
 		require.Empty(t, res.Errors, res.Raw)
 		sink.waitMessage(t, sharedEmail, 1)
-		assert.Zero(t, sink.count(attacker), "a reset link for the shared account reached the attacker's mailbox")
+		// Both mails are sent asynchronously, so the owner's arriving first
+		// doesn't prove the attacker's was never sent: keep watching briefly.
+		// (The DB-state assertions above are the primary regression check.)
+		assert.Never(t, func() bool { return sink.count(attacker) > 0 }, 2*time.Second, 100*time.Millisecond,
+			"a reset link for the shared account reached the attacker's mailbox")
 	})
 
 	t.Run("case-only email change on the shared user still syncs", func(t *testing.T) {

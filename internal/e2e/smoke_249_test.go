@@ -457,7 +457,8 @@ func smokeUnverifiedLoginMFASession(t *testing.T, bin string) {
 				"totp_mfa_setup":                 gqlOp("totp_mfa_setup", `mutation { totp_mfa_setup(params:{email:"EMAIL"}) { access_token authenticator_secret } }`, "authenticator_secret"),
 				"email_otp_mfa_setup":            gqlOp("email_otp_mfa_setup", `mutation { email_otp_mfa_setup(params:{email:"EMAIL"}) { message } }`, ""),
 				"webauthn_registration_options":  gqlOp("webauthn_registration_options", `mutation { webauthn_registration_options(email:"EMAIL") { options } }`, "options"),
-				"verify_otp (wrong otp)":         gqlOp("verify_otp", `mutation { verify_otp(params:{email:"EMAIL", otp:"000000"}) { access_token } }`, "access_token"),
+				// Sanity check, not a regression probe: a wrong OTP is refused on vulnerable builds too.
+				"verify_otp (wrong otp)": gqlOp("verify_otp", `mutation { verify_otp(params:{email:"EMAIL", otp:"000000"}) { access_token } }`, "access_token"),
 			},
 			verifyOTP: func(t *testing.T, email, otp, cookie string) string {
 				res := gqlRaw(t, baseURL, `mutation { verify_otp(params:{email:"`+email+`", otp:"`+otp+`"}) { access_token } }`, cookie)
@@ -478,6 +479,7 @@ func smokeUnverifiedLoginMFASession(t *testing.T, bin string) {
 				"totp_mfa_setup":                restOp("/v1/totp_mfa_setup", "authenticator_secret"),
 				"email_otp_mfa_setup":           restOp("/v1/email_otp_mfa_setup", ""),
 				"webauthn_registration_options": restOp("/v1/webauthn_registration_options", "options"),
+				// Sanity check, not a regression probe: a wrong OTP is refused on vulnerable builds too.
 				"verify_otp (wrong otp)": func(t *testing.T, email, cookie string) (bool, string) {
 					res := restRaw(t, baseURL, "/v1/verify_otp", `{"email":"`+email+`","otp":"000000"}`, cookie)
 					return res.Status != http.StatusOK, res.str("access_token")
@@ -518,6 +520,7 @@ func smokeUnverifiedLoginMFASession(t *testing.T, bin string) {
 					res, err := client.WebauthnRegistrationOptions(cookieCtx(t, cookie), &authorizerv1.WebauthnRegistrationOptionsRequest{Email: email})
 					return grpcReject(t, err), res.GetOptions()
 				},
+				// Sanity check, not a regression probe: a wrong OTP is refused on vulnerable builds too.
 				"verify_otp (wrong otp)": func(t *testing.T, email, cookie string) (bool, string) {
 					res, err := client.VerifyOtp(cookieCtx(t, cookie), &authorizerv1.VerifyOtpRequest{Email: email, Otp: "000000"})
 					return err != nil, res.GetAccessToken()
@@ -555,6 +558,7 @@ func smokeUnverifiedLoginMFASession(t *testing.T, bin string) {
 			for _, name := range []string{
 				"skip_mfa_setup", "skip_mfa_setup (no identifier)", "totp_mfa_setup",
 				"email_otp_mfa_setup", "webauthn_registration_options",
+				// Sanity check, not a regression probe: a wrong OTP is refused on vulnerable builds too.
 				"verify_otp (wrong otp)", "lock_mfa",
 			} {
 				op, ok := s.ops[name]
