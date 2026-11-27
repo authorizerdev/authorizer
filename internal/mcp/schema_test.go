@@ -116,3 +116,21 @@ func TestSchemaForMessage_CheckPermissionsNesting(t *testing.T) {
 	assert.Equal(t, "string", tuples.Items.Properties["relation"].Type)
 	assert.Equal(t, "string", tuples.Items.Properties["object"].Type)
 }
+
+// google.protobuf.Struct is advertised as a free-form JSON object, matching
+// what protojson accepts for tool arguments, not as its internal fields map.
+func TestSchemaForMessage_StructIsPlainObject(t *testing.T) {
+	s := schemaForMessage((&authorizerv1.CheckPermissionsRequest{}).ProtoReflect().Descriptor())
+	ctx, ok := s.Properties["context"]
+	require.True(t, ok)
+	assert.Equal(t, "object", ctx.Type)
+	assert.Empty(t, ctx.Properties, "Struct must not expose its internal `fields` map")
+
+	checks := s.Properties["checks"]
+	require.NotNil(t, checks.Items)
+	tuple := checks.Items.Properties["contextual_tuples"].Items
+	require.NotNil(t, tuple)
+	cond := tuple.Properties["condition"]
+	assert.Equal(t, "object", cond.Properties["context"].Type)
+	assert.Empty(t, cond.Properties["context"].Properties)
+}

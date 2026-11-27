@@ -501,4 +501,27 @@ condition non_expired_grant(current_time: timestamp, grant_time: timestamp, gran
   current_time < grant_time + grant_duration
 }`,
 	},
+	{
+		name: 'AI agents (time-limited & task-scoped)',
+		description:
+			'Agents get tool access that expires, granted directly or through a task. A delegated token must pass both the agent and the user check.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type agent
+
+type task
+  relations
+    define assignee: [agent]
+
+type tool
+  relations
+    define can_call: [user, agent with non_expired_grant, task#assignee with non_expired_grant]
+
+condition non_expired_grant(current_time: timestamp, grant_time: timestamp, grant_duration: duration) {
+  current_time < grant_time + grant_duration
+}`,
+	},
 ];

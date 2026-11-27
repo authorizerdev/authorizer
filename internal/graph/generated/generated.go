@@ -206,6 +206,11 @@ type ComplexityRoot struct {
 		Reason  func(childComplexity int) int
 	}
 
+	FgaCondition struct {
+		Context func(childComplexity int) int
+		Name    func(childComplexity int) int
+	}
+
 	FgaExpandResponse struct {
 		Tree func(childComplexity int) int
 	}
@@ -220,9 +225,10 @@ type ComplexityRoot struct {
 	}
 
 	FgaTuple struct {
-		Object   func(childComplexity int) int
-		Relation func(childComplexity int) int
-		User     func(childComplexity int) int
+		Condition func(childComplexity int) int
+		Object    func(childComplexity int) int
+		Relation  func(childComplexity int) int
+		User      func(childComplexity int) int
 	}
 
 	FgaTuples struct {
@@ -1637,6 +1643,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Error.Reason(childComplexity), true
 
+	case "FgaCondition.context":
+		if e.ComplexityRoot.FgaCondition.Context == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FgaCondition.Context(childComplexity), true
+	case "FgaCondition.name":
+		if e.ComplexityRoot.FgaCondition.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FgaCondition.Name(childComplexity), true
+
 	case "FgaExpandResponse.tree":
 		if e.ComplexityRoot.FgaExpandResponse.Tree == nil {
 			break
@@ -1664,6 +1683,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.FgaModel.ID(childComplexity), true
 
+	case "FgaTuple.condition":
+		if e.ComplexityRoot.FgaTuple.Condition == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FgaTuple.Condition(childComplexity), true
 	case "FgaTuple.object":
 		if e.ComplexityRoot.FgaTuple.Object == nil {
 			break
@@ -4285,6 +4310,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			graphql.NewInputUnmarshaler("DeleteEmailTemplateRequest", ec.unmarshalInputDeleteEmailTemplateRequest),
 			graphql.NewInputUnmarshaler("DeleteOrgDomainRequest", ec.unmarshalInputDeleteOrgDomainRequest),
 			graphql.NewInputUnmarshaler("DeleteUserRequest", ec.unmarshalInputDeleteUserRequest),
+			graphql.NewInputUnmarshaler("FgaConditionInput", ec.unmarshalInputFgaConditionInput),
 			graphql.NewInputUnmarshaler("FgaExpandInput", ec.unmarshalInputFgaExpandInput),
 			graphql.NewInputUnmarshaler("FgaListUsersInput", ec.unmarshalInputFgaListUsersInput),
 			graphql.NewInputUnmarshaler("FgaReadTuplesInput", ec.unmarshalInputFgaReadTuplesInput),
@@ -4668,6 +4694,16 @@ type FgaTuple {
   user: String!
   relation: String!
   object: String!
+  # condition is set when the tuple only grants access while a model-declared
+  # condition holds (e.g. a time-limited grant).
+  condition: FgaCondition
+}
+
+# FgaCondition is an OpenFGA condition stored on a tuple: the condition name
+# declared in the model plus the parameters bound at write time.
+type FgaCondition {
+  name: String!
+  context: Map
 }
 
 # FgaModel describes an authorization model (id + DSL form).
@@ -5872,6 +5908,18 @@ input FgaTupleInput {
   user: String!
   relation: String!
   object: String!
+  # condition makes a written tuple conditional. Accepted only by
+  # _fga_write_tuples; rejected on deletes and on contextual tuples.
+  condition: FgaConditionInput
+}
+
+# FgaConditionInput names a condition declared in the authorization model and
+# binds its stored parameters, e.g. name "non_expired_grant" with context
+# {"grant_time": "2026-11-27T10:00:00Z", "grant_duration": "10m"}. The
+# request-time parameter current_time is always supplied by the server.
+input FgaConditionInput {
+  name: String!
+  context: Map
 }
 
 # FgaWriteModelInput installs a new authorization model from its DSL form.
@@ -5896,7 +5944,8 @@ input FgaReadTuplesInput {
 
 # PermissionCheckInput is one permission to evaluate: "does the subject have
 # <relation> on <object>?". Contextual tuples are evaluated for this check only
-# and never persisted.
+# and never persisted. They are caller-asserted, so a delegated (agent) token
+# may not send them, and they may not carry a condition.
 input PermissionCheckInput {
   relation: String!
   object: String!
@@ -5912,6 +5961,10 @@ input PermissionCheckInput {
 input CheckPermissionsInput {
   checks: [PermissionCheckInput!]!
   user: String
+  # context supplies request-time condition parameters for every check.
+  # Super-admin only, and it may not set current_time, which the server always
+  # supplies. Any other caller sending context is rejected.
+  context: Map
 }
 
 # ListPermissionsInput enumerates what the subject can access. With both
@@ -6489,6 +6542,16 @@ func (ec *executionContext) childFields_Env(ctx context.Context, field graphql.C
 	return nil, fmt.Errorf("no field named %q was found under type Env", field.Name)
 }
 
+func (ec *executionContext) childFields_FgaCondition(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext_FgaCondition_name(ctx, field)
+	case "context":
+		return ec.fieldContext_FgaCondition_context(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FgaCondition", field.Name)
+}
+
 func (ec *executionContext) childFields_FgaExpandResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "tree":
@@ -6523,6 +6586,8 @@ func (ec *executionContext) childFields_FgaTuple(ctx context.Context, field grap
 		return ec.fieldContext_FgaTuple_relation(ctx, field)
 	case "object":
 		return ec.fieldContext_FgaTuple_object(ctx, field)
+	case "condition":
+		return ec.fieldContext_FgaTuple_condition(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type FgaTuple", field.Name)
 }
@@ -11990,6 +12055,52 @@ func (ec *executionContext) fieldContext_Error_reason(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Error", field, false, false, "String")
 }
 
+func (ec *executionContext) _FgaCondition_name(ctx context.Context, field graphql.CollectedField, obj *model.FgaCondition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FgaCondition_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FgaCondition_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FgaCondition", field, false, false, "String")
+}
+
+func (ec *executionContext) _FgaCondition_context(ctx context.Context, field graphql.CollectedField, obj *model.FgaCondition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FgaCondition_context(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Context, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_FgaCondition_context(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FgaCondition", field, false, false, "Map")
+}
+
 func (ec *executionContext) _FgaExpandResponse_tree(ctx context.Context, field graphql.CollectedField, obj *model.FgaExpandResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12149,6 +12260,38 @@ func (ec *executionContext) _FgaTuple_object(ctx context.Context, field graphql.
 }
 func (ec *executionContext) fieldContext_FgaTuple_object(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("FgaTuple", field, false, false, "String")
+}
+
+func (ec *executionContext) _FgaTuple_condition(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuple) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FgaTuple_condition(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Condition, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.FgaCondition) graphql.Marshaler {
+			return ec.marshalOFgaCondition2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaCondition(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_FgaTuple_condition(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuple",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FgaCondition(ctx, field)
+		},
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _FgaTuples_tuples(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuples) (ret graphql.Marshaler) {
@@ -23965,7 +24108,7 @@ func (ec *executionContext) unmarshalInputCheckPermissionsInput(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"checks", "user"}
+	fieldsInOrder := [...]string{"checks", "user", "context"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23986,6 +24129,13 @@ func (ec *executionContext) unmarshalInputCheckPermissionsInput(ctx context.Cont
 				return it, err
 			}
 			it.User = data
+		case "context":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("context"))
+			data, err := ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Context = data
 		}
 	}
 	return it, nil
@@ -24591,6 +24741,55 @@ func UnmarshalDeleteUserRequest(ctx context.Context, raw any) (model.DeleteUserR
 	return out, err
 }
 
+func (ec *executionContext) unmarshalInputFgaConditionInput(ctx context.Context, obj any) (model.FgaConditionInput, error) {
+	var it model.FgaConditionInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "context"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "context":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("context"))
+			data, err := ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Context = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalFgaConditionInput unmarshals raw into the FgaConditionInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalFgaConditionInput(ctx context.Context, raw any) (model.FgaConditionInput, error) {
+	var out model.FgaConditionInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "FgaConditionInput", raw, &out)
+	return out, err
+}
+
 func (ec *executionContext) unmarshalInputFgaExpandInput(ctx context.Context, obj any) (model.FgaExpandInput, error) {
 	var it model.FgaExpandInput
 	if obj == nil {
@@ -24826,7 +25025,7 @@ func (ec *executionContext) unmarshalInputFgaTupleInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"user", "relation", "object"}
+	fieldsInOrder := [...]string{"user", "relation", "object", "condition"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -24854,6 +25053,13 @@ func (ec *executionContext) unmarshalInputFgaTupleInput(ctx context.Context, obj
 				return it, err
 			}
 			it.Object = data
+		case "condition":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("condition"))
+			data, err := ec.unmarshalOFgaConditionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaConditionInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Condition = data
 		}
 	}
 	return it, nil
@@ -30329,6 +30535,44 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var fgaConditionImplementors = []string{"FgaCondition"}
+
+func (ec *executionContext) _FgaCondition(ctx context.Context, sel ast.SelectionSet, obj *model.FgaCondition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaConditionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaCondition")
+		case "name":
+			out.Values[i] = ec._FgaCondition_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "context":
+			out.Values[i] = ec._FgaCondition_context(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var fgaExpandResponseImplementors = []string{"FgaExpandResponse"}
 
 func (ec *executionContext) _FgaExpandResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaExpandResponse) graphql.Marshaler {
@@ -30457,6 +30701,11 @@ func (ec *executionContext) _FgaTuple(ctx context.Context, sel ast.SelectionSet,
 		case "object":
 			out.Values[i] = ec._FgaTuple_object(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "condition":
+			out.Values[i] = ec._FgaTuple_condition(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
 		default:
@@ -35388,6 +35637,21 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOFgaCondition2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaCondition(ctx context.Context, sel ast.SelectionSet, v *model.FgaCondition) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FgaCondition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOFgaConditionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaConditionInput(ctx context.Context, v any) (*model.FgaConditionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFgaConditionInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOFgaRelationInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInputᚄ(ctx context.Context, v any) ([]*model.FgaRelationInput, error) {

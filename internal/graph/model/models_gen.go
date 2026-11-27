@@ -105,8 +105,9 @@ type AuthResponse struct {
 }
 
 type CheckPermissionsInput struct {
-	Checks []*PermissionCheckInput `json:"checks"`
-	User   *string                 `json:"user,omitempty"`
+	Checks  []*PermissionCheckInput `json:"checks"`
+	User    *string                 `json:"user,omitempty"`
+	Context map[string]any          `json:"context,omitempty"`
 }
 
 type CheckPermissionsResponse struct {
@@ -297,6 +298,16 @@ type Error struct {
 	Reason  string `json:"reason"`
 }
 
+type FgaCondition struct {
+	Name    string         `json:"name"`
+	Context map[string]any `json:"context,omitempty"`
+}
+
+type FgaConditionInput struct {
+	Name    string         `json:"name"`
+	Context map[string]any `json:"context,omitempty"`
+}
+
 type FgaExpandInput struct {
 	Relation string `json:"relation"`
 	Object   string `json:"object"`
@@ -335,15 +346,17 @@ type FgaRelationInput struct {
 }
 
 type FgaTuple struct {
-	User     string `json:"user"`
-	Relation string `json:"relation"`
-	Object   string `json:"object"`
+	User      string        `json:"user"`
+	Relation  string        `json:"relation"`
+	Object    string        `json:"object"`
+	Condition *FgaCondition `json:"condition,omitempty"`
 }
 
 type FgaTupleInput struct {
-	User     string `json:"user"`
-	Relation string `json:"relation"`
-	Object   string `json:"object"`
+	User      string             `json:"user"`
+	Relation  string             `json:"relation"`
+	Object    string             `json:"object"`
+	Condition *FgaConditionInput `json:"condition,omitempty"`
 }
 
 type FgaTuples struct {

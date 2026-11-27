@@ -24,6 +24,28 @@ import (
 // admin has not configured. Distinct from a genuine read failure.
 var ErrNoModel = errors.New("no authorization model written yet")
 
+// ContextKeyCurrentTime is the request-context parameter the engine sets on
+// every evaluating call (Check, BatchCheck, ListObjects, ListUsers) to the
+// server's clock, as an RFC 3339 UTC timestamp. Conditions such as a
+// time-limited grant compare against it.
+//
+// It is server-owned: callers cannot supply it. A caller-asserted time would
+// turn an expired grant back into an allowed one, and a missing value makes
+// OpenFGA error on any tuple whose condition reads it.
+const ContextKeyCurrentTime = "current_time"
+
+// TupleCondition attaches an OpenFGA condition to a stored tuple: the tuple
+// only grants access when the named condition (declared in the authorization
+// model) evaluates to true. Context holds the condition parameters bound at
+// write time, e.g. {"grant_time": "...", "grant_duration": "10m"}; stored
+// parameters take precedence over request context at evaluation time.
+type TupleCondition struct {
+	// Name is the condition name declared in the model.
+	Name string
+	// Context holds the condition parameters stored with the tuple. May be nil.
+	Context map[string]any
+}
+
 // TupleKey identifies a single relationship: the subject (User) is related to
 // the Object via the Relation. Identifiers are expected to be fully qualified
 // in OpenFGA form, e.g. User="user:alice", Relation="viewer",
@@ -38,6 +60,9 @@ type TupleKey struct {
 	Relation string
 	// Object is the fully qualified object (e.g. "document:1").
 	Object string
+	// Condition, when set, makes the relationship conditional. Only meaningful
+	// on writes and reads; deletes match on (User, Relation, Object) alone.
+	Condition *TupleCondition
 }
 
 // ContextualTuple is a tuple supplied only for the duration of a single Check
@@ -65,6 +90,9 @@ type CheckRequest struct {
 	Object string
 	// ContextualTuples are request-scoped tuples not persisted to the store.
 	ContextualTuples []ContextualTuple
+	// Context supplies request-time condition parameters for this check. It
+	// must not contain ContextKeyCurrentTime, which the engine always sets.
+	Context map[string]any
 }
 
 // CheckResult is the answer to a single CheckRequest.
@@ -173,6 +201,11 @@ type AuthorizationEngine interface {
 	// sorted. Unlike TypeRelations it INCLUDES types with no relations, which
 	// is required to detect a subject-only type such as `agent`.
 	TypeNames(ctx context.Context) ([]string, error)
+
+	// ConditionParams returns, for every condition declared in the active
+	// model, its parameter names (condition name -> sorted parameter names).
+	// Returns ErrNoModel (wrapped) when no model has been written yet.
+	ConditionParams(ctx context.Context) (map[string][]string, error)
 
 	// Reset deletes the entire authorization store (the model, all its versions,
 	// and all tuples) and starts a fresh, empty store. It is destructive and must

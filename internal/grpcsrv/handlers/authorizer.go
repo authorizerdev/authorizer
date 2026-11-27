@@ -140,6 +140,9 @@ func (h *AuthorizerHandler) CheckPermissions(ctx context.Context, req *authorize
 	params := &model.CheckPermissionsInput{
 		Checks: protoToModelPermissionChecks(req.Checks),
 	}
+	if req.GetContext() != nil {
+		params.Context = req.GetContext().AsMap()
+	}
 	if req.User != "" {
 		params.User = refs.NewStringRef(req.User)
 	}
