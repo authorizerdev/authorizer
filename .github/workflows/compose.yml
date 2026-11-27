@@ -8,16 +8,26 @@ name: Docker Compose quick start
 # #930 / #325, where the quick start broke without any test noticing.
 #
 # Path-filtered like k8s.yml: it builds the full image (Go + both web apps),
-# so it runs only when the files that decide whether the quick start works
-# change.
+# so per-change runs are limited to what most often breaks the quick start:
+# the compose file and image, CLI flags (#930 was a flag change), the SQL
+# storage layer, dependencies, and the templates parsed at startup. The web
+# apps are left out (a broken web build is not a boot regression); the
+# nightly run catches drift from everything else.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
   pull_request:
     paths:
       - 'docker-compose.yaml'
       - 'Dockerfile'
       - 'scripts/ci-compose-smoke.sh'
       - '.github/workflows/compose.yml'
+      - 'cmd/**'
+      - 'internal/storage/db/sql/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'web/templates/**'
   push:
     branches: [main]
     paths:
@@ -25,6 +35,11 @@ on:
       - 'Dockerfile'
       - 'scripts/ci-compose-smoke.sh'
       - '.github/workflows/compose.yml'
+      - 'cmd/**'
+      - 'internal/storage/db/sql/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'web/templates/**'
 
 permissions:
   contents: read

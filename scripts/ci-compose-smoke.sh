@@ -52,7 +52,11 @@ cleanup() {
   fi
   exit "$rc"
 }
-trap cleanup EXIT INT TERM
+# Cleanup runs on EXIT only; signals just exit non-zero, which fires it.
+# (Inside an INT/TERM handler $? is not the signal status, so routing
+# signals straight to cleanup could make Ctrl-C exit 0.)
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
 # Loop on the HTTP status rather than curl --retry: right after start the
 # Docker port proxy accepts the connection and then resets it, which
@@ -89,7 +93,9 @@ graphql() {
 
 assert_user_persisted() {
   # $1 = phase label
-  resp=$(graphql '{"query":"query { _users { users { email } } }"}' \
+  # Filter by email so a reused volume with many users cannot push this one
+  # off the first page.
+  resp=$(graphql "{\"query\":\"query { _users(params: {query: \\\"$EMAIL\\\", pagination: {limit: 10, page: 1}}) { users { email } } }\"}" \
     -H "x-authorizer-admin-secret: $ADMIN_SECRET")
   case "$resp" in
     *'"errors"'*) fail "_users after $1 returned errors: $resp" ;;
