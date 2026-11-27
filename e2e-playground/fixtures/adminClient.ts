@@ -132,13 +132,13 @@ export async function signupUser(email: string, password: string): Promise<void>
 // (query is a substring filter over email/given_name/family_name/nickname —
 // see ListUsersRequest doc comment — so the exact-match find() below guards
 // against a substring false-positive).
-export async function getUserIdByEmail(email: string): Promise<string> {
+export async function getUserIdByEmail(email: string, baseUrl?: string): Promise<string> {
   const query = gql`
     query ($params: ListUsersRequest) {
       _users(params: $params) { users { id email } }
     }
   `;
-  const res = await client.request<{ _users: { users: { id: string; email: string | null }[] } }>(query, {
+  const res = await getClient(baseUrl).request<{ _users: { users: { id: string; email: string | null }[] } }>(query, {
     params: { query: email },
   });
   const user = res._users.users.find((u) => u.email === email);
@@ -209,14 +209,15 @@ export async function getUserByNickname(
 // lastName attribute source for tests/saml-idp.spec.ts).
 export async function verifyUserEmail(
   userId: string,
-  opts: { givenName: string; familyName: string }
+  opts: { givenName: string; familyName: string },
+  baseUrl?: string
 ): Promise<void> {
   const query = gql`
     mutation ($params: UpdateUserRequest!) {
       _update_user(params: $params) { id }
     }
   `;
-  await client.request(query, {
+  await getClient(baseUrl).request(query, {
     params: { id: userId, email_verified: true, given_name: opts.givenName, family_name: opts.familyName },
   });
 }
