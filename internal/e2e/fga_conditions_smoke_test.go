@@ -130,7 +130,7 @@ func TestReleaseSmokeFgaConditions(t *testing.T) {
 		// Cookie-less on purpose: the shared client's jar holds the user's
 		// session from signup, and a session cookie takes precedence over the
 		// bearer, which would answer as the user instead of the agent.
-		data, errs := gqlRaw(t, baseURL, delegated, `query { check_permissions(params:{checks:[{relation:"viewer", object:"document:fresh"},{relation:"viewer", object:"document:stale"}]}) { results { allowed } } }`)
+		data, errs := conditionsGQL(t, baseURL, delegated, `query { check_permissions(params:{checks:[{relation:"viewer", object:"document:fresh"},{relation:"viewer", object:"document:stale"}]}) { results { allowed } } }`)
 		require.Empty(t, errs)
 		r := data["check_permissions"].(map[string]any)["results"].([]any)
 		require.Len(t, r, 2)
@@ -139,7 +139,7 @@ func TestReleaseSmokeFgaConditions(t *testing.T) {
 	})
 
 	t.Run("graphql: delegated token cannot send contextual tuples", func(t *testing.T) {
-		_, errs := gqlRaw(t, baseURL, delegated, `query { check_permissions(params:{checks:[{relation:"viewer", object:"document:stale", contextual_tuples:[{user:"agent:`+agentID+`", relation:"viewer", object:"document:stale"}]}]}) { results { allowed } } }`)
+		_, errs := conditionsGQL(t, baseURL, delegated, `query { check_permissions(params:{checks:[{relation:"viewer", object:"document:stale", contextual_tuples:[{user:"agent:`+agentID+`", relation:"viewer", object:"document:stale"}]}]}) { results { allowed } } }`)
 		require.NotEmpty(t, errs)
 		assert.Contains(t, fmt.Sprint(errs), "may not supply contextual tuples")
 	})
@@ -275,10 +275,10 @@ func TestReleaseSmokeFgaConditions(t *testing.T) {
 	})
 }
 
-// gqlRaw runs a GraphQL query with only a bearer token (no cookie jar) and
+// conditionsGQL runs a GraphQL query with only a bearer token (no cookie jar) and
 // returns its data and errors. The shared client fails the test on any error,
 // which the rejection cases need to inspect instead.
-func gqlRaw(t *testing.T, baseURL, bearer, query string) (map[string]any, []any) {
+func conditionsGQL(t *testing.T, baseURL, bearer, query string) (map[string]any, []any) {
 	t.Helper()
 	body, err := json.Marshal(map[string]string{"query": query})
 	require.NoError(t, err)
