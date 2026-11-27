@@ -311,9 +311,10 @@ func modelFgaTupleInputs(in []*authorizerv1.FgaTupleInput) []*model.FgaTupleInpu
 			continue
 		}
 		out = append(out, &model.FgaTupleInput{
-			User:     t.GetUser(),
-			Relation: t.GetRelation(),
-			Object:   t.GetObject(),
+			User:      t.GetUser(),
+			Relation:  t.GetRelation(),
+			Object:    t.GetObject(),
+			Condition: protoToModelCondition(t.GetCondition()),
 		})
 	}
 	return out
@@ -343,9 +344,10 @@ func projectFgaTuples(t *model.FgaTuples) *authorizerv1.FgaReadTuplesResponse {
 			continue
 		}
 		tuples = append(tuples, &authorizerv1.FgaTuple{
-			User:     item.User,
-			Relation: item.Relation,
-			Object:   item.Object,
+			User:      item.User,
+			Relation:  item.Relation,
+			Object:    item.Object,
+			Condition: modelToProtoCondition(item.Condition),
 		})
 	}
 	return &authorizerv1.FgaReadTuplesResponse{

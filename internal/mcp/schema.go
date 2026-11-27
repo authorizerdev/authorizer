@@ -80,6 +80,13 @@ func schemaForKind(f protoreflect.FieldDescriptor, visited map[protoreflect.Full
 	case protoreflect.EnumKind:
 		return jsonSchema{Type: "string"}
 	case protoreflect.MessageKind, protoreflect.GroupKind:
+		// google.protobuf.Struct is a JSON object on the wire (protojson
+		// decodes tool arguments). Describing its internal `fields` map would
+		// tell an MCP host to send {"fields": {...}}, which is not what the
+		// server accepts.
+		if f.Message().FullName() == "google.protobuf.Struct" {
+			return jsonSchema{Type: "object"}
+		}
 		return schemaForMessageWithVisited(f.Message(), visited)
 	default:
 		return jsonSchema{Type: "string"}

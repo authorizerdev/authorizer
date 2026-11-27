@@ -26,6 +26,7 @@ import "authorizer/v1/common.proto";
 import "authorizer/v1/types.proto";
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
 
 service AuthorizerService {
   // === Identity creation & authentication ===
@@ -630,6 +631,10 @@ message CheckPermissionsRequest {
   // "user:<id>"). Honored only for super-admins or when it equals the
   // caller's own token subject; anything else is rejected.
   string user = 2;
+  // Request-time condition parameters for every check. Super-admin only, and
+  // it may not set current_time, which the server always supplies. Any other
+  // caller sending context is rejected.
+  google.protobuf.Struct context = 3;
 }
 message CheckPermissionsResponse {
   // One result per supplied check, in order.

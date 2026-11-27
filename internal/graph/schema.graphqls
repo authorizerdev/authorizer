@@ -235,6 +235,16 @@ type FgaTuple {
   user: String!
   relation: String!
   object: String!
+  # condition is set when the tuple only grants access while a model-declared
+  # condition holds (e.g. a time-limited grant).
+  condition: FgaCondition
+}
+
+# FgaCondition is an OpenFGA condition stored on a tuple: the condition name
+# declared in the model plus the parameters bound at write time.
+type FgaCondition {
+  name: String!
+  context: Map
 }
 
 # FgaModel describes an authorization model (id + DSL form).
@@ -1439,6 +1449,18 @@ input FgaTupleInput {
   user: String!
   relation: String!
   object: String!
+  # condition makes a written tuple conditional. Accepted only by
+  # _fga_write_tuples; rejected on deletes and on contextual tuples.
+  condition: FgaConditionInput
+}
+
+# FgaConditionInput names a condition declared in the authorization model and
+# binds its stored parameters, e.g. name "non_expired_grant" with context
+# {"grant_time": "2026-11-27T10:00:00Z", "grant_duration": "10m"}. The
+# request-time parameter current_time is always supplied by the server.
+input FgaConditionInput {
+  name: String!
+  context: Map
 }
 
 # FgaWriteModelInput installs a new authorization model from its DSL form.
@@ -1463,7 +1485,8 @@ input FgaReadTuplesInput {
 
 # PermissionCheckInput is one permission to evaluate: "does the subject have
 # <relation> on <object>?". Contextual tuples are evaluated for this check only
-# and never persisted.
+# and never persisted. They are caller-asserted, so a delegated (agent) token
+# may not send them, and they may not carry a condition.
 input PermissionCheckInput {
   relation: String!
   object: String!
@@ -1479,6 +1502,10 @@ input PermissionCheckInput {
 input CheckPermissionsInput {
   checks: [PermissionCheckInput!]!
   user: String
+  # context supplies request-time condition parameters for every check.
+  # Super-admin only, and it may not set current_time, which the server always
+  # supplies. Any other caller sending context is rejected.
+  context: Map
 }
 
 # ListPermissionsInput enumerates what the subject can access. With both

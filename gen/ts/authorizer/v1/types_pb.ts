@@ -9,13 +9,14 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AppData } from "./common_pb.js";
 import { file_authorizer_v1_common } from "./common_pb.js";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file authorizer/v1/types.proto.
  */
 export const file_authorizer_v1_types: GenFile = /*@__PURE__*/
-  fileDesc("ChlhdXRob3JpemVyL3YxL3R5cGVzLnByb3RvEg1hdXRob3JpemVyLnYxIoEECgRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDmVtYWlsX3ZlcmlmaWVkGAMgASgIEhYKDnNpZ251cF9tZXRob2RzGAQgASgJEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSGgoScHJlZmVycmVkX3VzZXJuYW1lGAkgASgJEg4KBmdlbmRlchgKIAEoCRIRCgliaXJ0aGRhdGUYCyABKAkSFAoMcGhvbmVfbnVtYmVyGAwgASgJEh0KFXBob25lX251bWJlcl92ZXJpZmllZBgNIAEoCBIPCgdwaWN0dXJlGA4gASgJEg0KBXJvbGVzGA8gAygJEhIKCmNyZWF0ZWRfYXQYECABKAMSEgoKdXBkYXRlZF9hdBgRIAEoAxIZChFyZXZva2VkX3RpbWVzdGFtcBgSIAEoAxIkChxpc19tdWx0aV9mYWN0b3JfYXV0aF9lbmFibGVkGBMgASgIEigKCGFwcF9kYXRhGBQgASgLMhYuYXV0aG9yaXplci52MS5BcHBEYXRhEiAKGGhhc19za2lwcGVkX21mYV9zZXR1cF9hdBgVIAEoAxIVCg1tZmFfbG9ja2VkX2F0GBYgASgDIpEECgxBdXRoUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCRIkChxzaG91bGRfc2hvd19lbWFpbF9vdHBfc2NyZWVuGAIgASgIEiUKHXNob3VsZF9zaG93X21vYmlsZV9vdHBfc2NyZWVuGAMgASgIEh8KF3Nob3VsZF9zaG93X3RvdHBfc2NyZWVuGAQgASgIEhQKDGFjY2Vzc190b2tlbhgFIAEoCRIQCghpZF90b2tlbhgGIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAcgASgJEhIKCmV4cGlyZXNfaW4YCCABKAMSIQoEdXNlchgJIAEoCzITLmF1dGhvcml6ZXIudjEuVXNlchIjChthdXRoZW50aWNhdG9yX3NjYW5uZXJfaW1hZ2UYCiABKAkSHAoUYXV0aGVudGljYXRvcl9zZWNyZXQYCyABKAkSJAocYXV0aGVudGljYXRvcl9yZWNvdmVyeV9jb2RlcxgMIAMoCRIoCiBzaG91bGRfb2ZmZXJfd2ViYXV0aG5fbWZhX3ZlcmlmeRgNIAEoCBInCh9zaG91bGRfb2ZmZXJfd2ViYXV0aG5fbWZhX3NldHVwGA4gASgIEigKIHNob3VsZF9vZmZlcl9lbWFpbF9vdHBfbWZhX3NldHVwGA8gASgIEiYKHnNob3VsZF9vZmZlcl9zbXNfb3RwX21mYV9zZXR1cBgQIAEoCCIuCgpQZXJtaXNzaW9uEg4KBm9iamVjdBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCSI0ChBGZ2FSZWxhdGlvbklucHV0EhAKCHJlbGF0aW9uGAEgASgJEg4KBm9iamVjdBgCIAEoCSI/Cg1GZ2FUdXBsZUlucHV0EgwKBHVzZXIYASABKAkSEAoIcmVsYXRpb24YAiABKAkSDgoGb2JqZWN0GAMgASgJInEKFFBlcm1pc3Npb25DaGVja0lucHV0EhAKCHJlbGF0aW9uGAEgASgJEg4KBm9iamVjdBgCIAEoCRI3ChFjb250ZXh0dWFsX3R1cGxlcxgDIAMoCzIcLmF1dGhvcml6ZXIudjEuRmdhVHVwbGVJbnB1dCJKChVQZXJtaXNzaW9uQ2hlY2tSZXN1bHQSEAoIcmVsYXRpb24YASABKAkSDgoGb2JqZWN0GAIgASgJEg8KB2FsbG93ZWQYAyABKAgi5QYKBE1ldGESDwoHdmVyc2lvbhgBIAEoCRIRCgljbGllbnRfaWQYAiABKAkSHwoXaXNfZ29vZ2xlX2xvZ2luX2VuYWJsZWQYAyABKAgSIQoZaXNfZmFjZWJvb2tfbG9naW5fZW5hYmxlZBgEIAEoCBIfChdpc19naXRodWJfbG9naW5fZW5hYmxlZBgFIAEoCBIhChlpc19saW5rZWRpbl9sb2dpbl9lbmFibGVkGAYgASgIEh4KFmlzX2FwcGxlX2xvZ2luX2VuYWJsZWQYByABKAgSIAoYaXNfZGlzY29yZF9sb2dpbl9lbmFibGVkGAggASgIEiAKGGlzX3R3aXR0ZXJfbG9naW5fZW5hYmxlZBgJIAEoCBIiChppc19taWNyb3NvZnRfbG9naW5fZW5hYmxlZBgKIAEoCBIfChdpc190d2l0Y2hfbG9naW5fZW5hYmxlZBgLIAEoCBIfChdpc19yb2Jsb3hfbG9naW5fZW5hYmxlZBgMIAEoCBIlCh1pc19lbWFpbF92ZXJpZmljYXRpb25fZW5hYmxlZBgNIAEoCBInCh9pc19iYXNpY19hdXRoZW50aWNhdGlvbl9lbmFibGVkGA4gASgIEiMKG2lzX21hZ2ljX2xpbmtfbG9naW5fZW5hYmxlZBgPIAEoCBIaChJpc19zaWduX3VwX2VuYWJsZWQYECABKAgSIgoaaXNfc3Ryb25nX3Bhc3N3b3JkX2VuYWJsZWQYESABKAgSJAocaXNfbXVsdGlfZmFjdG9yX2F1dGhfZW5hYmxlZBgSIAEoCBIuCiZpc19tb2JpbGVfYmFzaWNfYXV0aGVudGljYXRpb25fZW5hYmxlZBgTIAEoCBIlCh1pc19waG9uZV92ZXJpZmljYXRpb25fZW5hYmxlZBgUIAEoCBIgChhpc19vcmdfZGlzY292ZXJ5X2VuYWJsZWQYFSABKAgSGwoTaXNfdG90cF9tZmFfZW5hYmxlZBgWIAEoCBIgChhpc19lbWFpbF9vdHBfbWZhX2VuYWJsZWQYFyABKAgSHgoWaXNfc21zX290cF9tZmFfZW5hYmxlZBgYIAEoCBIbChNpc193ZWJhdXRobl9lbmFibGVkGBkgASgIEhcKD2lzX21mYV9lbmZvcmNlZBgaIAEoCGIGcHJvdG8z", [file_authorizer_v1_common]);
+  fileDesc("ChlhdXRob3JpemVyL3YxL3R5cGVzLnByb3RvEg1hdXRob3JpemVyLnYxIoEECgRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDmVtYWlsX3ZlcmlmaWVkGAMgASgIEhYKDnNpZ251cF9tZXRob2RzGAQgASgJEhIKCmdpdmVuX25hbWUYBSABKAkSEwoLZmFtaWx5X25hbWUYBiABKAkSEwoLbWlkZGxlX25hbWUYByABKAkSEAoIbmlja25hbWUYCCABKAkSGgoScHJlZmVycmVkX3VzZXJuYW1lGAkgASgJEg4KBmdlbmRlchgKIAEoCRIRCgliaXJ0aGRhdGUYCyABKAkSFAoMcGhvbmVfbnVtYmVyGAwgASgJEh0KFXBob25lX251bWJlcl92ZXJpZmllZBgNIAEoCBIPCgdwaWN0dXJlGA4gASgJEg0KBXJvbGVzGA8gAygJEhIKCmNyZWF0ZWRfYXQYECABKAMSEgoKdXBkYXRlZF9hdBgRIAEoAxIZChFyZXZva2VkX3RpbWVzdGFtcBgSIAEoAxIkChxpc19tdWx0aV9mYWN0b3JfYXV0aF9lbmFibGVkGBMgASgIEigKCGFwcF9kYXRhGBQgASgLMhYuYXV0aG9yaXplci52MS5BcHBEYXRhEiAKGGhhc19za2lwcGVkX21mYV9zZXR1cF9hdBgVIAEoAxIVCg1tZmFfbG9ja2VkX2F0GBYgASgDIpEECgxBdXRoUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCRIkChxzaG91bGRfc2hvd19lbWFpbF9vdHBfc2NyZWVuGAIgASgIEiUKHXNob3VsZF9zaG93X21vYmlsZV9vdHBfc2NyZWVuGAMgASgIEh8KF3Nob3VsZF9zaG93X3RvdHBfc2NyZWVuGAQgASgIEhQKDGFjY2Vzc190b2tlbhgFIAEoCRIQCghpZF90b2tlbhgGIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAcgASgJEhIKCmV4cGlyZXNfaW4YCCABKAMSIQoEdXNlchgJIAEoCzITLmF1dGhvcml6ZXIudjEuVXNlchIjChthdXRoZW50aWNhdG9yX3NjYW5uZXJfaW1hZ2UYCiABKAkSHAoUYXV0aGVudGljYXRvcl9zZWNyZXQYCyABKAkSJAocYXV0aGVudGljYXRvcl9yZWNvdmVyeV9jb2RlcxgMIAMoCRIoCiBzaG91bGRfb2ZmZXJfd2ViYXV0aG5fbWZhX3ZlcmlmeRgNIAEoCBInCh9zaG91bGRfb2ZmZXJfd2ViYXV0aG5fbWZhX3NldHVwGA4gASgIEigKIHNob3VsZF9vZmZlcl9lbWFpbF9vdHBfbWZhX3NldHVwGA8gASgIEiYKHnNob3VsZF9vZmZlcl9zbXNfb3RwX21mYV9zZXR1cBgQIAEoCCIuCgpQZXJtaXNzaW9uEg4KBm9iamVjdBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCSI0ChBGZ2FSZWxhdGlvbklucHV0EhAKCHJlbGF0aW9uGAEgASgJEg4KBm9iamVjdBgCIAEoCSJvCg1GZ2FUdXBsZUlucHV0EgwKBHVzZXIYASABKAkSEAoIcmVsYXRpb24YAiABKAkSDgoGb2JqZWN0GAMgASgJEi4KCWNvbmRpdGlvbhgEIAEoCzIbLmF1dGhvcml6ZXIudjEuRmdhQ29uZGl0aW9uIkYKDEZnYUNvbmRpdGlvbhIMCgRuYW1lGAEgASgJEigKB2NvbnRleHQYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0InEKFFBlcm1pc3Npb25DaGVja0lucHV0EhAKCHJlbGF0aW9uGAEgASgJEg4KBm9iamVjdBgCIAEoCRI3ChFjb250ZXh0dWFsX3R1cGxlcxgDIAMoCzIcLmF1dGhvcml6ZXIudjEuRmdhVHVwbGVJbnB1dCJKChVQZXJtaXNzaW9uQ2hlY2tSZXN1bHQSEAoIcmVsYXRpb24YASABKAkSDgoGb2JqZWN0GAIgASgJEg8KB2FsbG93ZWQYAyABKAgi5QYKBE1ldGESDwoHdmVyc2lvbhgBIAEoCRIRCgljbGllbnRfaWQYAiABKAkSHwoXaXNfZ29vZ2xlX2xvZ2luX2VuYWJsZWQYAyABKAgSIQoZaXNfZmFjZWJvb2tfbG9naW5fZW5hYmxlZBgEIAEoCBIfChdpc19naXRodWJfbG9naW5fZW5hYmxlZBgFIAEoCBIhChlpc19saW5rZWRpbl9sb2dpbl9lbmFibGVkGAYgASgIEh4KFmlzX2FwcGxlX2xvZ2luX2VuYWJsZWQYByABKAgSIAoYaXNfZGlzY29yZF9sb2dpbl9lbmFibGVkGAggASgIEiAKGGlzX3R3aXR0ZXJfbG9naW5fZW5hYmxlZBgJIAEoCBIiChppc19taWNyb3NvZnRfbG9naW5fZW5hYmxlZBgKIAEoCBIfChdpc190d2l0Y2hfbG9naW5fZW5hYmxlZBgLIAEoCBIfChdpc19yb2Jsb3hfbG9naW5fZW5hYmxlZBgMIAEoCBIlCh1pc19lbWFpbF92ZXJpZmljYXRpb25fZW5hYmxlZBgNIAEoCBInCh9pc19iYXNpY19hdXRoZW50aWNhdGlvbl9lbmFibGVkGA4gASgIEiMKG2lzX21hZ2ljX2xpbmtfbG9naW5fZW5hYmxlZBgPIAEoCBIaChJpc19zaWduX3VwX2VuYWJsZWQYECABKAgSIgoaaXNfc3Ryb25nX3Bhc3N3b3JkX2VuYWJsZWQYESABKAgSJAocaXNfbXVsdGlfZmFjdG9yX2F1dGhfZW5hYmxlZBgSIAEoCBIuCiZpc19tb2JpbGVfYmFzaWNfYXV0aGVudGljYXRpb25fZW5hYmxlZBgTIAEoCBIlCh1pc19waG9uZV92ZXJpZmljYXRpb25fZW5hYmxlZBgUIAEoCBIgChhpc19vcmdfZGlzY292ZXJ5X2VuYWJsZWQYFSABKAgSGwoTaXNfdG90cF9tZmFfZW5hYmxlZBgWIAEoCBIgChhpc19lbWFpbF9vdHBfbWZhX2VuYWJsZWQYFyABKAgSHgoWaXNfc21zX290cF9tZmFfZW5hYmxlZBgYIAEoCBIbChNpc193ZWJhdXRobl9lbmFibGVkGBkgASgIEhcKD2lzX21mYV9lbmZvcmNlZBgaIAEoCGIGcHJvdG8z", [file_authorizer_v1_common, file_google_protobuf_struct]);
 
 /**
  * User mirrors the GraphQL User type. Returned by Profile and embedded in
@@ -332,6 +333,14 @@ export type FgaTupleInput = Message<"authorizer.v1.FgaTupleInput"> & {
    * @generated from field: string object = 3;
    */
   object: string;
+
+  /**
+   * Makes a written tuple conditional. Accepted only by tuple writes; rejected
+   * on deletes and on contextual tuples.
+   *
+   * @generated from field: authorizer.v1.FgaCondition condition = 4;
+   */
+  condition?: FgaCondition;
 };
 
 /**
@@ -340,6 +349,34 @@ export type FgaTupleInput = Message<"authorizer.v1.FgaTupleInput"> & {
  */
 export const FgaTupleInputSchema: GenMessage<FgaTupleInput> = /*@__PURE__*/
   messageDesc(file_authorizer_v1_types, 4);
+
+/**
+ * FgaCondition names a condition declared in the authorization model and binds
+ * its stored parameters, e.g. name "non_expired_grant" with context
+ * {"grant_time": "2026-11-27T10:00:00Z", "grant_duration": "10m"}. The
+ * request-time parameter current_time is always supplied by the server.
+ * Mirrors the GraphQL FgaConditionInput / FgaCondition types.
+ *
+ * @generated from message authorizer.v1.FgaCondition
+ */
+export type FgaCondition = Message<"authorizer.v1.FgaCondition"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: google.protobuf.Struct context = 2;
+   */
+  context?: JsonObject;
+};
+
+/**
+ * Describes the message authorizer.v1.FgaCondition.
+ * Use `create(FgaConditionSchema)` to create a new message.
+ */
+export const FgaConditionSchema: GenMessage<FgaCondition> = /*@__PURE__*/
+  messageDesc(file_authorizer_v1_types, 5);
 
 /**
  * PermissionCheckInput is one permission to evaluate: "does the subject have
@@ -359,6 +396,10 @@ export type PermissionCheckInput = Message<"authorizer.v1.PermissionCheckInput">
   object: string;
 
   /**
+   * Request-scoped tuples evaluated for this check only. They are
+   * caller-asserted, so a delegated (agent) token may not send them, and they
+   * may not carry a condition.
+   *
    * @generated from field: repeated authorizer.v1.FgaTupleInput contextual_tuples = 3;
    */
   contextualTuples: FgaTupleInput[];
@@ -369,7 +410,7 @@ export type PermissionCheckInput = Message<"authorizer.v1.PermissionCheckInput">
  * Use `create(PermissionCheckInputSchema)` to create a new message.
  */
 export const PermissionCheckInputSchema: GenMessage<PermissionCheckInput> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_types, 5);
+  messageDesc(file_authorizer_v1_types, 6);
 
 /**
  * PermissionCheckResult is the outcome of one permission check, echoing the
@@ -400,7 +441,7 @@ export type PermissionCheckResult = Message<"authorizer.v1.PermissionCheckResult
  * Use `create(PermissionCheckResultSchema)` to create a new message.
  */
 export const PermissionCheckResultSchema: GenMessage<PermissionCheckResult> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_types, 6);
+  messageDesc(file_authorizer_v1_types, 7);
 
 /**
  * Meta mirrors the GraphQL Meta type — server feature flags + provider
@@ -547,5 +588,5 @@ export type Meta = Message<"authorizer.v1.Meta"> & {
  * Use `create(MetaSchema)` to create a new message.
  */
 export const MetaSchema: GenMessage<Meta> = /*@__PURE__*/
-  messageDesc(file_authorizer_v1_types, 7);
+  messageDesc(file_authorizer_v1_types, 8);
 

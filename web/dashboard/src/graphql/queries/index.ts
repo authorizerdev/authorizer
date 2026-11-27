@@ -152,6 +152,10 @@ export const FgaReadTuplesQuery = `
         user
         relation
         object
+        condition {
+          name
+          context
+        }
       }
       continuation_token
     }

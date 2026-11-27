@@ -310,6 +310,9 @@ func toContextualTuples(in []*model.FgaTupleInput) ([]engine.ContextualTuple, er
 		if t == nil || strings.TrimSpace(t.User) == "" || strings.TrimSpace(t.Relation) == "" || strings.TrimSpace(t.Object) == "" {
 			return nil, InvalidArgument("each contextual tuple requires user, relation and object")
 		}
+		if t.Condition != nil {
+			return nil, InvalidArgument("contextual tuples cannot carry a condition")
+		}
 		out = append(out, engine.ContextualTuple{
 			User:     t.User,
 			Relation: t.Relation,

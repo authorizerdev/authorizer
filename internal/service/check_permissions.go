@@ -44,6 +44,22 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, nil, err
 	}
+	reqContext, err := p.checkRequestContext(ctx, meta, caller, params.Context)
+	if err != nil {
+		log.Debug().Err(err).Msg("Rejected request context")
+		return nil, nil, err
+	}
+	// Contextual tuples are caller-asserted relationships: attaching one that
+	// grants the caller the checked relation yields allowed=true. For an agent
+	// (delegated token) that turns a "check before acting" guardrail into one
+	// it can talk itself past, so delegated callers may not send them.
+	if caller.isDelegated() {
+		for _, c := range params.Checks {
+			if c != nil && len(c.ContextualTuples) > 0 {
+				return nil, nil, PermissionDenied("a delegated token may not supply contextual tuples")
+			}
+		}
+	}
 	// For an ordinary caller this is exactly [subject] and everything below is
 	// unchanged. For an RFC 8693 delegated token it is
 	// [agent:<client_id>, user:<sub>], and EVERY subject must be allowed —
@@ -81,6 +97,7 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 				Relation:         c.Relation,
 				Object:           c.Object,
 				ContextualTuples: ctxTuples,
+				Context:          reqContext,
 			})
 		}
 	}
@@ -141,4 +158,37 @@ func (p *provider) CheckPermissions(ctx context.Context, meta RequestMetadata, p
 		})
 	}
 	return out, nil, nil
+}
+
+// maxCheckContextParams caps the request-time condition parameters on one
+// CheckPermissions call.
+const maxCheckContextParams = 32
+
+// checkRequestContext validates caller-supplied condition context.
+//
+// Request context feeds condition evaluation, so whoever supplies it can make
+// a condition pass: a caller asserting its own parameters could defeat any
+// condition that reads them. It is therefore accepted only from a super-admin
+// who is not acting through a delegated token, and never for
+// engine.ContextKeyCurrentTime, which the engine always sets from the server
+// clock. Anything else is rejected rather than silently dropped.
+func (p *provider) checkRequestContext(ctx context.Context, meta RequestMetadata, caller fgaCaller, in map[string]any) (map[string]any, error) {
+	if len(in) == 0 {
+		return nil, nil
+	}
+	if caller.isDelegated() {
+		return nil, PermissionDenied("a delegated token may not supply condition context")
+	}
+	// Same positive path as requireSuperAdmin: the gRPC principal, or the admin
+	// cookie/secret on the HTTP transports. Never derived from client input.
+	if err := p.requireSuperAdmin(ctx, meta); err != nil {
+		return nil, PermissionDenied("condition context may only be supplied by a super-admin")
+	}
+	if len(in) > maxCheckContextParams {
+		return nil, InvalidArgument(fmt.Sprintf("too many context parameters: max %d", maxCheckContextParams))
+	}
+	if _, ok := in[engine.ContextKeyCurrentTime]; ok {
+		return nil, InvalidArgument("current_time is supplied by the server and cannot be set in context")
+	}
+	return in, nil
 }

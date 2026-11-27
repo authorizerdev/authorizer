@@ -4166,6 +4166,10 @@
         "user": {
           "type": "string",
           "description": "Optional explicit subject (\"type:id\", or a bare id treated as\n\"user:\u003cid\u003e\"). Honored only for super-admins or when it equals the\ncaller's own token subject; anything else is rejected."
+        },
+        "context": {
+          "type": "object",
+          "description": "Request-time condition parameters for every check. Super-admin only, and\nit may not set current_time, which the server always supplies. Any other\ncaller sending context is rejected."
         }
       }
     },
@@ -4724,6 +4728,18 @@
         }
       }
     },
+    "v1FgaCondition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object"
+        }
+      },
+      "description": "FgaCondition names a condition declared in the authorization model and binds\nits stored parameters, e.g. name \"non_expired_grant\" with context\n{\"grant_time\": \"2026-11-27T10:00:00Z\", \"grant_duration\": \"10m\"}. The\nrequest-time parameter current_time is always supplied by the server.\nMirrors the GraphQL FgaConditionInput / FgaCondition types."
+    },
     "v1FgaDeleteTuplesRequest": {
       "type": "object",
       "properties": {
@@ -4883,6 +4899,10 @@
         },
         "object": {
           "type": "string"
+        },
+        "condition": {
+          "$ref": "#/definitions/v1FgaCondition",
+          "description": "Set when the tuple is conditional."
         }
       },
       "description": "FgaTuple is one persisted relationship tuple returned by FgaReadTuples.\nMirrors model.FgaTuple field-for-field (the read shape; writes use the shared\nFgaTupleInput)."
@@ -4898,6 +4918,10 @@
         },
         "object": {
           "type": "string"
+        },
+        "condition": {
+          "$ref": "#/definitions/v1FgaCondition",
+          "description": "Makes a written tuple conditional. Accepted only by tuple writes; rejected\non deletes and on contextual tuples."
         }
       },
       "description": "FgaTupleInput is one relationship tuple supplied as request-scoped context\nfor a permission check; contextual tuples are never persisted. Mirrors the\nGraphQL FgaTupleInput type."
@@ -5678,7 +5702,8 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/v1FgaTupleInput"
-          }
+          },
+          "description": "Request-scoped tuples evaluated for this check only. They are\ncaller-asserted, so a delegated (agent) token may not send them, and they\nmay not carry a condition."
         }
       },
       "description": "PermissionCheckInput is one permission to evaluate: \"does the subject have\n\u003crelation\u003e on \u003cobject\u003e?\". Mirrors the GraphQL PermissionCheckInput type."

@@ -113,6 +113,34 @@ func mapToAppData(m map[string]any) *authorizerv1.AppData {
 	return &authorizerv1.AppData{Value: s}
 }
 
+// protoToModelCondition converts a proto FgaCondition into the model input.
+// nil stays nil so "no condition" is preserved.
+func protoToModelCondition(c *authorizerv1.FgaCondition) *model.FgaConditionInput {
+	if c == nil {
+		return nil
+	}
+	out := &model.FgaConditionInput{Name: c.GetName()}
+	if c.GetContext() != nil {
+		out.Context = c.GetContext().AsMap()
+	}
+	return out
+}
+
+// modelToProtoCondition converts a stored model condition for a response. A
+// context Struct cannot represent is dropped; the name is always kept.
+func modelToProtoCondition(c *model.FgaCondition) *authorizerv1.FgaCondition {
+	if c == nil {
+		return nil
+	}
+	out := &authorizerv1.FgaCondition{Name: c.Name}
+	if len(c.Context) > 0 {
+		if ad := mapToAppData(c.Context); ad != nil {
+			out.Context = ad.GetValue()
+		}
+	}
+	return out
+}
+
 // appDataToMap is the inverse of mapToAppData: it unwraps the proto AppData
 // (google.protobuf.Struct) back into a free-form map for the model layer.
 // Returns nil for an absent/empty AppData so optional semantics are preserved.
@@ -187,10 +215,13 @@ func protoToModelPermissionChecks(in []*authorizerv1.PermissionCheckInput) []*mo
 			if t == nil {
 				continue
 			}
+			// Condition is carried through so the service layer rejects it
+			// explicitly instead of the transport dropping it silently.
 			check.ContextualTuples = append(check.ContextualTuples, &model.FgaTupleInput{
-				User:     t.User,
-				Relation: t.Relation,
-				Object:   t.Object,
+				User:      t.User,
+				Relation:  t.Relation,
+				Object:    t.Object,
+				Condition: protoToModelCondition(t.GetCondition()),
 			})
 		}
 		out = append(out, check)

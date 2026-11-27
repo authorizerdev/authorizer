@@ -1148,6 +1148,8 @@ message FgaTuple {
   string user = 1;
   string relation = 2;
   string object = 3;
+  // Set when the tuple is conditional.
+  FgaCondition condition = 4;
 }
 
 // FgaGetModelRequest takes no parameters; the active model is implied.

@@ -6,17 +6,73 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	language "github.com/openfga/language/pkg/go/transformer"
 	"github.com/openfga/openfga/pkg/tuple"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/internalerr"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
+
+// requestContext builds the OpenFGA request context for an evaluating call:
+// the caller's parameters (if any) plus ContextKeyCurrentTime set to the server
+// clock. current_time is always overwritten, never taken from the caller — see
+// engine.ContextKeyCurrentTime.
+func requestContext(params map[string]any) (*structpb.Struct, error) {
+	merged := make(map[string]any, len(params)+1)
+	for k, v := range params {
+		merged[k] = v
+	}
+	// Second precision: ample for expiry, and it keeps request contexts
+	// identical within a second so OpenFGA's check cache can still hit.
+	merged[engine.ContextKeyCurrentTime] = time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
+	st, err := structpb.NewStruct(merged)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request context: %w", err)
+	}
+	return st, nil
+}
+
+// toProtoCondition converts an engine.TupleCondition for a write.
+func toProtoCondition(c *engine.TupleCondition) (*openfgav1.RelationshipCondition, error) {
+	if c == nil {
+		return nil, nil
+	}
+	// Defense in depth, enforced here so every write path inherits it: OpenFGA
+	// merges a tuple's stored context OVER the request context, so a stored
+	// current_time would replace the server clock and the grant would never
+	// expire.
+	if _, ok := c.Context[engine.ContextKeyCurrentTime]; ok {
+		return nil, fmt.Errorf("openfga.WriteTuples: %s cannot be stored on a tuple; the server supplies it", engine.ContextKeyCurrentTime)
+	}
+	out := &openfgav1.RelationshipCondition{Name: c.Name}
+	if len(c.Context) > 0 {
+		st, err := structpb.NewStruct(c.Context)
+		if err != nil {
+			return nil, fmt.Errorf("invalid condition context: %w", err)
+		}
+		out.Context = st
+	}
+	return out, nil
+}
+
+// fromProtoCondition converts a stored tuple's condition for a read.
+func fromProtoCondition(c *openfgav1.RelationshipCondition) *engine.TupleCondition {
+	if c == nil || c.GetName() == "" {
+		return nil
+	}
+	out := &engine.TupleCondition{Name: c.GetName()}
+	if c.GetContext() != nil {
+		out.Context = c.GetContext().AsMap()
+	}
+	return out
+}
 
 // Check reports whether user is related to object via relation. It is
 // fail-closed: any engine error returns (false, err) and callers must treat the
@@ -25,6 +81,10 @@ func (e *engineImpl) Check(ctx context.Context, user, relation, object string, c
 	storeID, modelID := e.ids()
 	if modelID == "" {
 		return false, fmt.Errorf("openfga.Check: no authorization model written yet")
+	}
+	reqCtx, err := requestContext(nil)
+	if err != nil {
+		return false, err
 	}
 	res, err := e.srv.Check(ctx, &openfgav1.CheckRequest{
 		StoreId:              storeID,
@@ -35,6 +95,7 @@ func (e *engineImpl) Check(ctx context.Context, user, relation, object string, c
 			Object:   object,
 		},
 		ContextualTuples: toProtoContextual(ctxTuples),
+		Context:          reqCtx,
 	})
 	if err != nil {
 		return false, opErr("openfga.Check", err)
@@ -57,6 +118,10 @@ func (e *engineImpl) BatchCheck(ctx context.Context, requests []engine.CheckRequ
 
 	items := make([]*openfgav1.BatchCheckItem, 0, len(requests))
 	for i, r := range requests {
+		reqCtx, err := requestContext(r.Context)
+		if err != nil {
+			return nil, err
+		}
 		items = append(items, &openfgav1.BatchCheckItem{
 			TupleKey: &openfgav1.CheckRequestTupleKey{
 				User:     r.User,
@@ -64,6 +129,7 @@ func (e *engineImpl) BatchCheck(ctx context.Context, requests []engine.CheckRequ
 				Object:   r.Object,
 			},
 			ContextualTuples: toProtoContextual(r.ContextualTuples),
+			Context:          reqCtx,
 			CorrelationId:    strconv.Itoa(i),
 		})
 	}
@@ -100,12 +166,17 @@ func (e *engineImpl) ListObjects(ctx context.Context, user, relation, objType st
 	if modelID == "" {
 		return nil, fmt.Errorf("openfga.ListObjects: no authorization model written yet")
 	}
+	reqCtx, err := requestContext(nil)
+	if err != nil {
+		return nil, err
+	}
 	res, err := e.srv.ListObjects(ctx, &openfgav1.ListObjectsRequest{
 		StoreId:              storeID,
 		AuthorizationModelId: modelID,
 		Type:                 objType,
 		Relation:             relation,
 		User:                 user,
+		Context:              reqCtx,
 	})
 	if err != nil {
 		return nil, opErr("openfga.ListObjects", err)
@@ -126,12 +197,17 @@ func (e *engineImpl) ListUsers(ctx context.Context, object, relation, userType s
 	if !found || objType == "" || objID == "" {
 		return nil, fmt.Errorf("openfga.ListUsers: object must be in type:id form, got %q", object)
 	}
+	reqCtx, err := requestContext(nil)
+	if err != nil {
+		return nil, err
+	}
 	res, err := e.srv.ListUsers(ctx, &openfgav1.ListUsersRequest{
 		StoreId:              storeID,
 		AuthorizationModelId: modelID,
 		Object:               &openfgav1.Object{Type: objType, Id: objID},
 		Relation:             relation,
 		UserFilters:          []*openfgav1.UserTypeFilter{{Type: userType}},
+		Context:              reqCtx,
 	})
 	if err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultError)
@@ -185,10 +261,15 @@ func (e *engineImpl) WriteTuples(ctx context.Context, tuples []engine.TupleKey) 
 	storeID, modelID := e.ids()
 	keys := make([]*openfgav1.TupleKey, 0, len(tuples))
 	for _, t := range tuples {
+		cond, err := toProtoCondition(t.Condition)
+		if err != nil {
+			return err
+		}
 		keys = append(keys, &openfgav1.TupleKey{
-			User:     t.User,
-			Relation: t.Relation,
-			Object:   t.Object,
+			User:      t.User,
+			Relation:  t.Relation,
+			Object:    t.Object,
+			Condition: cond,
 		})
 	}
 	_, err := e.srv.Write(ctx, &openfgav1.WriteRequest{
@@ -272,9 +353,10 @@ func (e *engineImpl) ReadTuples(ctx context.Context, filter engine.ReadTuplesFil
 	for _, t := range res.GetTuples() {
 		k := t.GetKey()
 		out.Tuples = append(out.Tuples, engine.TupleKey{
-			User:     k.GetUser(),
-			Relation: k.GetRelation(),
-			Object:   k.GetObject(),
+			User:      k.GetUser(),
+			Relation:  k.GetRelation(),
+			Object:    k.GetObject(),
+			Condition: fromProtoCondition(k.GetCondition()),
 		})
 	}
 	return out, nil
@@ -288,6 +370,16 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 	parsed, err := language.TransformDSLToProto(dsl)
 	if err != nil {
 		return "", fmt.Errorf("openfga.WriteModel: invalid DSL: %w", err)
+	}
+	// The engine supplies current_time as an RFC 3339 timestamp on every
+	// check. A condition declaring it as another type would fail to evaluate
+	// on every check that reaches it, so refuse the model up front.
+	for name, cond := range parsed.GetConditions() {
+		if p, ok := cond.GetParameters()[engine.ContextKeyCurrentTime]; ok &&
+			p.GetTypeName() != openfgav1.ConditionParamTypeRef_TYPE_NAME_TIMESTAMP {
+			return "", fmt.Errorf("openfga.WriteModel: condition %q declares %s as %s; it must be a timestamp, which the server supplies",
+				name, engine.ContextKeyCurrentTime, strings.TrimPrefix(p.GetTypeName().String(), "TYPE_NAME_"))
+		}
 	}
 	storeID, _ := e.ids()
 	wm, err := e.srv.WriteAuthorizationModel(ctx, &openfgav1.WriteAuthorizationModelRequest{
@@ -402,5 +494,31 @@ func (e *engineImpl) TypeNames(ctx context.Context) ([]string, error) {
 		}
 	}
 	sort.Strings(out)
+	return out, nil
+}
+
+// ConditionParams returns each condition declared in the active model with its
+// sorted parameter names.
+func (e *engineImpl) ConditionParams(ctx context.Context) (map[string][]string, error) {
+	storeID, modelID := e.ids()
+	if modelID == "" {
+		return nil, fmt.Errorf("openfga.ConditionParams: %w", engine.ErrNoModel)
+	}
+	res, err := e.srv.ReadAuthorizationModel(ctx, &openfgav1.ReadAuthorizationModelRequest{
+		StoreId: storeID,
+		Id:      modelID,
+	})
+	if err != nil {
+		return nil, opErr("openfga.ConditionParams", err)
+	}
+	out := make(map[string][]string)
+	for name, cond := range res.GetAuthorizationModel().GetConditions() {
+		params := make([]string, 0, len(cond.GetParameters()))
+		for p := range cond.GetParameters() {
+			params = append(params, p)
+		}
+		sort.Strings(params)
+		out[name] = params
+	}
 	return out, nil
 }
