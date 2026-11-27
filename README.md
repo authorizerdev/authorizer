@@ -159,45 +159,28 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 
 ### Run with Docker
 
-The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite under `/authorizer/data`, etc.) are usually **root-owned**, so pick one of:
+```sh
+docker run -p 8080:8080 \
+  -v authorizer_data:/authorizer/data \
+  quay.io/authorizer/authorizer \
+  --database-type=sqlite \
+  --database-url=/authorizer/data/data.db \
+  --url=http://localhost:8080 \
+  --client-id=123456 \
+  --client-secret=secret \
+  --admin-secret=admin \
+  --jwt-type=HS256 \
+  --jwt-secret=test \
+  --encryption-key=test-encryption-key
+```
 
-1. **Run as root for that container** (simplest for local SQLite + volumes):
+Then open `http://localhost:8080/app` (login) and `http://localhost:8080/dashboard` (admin, secret `admin`). These values are placeholders for local use only.
 
-   ```sh
-   docker run -p 8080:8080 -u root \
-     -v authorizer_data:/authorizer/data \
-     quay.io/authorizer/authorizer \
-     --database-type=sqlite \
-     --database-url=/authorizer/data/data.db \
-     --url=http://localhost:8080 \
-     --client-id=123456 \
-     --client-secret=secret \
-     --admin-secret=admin \
-     --jwt-type=HS256 \
-     --jwt-secret=test \
-     --encryption-key=test-encryption-key
-   ```
+- `--url` is required: the server refuses to start without it.
+- An app on another origin (e.g. a React dev server on `http://localhost:3000`) also needs `--allowed-origins=http://localhost:8080,http://localhost:3000`. List the server's own URL too.
+- `HS256` publishes an empty JWKS. If a backend or MCP server verifies tokens through `/.well-known/jwks.json`, use `RS256`/`ES256` with `--jwt-private-key` and `--jwt-public-key`.
 
-2. **Keep non-root** and make the mount writable by `65532` (good for production-style bind mounts):
-
-   ```sh
-   mkdir -p ./data && sudo chown -R 65532:65532 ./data
-   docker run -p 8080:8080 \
-     -v "$(pwd)/data:/authorizer/data" \
-     quay.io/authorizer/authorizer \
-     --database-type=sqlite \
-     --database-url=/authorizer/data/data.db \
-     --url=http://localhost:8080 \
-     ...
-   ```
-
-3. **Build from source** with the root target (no `-u` at run time):
-
-   ```sh
-   docker build --target final-root -t authorizer:root .
-   docker run -p 8080:8080 -v authorizer_data:/authorizer/data authorizer:root \
-     --database-type=sqlite --database-url=/authorizer/data/data.db ...
-   ```
+The image runs as the non-root user `authorizer` (UID 1000) and ships `/authorizer/data` owned by it, so a named volume mounted there is writable without extra flags. For a bind mount, make the host directory writable by UID 1000 first (`mkdir -p ./data && sudo chown 1000:1000 ./data`). Images older than v2.4.9 lack that directory; add `-u root` for those. See the [Docker deployment guide](https://docs.authorizer.dev/deployment/docker).
 
 - Port **8080** serves the app and GraphQL; use `-p 8080:8080` to expose it.
 - Volume `authorizer_data` persists the SQLite DB; use a named volume or a host path (e.g. `-v $(pwd)/data:/authorizer/data`).
