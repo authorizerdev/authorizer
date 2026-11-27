@@ -58,8 +58,17 @@ RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
 FROM alpine:3.24.4
 ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
-RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31" && \
-    apk upgrade --no-cache
+# Minimum patched versions of the runtime's OS packages, enforced so a rebuild
+# fails instead of silently shipping a vulnerable version:
+#   - musl >= 1.2.6-r6 (CVE-2026-107891): only in edge/main so far; v3.24 main
+#     still has 1.2.6-r3. musl-utils must move with it. Drop the edge pin once
+#     v3.24 main ships the fix.
+#   - libssl3/libcrypto3 >= 3.5.9-r1 (CVE-2026-95691, -95692, -107496,
+#     -88822, -88823): in v3.24 main; pinned so `apk upgrade` can't miss it.
+RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" \
+        "busybox>=1.37.0-r31" "musl>=1.2.6-r6" "musl-utils>=1.2.6-r6" && \
+    apk upgrade --no-cache && \
+    apk add --no-cache "libssl3>=3.5.9-r1" "libcrypto3>=3.5.9-r1"
 
 ARG TARGETARCH=amd64
 
