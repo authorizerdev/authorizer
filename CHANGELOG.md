@@ -5,6 +5,42 @@ All notable changes to Authorizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.10] - 2026-11-27
+
+Adds time-limited fine-grained authorization grants: OpenFGA conditions now
+work end to end, with the server's own clock deciding when a grant expires.
+Also stops an AI agent from granting itself access through contextual tuples,
+and patches OS-package CVEs in the Docker image. Read the Upgrade notes: a
+delegated (agent) token can no longer send contextual tuples.
+
+### Security
+
+- **An agent could grant itself access with a contextual tuple** ([#945](https://github.com/authorizerdev/authorizer/pull/945)). A delegated (RFC 8693) token could attach a contextual tuple naming itself on the relation being checked, and `check_permissions` (including the MCP `check_permissions` tool) answered `allowed: true`. An agent using that answer as a "check before acting" guardrail could be talked past it. Contextual tuples from a delegated token are now rejected with a permission error on GraphQL, REST, gRPC and MCP. Users, service accounts and super-admins keep them.
+- **Docker image OS-package CVEs** ([#944](https://github.com/authorizerdev/authorizer/pull/944)): libssl3/libcrypto3 3.5.9-r1 (CVE-2026-95691, CVE-2026-95692, CVE-2026-107496, CVE-2026-88822, CVE-2026-88823) and musl 1.2.6-r6 (CVE-2026-107891).
+
+### Added
+
+- **Conditional (time-limited) FGA grants** ([#945](https://github.com/authorizerdev/authorizer/pull/945)). Models could declare OpenFGA `condition`s before, but tuples could not carry one, so a conditional grant errored on every check.
+  - `_fga_write_tuples` / `AuthorizerAdminService.FgaWriteTuples` / `POST /v1/admin/fga/tuples` accept a `condition { name, context }` on each tuple; `_fga_read_tuples` returns it (`null` for a plain tuple). Delete by `user`, `relation` and `object`.
+  - The server supplies `current_time` (its own clock, UTC) on every check, list and lookup, including `list_permissions`, `required_relations` and the SAML and org-role lookups. Callers cannot set it, and it cannot be stored on a tuple.
+  - `check_permissions` accepts an optional `context`, from a super-admin only (never through a delegated token, and never `current_time`). Stored tuple parameters take precedence over it.
+  - Dashboard: the Tuples page shows each grant's condition ("Expires …" / "Expired …") and can add a grant that expires after 10 minutes to 30 days. The model page adds an **AI agents (time-limited & task-scoped)** example.
+  - MCP: the `check_permissions` tool schema describes `context` as a plain JSON object.
+- **Release smoke coverage** for conditional grants on GraphQL, REST, gRPC and MCP with a real delegated token, and for the 2.4.7–2.4.9 fixes ([#945](https://github.com/authorizerdev/authorizer/pull/945), [#943](https://github.com/authorizerdev/authorizer/pull/943), [#942](https://github.com/authorizerdev/authorizer/pull/942)). CI now boots `docker-compose.yaml` and checks persistence on every Dockerfile or compose change ([#939](https://github.com/authorizerdev/authorizer/pull/939)).
+
+### Changed
+
+- **README Docker quick start** ([#941](https://github.com/authorizerdev/authorizer/pull/941)): one verified `docker run` command. The image runs as UID 1000 and owns `/authorizer/data`, so a named volume needs no `-u root`; the stale UID 65532 advice and the removed `--target final-root` build are gone.
+- The README's ZopDay button pulls the one-click image from Docker Hub ([#940](https://github.com/authorizerdev/authorizer/pull/940)).
+- `ROADMAP_V2.md` marks the shipped MCP, agent, SAML, SCIM, passkey and M2M work ([#937](https://github.com/authorizerdev/authorizer/pull/937)).
+
+### Upgrade notes
+
+- **Delegated tokens can no longer send contextual tuples** to `check_permissions` (PermissionDenied). Pass request-time facts from your trusted backend with its own credentials instead.
+- **Every condition parameter except `current_time` must be stored on the tuple.** A write that leaves one out is rejected, because most evaluation paths can only supply `current_time`.
+- **A model whose condition declares `current_time` with a type other than `timestamp` is rejected** when written.
+- **SDKs**: reading tuple conditions over GraphQL needs this server. SDK releases with condition support follow this release; older SDKs keep working against it.
+
 ## [2.4.9] - 2026-11-26
 
 Fixes an authentication bypass that let anyone sign in as an account whose
