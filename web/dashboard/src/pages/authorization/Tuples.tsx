@@ -36,9 +36,16 @@ import {
 } from '../../components/ui/table';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
+import {
+	DEFAULT_EXPIRY_CONDITION,
+	EXPIRY_PRESETS,
+	describeCondition,
+	expiryCondition,
+} from './tupleCondition';
 import DocsLinks from './DocsLinks';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
+	FgaCondition,
 	FgaTuple,
 	FgaReadTuplesResponse,
 	FgaGetModelResponse,
@@ -54,6 +61,10 @@ const isNoModelError = (message: string): boolean =>
 const PAGE_SIZE = 25;
 
 const emptyForm = { user: '', relation: '', object: '' };
+
+// A validated add, awaiting confirmation. condition is set for a time-limited
+// grant.
+type PendingAdd = typeof emptyForm & { condition?: FgaCondition };
 
 // Common grant patterns. Clicking one fills the form so you can see the shape.
 // (Each requires the model to support it — e.g. role usersets, user:* wildcard,
@@ -102,6 +113,24 @@ const GRANT_PATTERNS: {
 	},
 ];
 
+// ConditionCell shows a tuple's condition: an expiry for a time-limited grant,
+// the raw condition otherwise, and a dash for a permanent grant.
+const ConditionCell = ({ condition }: { condition?: FgaCondition | null }) => {
+	const s = describeCondition(condition);
+	if (s.kind === 'none') return <span className="text-gray-400">&mdash;</span>;
+	if (s.kind === 'expiry')
+		return s.expired ? (
+			<span className="text-red-600">
+				Expired {s.expiresAt.toLocaleString()}
+			</span>
+		) : (
+			<span className="text-gray-700">
+				Expires {s.expiresAt.toLocaleString()}
+			</span>
+		);
+	return <span className="font-mono text-xs text-gray-700">{s.text}</span>;
+};
+
 const Tuples = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState<boolean>(true);
@@ -121,7 +150,13 @@ const Tuples = () => {
 	const [patternsOpen, setPatternsOpen] = useState(false);
 	// Pending add — set once the form is validated, cleared once the confirm
 	// dialog closes. Non-null also drives whether the confirm dialog is open.
-	const [pendingAdd, setPendingAdd] = useState<typeof emptyForm | null>(null);
+	const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
+	// Optional expiry for the grant being added ('' = permanent) and the
+	// model condition that implements it.
+	const [expiry, setExpiry] = useState<string>('');
+	const [conditionName, setConditionName] = useState<string>(
+		DEFAULT_EXPIRY_CONDITION,
+	);
 	// Pending delete — same pattern, holds the tuple awaiting confirmation.
 	const [pendingDelete, setPendingDelete] = useState<FgaTuple | null>(null);
 
@@ -227,6 +262,7 @@ const Tuples = () => {
 			user: form.user.trim(),
 			relation: form.relation.trim(),
 			object: form.object.trim(),
+			...(expiry ? { condition: expiryCondition(conditionName, expiry) } : {}),
 		});
 	};
 
@@ -256,6 +292,7 @@ const Tuples = () => {
 
 			toast.success('Tuple added');
 			setForm(emptyForm);
+			setExpiry('');
 			setModelExists(true);
 			goReset();
 		} catch {
@@ -458,6 +495,19 @@ const Tuples = () => {
 							<div className="rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-sm">
 								{pendingAdd.user} · {pendingAdd.relation} · {pendingAdd.object}
 							</div>
+							{pendingAdd.condition && (
+								<p className="text-xs leading-relaxed text-gray-600">
+									Expires after{' '}
+									<strong>
+										{EXPIRY_PRESETS.find((p) => p.duration === expiry)?.label ??
+											expiry}
+									</strong>{' '}
+									by the server&rsquo;s clock, via the{' '}
+									<code>{pendingAdd.condition.name}</code> condition. The
+									relation must allow it in the model (e.g.{' '}
+									<code>[user with {pendingAdd.condition.name}]</code>).
+								</p>
+							)}
 							{isWildcardGrant(pendingAdd.user) && (
 								<div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
 									<AlertTriangle
@@ -534,7 +584,7 @@ const Tuples = () => {
 			{/* Add tuple form */}
 			<form
 				onSubmit={handleAddSubmit}
-				className="mb-6 grid grid-cols-1 gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end"
+				className="mb-6 grid grid-cols-1 gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_1fr_auto_auto_auto] md:items-end"
 			>
 				<div className="space-y-1">
 					<Label htmlFor="tuple-user">User</Label>
@@ -567,8 +617,34 @@ const Tuples = () => {
 					<Plus className="mr-2 h-4 w-4" />
 					{submitting ? 'Adding...' : 'Add'}
 				</Button>
+				<div className="space-y-1">
+					<Label htmlFor="tuple-expiry">Expires after</Label>
+					<select
+						id="tuple-expiry"
+						className="h-9 w-full rounded-md border border-gray-200 bg-white px-2 text-sm"
+						value={expiry}
+						onChange={(e) => setExpiry(e.target.value)}
+					>
+						<option value="">Never (permanent)</option>
+						{EXPIRY_PRESETS.map((p) => (
+							<option key={p.duration} value={p.duration}>
+								{p.label}
+							</option>
+						))}
+					</select>
+				</div>
+				{expiry && (
+					<div className="space-y-1">
+						<Label htmlFor="tuple-condition">Condition</Label>
+						<Input
+							id="tuple-condition"
+							value={conditionName}
+							onChange={(e) => setConditionName(e.target.value)}
+						/>
+					</div>
+				)}
 				{/* Full-width hint row so the input columns above stay aligned. */}
-				<p className="text-xs text-gray-400 md:col-span-4">
+				<p className="text-xs text-gray-400 md:col-span-6">
 					Use the user&rsquo;s id (<code>user:&lt;id&gt;</code>, from the{' '}
 					<strong>Users</strong> page), not a name — ids are stable and unique.
 				</p>
@@ -588,6 +664,7 @@ const Tuples = () => {
 								<TableHead>User</TableHead>
 								<TableHead>Relation</TableHead>
 								<TableHead>Object</TableHead>
+								<TableHead>Condition</TableHead>
 								<TableHead className="text-right">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -604,6 +681,9 @@ const Tuples = () => {
 									</TableCell>
 									<TableCell className="font-mono text-sm">
 										{tuple.object}
+									</TableCell>
+									<TableCell className="text-sm">
+										<ConditionCell condition={tuple.condition} />
 									</TableCell>
 									<TableCell className="text-right">
 										<Button

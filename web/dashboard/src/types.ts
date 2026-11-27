@@ -130,10 +130,18 @@ export interface FgaModel {
 	dsl: string;
 }
 
+// FgaCondition is an OpenFGA condition stored on a tuple: the condition name
+// declared in the model plus the parameters bound at write time.
+export interface FgaCondition {
+	name: string;
+	context?: Record<string, unknown> | null;
+}
+
 export interface FgaTuple {
 	user: string;
 	relation: string;
 	object: string;
+	condition?: FgaCondition | null;
 }
 
 export interface FgaGetModelResponse {
