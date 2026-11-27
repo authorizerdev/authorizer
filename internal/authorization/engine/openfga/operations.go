@@ -29,7 +29,9 @@ func requestContext(params map[string]any) (*structpb.Struct, error) {
 	for k, v := range params {
 		merged[k] = v
 	}
-	merged[engine.ContextKeyCurrentTime] = time.Now().UTC().Format(time.RFC3339Nano)
+	// Second precision: ample for expiry, and it keeps request contexts
+	// identical within a second so OpenFGA's check cache can still hit.
+	merged[engine.ContextKeyCurrentTime] = time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	st, err := structpb.NewStruct(merged)
 	if err != nil {
 		return nil, fmt.Errorf("invalid request context: %w", err)
@@ -41,6 +43,13 @@ func requestContext(params map[string]any) (*structpb.Struct, error) {
 func toProtoCondition(c *engine.TupleCondition) (*openfgav1.RelationshipCondition, error) {
 	if c == nil {
 		return nil, nil
+	}
+	// Defense in depth, enforced here so every write path inherits it: OpenFGA
+	// merges a tuple's stored context OVER the request context, so a stored
+	// current_time would replace the server clock and the grant would never
+	// expire.
+	if _, ok := c.Context[engine.ContextKeyCurrentTime]; ok {
+		return nil, fmt.Errorf("openfga.WriteTuples: %s cannot be stored on a tuple; the server supplies it", engine.ContextKeyCurrentTime)
 	}
 	out := &openfgav1.RelationshipCondition{Name: c.Name}
 	if len(c.Context) > 0 {

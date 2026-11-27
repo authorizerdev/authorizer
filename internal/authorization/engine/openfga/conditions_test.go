@@ -118,6 +118,16 @@ func TestConditions_TimeLimitedAgentGrants(t *testing.T) {
 		assert.False(t, ok)
 	})
 
+	t.Run("the engine itself refuses a stored current_time", func(t *testing.T) {
+		c := grant(now.Add(-time.Hour), "10m")
+		c.Context[engine.ContextKeyCurrentTime] = "2000-01-01T00:00:00Z"
+		err := eng.WriteTuples(ctx, []engine.TupleKey{{User: "agent:frozen", Relation: "can_call", Object: "tool:search", Condition: c}})
+		require.Error(t, err, "a stored current_time would override the server clock; every write path must refuse it")
+		ok, cErr := eng.Check(ctx, "agent:frozen", "can_call", "tool:search")
+		require.NoError(t, cErr)
+		assert.False(t, ok)
+	})
+
 	t.Run("an undeclared condition is rejected at write", func(t *testing.T) {
 		err := eng.WriteTuples(ctx, []engine.TupleKey{{User: "agent:x", Relation: "can_call", Object: "tool:search",
 			Condition: &engine.TupleCondition{Name: "no_such_condition"}}})
