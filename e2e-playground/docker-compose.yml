@@ -269,8 +269,10 @@ services:
       # matching (#934) rather than the origin fallback. /app is the default
       # target of a magic link sent without a redirect_uri (magic-link.spec.ts);
       # the ?tenant=acme entry proves a redirect URI with its own query string
-      # survives the emailed link.
-      - "--redirect-uris=http://authorizer-magic-link:8080/app,http://authorizer-magic-link:8080/e2e-callback,http://authorizer-magic-link:8080/e2e-callback?tenant=acme"
+      # survives the emailed link. Each URI is listed twice: in-network (how
+      # `make e2e-playground` runs) and via the published host port (the
+      # playwright.config.ts default when the suite runs from the host).
+      - "--redirect-uris=http://authorizer-magic-link:8080/app,http://authorizer-magic-link:8080/e2e-callback,http://authorizer-magic-link:8080/e2e-callback?tenant=acme,http://localhost:8083/app,http://localhost:8083/e2e-callback,http://localhost:8083/e2e-callback?tenant=acme"
       - "--smtp-host=mailpit"
       - "--smtp-port=1025"
       # Ephemeral, purpose-built test stack - no real DoS concern, and the

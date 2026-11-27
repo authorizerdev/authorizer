@@ -6,9 +6,13 @@
 // verifying an already-enrolled TOTP, and enrolling TOTP during the login
 // (setup offered with the MFA session cookie, then verified).
 //
-// Runs in the `mfa-off` project against the shared `authorizer` instance
-// (TOTP login on by default, MFA optional), which configures
-// --roles=user,editor,viewer for this spec.
+// Runs in the `mfa-off` project against the shared `authorizer` instance,
+// which configures --roles=user,editor,viewer for this spec. "mfa-off" only
+// means --enforce-mfa is not set: TOTP is on by default (this service does
+// not pass --disable-totp-login), so a password login of a never-enrolled
+// user still withholds the token and offers TOTP setup (should_show_totp_screen, the
+// mfaGateOfferAll branch of internal/service/mfa_gate.go), and an enrolled
+// user is challenged for a code.
 import { test, expect, APIRequestContext } from '@playwright/test';
 import * as OTPAuth from 'otpauth';
 import crypto from 'node:crypto';

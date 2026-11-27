@@ -84,7 +84,8 @@ test.describe('Magic link from /authorize (#934)', () => {
     expect(body.id_token).toBeTruthy();
 
     const replay = await redeemCode(request, baseURL!, code, req);
-    expect(replay.status()).toBeGreaterThanOrEqual(400);
+    expect(replay.status()).toBe(400);
+    expect((await replay.json()).error).toBe('invalid_grant');
   });
 
   test('different browser (no binding cookie): user is signed in but gets no code', async ({
@@ -170,10 +171,12 @@ test.describe('Magic link from /authorize (#934)', () => {
         await victim.page.waitForURL(isCallback);
         expect(new URL(victim.page.url()).searchParams.has('code')).toBe(false);
 
-        if (pendingCode) {
-          const stolen = await redeemCode(attacker.ctx.request, baseURL!, pendingCode, req);
-          expect(stolen.status(), 'attacker must not redeem a code for the victim').toBeGreaterThanOrEqual(400);
-        }
+        // /authorize always threads the pre-generated code into the login
+        // UI URL for the code flow, so this check can never be skipped.
+        expect(pendingCode, 'the /app URL carries the pending code').toBeTruthy();
+        const stolen = await redeemCode(attacker.ctx.request, baseURL!, pendingCode!, req);
+        expect(stolen.status(), 'attacker must not redeem a code for the victim').toBe(400);
+        expect((await stolen.json()).error).toBe('invalid_grant');
       }
 
       expect(attackerHits, 'no browser may reach the attacker URI').toEqual([]);
