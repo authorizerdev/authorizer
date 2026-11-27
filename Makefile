@@ -118,6 +118,15 @@ test:
 smoke:
 	go test -tags smoke -count=1 -v -timeout 5m ./internal/e2e/
 
+# Opt-in: the smoke's core lifecycle against a real database in Docker, for the
+# backends `make smoke` (SQLite only, no Docker) cannot reach:
+#   make smoke-db DB=serenedb|surrealdb|sqlserver
+.PHONY: smoke-db
+smoke-db:
+	SERENEDB_IMAGE=$(SERENEDB_IMAGE) SURREALDB_IMAGE=$(SURREALDB_IMAGE) \
+		SQLSERVER_IMAGE=$(SQLSERVER_IMAGE) SQLSERVER_PASSWORD='$(SQLSERVER_PASSWORD)' \
+		sh scripts/smoke-db.sh $(DB)
+
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	@# Wait for readiness, then ALWAYS tear the container down — including when

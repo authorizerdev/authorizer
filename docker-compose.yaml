@@ -5,10 +5,10 @@
 # secret here is a placeholder: replace them all before any real deployment.
 # See https://docs.authorizer.dev/deployment/docker for the full flag list.
 #
-# API calls are CSRF-checked: browser requests must come from an allowed
-# origin (by default the --url origin, http://localhost:8080). When calling
-# the API from scripts, send a matching `Origin` header or set
-# --allowed-origins.
+# API calls are CSRF-checked. With the default --allowed-origins (*), a
+# request's Origin must match the host it is sent to, so when calling the
+# API from scripts send an `Origin` header matching the host you call (e.g.
+# http://localhost:8080), or set --allowed-origins.
 services:
   authorizer:
     build: .

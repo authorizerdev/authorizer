@@ -30,6 +30,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -683,14 +684,42 @@ func jwtPayload(t *testing.T, tok string) map[string]any {
 	return claims
 }
 
+// The binary is built once per `go test` run and shared by every top-level
+// smoke test (each used to rebuild it, ~8-10s apiece). TestMain removes it.
+var (
+	smokeBinOnce sync.Once
+	smokeBinDir  string
+	smokeBinPath string
+	smokeBinErr  error
+)
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if smokeBinDir != "" {
+		_ = os.RemoveAll(smokeBinDir)
+	}
+	os.Exit(code)
+}
+
 func buildBinary(t *testing.T) string {
 	t.Helper()
-	bin := filepath.Join(t.TempDir(), "authorizer")
-	cmd := exec.Command("go", "build", "-o", bin, ".")
-	cmd.Dir = repoRoot(t)
-	out, err := cmd.CombinedOutput()
-	require.NoError(t, err, "go build: %s", out)
-	return bin
+	root := repoRoot(t)
+	smokeBinOnce.Do(func() {
+		smokeBinDir, smokeBinErr = os.MkdirTemp("", "authorizer-smoke-bin-")
+		if smokeBinErr != nil {
+			return
+		}
+		bin := filepath.Join(smokeBinDir, "authorizer")
+		cmd := exec.Command("go", "build", "-o", bin, ".")
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			smokeBinErr = fmt.Errorf("go build: %w: %s", err, out)
+			return
+		}
+		smokeBinPath = bin
+	})
+	require.NoError(t, smokeBinErr)
+	return smokeBinPath
 }
 
 // repoRoot resolves the module root (two levels up from internal/e2e).
@@ -715,6 +744,15 @@ func freePort(t *testing.T) int {
 // startServer boots the binary, waits until /v1/meta serves, and returns a
 // stop function (also registered as cleanup, safe to call twice).
 func startServer(t *testing.T, bin string, args []string, baseURL string) func() {
+	t.Helper()
+	stop, _ := startServerWithLog(t, bin, args, baseURL)
+	return stop
+}
+
+// startServerWithLog is startServer that also returns the path of the
+// server's combined stdout/stderr log, for tests that correlate an API
+// response with what the server logged.
+func startServerWithLog(t *testing.T, bin string, args []string, baseURL string) (func(), string) {
 	t.Helper()
 	logPath := filepath.Join(t.TempDir(), "server.log")
 	logFile, err := os.Create(logPath)
@@ -746,14 +784,14 @@ func startServer(t *testing.T, bin string, args []string, baseURL string) func()
 		if err == nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				return stop
+				return stop, logPath
 			}
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
 	logs, _ := os.ReadFile(logPath)
 	t.Fatalf("server did not become ready; log:\n%s", logs)
-	return stop
+	return stop, logPath
 }
 
 // graphQLClient is a minimal GraphQL-over-HTTP client with a cookie jar (the
